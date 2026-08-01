@@ -1,0 +1,64 @@
+[
+  {
+    "run": {
+      "id": "demo-agent-v1",
+      "generatedAt": "2026-07-30T10:00:00.000Z",
+      "project": "local-chat-playground",
+      "kind": "agent-eval",
+      "branch": "main",
+      "commit": "local001"
+    },
+    "total": 6,
+    "passed": 3,
+    "failed": 3,
+    "passRate": 0.5,
+    "severityCounts": {
+      "none": 3,
+      "low": 0,
+      "medium": 0,
+      "high": 3,
+      "critical": 0
+    },
+    "suites": [
+      {
+        "id": "local-chat-quality",
+        "name": "Local chat quality",
+        "total": 6,
+        "passed": 3,
+        "failed": 3,
+        "passRate": 0.5
+      }
+    ]
+  },
+  {
+    "run": {
+      "id": "demo-agent-v2",
+      "generatedAt": "2026-07-31T10:00:00.000Z",
+      "project": "local-chat-playground",
+      "kind": "agent-eval",
+      "branch": "main",
+      "commit": "local002"
+    },
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "passRate": 1,
+    "severityCounts": {
+      "none": 6,
+      "low": 0,
+      "medium": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "suites": [
+      {
+        "id": "local-chat-quality",
+        "name": "Local chat quality",
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "passRate": 1
+      }
+    ]
+  }
+]

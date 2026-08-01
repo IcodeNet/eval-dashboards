@@ -1,0 +1,57 @@
+{
+    "name": "@icodenet/eval-dashboards",
+    "version": "0.1.0",
+    "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
+    "type": "module",
+    "author": "icodenet <byronth@gmail.com>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/icodenet/eval-dashboards.git"
+    },
+    "bin": {
+        "eval-dashboards": "./dist/cli/index.js"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "docs",
+        "examples/**/*.md",
+        "examples/basic-json/*.json",
+        "examples/llm-agent-evals/*.ts"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsx src/cli/index.ts",
+        "example:llm-agent-evals": "tsx examples/llm-agent-evals/run-local-agent-evals.ts",
+        "example:llm-agent-report": "pnpm example:llm-agent-evals && pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --noEmit",
+        "check": "pnpm typecheck && pnpm test && pnpm build"
+    },
+    "keywords": [
+        "evals",
+        "evaluation",
+        "reports",
+        "llm-evals",
+        "testing",
+        "quality-gates"
+    ],
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "engines": {
+        "node": ">=20"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "tsup": "^8.4.0",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.0",
+        "vitest": "^3.2.0"
+    },
+    "dependencies": {
+        "@octokit/rest": "^22.0.1"
+    }
+}

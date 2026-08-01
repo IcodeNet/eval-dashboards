@@ -1,0 +1,108 @@
+{
+  "summary": {
+    "run": {
+      "id": "demo-agent-v2",
+      "generatedAt": "2026-07-31T10:00:00.000Z",
+      "project": "local-chat-playground",
+      "kind": "agent-eval",
+      "branch": "main",
+      "commit": "local002"
+    },
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "passRate": 1,
+    "severityCounts": {
+      "none": 6,
+      "low": 0,
+      "medium": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "suites": [
+      {
+        "id": "local-chat-quality",
+        "name": "Local chat quality",
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "passRate": 1
+      }
+    ]
+  },
+  "comparison": {
+    "currentRunId": "demo-agent-v2",
+    "previousRunId": "demo-agent-v1",
+    "newlyFailing": [],
+    "newlyPassing": [
+      {
+        "id": "grounded-answer:judge",
+        "suite": "local-chat-quality",
+        "kind": "llm-judge",
+        "name": "grounded-answer judge score",
+        "question": "Can I use the dashboard to see whether my evals improved?",
+        "datasetId": "local-chat-smoke",
+        "scenarioId": "grounded-answer",
+        "rubricId": "groundedness",
+        "judgeModel": "rule-based-example-judge",
+        "judgeVerdict": true,
+        "judgeCategory": "passed",
+        "judgeReasoning": "Response satisfied the portable rubric for this scenario.",
+        "promptVersion": "prompt-v2",
+        "input": "Can I use the dashboard to see whether my evals improved?",
+        "output": "Reports compare latest and previous runs using baseline compatibility and trend data. Use the baseline status and trend to decide whether the eval improved.",
+        "passed": true,
+        "severity": "none",
+        "category": "groundedness",
+        "durationMs": 4
+      },
+      {
+        "id": "tool-use:judge",
+        "suite": "local-chat-quality",
+        "kind": "llm-judge",
+        "name": "tool-use judge score",
+        "question": "Which report command should I run after my eval runner writes JSON?",
+        "datasetId": "local-chat-smoke",
+        "scenarioId": "tool-use",
+        "rubricId": "tool-use",
+        "judgeModel": "rule-based-example-judge",
+        "judgeVerdict": true,
+        "judgeCategory": "passed",
+        "judgeReasoning": "Response satisfied the portable rubric for this scenario.",
+        "promptVersion": "prompt-v2",
+        "input": "Which report command should I run after my eval runner writes JSON?",
+        "output": "Run eval-reports report --input=.evals_output after your eval runner writes JSON.",
+        "passed": true,
+        "severity": "none",
+        "category": "tool-use",
+        "durationMs": 4
+      },
+      {
+        "id": "concise-answer:judge",
+        "suite": "local-chat-quality",
+        "kind": "llm-judge",
+        "name": "concise-answer judge score",
+        "question": "Summarise the eval result in one sentence.",
+        "datasetId": "local-chat-smoke",
+        "scenarioId": "concise-answer",
+        "rubricId": "response-quality",
+        "judgeModel": "rule-based-example-judge",
+        "judgeVerdict": true,
+        "judgeCategory": "passed",
+        "judgeReasoning": "Response satisfied the portable rubric for this scenario.",
+        "promptVersion": "prompt-v2",
+        "input": "Summarise the eval result in one sentence.",
+        "output": "The pass rate improved, but one concise-answer row still needs review.",
+        "passed": true,
+        "severity": "none",
+        "category": "response-quality",
+        "durationMs": 4
+      }
+    ],
+    "persistentFailures": []
+  },
+  "baselineCompatibility": {
+    "status": "compatible",
+    "issues": []
+  }
+}

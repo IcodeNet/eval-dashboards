@@ -1,0 +1,5 @@
+eval-report/
+published-eval-report/
+examples/**/.evals_output/
+coverage/
+*.log
