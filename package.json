@@ -9,7 +9,7 @@
         "url": "git+https://github.com/icodenet/eval-dashboards.git"
     },
     "bin": {
-        "eval-dashboards": "./dist/cli/index.js"
+        "eval-dashboards": "dist/cli/index.js"
     },
     "files": [
         "dist",
