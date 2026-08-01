@@ -17,7 +17,11 @@
         "docs",
         "examples/**/*.md",
         "examples/basic-json/*.json",
-        "examples/llm-agent-evals/*.ts"
+        "examples/llm-agent-evals/*.ts",
+        "examples/vitest-evals/*.ts",
+        "examples/jest-custom-reporter/*.ts",
+        "examples/github-actions/*.yml",
+        "examples/azure-devops/*.yml"
     ],
     "scripts": {
         "build": "tsup",
