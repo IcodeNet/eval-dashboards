@@ -21,6 +21,7 @@ export type RiskArea =
   | 'prompt-safety'
   | 'response-quality'
   | 'tool-use'
+  | 'tool-routing'
   | 'groundedness'
   | 'relevance'
   | 'custom';
