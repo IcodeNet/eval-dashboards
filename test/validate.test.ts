@@ -134,7 +134,7 @@ describe('validateEvalReport', () => {
           agentReasoning: 'Chose knowledge-base because the user asked about docs.',
           turns: [
             { role: 'user', content: 'What command do I run?' },
-            { role: 'assistant', content: 'eval-reports report --input=.evals_output' },
+            { role: 'assistant', content: 'eval-dashboards report --input=.evals_output' },
           ],
           toolCalls: [{ name: 'knowledge-base', args: { query: 'report command' }, durationMs: 120 }],
           axisScores: { clarity: 0.9, groundedness: 1.0 },

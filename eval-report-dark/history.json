@@ -1,63 +1,61 @@
 [
   {
     "run": {
-      "id": "demo-agent-v1",
+      "id": "run-001",
       "generatedAt": "2026-07-30T10:00:00.000Z",
-      "project": "local-chat-playground",
-      "kind": "agent-eval",
+      "project": "demo-agent",
       "branch": "main",
-      "commit": "local001"
+      "commit": "abc123"
     },
-    "total": 6,
-    "passed": 3,
-    "failed": 3,
-    "passRate": 0.5,
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "passRate": 0.6666666666666666,
     "severityCounts": {
-      "none": 3,
+      "none": 2,
       "low": 0,
       "medium": 0,
-      "high": 3,
+      "high": 1,
       "critical": 0
     },
     "suites": [
       {
-        "id": "local-chat-quality",
-        "name": "Local chat quality",
-        "total": 6,
-        "passed": 3,
-        "failed": 3,
-        "passRate": 0.5
+        "id": "answer-quality",
+        "name": "Answer quality",
+        "total": 3,
+        "passed": 2,
+        "failed": 1,
+        "passRate": 0.6667
       }
     ]
   },
   {
     "run": {
-      "id": "demo-agent-v2",
+      "id": "run-002",
       "generatedAt": "2026-07-31T10:00:00.000Z",
-      "project": "local-chat-playground",
-      "kind": "agent-eval",
+      "project": "demo-agent",
       "branch": "main",
-      "commit": "local002"
+      "commit": "def456"
     },
-    "total": 6,
-    "passed": 6,
-    "failed": 0,
-    "passRate": 1,
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "passRate": 0.6666666666666666,
     "severityCounts": {
-      "none": 6,
+      "none": 2,
       "low": 0,
-      "medium": 0,
+      "medium": 1,
       "high": 0,
       "critical": 0
     },
     "suites": [
       {
-        "id": "local-chat-quality",
-        "name": "Local chat quality",
-        "total": 6,
-        "passed": 6,
-        "failed": 0,
-        "passRate": 1
+        "id": "answer-quality",
+        "name": "Answer quality",
+        "total": 3,
+        "passed": 2,
+        "failed": 1,
+        "passRate": 0.6667
       }
     ]
   }

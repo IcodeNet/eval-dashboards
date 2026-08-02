@@ -72,7 +72,7 @@ describe('tool-use', () => {
       kind: 'agent',
       question: 'Did the agent call the knowledge-base tool?',
       input: 'Which report command do I run?',
-      output: 'eval-reports report --input=.evals_output',
+      output: 'eval-dashboards report --input=.evals_output',
       expected: 'Should call knowledge-base.',
       category: 'tool-use',
       metadata: { toolCalls: toolCallsRecorded },

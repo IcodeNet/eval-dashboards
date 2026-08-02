@@ -20,7 +20,7 @@ eval-reports publish --target=github-pages
 
 ## Non-Negotiables
 
-- Package name is `@icodenet/eval-reports`.
+- Package name is `@icodenet/eval-dashboards`.
 - Repository is independent and not inside any downstream adopter repository.
 - No adopter-specific, vendor-specific, or single-runner assumptions in core.
 - Publishing adapters are mandatory v1 scope.
@@ -53,12 +53,12 @@ Use IstanbulJS as the architecture inspiration:
 ## Required CLI
 
 ```sh
-eval-reports init
-eval-reports report
-eval-reports check
-eval-reports merge
-eval-reports history
-eval-reports publish
+eval-dashboards init
+eval-dashboards report
+eval-dashboards check
+eval-dashboards merge
+eval-dashboards history
+eval-dashboards publish
 ```
 
 `report` generates human and machine-readable reports.
@@ -164,8 +164,8 @@ Do not log tokens, connection strings, SAS values, or secrets.
 
 ## Acceptance Criteria
 
-- `eval-reports report --input=examples/basic-json --reporter=html` creates a static dashboard.
-- `eval-reports check` exits `1` when gates fail.
+- `eval-dashboards report --input=examples/basic-json --reporter=html` creates a static dashboard.
+- `eval-dashboards check` exits `1` when gates fail.
 - Two runs can be compared and show newly failing and newly passing rows.
 - `publish --target=dir` writes a complete static site.
 - `publish --target=github-pages --dry-run` validates and prints intended publish actions.

@@ -103,7 +103,7 @@ export default class VitestEvalReporter implements Reporter {
     await mkdir(outDir, { recursive: true });
     const filePath = path.join(outDir, `${runId}.json`);
     await writeFile(filePath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-    console.log(`[eval-reports] artifact written to ${filePath}`);
+    console.log(`[eval-dashboards] artifact written to ${filePath}`);
   }
 
   private collectTasks(

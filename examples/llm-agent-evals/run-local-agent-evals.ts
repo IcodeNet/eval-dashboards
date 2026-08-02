@@ -29,7 +29,7 @@ const scenarios: Scenario[] = [
   {
     id: 'tool-use',
     question: 'Which report command should I run after my eval runner writes JSON?',
-    requiredPhrases: ['eval-reports report', '--input'],
+    requiredPhrases: ['eval-dashboards report', '--input'],
     forbiddenPhrases: ['upload your token'],
     expectedTool: 'knowledge-base',
     category: 'tool-use',
@@ -197,7 +197,7 @@ const searchKnowledgeBase = (question: string): string => {
     return 'Reports compare latest and previous runs using baseline compatibility and trend data.';
   }
 
-  return 'After an eval runner writes JSON, run eval-reports report --input=<dir>.';
+  return 'After an eval runner writes JSON, run eval-dashboards report --input=<dir>.';
 };
 
 const legacyPromptResponse = (scenario: Scenario, evidence: string): string => {
@@ -206,7 +206,7 @@ const legacyPromptResponse = (scenario: Scenario, evidence: string): string => {
   }
 
   if (scenario.id === 'tool-use') {
-    return 'Run eval-reports report after writing JSON. You might need to upload your token first.';
+    return 'Run eval-dashboards report after writing JSON. You might need to upload your token first.';
   }
 
   return 'Firstly, the pass rate is 66%. Secondly, it has some failures. Thirdly, review the report.';
@@ -218,7 +218,7 @@ const improvedPromptResponse = (scenario: Scenario, evidence: string): string =>
   }
 
   if (scenario.id === 'tool-use') {
-    return 'Run eval-reports report --input=.evals_output after your eval runner writes JSON.';
+    return 'Run eval-dashboards report --input=.evals_output after your eval runner writes JSON.';
   }
 
   return 'The pass rate improved, but one concise-answer row still needs review.';

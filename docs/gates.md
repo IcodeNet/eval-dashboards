@@ -11,7 +11,7 @@ Initial gates:
 Example:
 
 ```sh
-eval-reports check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
 ```
 
 Exit codes:

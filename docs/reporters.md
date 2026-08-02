@@ -10,5 +10,5 @@ Built-in reporters:
 Multiple reporters can be requested in one command:
 
 ```sh
-eval-reports report --input=.evals_output --reporter=html --reporter=text
+eval-dashboards report --input=.evals_output --reporter=html --reporter=text
 ```

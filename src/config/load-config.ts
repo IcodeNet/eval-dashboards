@@ -22,12 +22,12 @@ const tryImportConfig = async (filePath: string): Promise<EvalReportsConfig | un
   }
 };
 
-/** Try to read eval-reports config from package.json#eval-reports. */
+/** Try to read eval-dashboards config from package.json#eval-dashboards. */
 const tryPackageJsonConfig = async (cwd: string): Promise<EvalReportsConfig | undefined> => {
   try {
     const raw = await readFile(path.join(cwd, 'package.json'), 'utf8');
     const pkg = JSON.parse(raw) as Record<string, unknown>;
-    const config = pkg['eval-reports'];
+    const config = pkg['eval-dashboards'];
     if (config && typeof config === 'object') return config as EvalReportsConfig;
     return undefined;
   } catch {
@@ -36,8 +36,8 @@ const tryPackageJsonConfig = async (cwd: string): Promise<EvalReportsConfig | un
 };
 
 /**
- * Load config from the first of: eval-reports.config.{ts,js,mjs,cjs}, then
- * package.json#eval-reports. Returns an empty object if nothing is found so
+ * Load config from the first of: eval-dashboards.config.{ts,js,mjs,cjs}, then
+ * package.json#eval-dashboards. Returns an empty object if nothing is found so
  * callers can always destructure safely.
  */
 export const loadConfig = async (cwd = process.cwd()): Promise<EvalReportsConfig> => {

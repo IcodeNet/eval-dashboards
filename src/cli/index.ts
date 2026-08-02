@@ -1,5 +1,5 @@
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
-import { buildHistory, compareRuns } from '../history/history.js';
+import { buildHistory, compareRuns, selectBaseline } from '../history/history.js';
 import { readEvalReports, writeJsonFile } from '../io/reports.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
 import { publishReport, type PublishTarget } from '../publish/publish.js';
@@ -18,7 +18,7 @@ Commands:
   init     Print starter config.
 `;
 
-const loadContext = async (input: string, reportDir: string) => {
+const loadContext = async (input: string, reportDir: string, baselineRunId?: string) => {
   const reports = await readEvalReports(input);
 
   if (reports.length === 0) {
@@ -31,7 +31,13 @@ const loadContext = async (input: string, reportDir: string) => {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
   }
 
-  const previous = reports.length > 1 ? reports.at(-2) : undefined;
+  // If baselineRunId is specified, find and use that report as baseline
+  let previous = baselineRunId ? selectBaseline(reports, baselineRunId) : undefined;
+
+  // If explicit baseline not provided or not found, use previous run
+  if (!previous && reports.length > 1) {
+    previous = reports.at(-2);
+  }
 
   return {
     current,
@@ -106,7 +112,8 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'check') {
-    const context = await loadContext(input, reportDir);
+    const baselineRunId = optionString(options, 'baseline-run-id', '');
+    const context = await loadContext(input, reportDir, baselineRunId || undefined);
     const result = checkGates(context.current, context.comparison, config.gates ?? {});
 
     if (result.passed) {

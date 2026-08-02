@@ -1,6 +1,6 @@
 # Agent and LLM Judge Evals Example
 
-This is a provider-free local chat playground. It simulates two versions of the same agent, runs scenarios through a tiny knowledge-base tool, emits `eval-report/v1` artifacts, then lets `@icodenet/eval-reports` generate reports from those artifacts.
+This is a provider-free local chat playground. It simulates two versions of the same agent, runs scenarios through a tiny knowledge-base tool, emits `eval-report/v1` artifacts, then lets `@icodenet/eval-dashboards` generate reports from those artifacts.
 
 Run it from the repo root:
 

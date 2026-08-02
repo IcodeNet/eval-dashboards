@@ -6,7 +6,7 @@ export default defineConfig({
     include: ['**/*.eval.ts'],
     reporters: [
       'verbose',
-      new VitestEvalReporter({ outDir: '.evals_output', project: 'eval-reports-example' }),
+      new VitestEvalReporter({ outDir: '.evals_output', project: 'eval-dashboards-example' }),
     ],
   },
 });

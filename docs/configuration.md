@@ -2,9 +2,9 @@
 
 Planned config locations:
 
-- `eval-reports.config.ts`
-- `eval-reports.config.js`
-- `evalReports` in `package.json`
+- `eval-dashboards.config.ts`
+- `eval-dashboards.config.js`
+- `evalDashboards` in `package.json`
 
 Example:
 

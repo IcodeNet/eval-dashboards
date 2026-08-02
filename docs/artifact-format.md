@@ -1,6 +1,6 @@
 # Artifact Format
 
-`@icodenet/eval-reports` consumes versioned JSON artifacts. The first contract is `eval-report/v1`.
+`@icodenet/eval-dashboards` consumes versioned JSON artifacts. The first contract is `eval-report/v1`.
 
 ```ts
 export type EvalReportV1 = {
@@ -123,7 +123,7 @@ export type SuiteRubricContract = {
 
 ## Baseline Compatibility
 
-When a run is compared with a previous run, `@icodenet/eval-reports` can assess whether the comparison is meaningful:
+When a run is compared with a previous run, `@icodenet/eval-dashboards` can assess whether the comparison is meaningful:
 
 - `compatible`: suite dataset and rubric versions match.
 - `warning`: metadata is missing, the suite is new, or a report-only suite changed versions.

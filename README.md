@@ -4,26 +4,26 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node ≥ 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
-**Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.**
+**Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
-Bring your own eval runner — emit a standard JSON artifact, then use `eval-dashboards` to generate reports, enforce quality gates, track history, and publish a static dashboard. No platform sign-up, no vendor lock-in.
+Emit a taxonomy-complete `eval-report/v1` JSON artifact from any runner (Vitest, Jest, custom Node code, Python, etc.), then use `eval-dashboards` to generate reports, enforce quality gates, track history, and publish static dashboards. No platform sign-up, no vendor lock-in.
 
-> Inspired by [NYC/Istanbul](https://istanbul.js.org/) for code coverage. Same mental model, built for LLM and agent evals.
+> **Same mental model as [NYC/Istanbul](https://istanbul.js.org/) for code coverage** — but for LLM and agent evals. Schema-first, offline-first, runner-agnostic.
 
 ---
 
-## Screenshots
+## Why eval-dashboards?
 
-<table>
-  <tr>
-    <td><strong>Default theme</strong></td>
-    <td><strong>Dark theme</strong></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/report-default.png" alt="Default theme dashboard" width="480"></td>
-    <td><img src="docs/images/report-dark.png" alt="Dark theme dashboard" width="480"></td>
-  </tr>
-</table>
+| Feature | @icodenet/eval-dashboards | Full-Featured Platform |
+|---------|--------------------------|----------------------|
+| **Standardized Schema** | ✅ JSON Schema + teaching docs | ⚠️ Vendor-specific |
+| **Offline Reports** | ✅ Pure static HTML | ⚠️ Requires server |
+| **Bring Your Own Runner** | ✅ Vitest, Jest, custom Node, Python, etc. | ❌ Must use platform's harness |
+| **CI/CD Integration** | ✅ GitHub Actions, Azure Pipelines examples included | ⚠️ Usually provided |
+| **Open Source** | ✅ MIT licensed | ❌ Proprietary |
+| **Zero Lock-in** | ✅ Artifact is just JSON; export anytime | ❌ Your data is in their system |
+
+**The core idea:** Your eval results are valuable even without dashboards. Standardize the artifact format first, then layer beautiful UI on top—not the other way around.
 
 ---
 
@@ -34,7 +34,7 @@ pnpm add -D @icodenet/eval-dashboards
 ```
 
 ```sh
-# 1. Run your evals and emit a JSON artifact
+# 1. Emit a taxonomy-complete artifact from your runner
 my-eval-runner --output=.evals_output/run.json
 
 # 2. Generate an HTML dashboard
@@ -47,72 +47,136 @@ eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failur
 eval-dashboards publish --target=github-pages --repo=owner/repo
 ```
 
----
-
-## CLI commands
-
-| Command | Description |
-|---|---|
-| `eval-dashboards report` | Generate HTML, text, Markdown, or JSON-summary dashboards |
-| `eval-dashboards check` | Enforce pass-rate, new-failure, and severity gates |
-| `eval-dashboards publish` | Publish dashboard to `dir`, `github-pages`, Azure Static Web Apps, or Azure Storage |
-| `eval-dashboards history` | Build a history JSON trend file from discovered artifacts |
-| `eval-dashboards merge` | Merge multiple artifacts into one |
-| `eval-dashboards init` | Print a starter `eval-dashboards.config.ts` |
+See working examples:
+- **Vitest**: [examples/vitest-evals/README.md](examples/vitest-evals/README.md)
+- **Jest**: [examples/jest-custom-reporter/README.md](examples/jest-custom-reporter/README.md)
+- **Plain Node/TypeScript**: [examples/node-plain-eval/README.md](examples/node-plain-eval/README.md)
+- **Python / Pytest**: [examples/python-pytest-evals/README.md](examples/python-pytest-evals/README.md)
+- **LangChain Evaluators**: [examples/langchain-evals/README.md](examples/langchain-evals/README.md)
 
 ---
 
-## Themes
+## Visual Gallery
 
-Three built-in themes. Switch with `--theme` or set in config:
+The HTML dashboard is fully responsive and works in both light and dark themes. View live examples:
 
-```sh
-eval-dashboards report --theme=dark
-eval-dashboards report --theme=minimal
+- **[Light theme dashboard](eval-report/index.html)** — Default presentation with light background
+- **[Dark theme dashboard](eval-report-dark/index.html)** — Dark mode with reduced eye strain
+
+### Features Visible in Dashboard
+
+**Metric Cards** (top)
+- Pass rate with status coloring (orange for warning, red for fail, green for pass)
+- Passed/total row count
+- New failures and new passes since previous run
+- Baseline compatibility status (compatible, warning, or blocked)
+
+**Pass-Rate Trend** (historical view)
+- Mini sparkline showing pass-rate over time
+- Trend direction indicator: ↑ improving, ↓ regressing, → stable
+- Percentage change calculation comparing current to baseline
+
+**Suite Summary** (breakdown by test suite)
+- Counts: total, passed, failed
+- Pass-rate bar chart per suite
+- Color-coded pass indicators
+
+**Failing Rows** (grouped view)
+- Rows organized hierarchically by dataset → scenario
+- Collapsible sections for easy navigation
+- Taxonomy completeness score (0–100%) with visual indicators
+- Kind badges (deterministic, agent, llm-judge, human-review)
+- Severity chips (low, medium, high, critical)
+
+**All Rows** (complete inventory)
+- Same hierarchical grouping as failing rows
+- Includes both passing and failing results
+- Full context for auditing and learning
+
+---
+
+## Schema & Taxonomy
+
+### JSON Schema
+
+The `eval-report/v1` format is documented as [JSON Schema Draft 7](schemas/eval-report-v1.schema.json). Use it to:
+- **Validate** artifacts in CI
+- **Generate** SDKs in any language
+- **Discover** compatible tools
+
+```bash
+# Download the schema
+curl https://raw.githubusercontent.com/icodenet/eval-dashboards/main/schemas/eval-report-v1.schema.json > my-runner/eval-report-v1.schema.json
 ```
 
-Bring your own brand colours by passing CSS variable overrides in `eval-dashboards.config.ts`:
+### Taxonomy Teaching Guide
 
-```ts
-export default {
-  theme: {
-    name: 'default',
-    variables: {
-      '--banner-bg': '#1a1a2e',
-      '--accent':    '#e94560',
-      '--pass':      '#0f3460',
-    },
-  },
-};
-```
+[docs/taxonomy.md](docs/taxonomy.md) defines what a "taxonomy-complete" eval report looks like and why it matters. It includes:
+
+- **Row taxonomy:** Required fields (id, suite, passed), classification (kind, severity, category), evidence (input, output, turns, toolCalls, axisScores)
+- **Suite taxonomy:** Manifests, gate policies, rubric contracts, versioning
+- **Implementation checklist:** Copy-paste patterns for Vitest, Jest, plain Node
+- **Real-world example:** Full artifact with multiple suites, judges, and tool calls
+- **FAQ:** What fields are required? Optional? Can I add custom fields?
+
+**Start here to understand what to emit.**
 
 ---
 
-## Artifact format
+## Artifact Format Reference
 
-Your eval runner emits `eval-report/v1` JSON. Fields are runner-agnostic:
+Your runner emits `eval-report/v1` JSON:
 
 ```ts
 {
   schemaVersion: 'eval-report/v1',
-  run: { id, generatedAt, project, branch, commit, buildId },
-  suites: [{ id, total, passed, failed }],
+  run: { 
+    id, generatedAt, project, team, branch, commit, buildId 
+  },
+  suites: [
+    { id, name, total, passed, failed }
+  ],
   rows: [{
+    // Required
     id, suite, passed,
+    
+    // Classify (recommended)
     kind?,          // 'deterministic' | 'agent' | 'llm-judge' | 'human-review'
-    name?, input?, output?, expected?,
-    turns?,         // ConversationTurn[] — multi-turn conversations
-    toolCalls?,     // ToolCall[] — agent tool sequences
-    axisScores?,    // Record<string, number> — per-rubric-axis scores
+    severity?,      // 'none' | 'low' | 'medium' | 'high' | 'critical'
+    category?,      // e.g., 'timeout', 'pii-leaked', 'off-topic'
+    
+    // Evidence (depends on kind)
+    input?, output?, expected?,
+    turns?,         // ConversationTurn[] for agents
+    toolCalls?,     // ToolCall[] for agent actions
     judgeModel?, judgeVerdict?, judgeReasoning?,
-    severity?, category?, reason?,
+    axisScores?,    // Record<string, number> for graded evaluations
+    
+    // Versioning & tracking
+    datasetId?, scenarioId?, rubricId?,
     durationMs?,
   }],
-  suiteManifests?,  // dataset/rubric versioning + blocking gate thresholds
+  suiteManifests?: [{
+    name, owner, riskArea, datasetVersion, rubricVersion,
+    gate: { mode: 'blocking', thresholds: { passRate, zeroCritical } }
+  }],
 }
 ```
 
-Full schema: [docs/artifact-format.md](docs/artifact-format.md)
+[Full format documentation](docs/artifact-format.md) | [JSON Schema](schemas/eval-report-v1.schema.json) | [Taxonomy guide](docs/taxonomy.md)
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---|---|
+| `eval-dashboards report` | Generate HTML, text, Markdown, or JSON-summary dashboards from artifacts |
+| `eval-dashboards check` | Enforce pass-rate, new-failure, critical-severity, and suite-manifest gates |
+| `eval-dashboards publish` | Publish dashboard to `dir`, `github-pages`, Azure Static Web Apps, or Azure Storage |
+| `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |
+| `eval-dashboards merge` | Merge multiple artifacts into one |
+| `eval-dashboards init` | Print a starter `eval-dashboards.config.ts` |
 
 ---
 
@@ -134,32 +198,90 @@ export default {
 };
 ```
 
+See [docs/configuration.md](docs/configuration.md) for all options.
+
 ---
 
-## Vitest adapter
+## Themes
 
-```ts
-// vitest.config.ts
-import VitestEvalReporter from '@icodenet/eval-dashboards/vitest-reporter';
+Three built-in themes. Switch with `--theme` or set in config:
 
-export default defineConfig({
-  test: {
-    reporters: [new VitestEvalReporter({ outDir: '.evals_output' })],
-  },
-});
+```sh
+eval-dashboards report --theme=dark
+eval-dashboards report --theme=minimal
+eval-dashboards report --theme=default
 ```
 
-See [examples/vitest-evals/](examples/vitest-evals/) for a runnable example.
+Bring your own brand colors:
+
+```ts
+export default {
+  theme: {
+    name: 'default',
+    variables: {
+      '--banner-bg': '#1a1a2e',
+      '--accent':    '#e94560',
+      '--pass':      '#0f3460',
+    },
+  },
+};
+```
 
 ---
 
-## Documentation
+## Examples
 
-- [Artifact format](docs/artifact-format.md)
-- [Configuration](docs/configuration.md)
-- [Reporters](docs/reporters.md)
-- [Gates](docs/gates.md)
-- [Publishing](docs/publishing.md)
+**TypeScript / Node.js:**
+- [Vitest evals example](examples/vitest-evals/README.md) — emit artifacts from test assertions
+- [Jest reporter example](examples/jest-custom-reporter/README.md) — custom reporter emitting artifacts
+- [Plain Node example](examples/node-plain-eval/README.md) — run eval logic and emit artifacts
+- [Taxonomy-complete fixture](examples/taxonomy-complete-fixture/README.md) — template showing all recommended fields
+
+**Python:**
+- [Pytest evals example](examples/python-pytest-evals/README.md) — `conftest.py` plugin that collects rows and writes `eval-report/v1` artifacts after your pytest session
+- [LangChain Evaluators](examples/langchain-evals/README.md) — wrap LangChain's built-in evaluators (QA, criteria, embedding) to emit taxonomy-complete rows
+
+**CI/CD:**
+- [GitHub Actions](examples/github-actions/eval-quality.yml)
+- [Azure Pipelines](examples/azure-devops/azure-pipelines-eval.yml)
+
+---
+
+## Adoption & Community
+
+This project is in **active development** (v0.x). Core schema and API are stabilizing. We're looking for:
+
+- **Eval runner authors** — integrate `eval-dashboards` as a native reporter option
+- **Teams using custom evals** — adopt the schema and share feedback
+- **Contributors** — improve HTML styling, add publishing targets, expand examples
+
+**Current metrics (targeting by 2026-Q4):**
+- ✅ Schema + taxonomy complete
+- ⏳ 5+ external runners discovering this project
+- ⏳ 1 runner emitting taxonomy-complete artifacts
+- ⏳ 100+ npm downloads/week
+
+**How to help:**
+1. Try one of the [examples](examples/)
+2. Emit an artifact from your runner and share feedback ([GitHub discussions](https://github.com/icodenet/eval-dashboards/discussions))
+3. Report issues or suggest improvements
+4. Star the repo if you find it useful!
+
+---
+
+## Documentation Index
+
+- [Taxonomy teaching guide](docs/taxonomy.md) — what makes a "complete" eval report
+- [Artifact format](docs/artifact-format.md) — field-by-field reference
+- [JSON Schema](schemas/eval-report-v1.schema.json) — for validation and SDK generation
+- [Configuration](docs/configuration.md) — all config options
+- [Reporters](docs/reporters.md) — HTML, text, Markdown, JSON
+- [Gates](docs/gates.md) — quality gates and CI integration
+- [Publishing](docs/publishing.md) — GitHub Pages, Azure, custom
+- [Roadmap](docs/ROADMAP.md) — phases and adoption plan
+- [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
+
+See [examples/](examples/) for runnable demos.
 
 ---
 
