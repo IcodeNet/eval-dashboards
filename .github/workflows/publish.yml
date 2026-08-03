@@ -115,6 +115,37 @@ jobs:
           fi
           echo "OIDC token request URL is available."
 
+      - name: Diagnose npm OIDC exchange
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN is missing."
+            exit 1
+          fi
+
+          OIDC_RESP=$(curl -fsSL -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org")
+          OIDC_TOKEN=$(node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(x.value||'')" <<< "$OIDC_RESP")
+
+          if [ -z "$OIDC_TOKEN" ]; then
+            echo "Failed to obtain OIDC token for npm audience."
+            echo "$OIDC_RESP"
+            exit 1
+          fi
+
+          PKG_PATH=$(node -e "const n=require('./package.json').name; process.stdout.write(encodeURIComponent(n))")
+          STATUS=$(curl -sS -o /tmp/npm-oidc-exchange.json -w "%{http_code}" -X POST "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/${PKG_PATH}" -H "Authorization: Bearer ${OIDC_TOKEN}")
+
+          echo "npm OIDC exchange status: $STATUS"
+          cat /tmp/npm-oidc-exchange.json
+
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+            echo "npm OIDC token exchange failed. See response above."
+            exit 1
+          fi
+
+          echo "npm OIDC token exchange succeeded."
+
       - name: Publish to npm
         run: npm publish --access public
 
