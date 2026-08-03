@@ -1,0 +1,111 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match package.json)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            echo "pnpm-lock.yaml missing in this ref; using --no-frozen-lockfile fallback"
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Verify version matches package.json
+        run: |
+          PKG_VERSION=$(node -e "console.log(require('./package.json').version)")
+          TAG_VERSION=${{ steps.version.outputs.version }}
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Version mismatch: package.json=$PKG_VERSION, tag=v$TAG_VERSION"
+            exit 1
+          fi
+          echo "✓ Version verified: $PKG_VERSION"
+
+      - name: TypeScript check
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Extract release notes from CHANGELOG
+        id: release_notes
+        run: |
+          # Extract the release notes from CHANGELOG.md for the current version
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Find the section for this version and extract until the next version or file end
+          RELEASE_NOTES=$(awk "
+            /^## \[$VERSION\]/{flag=1; next}
+            /^## \[/{if(flag) exit}
+            flag
+          " CHANGELOG.md)
+
+          if [ -z "$RELEASE_NOTES" ]; then
+            echo "Warning: No release notes found for version $VERSION in CHANGELOG.md"
+            RELEASE_NOTES="See CHANGELOG.md for details"
+          fi
+
+          # Store in GitHub output (handle multiline)
+          {
+            echo 'notes<<EOF'
+            echo "$RELEASE_NOTES"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Publish to npm
+        run: pnpm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body: ${{ steps.release_notes.outputs.notes }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}

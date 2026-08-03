@@ -1,0 +1,50 @@
+name: Eval quality gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # 1 — Run your evals; emit eval-report/v1 JSON to .evals_output/
+      - name: Run evals
+        run: npm run eval
+
+      # 2 — Generate HTML dashboard + machine-readable summaries
+      - name: Generate eval dashboard
+        run: npx @icodenet/eval-dashboards report --reporter=html --reporter=json-summary
+
+      # 3 — Enforce gates (non-zero exit blocks the PR)
+      - name: Check eval gates
+        run: npx @icodenet/eval-dashboards check --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+
+      # 4 — Publish dashboard to GitHub Pages (main branch only)
+      - name: Publish to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        run: |
+          npx @icodenet/eval-dashboards publish \
+            --target=github-pages \
+            --repo=${{ github.repository }} \
+            --branch=eval-results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 5 — Upload dashboard as a CI artifact (every run)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-dashboard-${{ github.run_id }}
+          path: eval-report/
+          retention-days: 30

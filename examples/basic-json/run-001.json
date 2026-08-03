@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "run-001",
+    "generatedAt": "2026-07-30T10:00:00.000Z",
+    "project": "demo-agent",
+    "branch": "main",
+    "commit": "abc123"
+  },
+  "suites": [
+    {
+      "id": "answer-quality",
+      "name": "Answer quality",
+      "total": 3,
+      "passed": 2,
+      "failed": 1,
+      "passRate": 0.6667
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "answer-quality",
+      "target": "agent",
+      "datasetSource": "synthetic",
+      "datasetVersion": "1.0.0",
+      "rubricVersion": "1.0.0",
+      "riskArea": "response-quality",
+      "graders": ["deterministic-assertions", "llm-judge"],
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "overallPassRate": 0.8,
+          "answerQualityPassRate": 0.8
+        }
+      },
+      "description": "Checks whether the evaluated agent gives clear, grounded, concise answers."
+    }
+  ],
+  "rubricContracts": [
+    {
+      "suiteName": "answer-quality",
+      "rubricVersion": "1.0.0",
+      "rubrics": [
+        {
+          "axis": "clarity",
+          "version": "1.0.0",
+          "summary": "The answer directly addresses the scenario."
+        },
+        {
+          "axis": "groundedness",
+          "version": "1.0.0",
+          "summary": "The answer uses only evidence provided by the test fixture."
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "id": "clear-answer",
+      "suite": "answer-quality",
+      "kind": "agent",
+      "name": "Clear answer",
+      "datasetId": "support-smoke",
+      "scenarioId": "clear-answer",
+      "agentChannel": "local",
+      "agentVersion": "demo-agent-v1",
+      "promptVersion": "assistant-policy-v1",
+      "input": "Explain the next step to a user.",
+      "output": "The next step is to review the summary and confirm it matches the request.",
+      "passed": true,
+      "severity": "none"
+    },
+    {
+      "id": "grounded-answer",
+      "suite": "answer-quality",
+      "kind": "llm-judge",
+      "name": "Grounded answer",
+      "datasetId": "support-smoke",
+      "scenarioId": "grounded-answer",
+      "rubricId": "groundedness",
+      "judgeModel": "example-judge-v1",
+      "judgeVerdict": false,
+      "judgeCategory": "unsupported-detail",
+      "judgeReasoning": "The response added a detail that was not present in the scenario evidence.",
+      "promptVersion": "assistant-policy-v1",
+      "passed": false,
+      "severity": "high",
+      "reason": "The answer included unsupported detail."
+    },
+    {
+      "id": "concise-answer",
+      "suite": "answer-quality",
+      "kind": "agent",
+      "name": "Concise answer",
+      "datasetId": "support-smoke",
+      "scenarioId": "concise-answer",
+      "agentChannel": "local",
+      "agentVersion": "demo-agent-v1",
+      "promptVersion": "assistant-policy-v1",
+      "passed": true,
+      "severity": "none"
+    }
+  ]
+}

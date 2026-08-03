@@ -1,0 +1,78 @@
+{
+  "summary": {
+    "run": {
+      "id": "run-002",
+      "generatedAt": "2026-07-31T10:00:00.000Z",
+      "project": "demo-agent",
+      "branch": "main",
+      "commit": "def456"
+    },
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "passRate": 0.6666666666666666,
+    "severityCounts": {
+      "none": 2,
+      "low": 0,
+      "medium": 1,
+      "high": 0,
+      "critical": 0
+    },
+    "suites": [
+      {
+        "id": "answer-quality",
+        "name": "Answer quality",
+        "total": 3,
+        "passed": 2,
+        "failed": 1,
+        "passRate": 0.6667
+      }
+    ]
+  },
+  "comparison": {
+    "currentRunId": "run-002",
+    "previousRunId": "run-001",
+    "newlyFailing": [
+      {
+        "id": "concise-answer",
+        "suite": "answer-quality",
+        "kind": "llm-judge",
+        "name": "Concise answer",
+        "datasetId": "support-smoke",
+        "scenarioId": "concise-answer",
+        "rubricId": "conciseness",
+        "judgeModel": "example-judge-v1",
+        "judgeVerdict": false,
+        "judgeCategory": "too-verbose",
+        "judgeReasoning": "The response contains repeated detail that does not improve the answer.",
+        "promptVersion": "assistant-policy-v2",
+        "passed": false,
+        "severity": "medium",
+        "reason": "The answer was too verbose."
+      }
+    ],
+    "newlyPassing": [
+      {
+        "id": "grounded-answer",
+        "suite": "answer-quality",
+        "kind": "llm-judge",
+        "name": "Grounded answer",
+        "datasetId": "support-smoke",
+        "scenarioId": "grounded-answer",
+        "rubricId": "groundedness",
+        "judgeModel": "example-judge-v1",
+        "judgeVerdict": true,
+        "judgeCategory": "grounded",
+        "judgeReasoning": "The answer uses only evidence present in the test fixture.",
+        "promptVersion": "assistant-policy-v2",
+        "passed": true,
+        "severity": "none"
+      }
+    ],
+    "persistentFailures": []
+  },
+  "baselineCompatibility": {
+    "status": "compatible",
+    "issues": []
+  }
+}

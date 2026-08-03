@@ -1,0 +1,62 @@
+[
+  {
+    "run": {
+      "id": "run-001",
+      "generatedAt": "2026-07-30T10:00:00.000Z",
+      "project": "demo-agent",
+      "branch": "main",
+      "commit": "abc123"
+    },
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "passRate": 0.6666666666666666,
+    "severityCounts": {
+      "none": 2,
+      "low": 0,
+      "medium": 0,
+      "high": 1,
+      "critical": 0
+    },
+    "suites": [
+      {
+        "id": "answer-quality",
+        "name": "Answer quality",
+        "total": 3,
+        "passed": 2,
+        "failed": 1,
+        "passRate": 0.6667
+      }
+    ]
+  },
+  {
+    "run": {
+      "id": "run-002",
+      "generatedAt": "2026-07-31T10:00:00.000Z",
+      "project": "demo-agent",
+      "branch": "main",
+      "commit": "def456"
+    },
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "passRate": 0.6666666666666666,
+    "severityCounts": {
+      "none": 2,
+      "low": 0,
+      "medium": 1,
+      "high": 0,
+      "critical": 0
+    },
+    "suites": [
+      {
+        "id": "answer-quality",
+        "name": "Answer quality",
+        "total": 3,
+        "passed": 2,
+        "failed": 1,
+        "passRate": 0.6667
+      }
+    ]
+  }
+]

@@ -1,0 +1,51 @@
+trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+
+  - script: npm ci
+    displayName: Install dependencies
+
+  # 1 — Run your evals; emit eval-report/v1 JSON to .evals_output/
+  - script: npm run eval
+    displayName: Run evals
+
+  # 2 — Generate HTML dashboard + summaries
+  - script: npx @icodenet/eval-dashboards report --reporter=html --reporter=json-summary
+    displayName: Generate eval dashboard
+
+  # 3 — Enforce gates
+  - script: |
+      npx @icodenet/eval-dashboards check \
+        --min-pass-rate=0.9 \
+        --max-new-failures=0 \
+        --zero-critical
+    displayName: Check eval gates
+
+  # 4 — Upload dashboard as a build artifact
+  - task: PublishPipelineArtifact@1
+    condition: always()
+    inputs:
+      targetPath: eval-report
+      artifact: eval-dashboard-$(Build.BuildId)
+      publishLocation: pipeline
+
+  # 5 — Render markdown summary inline on the build Summary tab
+  - task: PostBuildCleanup@3
+    condition: always()
+  - script: |
+      if [ -f eval-report/summary.md ]; then
+        echo "##vso[task.uploadsummary]$(pwd)/eval-report/summary.md"
+      fi
+    displayName: Attach eval summary to build

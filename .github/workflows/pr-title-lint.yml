@@ -1,0 +1,25 @@
+name: PR Title Lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  lint-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title follows Conventional Commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Validating PR title: $PR_TITLE"
+          PATTERN='^(\[[^][]+\][[:space:]]*)*(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([^)]+\))?:[[:space:]].+$'
+          if [[ ! "$PR_TITLE" =~ $PATTERN ]]; then
+            echo "Invalid PR title format."
+            echo "Expected: optional [ticket]/[initials] prefix + conventional commit type."
+            echo "Examples:"
+            echo "  feat: add semantic release workflow"
+            echo "  [AB#272021] [BT] fix(ci): update node matrix"
+            exit 1
+          fi
+          echo "PR title format is valid."

@@ -1,0 +1,69 @@
+{
+    "branches": [
+        "main"
+    ],
+    "tagFormat": "v${version}",
+    "plugins": [
+        [
+            "@semantic-release/commit-analyzer",
+            {
+                "preset": "conventionalcommits",
+                "parserOpts": {
+                    "headerPattern": "^(?:\\[[^\\]]+\\]\\s*)*(feat|fix|perf|revert|docs|style|refactor|test|build|ci|chore)(?:\\(([^)]+)\\))?:\\s(.+)$",
+                    "headerCorrespondence": [
+                        "type",
+                        "scope",
+                        "subject"
+                    ]
+                },
+                "releaseRules": [
+                    {
+                        "type": "docs",
+                        "release": "patch"
+                    },
+                    {
+                        "type": "chore",
+                        "release": false
+                    }
+                ]
+            }
+        ],
+        [
+            "@semantic-release/release-notes-generator",
+            {
+                "preset": "conventionalcommits",
+                "parserOpts": {
+                    "headerPattern": "^(?:\\[[^\\]]+\\]\\s*)*(feat|fix|perf|revert|docs|style|refactor|test|build|ci|chore)(?:\\(([^)]+)\\))?:\\s(.+)$",
+                    "headerCorrespondence": [
+                        "type",
+                        "scope",
+                        "subject"
+                    ]
+                }
+            }
+        ],
+        [
+            "@semantic-release/changelog",
+            {
+                "changelogFile": "CHANGELOG.md"
+            }
+        ],
+        [
+            "@semantic-release/npm",
+            {
+                "npmPublish": true
+            }
+        ],
+        "@semantic-release/github",
+        [
+            "@semantic-release/git",
+            {
+                "assets": [
+                    "package.json",
+                    "CHANGELOG.md"
+                ],
+                "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+            }
+        ]
+    ]
+}
