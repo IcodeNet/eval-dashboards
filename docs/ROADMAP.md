@@ -168,13 +168,14 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 
 ### Stream A: Ask Byron eval integration
 
-- [ ] Inspect the existing Ask Byron eval runner, datasets, and CI wiring
-- [ ] Add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency
-- [ ] Map current Ask Byron eval results into `eval-report/v1`
-- [ ] Emit `.evals_output/*.json` artifacts from existing eval runs
-- [ ] Add suite manifests, rubric contracts, dataset versions, and provenance/lifecycle metadata
-- [ ] Wire `eval-dashboards lint`, `check`, and `report` into the Ask Byron eval workflow
-- [ ] Generate the first dashboard baseline and document initial quality gaps
+- [x] Inspect the existing Ask Byron eval runner, datasets, and CI wiring
+- [x] Add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency
+- [x] Map current Ask Byron eval results into `eval-report/v1`
+- [x] Emit `.evals_output/*.json` artifacts from existing eval runs
+- [x] Add suite manifests, dataset versions, rubric versions, and dashboard gates
+- [x] Wire `eval-dashboards lint`, `check`, and `report` into Ask Byron workflows
+- [ ] Add rubric contracts plus row provenance/lifecycle metadata
+- [ ] Generate the first published dashboard baseline and document initial quality gaps
 
 ### Stream B: eval-dashboards setup-layer evolution
 
@@ -193,6 +194,10 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 - [ ] Add starter dataset and rubric templates with versioning, provenance, lifecycle, and calibration examples
 - [ ] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
 - [ ] Feed Ask Byron integration lessons back into templates before treating them as stable
+   - Directory inputs are safer than literal glob strings in config (`input: ['.evals_output']`).
+   - Blocking suite manifests need explicit `rubricVersion` values.
+   - Setup scaffolding should clean generated `.evals_output` before writing the current artifact.
+   - Summary totals must be row-complete; aggregate-only suites create lint failures.
 
 ### Proposed suite preset mapping
 
