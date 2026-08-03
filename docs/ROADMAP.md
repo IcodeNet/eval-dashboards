@@ -157,6 +157,63 @@ Per user directive: "adoption and shipping should be done last when we are ready
 
 ---
 
+## 🚧 Phase 4A: Ask Byron Proving Ground & Setup Layer (PLANNED)
+
+This phase runs two parallel streams that feed each other:
+
+1. **Ask Byron integration stream** proves the package against a real assistant eval program.
+2. **eval-dashboards setup-layer stream** turns repeated integration patterns into reusable presets, templates, and guidance.
+
+The schema should remain runner-agnostic and portable. Domain-specific suite names should generally be shipped as documented presets/templates rather than hard-coded schema enums, unless a concept proves broadly reusable across eval programs.
+
+### Stream A: Ask Byron eval integration
+
+- [ ] Inspect the existing Ask Byron eval runner, datasets, and CI wiring
+- [ ] Add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency
+- [ ] Map current Ask Byron eval results into `eval-report/v1`
+- [ ] Emit `.evals_output/*.json` artifacts from existing eval runs
+- [ ] Add suite manifests, rubric contracts, dataset versions, and provenance/lifecycle metadata
+- [ ] Wire `eval-dashboards lint`, `check`, and `report` into the Ask Byron eval workflow
+- [ ] Generate the first dashboard baseline and document initial quality gaps
+
+### Stream B: eval-dashboards setup-layer evolution
+
+- [ ] Define reusable agent-quality suite templates, starting with:
+   - `retrieval-recall`
+   - `answer-groundedness`
+   - `answer-quality`
+   - `refusal-safety`
+   - `prompt-injection-resilience`
+   - `mcp-routing`
+   - `content-coverage`
+   - `regression-incidents`
+   - `judge-calibration`
+- [ ] Decide which concepts belong in schema fields/enums vs preset files vs documentation
+- [ ] Add setup scaffolding for common agent eval programs (for example, `init --preset agent-quality`)
+- [ ] Add starter dataset and rubric templates with versioning, provenance, lifecycle, and calibration examples
+- [ ] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
+- [ ] Feed Ask Byron integration lessons back into templates before treating them as stable
+
+### Proposed suite preset mapping
+
+| Suite preset | Primary risk area | Target | Typical graders |
+|---|---|---|---|
+| `retrieval-recall` | `relevance` | `agent` | `deterministic-assertions`, `tool-call-check` |
+| `answer-groundedness` | `groundedness` | `agent` | `llm-judge`, `human-labelled-calibration` |
+| `answer-quality` | `response-quality` | `conversation` | `llm-judge`, `human-labelled-calibration` |
+| `refusal-safety` | `prompt-safety` / `pii` | `agent` | `deterministic-assertions`, `llm-judge` |
+| `prompt-injection-resilience` | `prompt-safety` | `agent` | `deterministic-assertions`, `llm-judge` |
+| `mcp-routing` | `tool-routing` | `agent` | `tool-call-check` |
+| `content-coverage` | `relevance` | `agent` | `deterministic-assertions`, `llm-judge` |
+| `regression-incidents` | `custom` | `agent` | `deterministic-assertions`, `llm-judge` |
+| `judge-calibration` | `custom` | `judge` | `human-labelled-calibration` |
+
+### Implementation rule
+
+Start with presets, fixtures, docs, and CLI scaffolding. Amend `eval-report/v1` only when Ask Byron or another real integration proves that a setup concept is portable enough to become part of the shared artifact contract.
+
+---
+
 ## 🔮 Longer-term ideas (post-v1.0)
 
 - Plugin system for custom reporters (existing custom-reporter-plugin example is a starting point)
