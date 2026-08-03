@@ -147,7 +147,13 @@ jobs:
           echo "npm OIDC token exchange succeeded."
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          unset NODE_AUTH_TOKEN
+          unset NPM_TOKEN
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "${NPM_CONFIG_USERCONFIG}" ]; then
+            rm -f "${NPM_CONFIG_USERCONFIG}"
+          fi
+          npm publish --access public
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
