@@ -126,6 +126,8 @@ curl https://raw.githubusercontent.com/icodenet/eval-dashboards/main/schemas/eva
 
 **Start here to understand what to emit.**
 
+[docs/schema-taxonomy-decisions.md](docs/schema-taxonomy-decisions.md) records which setup concepts belong in the shared schema, preset files, examples, docs, adapter helpers, or host applications.
+
 ---
 
 ## Artifact Format Reference
