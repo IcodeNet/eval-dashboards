@@ -6,7 +6,7 @@
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
-Emit a taxonomy-complete `eval-report/v1` JSON artifact from any runner (Vitest, Jest, custom Node code, Python, etc.), then use `eval-dashboards` to generate reports, enforce quality gates, track history, and publish static dashboards. No platform sign-up, no vendor lock-in.
+Emit a taxonomy-complete `eval-report/v1` JSON artifact from any runner (Vitest, Jest, custom Node code, Python, etc.), then use `eval-dashboards` to generate reports, enforce quality gates, track history, and publish static dashboards. In this repo, `eval-report/v1` means version 1 of the shared JSON contract described in [docs/artifact-format.md](docs/artifact-format.md). No platform sign-up, no vendor lock-in.
 
 > **Same mental model as [NYC/Istanbul](https://istanbul.js.org/) for code coverage** — but for LLM and agent evals. Schema-first, offline-first, runner-agnostic.
 

@@ -198,7 +198,7 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 - [ ] Add setup scaffolding for common agent eval programs (for example, `init --preset agent-quality`)
 - [ ] Add starter dataset and rubric templates with versioning, provenance, lifecycle, and calibration examples
 - [ ] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
-- [ ] Add a repo-context glossary for terms that may be new to users, especially `eval-report/v1`, `suite`, `dataset`, and `rubric`
+- [x] Add a repo-context glossary for terms that may be new to users, especially `eval-report/v1`, `suite`, `dataset`, and `rubric`
    - Explain `eval-report/v1` as version 1 of the JSON artifact contract that runners emit and eval-dashboards validates/reports on.
    - Explain each term in the context of the artifact contract, setup scaffolding, generated reports, and real integrations such as Ask Byron.
    - Show how the terms relate: datasets provide cases, suites group cases by intent/risk, and rubrics define the scoring rules and pass/fail expectations.
@@ -207,12 +207,13 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - Provide portable inputs for run metadata, suite case results, suite manifest defaults, rubric contracts, provenance/lifecycle defaults, and output writing.
    - Include helpers that compute suite totals from rows so adapters cannot drift into aggregate-only summaries.
    - Keep raw test case data as a project concern; only the normalized row evidence and governance metadata should cross into `eval-report/v1`.
-- [ ] Feed Ask Byron integration lessons back into templates before treating them as stable
+- [x] Feed Ask Byron integration lessons back into templates before treating them as stable
    - Directory inputs are safer than literal glob strings in config (`input: ['.evals_output']`).
    - Blocking suite manifests need explicit `rubricVersion` values.
    - Setup scaffolding should clean generated `.evals_output` before writing the current artifact.
    - Summary totals must be row-complete; aggregate-only suites create lint failures.
    - Host apps must expose or embed the generated static report; separate handcrafted dashboard cards drift from the canonical renderer.
+   - Deploy workflows should fail if the expected generated dashboard is missing instead of publishing a placeholder or stale report.
    - Published packages need explicit `main`, `types`, and `exports` metadata; declaration files in `dist` are not enough for downstream TypeScript consumers.
 
 ### Proposed suite preset mapping
