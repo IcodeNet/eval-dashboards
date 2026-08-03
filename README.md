@@ -257,6 +257,8 @@ export default {
 
 This project is in **active development** (v0.x). Core schema and API are stabilizing. We're looking for:
 
+**Release validity note:** because the branch history was rewritten to match the current codebase, only the latest release tied to this cleaned history should be treated as valid for the current code state. Earlier release artifacts are superseded and should not be used as references for the present implementation.
+
 - **Eval runner authors** — integrate `eval-dashboards` as a native reporter option
 - **Teams using custom evals** — adopt the schema and share feedback
 - **Contributors** — improve HTML styling, add publishing targets, expand examples

@@ -54,6 +54,12 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 - [x] Add npm publishing workflow and semantic version tagging (GitHub Actions).
 
+## Release Notes
+
+- The branch history was rewritten to reflect the current codebase.
+- Only the latest post-rewrite release should be treated as the valid reference for the current implementation.
+- Earlier release artifacts are superseded and should not be used to evaluate the present code state.
+
 ## Remaining / Deferred
 
 - [ ] Create community feedback loop and early runner partnerships (Phase 4 — deferred until npm/adoption readiness).
