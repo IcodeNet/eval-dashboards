@@ -6,7 +6,7 @@
     "author": "icodenet <byronth@gmail.com>",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/icodenet/eval-dashboards.git"
+        "url": "git+https://github.com/IcodeNet/eval-dashboards.git"
     },
     "bin": {
         "eval-dashboards": "dist/cli/index.js"
