@@ -50,6 +50,13 @@
             "$ref": "#/definitions/BaselineCompatibilityResult",
             "description": "Optional: assessment of compatibility with a previous run (dataset/rubric drift detection)."
         },
+        "datasetChangelog": {
+            "type": "array",
+            "description": "Optional: changelog entries documenting dataset/rubric evolution for audited comparisons.",
+            "items": {
+                "$ref": "#/definitions/DatasetChangelogEntry"
+            }
+        },
         "metadata": {
             "type": "object",
             "description": "Optional: free-form metadata for extensions or runner-specific context."
@@ -303,10 +310,84 @@
                     "description": "Optional: execution time in milliseconds."
                 },
                 "metadata": {
-                    "type": "object",
-                    "description": "Optional: free-form metadata for extensions."
+                    "$ref": "#/definitions/RowMetadata",
+                    "description": "Optional: free-form metadata for extensions. Includes portable provenance/lifecycle conventions when present."
                 }
             }
+        },
+        "RowMetadata": {
+            "type": "object",
+            "properties": {
+                "provenance": {
+                    "$ref": "#/definitions/RowProvenance"
+                },
+                "lifecycle": {
+                    "$ref": "#/definitions/RowLifecycle"
+                }
+            },
+            "additionalProperties": true,
+            "description": "Optional row metadata. Additional fields are allowed for runner-specific extensions."
+        },
+        "RowProvenance": {
+            "type": "object",
+            "required": [
+                "source"
+            ],
+            "properties": {
+                "source": {
+                    "type": "string",
+                    "enum": [
+                        "synthetic",
+                        "labelled-synthetic",
+                        "production-review",
+                        "incident",
+                        "regression",
+                        "custom"
+                    ],
+                    "description": "Where this row came from."
+                },
+                "addedBy": {
+                    "type": "string",
+                    "description": "Optional author or system that added this row."
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Optional rationale for why this row exists."
+                },
+                "sourceRef": {
+                    "type": "string",
+                    "description": "Optional pointer to source evidence (issue, trace, incident, etc.)."
+                }
+            },
+            "additionalProperties": false
+        },
+        "RowLifecycle": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "proposed",
+                        "active",
+                        "deprecated",
+                        "quarantined",
+                        "custom"
+                    ],
+                    "description": "Lifecycle state for this row."
+                },
+                "since": {
+                    "type": "string",
+                    "description": "Optional date/version marker for when the current status started."
+                },
+                "note": {
+                    "type": "string",
+                    "description": "Optional free-form lifecycle note."
+                }
+            },
+            "additionalProperties": false
         },
         "ConversationTurn": {
             "type": "object",
@@ -397,6 +478,53 @@
                 "graders",
                 "gate"
             ],
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "gate": {
+                                "type": "object",
+                                "properties": {
+                                    "mode": {
+                                        "const": "blocking"
+                                    }
+                                },
+                                "required": [
+                                    "mode"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "gate"
+                        ]
+                    },
+                    "then": {
+                        "required": [
+                            "rubricVersion"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "graders": {
+                                "type": "array",
+                                "contains": {
+                                    "const": "llm-judge"
+                                }
+                            }
+                        },
+                        "required": [
+                            "graders"
+                        ]
+                    },
+                    "then": {
+                        "required": [
+                            "rubricVersion"
+                        ]
+                    }
+                }
+            ],
             "properties": {
                 "name": {
                     "type": "string",
@@ -427,13 +555,17 @@
                     ],
                     "description": "How the dataset was sourced."
                 },
+                "datasetPath": {
+                    "type": "string",
+                    "description": "Optional: repository-relative path or URL to the dataset source file."
+                },
                 "datasetVersion": {
                     "type": "string",
                     "description": "Stable dataset version for baseline compatibility checks. Use semantic versioning or commit SHA."
                 },
                 "rubricVersion": {
                     "type": "string",
-                    "description": "Optional: rubric version for baseline compatibility checks."
+                    "description": "Rubric version for baseline compatibility checks. Required when gate.mode is blocking or graders include llm-judge."
                 },
                 "riskArea": {
                     "type": "string",
@@ -490,7 +622,7 @@
                 },
                 "thresholds": {
                     "type": "object",
-                    "description": "Named thresholds (e.g., {'passRate': 0.9}). Keys are mapped by well-known aliases (passRate, pass_rate, passrate); others are reported but not enforced.",
+                    "description": "Named thresholds (e.g., {'passRate': 0.9}). Built-in keys include pass-rate aliases (passRate/pass_rate/passrate), maxCriticalFailures, and criticalFailureRate. Unknown keys are currently reported but not enforced.",
                     "additionalProperties": {
                         "type": "number"
                     }
@@ -611,6 +743,80 @@
                 "candidateRubricVersion": {
                     "type": "string",
                     "description": "Optional: rubric version in the candidate run."
+                }
+            }
+        },
+        "DatasetChangelogEntry": {
+            "type": "object",
+            "required": [
+                "suiteName",
+                "datasetVersion",
+                "rubricVersion",
+                "changedAt",
+                "changeType",
+                "summary",
+                "rowChanges"
+            ],
+            "properties": {
+                "suiteName": {
+                    "type": "string",
+                    "description": "Suite associated with this change."
+                },
+                "datasetVersion": {
+                    "type": "string",
+                    "description": "Dataset version after this change."
+                },
+                "rubricVersion": {
+                    "type": "string",
+                    "description": "Rubric version paired with this dataset version."
+                },
+                "changedAt": {
+                    "type": "string",
+                    "description": "Date or timestamp marker for when this change landed."
+                },
+                "changeType": {
+                    "type": "string",
+                    "enum": [
+                        "initial-baseline",
+                        "patch",
+                        "minor",
+                        "major"
+                    ],
+                    "description": "Change classification for governance and trend interpretation."
+                },
+                "summary": {
+                    "type": "string",
+                    "description": "Human-readable summary of what changed and why."
+                },
+                "rowChanges": {
+                    "$ref": "#/definitions/DatasetRowChanges"
+                }
+            }
+        },
+        "DatasetRowChanges": {
+            "type": "object",
+            "required": [
+                "added",
+                "updated",
+                "removed",
+                "relabelled"
+            ],
+            "properties": {
+                "added": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "updated": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "removed": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "relabelled": {
+                    "type": "number",
+                    "minimum": 0
                 }
             }
         }

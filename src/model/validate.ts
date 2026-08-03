@@ -57,6 +57,18 @@ const graderKinds: GraderKind[] = [
   'custom',
 ];
 
+const provenanceSources = [
+  'synthetic',
+  'labelled-synthetic',
+  'production-review',
+  'incident',
+  'regression',
+  'custom',
+];
+
+const lifecycleStatuses = ['proposed', 'active', 'deprecated', 'quarantined', 'custom'];
+const datasetChangeTypes = ['initial-baseline', 'patch', 'minor', 'major'];
+
 export const validateEvalReport = (value: unknown): ValidationResult => {
   const errors: string[] = [];
 
@@ -207,6 +219,61 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
       }
+
+      if (row['metadata'] !== undefined) {
+        if (!isObject(row['metadata'])) {
+          errors.push(`rows[${index}].metadata must be an object when provided.`);
+        } else {
+          const metadata = row['metadata'] as Record<string, unknown>;
+          const provenance = metadata['provenance'];
+          if (provenance !== undefined) {
+            if (!isObject(provenance)) {
+              errors.push(`rows[${index}].metadata.provenance must be an object when provided.`);
+            } else {
+              if (
+                !isString(provenance['source']) ||
+                !provenanceSources.includes(provenance['source'])
+              ) {
+                errors.push(
+                  `rows[${index}].metadata.provenance.source must be one of ${provenanceSources.join(', ')}.`,
+                );
+              }
+
+              for (const field of ['addedBy', 'reason', 'sourceRef']) {
+                if (provenance[field] !== undefined && !isString(provenance[field])) {
+                  errors.push(
+                    `rows[${index}].metadata.provenance.${field} must be a string when provided.`,
+                  );
+                }
+              }
+            }
+          }
+
+          const lifecycle = metadata['lifecycle'];
+          if (lifecycle !== undefined) {
+            if (!isObject(lifecycle)) {
+              errors.push(`rows[${index}].metadata.lifecycle must be an object when provided.`);
+            } else {
+              if (
+                !isString(lifecycle['status']) ||
+                !lifecycleStatuses.includes(lifecycle['status'])
+              ) {
+                errors.push(
+                  `rows[${index}].metadata.lifecycle.status must be one of ${lifecycleStatuses.join(', ')}.`,
+                );
+              }
+
+              for (const field of ['since', 'note']) {
+                if (lifecycle[field] !== undefined && !isString(lifecycle[field])) {
+                  errors.push(
+                    `rows[${index}].metadata.lifecycle.${field} must be a string when provided.`,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
     });
   }
 
@@ -239,6 +306,14 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
 
         if (!isString(manifest.datasetVersion) || manifest.datasetVersion.length === 0) {
           errors.push(`suiteManifests[${index}].datasetVersion must be a non-empty string.`);
+        }
+
+        if (manifest.datasetPath !== undefined && !isString(manifest.datasetPath)) {
+          errors.push(`suiteManifests[${index}].datasetPath must be a string when provided.`);
+        }
+
+        if (manifest.rubricVersion !== undefined && !isString(manifest.rubricVersion)) {
+          errors.push(`suiteManifests[${index}].rubricVersion must be a string when provided.`);
         }
 
         if (!isString(manifest.riskArea) || !riskAreas.includes(manifest.riskArea as RiskArea)) {
@@ -277,6 +352,19 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
               }
             }
           }
+        }
+
+        const hasLlMJudgeGrader =
+          Array.isArray(manifest.graders) && manifest.graders.some((grader) => grader === 'llm-judge');
+        const isBlockingGate = isObject(manifest.gate) && manifest.gate.mode === 'blocking';
+        const requiresRubricVersion = hasLlMJudgeGrader || isBlockingGate;
+        if (
+          requiresRubricVersion &&
+          (!isString(manifest.rubricVersion) || manifest.rubricVersion.length === 0)
+        ) {
+          errors.push(
+            `suiteManifests[${index}].rubricVersion is required when gate.mode is blocking or graders include llm-judge.`,
+          );
         }
       });
     }
@@ -321,6 +409,44 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
               );
             }
           });
+        }
+      });
+    }
+  }
+
+  if (value.datasetChangelog !== undefined) {
+    if (!Array.isArray(value.datasetChangelog)) {
+      errors.push('datasetChangelog must be an array when provided.');
+    } else {
+      value.datasetChangelog.forEach((entry, index) => {
+        if (!isObject(entry)) {
+          errors.push(`datasetChangelog[${index}] must be an object.`);
+          return;
+        }
+
+        for (const field of ['suiteName', 'datasetVersion', 'rubricVersion', 'changedAt', 'summary']) {
+          if (!isString(entry[field]) || entry[field].length === 0) {
+            errors.push(`datasetChangelog[${index}].${field} must be a non-empty string.`);
+          }
+        }
+
+        if (!isString(entry.changeType) || !datasetChangeTypes.includes(entry.changeType)) {
+          errors.push(
+            `datasetChangelog[${index}].changeType must be one of ${datasetChangeTypes.join(', ')}.`,
+          );
+        }
+
+        if (!isObject(entry.rowChanges)) {
+          errors.push(`datasetChangelog[${index}].rowChanges must be an object.`);
+        } else {
+          for (const field of ['added', 'updated', 'removed', 'relabelled']) {
+            const value = entry.rowChanges[field];
+            if (!isNumber(value) || value < 0) {
+              errors.push(
+                `datasetChangelog[${index}].rowChanges.${field} must be a non-negative number.`,
+              );
+            }
+          }
         }
       });
     }

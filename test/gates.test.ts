@@ -115,4 +115,127 @@ describe('checkGates', () => {
 
     expect(result.passed).toBe(true);
   });
+
+  it('fails by default when baseline compatibility is blocked', () => {
+    const result = checkGates(
+      current,
+      compareRuns(current, previous),
+      { minPassRate: 0.4, maxNewFailures: 5, zeroCritical: false },
+      {
+        status: 'blocked',
+        issues: [
+          {
+            suite: 'quality',
+            severity: 'blocking',
+            reason: 'baseline and candidate dataset/rubric versions differ',
+          },
+        ],
+      },
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.failures).toContain(
+      'Baseline compatibility is blocked due to dataset/rubric version drift.',
+    );
+  });
+
+  it('allows blocked baseline when failOnBaselineBlocked is disabled', () => {
+    const result = checkGates(
+      current,
+      compareRuns(current, previous),
+      {
+        minPassRate: 0.4,
+        maxNewFailures: 5,
+        zeroCritical: false,
+        failOnBaselineBlocked: false,
+      },
+      {
+        status: 'blocked',
+        issues: [
+          {
+            suite: 'quality',
+            severity: 'blocking',
+            reason: 'baseline and candidate dataset/rubric versions differ',
+          },
+        ],
+      },
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.failures).toHaveLength(0);
+  });
+
+  it('enforces maxCriticalFailures threshold for blocking suites', () => {
+    const result = checkGates(
+      current,
+      compareRuns(current, previous),
+      {},
+      {
+        status: 'compatible',
+        issues: [],
+      },
+    );
+
+    expect(result.passed).toBe(true);
+
+    const reportWithManifest: EvalReportV1 = {
+      ...current,
+      suiteManifests: [
+        {
+          name: 'quality',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: '1.0.0',
+          rubricVersion: '1.0.0',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          gate: { mode: 'blocking', thresholds: { maxCriticalFailures: 0 } },
+        },
+      ],
+    };
+
+    const thresholdResult = checkGates(
+      reportWithManifest,
+      compareRuns(reportWithManifest, previous),
+      {},
+      {
+        status: 'compatible',
+        issues: [],
+      },
+    );
+
+    expect(thresholdResult.passed).toBe(false);
+    expect(thresholdResult.failures[0]).toMatch(/critical failures 1 exceed blocking threshold/);
+  });
+
+  it('enforces criticalFailureRate threshold for blocking suites', () => {
+    const reportWithManifest: EvalReportV1 = {
+      ...current,
+      suiteManifests: [
+        {
+          name: 'quality',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: '1.0.0',
+          rubricVersion: '1.0.0',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          gate: { mode: 'blocking', thresholds: { criticalFailureRate: 0.4 } },
+        },
+      ],
+    };
+
+    const thresholdResult = checkGates(
+      reportWithManifest,
+      compareRuns(reportWithManifest, previous),
+      {},
+      {
+        status: 'compatible',
+        issues: [],
+      },
+    );
+
+    expect(thresholdResult.passed).toBe(false);
+    expect(thresholdResult.failures[0]).toMatch(/critical failure rate 0.500 exceeds blocking threshold/);
+  });
 });

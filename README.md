@@ -172,6 +172,8 @@ Your runner emits `eval-report/v1` JSON:
 | Command | Description |
 |---|---|
 | `eval-dashboards report` | Generate HTML, text, Markdown, or JSON-summary dashboards from artifacts |
+| `eval-dashboards report-index` | Generate grouped multi-report HTML index from discovered artifacts |
+| `eval-dashboards lint` | Run fast semantic/taxonomy preflight checks before expensive eval runs |
 | `eval-dashboards check` | Enforce pass-rate, new-failure, critical-severity, and suite-manifest gates |
 | `eval-dashboards publish` | Publish dashboard to `dir`, `github-pages`, Azure Static Web Apps, or Azure Storage |
 | `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |

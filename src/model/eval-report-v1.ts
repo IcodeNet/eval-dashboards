@@ -48,11 +48,36 @@ export type ToolCall = {
   durationMs?: number;
 };
 
+export type RowProvenance = {
+  source:
+  | 'synthetic'
+  | 'labelled-synthetic'
+  | 'production-review'
+  | 'incident'
+  | 'regression'
+  | 'custom';
+  addedBy?: string;
+  reason?: string;
+  sourceRef?: string;
+};
+
+export type RowLifecycle = {
+  status: 'proposed' | 'active' | 'deprecated' | 'quarantined' | 'custom';
+  since?: string;
+  note?: string;
+};
+
+export type RowMetadata = Record<string, unknown> & {
+  provenance?: RowProvenance;
+  lifecycle?: RowLifecycle;
+};
+
 export type SuiteManifest = {
   name: string;
   target: EvalTarget;
   owner?: string;
   datasetSource: DatasetSource;
+  datasetPath?: string;
   datasetVersion: string;
   rubricVersion?: string;
   riskArea: RiskArea;
@@ -87,6 +112,25 @@ export type BaselineCompatibilityIssue = {
 export type BaselineCompatibilityResult = {
   status: 'compatible' | 'warning' | 'blocked';
   issues: BaselineCompatibilityIssue[];
+};
+
+export type DatasetChangeType = 'initial-baseline' | 'patch' | 'minor' | 'major';
+
+export type DatasetRowChanges = {
+  added: number;
+  updated: number;
+  removed: number;
+  relabelled: number;
+};
+
+export type DatasetChangelogEntry = {
+  suiteName: string;
+  datasetVersion: string;
+  rubricVersion: string;
+  changedAt: string;
+  changeType: DatasetChangeType;
+  summary: string;
+  rowChanges: DatasetRowChanges;
 };
 
 export type EvalRun = {
@@ -143,7 +187,7 @@ export type EvalRow = {
   category?: string;
   reason?: string;
   durationMs?: number;
-  metadata?: Record<string, unknown>;
+  metadata?: RowMetadata;
 };
 
 export type EvalReportV1 = {
@@ -154,6 +198,7 @@ export type EvalReportV1 = {
   suiteManifests?: SuiteManifest[];
   rubricContracts?: SuiteRubricContract[];
   baselineCompatibility?: BaselineCompatibilityResult;
+  datasetChangelog?: DatasetChangelogEntry[];
   metadata?: Record<string, unknown>;
 };
 

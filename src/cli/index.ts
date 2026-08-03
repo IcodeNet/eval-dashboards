@@ -1,9 +1,11 @@
+import path from 'node:path';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
 import { buildHistory, compareRuns, selectBaseline } from '../history/history.js';
-import { readEvalReports, writeJsonFile } from '../io/reports.js';
+import { readEvalReports, writeJsonFile, writeTextFile } from '../io/reports.js';
+import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
 import { publishReport, type PublishTarget } from '../publish/publish.js';
-import { renderReports, type ReporterName } from '../reporters/render.js';
+import { renderGroupedIndexHtml, renderReports, type ReporterName } from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
 import { optionBoolean, optionNumber, optionString, optionStrings, parseArgs } from './args.js';
 
@@ -11,6 +13,8 @@ const usage = `eval-dashboards <command>
 
 Commands:
   report   Generate HTML dashboards from eval-report/v1 artifacts.
+  report-index  Generate grouped multi-report HTML index from discovered artifacts.
+  lint     Run fast semantic/taxonomy preflight checks on artifacts.
   check    Enforce eval quality gates.
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
@@ -111,10 +115,29 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  if (command === 'report-index') {
+    const reports = await readEvalReports(input);
+    const locale = optionString(options, 'locale', '') || config.locale;
+    const out = optionString(options, 'out', path.join(reportDir, 'overview.html'));
+    await writeTextFile(out, renderGroupedIndexHtml(reports, locale));
+    console.log(out);
+    return;
+  }
+
   if (command === 'check') {
     const baselineRunId = optionString(options, 'baseline-run-id', '');
     const context = await loadContext(input, reportDir, baselineRunId || undefined);
-    const result = checkGates(context.current, context.comparison, config.gates ?? {});
+    const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
+    const gateConfig = {
+      ...(config.gates ?? {}),
+      ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
+    };
+    const result = checkGates(
+      context.current,
+      context.comparison,
+      gateConfig,
+      context.baselineCompatibility,
+    );
 
     if (result.passed) {
       console.log('Eval gates passed.');
@@ -123,6 +146,38 @@ const main = async (): Promise<void> => {
 
     console.error(`Eval gates failed:\n${result.failures.join('\n')}`);
     process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'lint') {
+    const reports = await readEvalReports(input);
+    const result = lintReportsTaxonomy(reports);
+    const strict = optionBoolean(options, 'strict');
+    const shouldFail = !result.passed || (strict && result.issues.some((issue) => issue.level === 'warning'));
+
+    if (result.issues.length === 0) {
+      console.log('Eval taxonomy lint passed with no issues.');
+      return;
+    }
+
+    const errorCount = result.issues.filter((issue) => issue.level === 'error').length;
+    const warningCount = result.issues.length - errorCount;
+
+    const issueLines = result.issues.map(
+      (issue) => `${issue.level.toUpperCase()} [${issue.code}] ${issue.message}`,
+    );
+
+    if (shouldFail) {
+      console.error(
+        `Eval taxonomy lint failed with ${errorCount} error(s) and ${warningCount} warning(s):\n${issueLines.join('\n')}`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(
+      `Eval taxonomy lint passed with warnings (${warningCount} warning(s), ${errorCount} error(s)):\n${issueLines.join('\n')}`,
+    );
     return;
   }
 

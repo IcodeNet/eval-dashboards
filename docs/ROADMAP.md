@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-03
 
 ---
 
@@ -74,6 +74,69 @@ The schema is only useful if runners emit it. Phase 2A made taxonomy first-class
 - [x] Added `CODE_OF_CONDUCT.md` (Contributor Covenant-based)
 - [x] Created GitHub issue templates (bug report, feature request)
 - [x] Started `CHANGELOG.md` and adopted semantic versioning (0.x while evolving)
+
+---
+
+## 🚧 Phase 3B: Governance Hardening & Output Safety (IN PROGRESS)
+
+This phase closes gaps discovered while comparing the package against a mature regulated eval workflow. Focus: make comparisons trustworthy, strengthen taxonomy correctness, and enforce safe report output defaults.
+
+### Backlog (all identified gaps)
+
+- [x] Enforce baseline compatibility in gates (blocked baseline must fail `check` unless explicitly bypassed)
+- [x] Fix taxonomy completeness scoring bug for `judgeVerdict: false` rows
+- [x] Add report output redaction safeguards for forbidden organization tokens in rendered dashboards
+- [x] Tighten suite manifest validation rules for rubric governance (e.g., stricter `rubricVersion` requirements)
+- [x] Add first-class row provenance and lifecycle conventions in schema/docs (portable, runner-agnostic)
+- [x] Add optional dataset/rubric changelog artifact surface and reporter rendering
+- [x] Extend gate threshold support beyond pass rate (e.g., tool recall and other typed metrics)
+- [x] Add fast semantic/taxonomy lint preflight before expensive eval stages
+
+### Implementation order
+
+1. **Trustworthy gating first**
+   - baseline compatibility enforcement in `check`
+   - keep backward compatibility with explicit opt-out flag/config
+2. **Taxonomy correctness next**
+   - fix `judgeVerdict` false handling in completeness scoring
+   - add regression tests
+3. **Output safety defaults**
+   - redact forbidden organization tokens in rendered output
+   - add tests covering banner/meta/row content
+4. **Contract hardening**
+   - stricter rubric governance validation
+   - provenance/lifecycle/changelog schema extensions (optional, additive)
+5. **Richer policy gates + preflight lint**
+   - typed threshold evaluators
+   - fast lint command for semantic consistency
+
+---
+
+## ✅ Phase 3C: Decision-Oriented Reporting UX (COMPLETE)
+
+This phase ports proven reporting concepts from production eval workflows while keeping this package runner-agnostic and artifact-first.
+
+### Backlog (portable concepts)
+
+- [x] Add report-level provenance badge in HTML (single-suite `ds/rb` or multi-suite manifest hash)
+- [x] Add suite pass-rate pills in HTML header for faster triage
+- [x] Expand markdown summary with decision-oriented diff (`newly failing` / `newly passing`)
+- [x] Add report metadata cards parity pass (reported duration, build, branch, commit with richer help semantics)
+- [x] Add optional "how to read this report" reference section for onboarding
+- [x] Add optional gate-policy source linking convention (dataset/rubric source paths, additive contract extension)
+- [x] Add multi-report grouped index mode (agent/judge target rollups from discovered artifacts)
+
+### Implementation order
+
+1. **Fast triage surfaces first**
+   - provenance identity in header
+   - suite pass-rate pills
+2. **PR review ergonomics**
+   - markdown diff sections for row flips
+3. **Adoption usability**
+   - metadata clarity and reference help
+4. **Portfolio view**
+   - grouped multi-report dashboard mode
 
 ---
 
