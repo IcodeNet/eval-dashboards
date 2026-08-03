@@ -1,203 +1,88 @@
 # npm Publishing Workflow
 
-This document explains how to publish `@icodenet/eval-dashboards` package to npm using GitHub Actions.
+This document explains how `@icodenet/eval-dashboards` is published to npm.
 
 ## Overview
 
-The npm publishing workflow:
-- Triggers automatically when a version tag (e.g., `v0.2.0`) is pushed to GitHub
-- Verifies the version in `package.json` matches the tag
-- Runs full CI (typecheck, test, build)
-- Publishes the package to npm as public
-- Creates a GitHub Release with release notes from CHANGELOG.md
+Primary release path uses Semantic Release:
 
-## Setup: Configure NPM_TOKEN Secret
+- Triggered on merge/push to `main` via `.github/workflows/release.yml`
+- Reads conventional commit messages to calculate next version
+- Updates `CHANGELOG.md` and `package.json`
+- Publishes to npm
+- Creates GitHub release + tag (`vX.Y.Z`)
 
-Before publishing, configure one secret in the GitHub repository:
+A legacy/manual fallback exists in `.github/workflows/publish.yml` and can be run with `workflow_dispatch`.
 
-### Create an npm Access Token
+## Required Secrets
 
-1. Login to npm as the `@icodenet` organization owner
+### NPM_TOKEN
+
+1. Login to npm as the `@icodenet` owner
 2. Go to https://www.npmjs.com/settings/tokens
-3. Click "Generate New Token" → "Automation" type
-4. Scopes: `read:user`, `publish:org`, `write:registry`
-5. Copy the token
+3. Create an **Automation** token
+4. Add it to GitHub repo secrets as `NPM_TOKEN`
 
-### Add NPM_TOKEN to GitHub
+## Conventional Commit Rules
 
-1. Go to repository Settings → Secrets and variables → Actions
-2. Click "New repository secret"
-3. Name: `NPM_TOKEN`
-4. Value: (paste the npm access token)
+Semantic Release depends on conventional commits:
 
-## Publishing a Release
+- `feat:` -> minor bump
+- `fix:` -> patch bump
+- `perf:` -> patch bump
+- `feat!:` or `BREAKING CHANGE:` -> major bump
+- `docs:` / `chore:` by default do not publish a new release unless configured
 
-### Step 1: Prepare package.json and CHANGELOG.md
+This repository also accepts ticket/initial prefixes before the type, for example:
 
-On a feature branch, update:
+- `[AB#272021] [BT] feat: add grouped report index`
+- `[AB#272021] [BT] fix: handle missing suite manifest`
 
-**package.json** — Bump version (semantic versioning):
-```json
-{
-  "version": "0.2.0"
-}
-```
+## Automatic Publish Flow
 
-**CHANGELOG.md** — Add release notes:
-```markdown
-## [0.2.0]
+1. Open PR with conventional PR title (validated by `.github/workflows/pr-title-lint.yml`)
+2. Merge to `main`
+3. GitHub Actions runs `.github/workflows/release.yml`
+4. If release-worthy commits are present:
+  - new version is computed
+  - npm publish runs
+  - tag and GitHub release are created
 
-### Added
+## Local Dry Run
 
-- Feature 1
-- Feature 2
-
-### Fixed
-
-- Bug fix 1
-```
-
-Commit and merge to `main` via PR.
-
-### Step 2: Create and Push Version Tag
-
-From `main` branch:
+Use dry run to preview next release without publishing:
 
 ```bash
-# Pull latest main
-git pull origin main
-
-# Create the version tag
-git tag v0.2.0
-
-# Push the tag to GitHub (triggers publish workflow)
-git push origin v0.2.0
+pnpm install
+pnpm release:dry
 ```
 
-### Step 3: Monitor Workflow
+## Manual Fallback Publish
 
-1. Go to GitHub Actions tab
-2. Find the "Publish to npm" workflow run
-3. Monitor logs for:
-   - Version verification ✓
-   - Tests pass ✓
-   - Build succeeds ✓
-   - npm publish ✓
-   - GitHub Release created ✓
+If needed, run `.github/workflows/publish.yml` manually from Actions:
 
-Once complete, the package is live on npm:
-```bash
-npm view @icodenet/eval-dashboards@0.2.0
-```
+- Provide `version` input (must match `package.json`)
+- Workflow validates, runs checks, publishes to npm, creates release
 
-## Semantic Versioning
+The install step in this workflow supports both cases:
 
-Follow [Semantic Versioning 2.0.0](https://semver.org/):
-
-| Type | Version | When |
-|------|---------|------|
-| **MAJOR** | 1.0.0 → 2.0.0 | Breaking schema or CLI changes |
-| **MINOR** | 0.1.0 → 0.2.0 | New features, backward compatible |
-| **PATCH** | 0.2.0 → 0.2.1 | Bug fixes only |
-
-Current version strategy:
-- `0.x.x` — Active development, API may change with MINOR bumps
-- `1.0.0` — First stable release, semantic versioning strict
-
-## Release Notes in CHANGELOG.md
-
-Format your release notes to be automatically extracted by the workflow:
-
-```markdown
-## [0.2.0]
-
-### Added
-
-- New feature description
-- Another new feature
-
-### Changed
-
-- Modified behavior or API
-
-### Fixed
-
-- Bug fix description
-
-### Deprecated
-
-- Deprecated feature (if any)
-
-## [0.1.0]
-
-...previous release...
-```
-
-The workflow extracts content between `## [0.2.0]` and the next version header (or EOF).
-
-## Verify Publication
-
-After the workflow completes:
-
-```bash
-# Check npm registry
-npm view @icodenet/eval-dashboards@0.2.0
-
-# Install the published version
-npm install @icodenet/eval-dashboards@0.2.0
-
-# Run the CLI
-npx eval-dashboards --version
-```
+- lockfile present -> `pnpm install --frozen-lockfile`
+- lockfile absent in ref -> fallback `pnpm install --no-frozen-lockfile`
 
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
-| "Version mismatch" error | Verify `package.json` version matches tag exactly (tag `v0.2.0` = version `0.2.0`) |
-| "npm publish" fails | Check NPM_TOKEN secret is set and has `publish:org` + `write:registry` scopes |
-| No GitHub Release created | Ensure `CHANGELOG.md` has section `## [0.2.0]` matching the version |
-| Workflow runs but doesn't trigger | Ensure you pushed the **tag**, not just a commit: `git push origin v0.2.0` |
+|------|----------|
+| No release created on main | Ensure at least one merge commit is `feat:`, `fix:`, or `perf:` (or breaking) |
+| PR title lint fails | Rename PR title to conventional format |
+| npm publish fails | Verify `NPM_TOKEN` exists and has publish scope |
+| Manual publish version mismatch | Ensure `package.json` version matches manual `version` input |
 
-## Examples
+## Verification
 
-### Patch Release (0.1.1)
-
-```bash
-# Make fixes on feature branch
-# Update package.json: "version": "0.1.1"
-# Update CHANGELOG.md with [0.1.1] section
-# Merge to main via PR
-
-# Create tag
-git tag v0.1.1
-git push origin v0.1.1
-```
-
-### Minor Release (0.2.0)
+After a successful release:
 
 ```bash
-# Add features on feature branch
-# Update package.json: "version": "0.2.0"
-# Update CHANGELOG.md with [0.2.0] section (Added, Changed, Fixed)
-# Merge to main via PR
-
-# Create tag
-git tag v0.2.0
-git push origin v0.2.0
+npm view @icodenet/eval-dashboards
+npm view @icodenet/eval-dashboards version
 ```
-
-### Pre-release (0.2.0-beta.1)
-
-```bash
-# For experimental releases
-git tag v0.2.0-beta.1
-git push origin v0.2.0-beta.1
-# Workflow detects `-` and marks GitHub Release as pre-release
-```
-
-## Next Steps
-
-- Teams can now install via npm: `npm install @icodenet/eval-dashboards`
-- Create production-ready GitHub Actions + Azure DevOps CI/CD templates for eval runs
-- Announce on npm, Reddit, HN, AI communities

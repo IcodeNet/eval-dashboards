@@ -63,6 +63,10 @@ The HTML dashboard is fully responsive and works in both light and dark themes. 
 - **[Light theme dashboard](eval-report/index.html)** — Default presentation with light background
 - **[Dark theme dashboard](eval-report-dark/index.html)** — Dark mode with reduced eye strain
 
+| Light Theme | Dark Theme |
+|---|---|
+| ![Light dashboard snapshot](docs/images/report-default.png) | ![Dark dashboard snapshot](docs/images/report-dark.png) |
+
 ### Features Visible in Dashboard
 
 **Metric Cards** (top)
