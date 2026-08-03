@@ -184,7 +184,7 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - Generate `.d.ts` files in `dist` during `pnpm build`.
    - Add package metadata (`types` / export typings) so imports like `import type { EvalReportV1 } from '@icodenet/eval-dashboards'` resolve in downstream projects.
    - Add a package-consumer smoke test that installs/builds against the packed package and verifies public types resolve.
-- [ ] Define reusable agent-quality suite templates, starting with:
+- [x] Define reusable agent-quality suite templates, starting with:
    - `retrieval-recall`
    - `answer-groundedness`
    - `answer-quality`
@@ -196,8 +196,8 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - `judge-calibration`
 - [ ] Decide which concepts belong in schema fields/enums vs preset files vs documentation
 - [ ] Add setup scaffolding for common agent eval programs (for example, `init --preset agent-quality`)
-- [ ] Add starter dataset and rubric templates with versioning, provenance, lifecycle, and calibration examples
-- [ ] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
+- [x] Add starter dataset and rubric templates with versioning, provenance, lifecycle, and calibration examples
+- [x] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
 - [x] Add a repo-context glossary for terms that may be new to users, especially `eval-report/v1`, `suite`, `dataset`, and `rubric`
    - Explain `eval-report/v1` as version 1 of the JSON artifact contract that runners emit and eval-dashboards validates/reports on.
    - Explain each term in the context of the artifact contract, setup scaffolding, generated reports, and real integrations such as Ask Byron.

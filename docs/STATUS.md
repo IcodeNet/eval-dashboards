@@ -78,11 +78,11 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Ask Byron: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
 - [ ] Ask Byron: create first published dashboard baseline and document quality gaps.
 - [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
-- [ ] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
+- [x] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
 - [ ] eval-dashboards: decide which setup concepts belong in schema fields/enums, preset files, examples, or docs.
 - [ ] eval-dashboards: design setup scaffolding for common agent eval programs, such as `init --preset agent-quality`.
-- [ ] eval-dashboards: add starter dataset/rubric templates with versioning, provenance, lifecycle, and judge calibration examples.
-- [ ] eval-dashboards: document how presets map to `riskArea`, `target`, `graders`, gate policies, and rubric contracts.
+- [x] eval-dashboards: add starter dataset/rubric templates with versioning, provenance, lifecycle, and judge calibration examples.
+- [x] eval-dashboards: document how presets map to `riskArea`, `target`, `graders`, gate policies, and rubric contracts.
 - [x] eval-dashboards: add a repo-context glossary explaining `eval-report/v1`, suite, dataset, rubric, runner, and row terminology.
 - [ ] eval-dashboards: add runner-adapter primitives so teams with an existing eval runner can map local results into `eval-report/v1` without hand-writing aggregate, manifest, rubric, and output-cleanup boilerplate.
 - [ ] Cross-feed: use Ask Byron integration learnings to amend eval-dashboards roadmap, templates, and docs before stabilizing setup-layer APIs.

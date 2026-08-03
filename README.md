@@ -53,6 +53,7 @@ See working examples:
 - **Plain Node/TypeScript**: [examples/node-plain-eval/README.md](examples/node-plain-eval/README.md)
 - **Python / Pytest**: [examples/python-pytest-evals/README.md](examples/python-pytest-evals/README.md)
 - **LangChain Evaluators**: [examples/langchain-evals/README.md](examples/langchain-evals/README.md)
+- **Agent quality preset**: [examples/agent-quality-preset/README.md](examples/agent-quality-preset/README.md)
 
 ---
 

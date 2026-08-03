@@ -3,6 +3,7 @@
 Required examples live under `examples/`:
 
 - `basic-json`
+- `agent-quality-preset`
 - `jest-custom-reporter`
 - `vitest-evals`
 - `llm-agent-evals`
@@ -27,6 +28,18 @@ pnpm dev publish --target=dir --input=examples/basic-json --report-dir=eval-repo
 ```
 
 The sample runs include suite manifests and rubric contracts, so the generated summary can show baseline compatibility.
+
+## `agent-quality-preset`
+
+Use this when you are starting an agent or assistant eval program and want copyable suite, dataset, and rubric conventions before writing a custom runner:
+
+```sh
+pnpm dev lint --input=examples/agent-quality-preset/artifacts
+pnpm dev check --input=examples/agent-quality-preset/artifacts --allow-blocked-baseline
+pnpm dev report --input=examples/agent-quality-preset/artifacts --reporter=html --reporter=json-summary --report-dir=eval-report
+```
+
+The fixture includes the planned agent-quality presets from [suite-presets.md](suite-presets.md), starter JSONL cases, and rubric contracts. Treat the suite names as setup defaults, not required `eval-report/v1` enum values.
 
 ## `llm-agent-evals`
 
