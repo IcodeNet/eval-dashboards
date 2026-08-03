@@ -4,19 +4,24 @@ This document explains how `@icodenet/eval-dashboards` is published to npm.
 
 ## Overview
 
-Primary release path uses Semantic Release:
+Primary release path uses the trusted-publishing workflow:
 
-- Triggered on merge/push to `main` via `.github/workflows/release.yml`
-- Reads conventional commit messages to calculate next version
-- Updates `CHANGELOG.md` and `package.json`
-- Publishes to npm
+- Trigger `.github/workflows/publish.yml` manually with the version in `package.json`
+- Publishes to npm using GitHub Actions OIDC trusted publishing
 - Creates GitHub release + tag (`vX.Y.Z`)
+- Does not require an `NPM_TOKEN` secret
 
-A legacy/manual fallback exists in `.github/workflows/publish.yml` and can be run with `workflow_dispatch`.
+Legacy Semantic Release config remains available in `.github/workflows/release.yml` for manual experiments only. It is not run on every `main` push because `@semantic-release/npm` requires `NPM_TOKEN`, while this package is configured for trusted publishing.
 
 ## Required Secrets
 
-### NPM_TOKEN
+### Trusted publishing
+
+Configure the package on npm for trusted publishing from this GitHub repository and the `Publish to npm` workflow. No npm automation token is required for the primary path.
+
+### NPM_TOKEN (legacy semantic-release only)
+
+Only needed if running `.github/workflows/release.yml` manually:
 
 1. Login to npm as the `@icodenet` owner
 2. Go to https://www.npmjs.com/settings/tokens
@@ -38,15 +43,12 @@ This repository also accepts ticket/initial prefixes before the type, for exampl
 - `[AB#272021] [BT] feat: add grouped report index`
 - `[AB#272021] [BT] fix: handle missing suite manifest`
 
-## Automatic Publish Flow
+## Publish Flow
 
-1. Open PR with conventional PR title (validated by `.github/workflows/pr-title-lint.yml`)
-2. Merge to `main`
-3. GitHub Actions runs `.github/workflows/release.yml`
-4. If release-worthy commits are present:
-  - new version is computed
-  - npm publish runs
-  - tag and GitHub release are created
+1. Update `package.json` and `CHANGELOG.md` for the intended version.
+2. Merge or push the release commit to `main`.
+3. Run `.github/workflows/publish.yml` manually with the version input.
+4. The workflow validates, builds, publishes to npm, and creates the GitHub release.
 
 ## Local Dry Run
 
@@ -57,9 +59,9 @@ pnpm install
 pnpm release:dry
 ```
 
-## Manual Fallback Publish
+## Manual Publish
 
-If needed, run `.github/workflows/publish.yml` manually from Actions:
+Run `.github/workflows/publish.yml` manually from Actions:
 
 - Provide `version` input (must match `package.json`)
 - Workflow validates, runs checks, publishes to npm, creates release
@@ -73,9 +75,10 @@ The install step in this workflow supports both cases:
 
 | Issue | Solution |
 |------|----------|
-| No release created on main | Ensure at least one merge commit is `feat:`, `fix:`, or `perf:` (or breaking) |
+| Push to main does not publish | Run `.github/workflows/publish.yml` with the version from `package.json` |
 | PR title lint fails | Rename PR title to conventional format |
-| npm publish fails | Verify `NPM_TOKEN` exists and has publish scope |
+| npm publish fails with trusted publishing | Verify the npm package trusted publisher points at this repository and workflow |
+| Legacy semantic-release fails with `ENONPMTOKEN` | Either use `publish.yml`, or add an `NPM_TOKEN` before running `release.yml` manually |
 | Manual publish version mismatch | Ensure `package.json` version matches manual `version` input |
 
 ## Verification

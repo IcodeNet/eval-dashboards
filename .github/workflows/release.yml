@@ -1,9 +1,6 @@
-name: Semantic Release
+name: Legacy Semantic Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
