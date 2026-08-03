@@ -37,3 +37,11 @@ export type { EvalReportsConfig } from './config/config.js';
 export { BUILT_IN_THEMES, resolveTheme, type EvalReportsTheme } from './reporters/themes.js';
 export { formatDate, formatPassRate, formatDuration, formatCount } from './utils/format.js';
 export { renderGroupedIndexHtml } from './reporters/render.js';
+export {
+  createEvalReportArtifact,
+  writeEvalReportArtifact,
+  type CreateEvalReportArtifactOptions,
+  type RunnerEvalCaseResult,
+  type RunnerEvalResult,
+  type WriteEvalReportArtifactOptions,
+} from './adapters/runner.js';

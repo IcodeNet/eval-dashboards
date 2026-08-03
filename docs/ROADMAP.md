@@ -202,10 +202,10 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - Explain `eval-report/v1` as version 1 of the JSON artifact contract that runners emit and eval-dashboards validates/reports on.
    - Explain each term in the context of the artifact contract, setup scaffolding, generated reports, and real integrations such as Ask Byron.
    - Show how the terms relate: datasets provide cases, suites group cases by intent/risk, and rubrics define the scoring rules and pass/fail expectations.
-- [ ] Add runner-adapter primitives for teams starting from existing eval results
+- [x] Add runner-adapter primitives for teams starting from existing eval results
    - Do not absorb app-specific dataset contracts such as Ask Byron's `GoldenCase` or exact `EvalRunSummary` shape.
    - Provide portable inputs for run metadata, suite case results, suite manifest defaults, rubric contracts, provenance/lifecycle defaults, and output writing.
-   - Include helpers that compute suite totals from rows so adapters cannot drift into aggregate-only summaries.
+   - Helpers compute suite totals from rows so adapters cannot drift into aggregate-only summaries.
    - Keep raw test case data as a project concern; only the normalized row evidence and governance metadata should cross into `eval-report/v1`.
 - [x] Feed Ask Byron integration lessons back into templates before treating them as stable
    - Directory inputs are safer than literal glob strings in config (`input: ['.evals_output']`).

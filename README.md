@@ -172,6 +172,26 @@ Your runner emits `eval-report/v1` JSON:
 
 ---
 
+## Runner Adapter Helpers
+
+If you already have an eval runner, use the public adapter helpers to turn local case results into a validated `eval-report/v1` artifact:
+
+```ts
+import { writeEvalReportArtifact } from '@icodenet/eval-dashboards';
+
+await writeEvalReportArtifact('.evals_output/run.json', {
+  run: { id: process.env.BUILD_ID ?? 'local-run', project: 'my-agent' },
+  cases: [
+    { id: 'case-1', suite: 'answer-quality', passed: true, severity: 'none' },
+    { id: 'case-2', suite: 'mcp-routing', passed: false, severity: 'high' },
+  ],
+});
+```
+
+`createEvalReportArtifact(...)` computes suite totals from rows and validates the artifact before returning it. `writeEvalReportArtifact(...)` writes the JSON and can clean the output directory when `cleanOutputDir: true` is passed.
+
+---
+
 ## CLI Commands
 
 | Command | Description |
