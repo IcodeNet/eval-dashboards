@@ -74,15 +74,21 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Ask Byron: emit `.evals_output/*.json` artifacts with suite summaries and row-level evidence.
 - [x] Ask Byron: add suite manifests, dataset versions, rubric versions, and dashboard gates.
 - [x] Ask Byron: wire `eval-dashboards lint`, `check`, and `report` into local/CI eval commands.
-- [ ] Ask Byron: add rubric contracts plus row provenance and lifecycle metadata.
+- [x] Ask Byron: add rubric contracts plus row provenance and lifecycle metadata.
+- [x] Ask Byron: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
 - [ ] Ask Byron: create first published dashboard baseline and document quality gaps.
+- [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
 - [ ] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
 - [ ] eval-dashboards: decide which setup concepts belong in schema fields/enums, preset files, examples, or docs.
 - [ ] eval-dashboards: design setup scaffolding for common agent eval programs, such as `init --preset agent-quality`.
 - [ ] eval-dashboards: add starter dataset/rubric templates with versioning, provenance, lifecycle, and judge calibration examples.
 - [ ] eval-dashboards: document how presets map to `riskArea`, `target`, `graders`, gate policies, and rubric contracts.
+- [ ] eval-dashboards: add runner-adapter primitives so teams with an existing eval runner can map local results into `eval-report/v1` without hand-writing aggregate, manifest, rubric, and output-cleanup boilerplate.
 - [ ] Cross-feed: use Ask Byron integration learnings to amend eval-dashboards roadmap, templates, and docs before stabilizing setup-layer APIs.
-	- Captured so far: prefer directory inputs over config globs, require rubric versions for blocking suites, clean generated artifact directories before writing, and make suite summaries row-complete.
+	- Captured so far: prefer directory inputs over config globs, require rubric versions for blocking suites, clean generated artifact directories before writing, make suite summaries row-complete, and expose/embed the generated static dashboard instead of duplicating it with host-app summary cards.
+	- Type packaging captured: emit declarations and expose them with `main`, `types`, and `exports`; verified with `pnpm build`, `npm pack`, and a temporary downstream TypeScript compile against the packed tarball.
+	- Adapter boundary captured: keep project-specific dataset rows local, but move repeated artifact assembly mechanics into public eval-dashboards helpers.
+	- Planning slices captured in ROADMAP: dataset governance, versioned rubrics, judge calibration, CI quality tiers, suite templates, setup scaffolding, and schema/taxonomy decision rules.
 
 ## Next Phases
 

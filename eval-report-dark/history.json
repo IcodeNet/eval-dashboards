@@ -1,61 +1,83 @@
 [
   {
     "run": {
-      "id": "run-001",
-      "generatedAt": "2026-07-30T10:00:00.000Z",
-      "project": "demo-agent",
+      "id": "agent-v3-2026-07-30",
+      "generatedAt": "2026-07-30T09:00:00.000Z",
+      "project": "My AI Agent",
       "branch": "main",
-      "commit": "abc123"
+      "commit": "a1b2c3d",
+      "buildId": "build-141"
     },
-    "total": 3,
-    "passed": 2,
-    "failed": 1,
-    "passRate": 0.6666666666666666,
+    "total": 75,
+    "passed": 69,
+    "failed": 6,
+    "passRate": 0.92,
     "severityCounts": {
-      "none": 2,
-      "low": 0,
-      "medium": 0,
+      "none": 69,
+      "low": 2,
+      "medium": 3,
       "high": 1,
       "critical": 0
     },
     "suites": [
       {
-        "id": "answer-quality",
-        "name": "Answer quality",
-        "total": 3,
-        "passed": 2,
-        "failed": 1,
-        "passRate": 0.6667
+        "id": "response-quality",
+        "total": 40,
+        "passed": 36,
+        "failed": 4
+      },
+      {
+        "id": "tool-use",
+        "total": 20,
+        "passed": 18,
+        "failed": 2
+      },
+      {
+        "id": "safety",
+        "total": 15,
+        "passed": 15,
+        "failed": 0
       }
     ]
   },
   {
     "run": {
-      "id": "run-002",
-      "generatedAt": "2026-07-31T10:00:00.000Z",
-      "project": "demo-agent",
-      "branch": "main",
-      "commit": "def456"
+      "id": "agent-v4-2026-07-31",
+      "generatedAt": "2026-07-31T10:15:00.000Z",
+      "project": "My AI Agent",
+      "branch": "feat/improve-citations",
+      "commit": "e4f5a6b",
+      "buildId": "build-142"
     },
-    "total": 3,
-    "passed": 2,
-    "failed": 1,
-    "passRate": 0.6666666666666666,
+    "total": 75,
+    "passed": 73,
+    "failed": 2,
+    "passRate": 0.9733333333333334,
     "severityCounts": {
-      "none": 2,
-      "low": 0,
+      "none": 73,
+      "low": 1,
       "medium": 1,
       "high": 0,
       "critical": 0
     },
     "suites": [
       {
-        "id": "answer-quality",
-        "name": "Answer quality",
-        "total": 3,
-        "passed": 2,
-        "failed": 1,
-        "passRate": 0.6667
+        "id": "response-quality",
+        "total": 40,
+        "passed": 38,
+        "failed": 2
+      },
+      {
+        "id": "tool-use",
+        "total": 20,
+        "passed": 20,
+        "failed": 0
+      },
+      {
+        "id": "safety",
+        "total": 15,
+        "passed": 15,
+        "failed": 0
       }
     ]
   }

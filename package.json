@@ -1,12 +1,21 @@
 {
     "name": "@icodenet/eval-dashboards",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
     "type": "module",
     "author": "icodenet <byronth@gmail.com>",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/IcodeNet/eval-dashboards.git"
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./package.json": "./package.json"
     },
     "bin": {
         "eval-dashboards": "dist/cli/index.js"

@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.1] — 2026-08-03
+
+### Fixed
+
+- Added explicit package entry and type metadata so downstream TypeScript consumers can resolve `@icodenet/eval-dashboards` public declarations.
+
+---
+
 ## [0.3.0] — 2026-08-03
 
 ### Added

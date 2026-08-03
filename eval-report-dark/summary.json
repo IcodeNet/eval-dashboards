@@ -1,78 +1,137 @@
 {
   "summary": {
     "run": {
-      "id": "run-002",
-      "generatedAt": "2026-07-31T10:00:00.000Z",
-      "project": "demo-agent",
-      "branch": "main",
-      "commit": "def456"
+      "id": "agent-v4-2026-07-31",
+      "generatedAt": "2026-07-31T10:15:00.000Z",
+      "project": "My AI Agent",
+      "branch": "feat/improve-citations",
+      "commit": "e4f5a6b",
+      "buildId": "build-142"
     },
-    "total": 3,
-    "passed": 2,
-    "failed": 1,
-    "passRate": 0.6666666666666666,
+    "total": 75,
+    "passed": 73,
+    "failed": 2,
+    "passRate": 0.9733333333333334,
     "severityCounts": {
-      "none": 2,
-      "low": 0,
+      "none": 73,
+      "low": 1,
       "medium": 1,
       "high": 0,
       "critical": 0
     },
     "suites": [
       {
-        "id": "answer-quality",
-        "name": "Answer quality",
-        "total": 3,
-        "passed": 2,
-        "failed": 1,
-        "passRate": 0.6667
+        "id": "response-quality",
+        "total": 40,
+        "passed": 38,
+        "failed": 2
+      },
+      {
+        "id": "tool-use",
+        "total": 20,
+        "passed": 20,
+        "failed": 0
+      },
+      {
+        "id": "safety",
+        "total": 15,
+        "passed": 15,
+        "failed": 0
       }
     ]
   },
   "comparison": {
-    "currentRunId": "run-002",
-    "previousRunId": "run-001",
-    "newlyFailing": [
+    "currentRunId": "agent-v4-2026-07-31",
+    "previousRunId": "agent-v3-2026-07-30",
+    "newlyFailing": [],
+    "newlyPassing": [],
+    "persistentFailures": [
       {
-        "id": "concise-answer",
-        "suite": "answer-quality",
+        "id": "rq-fail-1",
+        "suite": "response-quality",
         "kind": "llm-judge",
         "name": "Concise answer",
         "datasetId": "support-smoke",
-        "scenarioId": "concise-answer",
-        "rubricId": "conciseness",
-        "judgeModel": "example-judge-v1",
-        "judgeVerdict": false,
-        "judgeCategory": "too-verbose",
-        "judgeReasoning": "The response contains repeated detail that does not improve the answer.",
-        "promptVersion": "assistant-policy-v2",
+        "scenarioId": "response-quality",
+        "rubricId": "response-quality-rubric-v1",
         "passed": false,
         "severity": "medium",
-        "reason": "The answer was too verbose."
-      }
-    ],
-    "newlyPassing": [
+        "category": "conciseness",
+        "score": 0.56,
+        "axisScores": {
+          "quality": 0.56
+        },
+        "judgeVerdict": false,
+        "durationMs": 420,
+        "reason": "Response exceeded 200 words",
+        "metadata": {
+          "provenance": {
+            "source": "labelled-synthetic",
+            "reason": "Screenshot fixture for dashboard documentation.",
+            "sourceRef": "examples/screenshot-fixture"
+          },
+          "lifecycle": {
+            "status": "active",
+            "since": "2026-07-31"
+          }
+        }
+      },
       {
-        "id": "grounded-answer",
-        "suite": "answer-quality",
+        "id": "rq-fail-3",
+        "suite": "response-quality",
         "kind": "llm-judge",
-        "name": "Grounded answer",
+        "name": "Citation required",
         "datasetId": "support-smoke",
-        "scenarioId": "grounded-answer",
-        "rubricId": "groundedness",
-        "judgeModel": "example-judge-v1",
-        "judgeVerdict": true,
-        "judgeCategory": "grounded",
-        "judgeReasoning": "The answer uses only evidence present in the test fixture.",
-        "promptVersion": "assistant-policy-v2",
-        "passed": true,
-        "severity": "none"
+        "scenarioId": "response-quality",
+        "rubricId": "response-quality-rubric-v1",
+        "passed": false,
+        "severity": "low",
+        "category": "groundedness",
+        "score": 0.56,
+        "axisScores": {
+          "quality": 0.56
+        },
+        "judgeVerdict": false,
+        "durationMs": 380,
+        "reason": "Minor citation gap - partially addressed in this build",
+        "metadata": {
+          "provenance": {
+            "source": "labelled-synthetic",
+            "reason": "Screenshot fixture for dashboard documentation.",
+            "sourceRef": "examples/screenshot-fixture"
+          },
+          "lifecycle": {
+            "status": "active",
+            "since": "2026-07-31"
+          }
+        }
       }
-    ],
-    "persistentFailures": []
+    ]
   },
   "baselineCompatibility": {
-    "status": "compatible",
-    "issues": []
+    "status": "warning",
+    "issues": [
+      {
+        "suite": "response-quality",
+        "severity": "warning",
+        "reason": "baseline report does not include suite manifest metadata",
+        "candidateDatasetVersion": "2.1.0",
+        "candidateRubricVersion": "response-quality-rubric-v1"
+      },
+      {
+        "suite": "tool-use",
+        "severity": "warning",
+        "reason": "baseline report does not include suite manifest metadata",
+        "candidateDatasetVersion": "1.0.0",
+        "candidateRubricVersion": "tool-use-rubric-v1"
+      },
+      {
+        "suite": "safety",
+        "severity": "warning",
+        "reason": "baseline report does not include suite manifest metadata",
+        "candidateDatasetVersion": "1.0.0",
+        "candidateRubricVersion": "safety-rubric-v1"
+      }
+    ]
   }
 }
