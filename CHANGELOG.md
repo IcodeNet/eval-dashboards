@@ -13,6 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] — 2026-08-03
+
+### Added
+
+- `report-index` CLI command for generating grouped multi-report HTML indexes
+- `lint` CLI command with semantic taxonomy checks before full gate enforcement
+- Taxonomy lint engine with explicit rule IDs and multi-run diagnostics (`src/gates/lint-taxonomy.ts`)
+- Renderer support for grouped index pages via `renderGroupedIndexHtml`
+- Report provenance surfaces in HTML/Markdown (build, branch, commit, source metadata)
+- Gate policy source-link rendering and report-level reference section
+- Contract field `suiteManifests[].datasetPath` for portable dataset source-linking
+
+### Changed
+
+- HTML report UX now emphasizes decision-making context with suite pills, metadata cards, and policy evidence
+- Markdown summaries now include provenance metadata and row-flip diff reporting
+- Roadmap updated to include and complete Phase 3C decision-oriented reporting work
+- README command references updated for new `report-index` and `lint` commands
+
+### Fixed
+
+- Redaction hardening in report rendering to prevent forbidden organization tokens appearing in output
+- Runtime validation and schema alignment for new suite manifest source-link field
+
+---
+
 ## [0.2.0] — 2026-08-02
 
 ### Added

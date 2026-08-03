@@ -14,3 +14,4 @@ eval-report/
 published-eval-report/
 .evals_output/
 *.log
+eval-reports.code-workspace
