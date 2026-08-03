@@ -2,6 +2,14 @@
 
 `@icodenet/eval-dashboards` consumes versioned JSON artifacts. The first contract is `eval-report/v1`.
 
+In this repo, `eval-report/v1` means "version 1 of the eval report JSON contract". It is the value written into `schemaVersion` so the CLI, validators, reporters, gates, and future migration tools know which artifact shape they are reading. An eval runner can be Jest, Vitest, a Python script, an agent harness, or an app-specific script like Ask Byron's runner; as long as it emits this JSON shape, `eval-dashboards` can validate it and render the same reports.
+
+Think of it as the shared handoff file between eval execution and reporting:
+
+1. A runner evaluates cases and writes JSON with `schemaVersion: 'eval-report/v1'`.
+2. `eval-dashboards` reads that artifact from `.evals_output/` or another configured input directory.
+3. The package produces checks, history, summaries, and static dashboards from the normalized fields below.
+
 ```ts
 export type EvalReportV1 = {
   schemaVersion: 'eval-report/v1';
