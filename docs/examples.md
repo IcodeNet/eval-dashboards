@@ -41,6 +41,12 @@ pnpm dev report --input=examples/agent-quality-preset/artifacts --reporter=html 
 
 The fixture includes the planned agent-quality presets from [suite-presets.md](suite-presets.md), starter JSONL cases, and rubric contracts. Treat the suite names as setup defaults, not required `eval-report/v1` enum values.
 
+You can also print a starter config for this setup:
+
+```sh
+pnpm dev init --preset=agent-quality
+```
+
 ## `llm-agent-evals`
 
 Use this as the reference for agent/chat evals. It is provider-free and local, but it mirrors the shape a real assistant playground should follow:

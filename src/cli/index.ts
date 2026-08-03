@@ -96,6 +96,29 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'init') {
+    const preset = optionString(options, 'preset', '');
+
+    if (preset === 'agent-quality') {
+      console.log(`export default {
+  input: ['examples/agent-quality-preset/artifacts'],
+  reportDir: 'eval-dashboard',
+  reporters: ['html', 'json-summary', 'markdown-summary', 'text'],
+  gates: {
+    minPassRate: 0.9,
+    maxNewFailures: 0,
+    zeroCritical: true,
+    failOnBaselineBlocked: true,
+  },
+  // Copy examples/agent-quality-preset into your repo, then replace the
+  // template artifact with reports emitted by your runner.
+};`);
+      return;
+    }
+
+    if (preset) {
+      throw Object.assign(new Error(`Unknown init preset ${preset}.`), { exitCode: 2 });
+    }
+
     console.log(`export default {
   input: ['.evals_output/**/*.json'],
   reportDir: 'eval-dashboard',

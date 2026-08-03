@@ -195,7 +195,7 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - `regression-incidents`
    - `judge-calibration`
 - [ ] Decide which concepts belong in schema fields/enums vs preset files vs documentation
-- [ ] Add setup scaffolding for common agent eval programs (for example, `init --preset agent-quality`)
+- [x] Add setup scaffolding for common agent eval programs (for example, `init --preset agent-quality`)
 - [x] Add starter dataset and rubric templates with versioning, provenance, lifecycle, and calibration examples
 - [x] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
 - [x] Add a repo-context glossary for terms that may be new to users, especially `eval-report/v1`, `suite`, `dataset`, and `rubric`

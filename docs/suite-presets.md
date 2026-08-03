@@ -49,3 +49,13 @@ The preset is setup guidance. The artifact remains runner-agnostic:
 - `rows[]` records the actual evidence and pass/fail outcome for each case.
 
 See [../examples/agent-quality-preset/README.md](../examples/agent-quality-preset/README.md) for a runnable template artifact and starter dataset/rubric files.
+
+## CLI Starter
+
+Print a starter configuration for the template with:
+
+```sh
+eval-dashboards init --preset=agent-quality
+```
+
+The command does not change files. It prints a config pointed at `examples/agent-quality-preset/artifacts`, which you can copy into your project after copying the preset template.
