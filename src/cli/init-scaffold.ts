@@ -9,12 +9,18 @@ export type ScaffoldFile = {
 export const initUsage = `eval-dashboards init [options]
 
 Options:
-  --preset=agent-quality   Use the agent-quality starter preset.
-  --write                  Write scaffold files to disk.
-  --dry-run                Preview the write plan without writing files.
-  --teach                  Print a step-by-step walkthrough (safe dry-run mode).
-  --out-dir=<path>         Target directory for scaffold files (default: current dir).
-  --force                  Overwrite scaffold files if they already exist.
+  --preset=agent-quality   Selects the starter template for agent-quality eval programs.
+                           Without --write, prints the preset config only.
+  --write                  Writes scaffold files (config, dataset, rubric, template artifact,
+                           CI snippet) to disk.
+  --dry-run                With --write, prints exactly which files would be written.
+                           No files are created or modified.
+  --teach                  Guided no-write walkthrough of how eval-dashboards works,
+                           what will be scaffolded, and which commands to run next.
+  --out-dir=<path>         Target directory for scaffold output.
+                           Default is current working directory.
+  --force                  Allows overwriting existing scaffold files when used with --write.
+                           Without --force, existing paths cause a safe hard stop.
 `;
 
 export const renderDefaultInitConfig = (): string => `export default {
