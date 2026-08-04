@@ -256,7 +256,8 @@ These slices turn the Ask Byron proving-ground work into reusable setup-layer wo
 
 #### Versioned rubrics
 
-- Provide starter rubric contracts for retrieval, groundedness, answer quality, refusal safety, tool routing, and judge calibration.
+- Provide starter rubric contracts for retrieval, groundedness, answer quality, factuality, tone of voice, refusal safety, content safety, prompt-injection resilience, tool routing, and judge calibration.
+- Ensure rubric axes cover high-signal safety and trust domains that are common across industry eval programs (for example: toxicity/hate, self-harm, sexual safety, violence, bias/fairness, privacy/PII handling, and hallucination resistance), while keeping schema requirements runner-agnostic.
 - Treat rubric versions as gate inputs: blocking suites must declare rubric versions and source paths.
 - Document when to bump rubric versions: scoring scale changes, axis changes, prompt wording changes that alter expected verdicts, or calibration-set changes.
 - Keep rubric templates as preset/docs first; only add schema fields when multiple integrations need the same portable concept.
@@ -319,19 +320,25 @@ These slices turn the Ask Byron proving-ground work into reusable setup-layer wo
 ## 🎯 Recommended next steps (prioritized by impact)
 
 **Immediate (next 1–2 weeks):**
-1. npm publishing workflow (GitHub Actions for semantic versioning, releases, npm publish)
+1. Implement industry coverage audit P0 suites (goal-success, intent-resolution, task-adherence, sensitive-disclosure, agency-boundary)
+   - Source of truth: `docs/industry-coverage-audit.md`
+   - Unblocks security/governance maturity and closes highest-impact preset gaps
+2. Add dedicated multi-turn eval track (`multiturn-trajectory`) across presets, starter datasets, rubrics, and scaffold templates
+   - Include turn-sequence assertions for context retention, state consistency, delayed safety checks, and episode-level goal completion
+   - Aligns with production agentic-eval practice where failures appear only after turn 2+
+3. npm publishing workflow (GitHub Actions for semantic versioning, releases, npm publish)
    - Unblocks teams to `npm install @icodenet/eval-dashboards`
    - Required for Phase 4 unlock
 
 **Short term (Phase 4 preparation, next 2–3 weeks):**
-2. Community seeding: early runner partnerships and integration examples
+4. Community seeding: early runner partnerships and integration examples
    - Validates adoption readiness
    - Gathers feedback before public announcement
 
 **Medium term (Phase 4 execution, post-npm readiness):**
-3. Public npm release + announcement
-4. GitHub Actions + Azure DevOps templates for production use
-5. Community building (issues, feedback, iterations)
+5. Public npm release + announcement
+6. GitHub Actions + Azure DevOps templates for production use
+7. Community building (issues, feedback, iterations)
 
 ---
 

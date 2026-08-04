@@ -28,3 +28,9 @@ For local development from this repo, replace `eval-dashboards` with `pnpm dev`.
 4. Bump `rubricVersion` when scoring rules, axes, judge prompts, or thresholds change.
 5. Emit rows with the evidence needed to explain each pass or failure.
 6. Treat generated dashboards as the canonical report surface; host apps should link or embed them instead of rebuilding summary cards.
+
+Starter coverage now includes must-have domains commonly used in production AI eval programs:
+
+- `tone-of-voice` and `factuality` signals in `answer-quality`
+- `content-safety` refusal checks for harmful requests
+- existing retrieval/groundedness/prompt-safety/tool-routing/judge-calibration baselines

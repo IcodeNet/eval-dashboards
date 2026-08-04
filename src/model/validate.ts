@@ -41,7 +41,10 @@ const datasetSources: DatasetSource[] = [
 const riskAreas: RiskArea[] = [
   'compliance',
   'pii',
+  'content-safety',
   'prompt-safety',
+  'tone-of-voice',
+  'factuality',
   'response-quality',
   'tool-use',
   'tool-routing',

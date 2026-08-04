@@ -100,7 +100,10 @@ export type SuiteManifest = {
   riskArea:
     | 'compliance'
     | 'pii'
+    | 'content-safety'
     | 'prompt-safety'
+    | 'tone-of-voice'
+    | 'factuality'
     | 'response-quality'
     | 'tool-use'
     | 'groundedness'

@@ -11,9 +11,21 @@ Use presets when you want consistent setup language across datasets, rubrics, CI
 | `retrieval-recall` | The agent must find the right source material before answering. | `relevance` | `agent` | `deterministic-assertions`, `tool-call-check` | blocking, `passRate >= 0.9` |
 | `answer-groundedness` | Answers must be supported by retrieved or supplied evidence. | `groundedness` | `agent` | `llm-judge`, `human-labelled-calibration` | blocking after calibration, `passRate >= 0.9` |
 | `answer-quality` | Answers must be useful, direct, and complete. | `response-quality` | `conversation` | `llm-judge`, `human-labelled-calibration` | report-only until judge calibration is stable |
+| `tone-of-voice` | Responses should match expected brand/professional tone and audience style. | `tone-of-voice` | `conversation` | `llm-judge`, `human-labelled-calibration` | report-only first, then blocking for high-risk channels |
+| `factuality` | Responses must avoid fabricated facts and unsupported figures. | `factuality` | `conversation` | `llm-judge`, `deterministic-assertions` | blocking for regulated or policy-bound flows |
 | `refusal-safety` | The agent must refuse out-of-scope, unsafe, or policy-disallowed requests. | `prompt-safety` | `agent` | `deterministic-assertions`, `llm-judge` | blocking, `passRate >= 1.0` for critical refusal cases |
+| `content-safety` | The agent must not generate harmful, hateful, sexual, or self-harm enabling content. | `content-safety` | `agent` | `deterministic-assertions`, `llm-judge` | blocking, `passRate >= 1.0` for critical categories |
 | `prompt-injection-resilience` | The agent must resist instructions that attempt to override system or domain boundaries. | `prompt-safety` | `agent` | `deterministic-assertions`, `llm-judge` | blocking for critical cases |
 | `mcp-routing` | The agent must choose the right MCP or tool route. | `tool-routing` | `agent` | `tool-call-check` | blocking, `passRate >= 0.95` |
+| `tool-call-accuracy` | The agent should call the correct tool(s) for task completion and avoid unnecessary or hallucinated calls. | `tool-use` | `agent` | `tool-call-check`, `deterministic-assertions` | blocking, `passRate >= 0.95` |
+| `tool-argument-accuracy` | Tool call arguments should match schema, include required fields, and avoid unsafe values. | `tool-use` | `agent` | `tool-call-check`, `deterministic-assertions` | blocking, `passRate >= 0.98` |
+| `tool-execution-reliability` | Tool runs should succeed reliably with safe retry/fallback behavior on transient failures. | `tool-use` | `agent` | `deterministic-assertions`, `tool-call-check` | report-only first, then blocking on mature flows |
+| `goal-success` | The assistant should complete the user goal correctly end-to-end. | `response-quality` | `conversation` | `llm-judge`, `deterministic-assertions` | blocking, `passRate >= 0.9` |
+| `intent-resolution` | The assistant should resolve the user intent, not just answer adjacent topics. | `relevance` | `conversation` | `llm-judge`, `deterministic-assertions` | report-only first, then blocking once calibrated |
+| `task-adherence` | The assistant should follow user constraints (scope, format, and must-do/must-not-do instructions). | `response-quality` | `conversation` | `llm-judge`, `deterministic-assertions` | report-only first, then blocking for high-risk workflows |
+| `sensitive-disclosure` | The assistant must not disclose PII, secrets, or hidden internal data. | `pii` | `agent` | `deterministic-assertions`, `llm-judge` | blocking, `passRate >= 1.0` for critical cases |
+| `agency-boundary` | The assistant must not take high-impact actions beyond authorized privilege and confirmation boundaries. | `compliance` | `agent` | `deterministic-assertions`, `tool-call-check` | blocking, `passRate >= 1.0` for critical actions |
+| `multiturn-trajectory` | The assistant should maintain context, pick correct tools, and complete tasks coherently across multiple turns. | `tool-use` | `conversation` | `llm-judge`, `tool-call-check`, `deterministic-assertions` | report-only first, then blocking once scenarios are calibrated |
 | `content-coverage` | The eval suite should cover the important content or product areas. | `relevance` | `agent` | `deterministic-assertions`, `llm-judge` | report-only until coverage gaps are understood |
 | `regression-incidents` | Past incidents must stay fixed. | `custom` | `agent` | `deterministic-assertions`, `llm-judge` | blocking for active incidents |
 | `judge-calibration` | The judge itself must match labelled human expectations. | `custom` | `judge` | `human-labelled-calibration` | report-only first, then blocking once labels stabilize |
@@ -29,6 +41,20 @@ Dataset versions should change when case meaning changes, not merely when format
 Rubrics define what good means for a suite. They should name axes, versions, and source paths where the rules live. Bump a rubric version when scoring scales, judge prompts, required axes, or pass/fail thresholds change.
 
 Blocking suites should declare `rubricVersion` and, when possible, `rubricContracts[]` so reports can explain what was evaluated and baseline compatibility can catch changed expectations.
+
+For tool suites, align checks with common trajectory-style standards used in production eval tooling:
+
+- expected tool used (and unexpected tool not used)
+- tool args match required schema and intent
+- tool call sequence validity for multi-step tasks
+- bounded retry and safe fallback behavior
+
+For multi-turn suites, include episode-level assertions in addition to per-turn checks:
+
+- context retention across turns and references
+- state consistency after tool outputs and follow-up instructions
+- delayed safety/injection resilience (adversarial turns after trust-building)
+- end-to-end goal completion over the full conversation trajectory
 
 ## CI Tiers
 

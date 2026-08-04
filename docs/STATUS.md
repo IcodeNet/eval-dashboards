@@ -96,6 +96,15 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 	- Approval-gate pattern captured: document `eval-results` branch layout, `pr-meta.json` wiring, commit-status contract (`eval/quality-gate`), environment approval flow, and cleanup workflow templates for closed PRs.
 	- Planning slices captured in ROADMAP: dataset governance, versioned rubrics, judge calibration, CI quality tiers, suite templates, setup scaffolding, and schema/taxonomy decision rules.
 
+- [x] Research and publish industry coverage audit for suites/datasets/rubrics.
+	- Added [docs/industry-coverage-audit.md](docs/industry-coverage-audit.md) with external-source mapping and local coverage matrix.
+	- Identified P0 additions: `goal-success`, `intent-resolution`, `task-adherence`, `sensitive-disclosure`, and `agency-boundary` presets.
+
+- [x] Implement P0 industry coverage suites in presets, dataset templates, rubrics, artifact template, and init scaffold.
+	- Scope tracked in [docs/industry-coverage-audit.md](docs/industry-coverage-audit.md).
+	- Must include parity updates across docs + examples + `src/cli/init-scaffold.ts`.
+	- Added starter multi-turn trajectory coverage (`multiturn-trajectory`) with preset guidance, dataset case, rubric axes, template artifact row, and scaffold output.
+
 ## Next Phases
 
 **Phase 4: Shipping & Adoption** (after 2C/3 complete)

@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] — 2026-08-04
+
+### Added
+
+- Pre-release automation for deterministic asset regeneration (`pnpm release:prepare`, `pnpm assets:regenerate`, `pnpm assets:verify`).
+- Release workflow enforcement for regenerated dashboard outputs and screenshots before publish.
+- Run targeting support in reporting with explicit `--run-id` alongside `--baseline-run-id`.
+- Expanded preset coverage for quality, safety, tool-use, task outcome, and multi-turn trajectory starter suites.
+- Industry coverage audit document with prioritized preset gaps and governance recommendations.
+
+### Changed
+
+- HTML report UX now defaults to collapsible sections with summary status cues and improved section-level signal density.
+- Risk-area taxonomy expanded with `content-safety`, `tone-of-voice`, and `factuality` across docs, model types, validation, and schema.
+- Agent-quality preset scaffold/template fixtures updated to include broader production-style eval domains.
+
+### Fixed
+
+- Baseline and run selection behavior now supports explicit run targeting and clearer missing-run validation.
+
+---
+
 ## [0.3.1] — 2026-08-03
 
 ### Fixed

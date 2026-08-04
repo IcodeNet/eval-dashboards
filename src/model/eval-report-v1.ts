@@ -18,7 +18,10 @@ export type GraderKind =
 export type RiskArea =
   | 'compliance'
   | 'pii'
+  | 'content-safety'
   | 'prompt-safety'
+  | 'tone-of-voice'
+  | 'factuality'
   | 'response-quality'
   | 'tool-use'
   | 'tool-routing'

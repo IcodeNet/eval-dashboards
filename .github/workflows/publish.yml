@@ -72,14 +72,11 @@ jobs:
           fi
           echo "✓ Version verified: $PKG_VERSION"
 
-      - name: TypeScript check
-        run: pnpm typecheck
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run tests
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
+      - name: Validate release and generated assets
+        run: pnpm release:prepare
 
       - name: Extract release notes from CHANGELOG
         id: release_notes

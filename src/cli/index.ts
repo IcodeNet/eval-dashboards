@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
-import { buildHistory, compareRuns, selectBaseline } from '../history/history.js';
+import { buildHistory, compareRuns, selectBaseline, selectRun } from '../history/history.js';
 import { readEvalReports, writeJsonFile, writeTextFile } from '../io/reports.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
@@ -31,25 +31,52 @@ Commands:
   init     Print starter config or scaffold preset files.
 `;
 
-const loadContext = async (input: string, reportDir: string, baselineRunId?: string) => {
+type LoadContextOptions = {
+  runId?: string;
+  baselineRunId?: string;
+};
+
+const loadContext = async (
+  input: string,
+  reportDir: string,
+  options?: LoadContextOptions,
+) => {
   const reports = await readEvalReports(input);
 
   if (reports.length === 0) {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
   }
 
-  const current = reports.at(-1);
+  let current = options?.runId ? selectRun(reports, options.runId) : reports.at(-1);
+
+  if (options?.runId && !current) {
+    throw Object.assign(new Error(`Run ID ${options.runId} was not found under ${input}.`), {
+      exitCode: 2,
+    });
+  }
+
+  current = current ?? reports.at(-1);
 
   if (!current) {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
   }
 
   // If baselineRunId is specified, find and use that report as baseline
-  let previous = baselineRunId ? selectBaseline(reports, baselineRunId) : undefined;
+  let previous = options?.baselineRunId ? selectBaseline(reports, options.baselineRunId) : undefined;
 
-  // If explicit baseline not provided or not found, use previous run
+  if (options?.baselineRunId && !previous) {
+    throw Object.assign(
+      new Error(`Baseline run ID ${options.baselineRunId} was not found under ${input}.`),
+      { exitCode: 2 },
+    );
+  }
+
+  // If explicit baseline is not provided, use the run immediately before current.
   if (!previous && reports.length > 1) {
-    previous = reports.at(-2);
+    const currentIndex = reports.findIndex((report) => report.run.id === current.run.id);
+    if (currentIndex > 0) {
+      previous = reports[currentIndex - 1];
+    }
   }
 
   return {
@@ -150,7 +177,12 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'report') {
-    const context = await loadContext(input, reportDir);
+    const runId = optionString(options, 'run-id', '');
+    const baselineRunId = optionString(options, 'baseline-run-id', '');
+    const context = await loadContext(input, reportDir, {
+      runId: runId || undefined,
+      baselineRunId: baselineRunId || undefined,
+    });
     const reporters = (config.reporters ?? ['html', 'text']) as ReporterName[];
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
     const locale = optionString(options, 'locale', '') || config.locale;
@@ -170,7 +202,7 @@ const main = async (): Promise<void> => {
 
   if (command === 'check') {
     const baselineRunId = optionString(options, 'baseline-run-id', '');
-    const context = await loadContext(input, reportDir, baselineRunId || undefined);
+    const context = await loadContext(input, reportDir, { baselineRunId: baselineRunId || undefined });
     const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
     const gateConfig = {
       ...(config.gates ?? {}),

@@ -241,6 +241,9 @@ Three built-in themes. Switch with `--theme` or set in config:
 eval-dashboards report --theme=dark
 eval-dashboards report --theme=minimal
 eval-dashboards report --theme=default
+
+# Compare any two runs directly
+eval-dashboards report --input=.evals_output --run-id=run-2026-08-03 --baseline-run-id=run-2026-07-28 --reporter=html
 ```
 
 Bring your own brand colors:

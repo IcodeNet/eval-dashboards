@@ -196,7 +196,7 @@ A suite is a collection of related rows. The **suite manifest** tells `@icodenet
 |-------|------|--------|---------|
 | `name` | string | Must match suite ID in `suites[]` | Suite identifier. |
 | `target` | enum | `agent` \| `conversation` \| `judge` \| `custom` | What is being evaluated. |
-| `riskArea` | enum | `compliance`, `pii`, `prompt-safety`, `response-quality`, `tool-use`, `tool-routing`, `groundedness`, `relevance`, `custom` | Why the suite exists (governance and reporting). |
+| `riskArea` | enum | `compliance`, `pii`, `content-safety`, `prompt-safety`, `tone-of-voice`, `factuality`, `response-quality`, `tool-use`, `tool-routing`, `groundedness`, `relevance`, `custom` | Why the suite exists (governance and reporting). |
 | `datasetSource` | enum | `synthetic`, `labelled-synthetic`, `production-sample`, `manual`, `custom` | How the dataset was sourced (affects baseline comparisons). |
 | `datasetVersion` | string | e.g., `"1.0.0"`, `"2024-Q3"`, commit SHA | Stable version for baseline compatibility checks. Change when dataset semantics change. |
 

@@ -764,6 +764,7 @@ type CollapsibleSectionOptions = {
   body: string;
   rightControls?: string;
   collapsed?: boolean;
+  summaryTone?: 'muted' | 'pass' | 'warn' | 'fail';
 };
 
 const renderCollapsibleSection = ({
@@ -773,6 +774,7 @@ const renderCollapsibleSection = ({
   body,
   rightControls,
   collapsed = true,
+  summaryTone = 'muted',
 }: CollapsibleSectionOptions): string => {
   const isCollapsed = collapsed;
   return `<div class="section collapsible${isCollapsed ? ' collapsed' : ''}" data-section-id="${e(id)}">
@@ -782,7 +784,7 @@ const renderCollapsibleSection = ({
             <span class="section-toggle-icon" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>
             <span class="section-toggle-label">${e(title)}</span>
           </button>
-          <span class="section-summary">${e(summary)}</span>
+          <span class="section-summary section-summary-${e(summaryTone)}">${e(summary)}</span>
         </div>
         ${rightControls ?? ''}
       </div>
@@ -804,6 +806,30 @@ const renderHtml = (context: ReportContext): string => {
   const passClass = summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
   const durationStats = calculateDurationStats(rows);
   const totalDurationMs = durationStats?.totalMs ?? 0;
+  const datasetChangelogTotals = datasetChangelog.reduce(
+    (totals, entry) => {
+      totals.added += entry.rowChanges.added;
+      totals.updated += entry.rowChanges.updated;
+      totals.removed += entry.rowChanges.removed;
+      return totals;
+    },
+    { added: 0, updated: 0, removed: 0 },
+  );
+  const suiteSummaryText = `${pluralize(current.suites.length, 'suite')} • ${summary.passed}/${summary.total} passed (${formatPassRate(summary.passed, summary.total)})`;
+  const failingRowsSummary = failingRows.length === 0
+    ? '0 rows • no failures'
+    : `${pluralize(failingRows.length, 'row')} • ${pluralize(newlyFailing.length, 'new regression')} • ${pluralize(comparison.persistentFailures.length, 'persistent failure')}`;
+  const allRowsSummary = `${pluralize(current.rows.length, 'row')} • ${summary.failed} failing • ${formatPassRate(summary.passed, summary.total)} pass rate`;
+  const datasetChangelogSummary = `${pluralize(datasetChangelog.length, 'entry')} • +${datasetChangelogTotals.added} / ~${datasetChangelogTotals.updated} / -${datasetChangelogTotals.removed}`;
+  const baselineCompatibilitySummary = `${compatStatus} • ${pluralize(compat?.issues.length ?? 0, 'issue')}`;
+  const suiteSummaryTone: 'pass' | 'warn' | 'fail' =
+    summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
+  const failingRowsTone: 'pass' | 'warn' | 'fail' =
+    failingRows.length === 0 ? 'pass' : comparison.persistentFailures.length > 0 ? 'fail' : 'warn';
+  const allRowsTone: 'pass' | 'warn' | 'fail' =
+    summary.failed === 0 ? 'pass' : newlyFailing.length > 0 ? 'fail' : 'warn';
+  const compatibilityTone: 'pass' | 'warn' | 'fail' =
+    compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
 
   return `<!doctype html>
 <html lang="en" data-theme="${e(theme.name)}">
@@ -849,6 +875,9 @@ ${renderCssVariables(theme)}
     .section-toggle-icon { display: inline-block; width: 10px; text-align: center; font-size: 12px; transform: translateY(-.5px); }
     .section-toggle-label { white-space: nowrap; }
     .section-summary { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .section-summary-pass { color: var(--pass); font-weight: 700; }
+    .section-summary-warn { color: var(--warn); font-weight: 700; }
+    .section-summary-fail { color: var(--fail); font-weight: 700; }
     .section.collapsible.collapsed .section-body { display: none; }
     .section-body { padding: 0; }
 
@@ -1011,24 +1040,24 @@ ${renderCssVariables(theme)}
 
   <div class="page">
     <div class="metrics">
-      <div class="metric">
-        <div class="metric-label" data-tip="Percentage of eval rows that passed this run.\nExample: 66.7% means 2 of 3 rows passed.\nSet a minimum in CI with --min-pass-rate=0.9">Pass rate</div>
+      <div class="metric" data-tip="Percentage of eval rows that passed this run.\nExample: 66.7% means 2 of 3 rows passed.\nSet a minimum in CI with --min-pass-rate=0.9">
+        <div class="metric-label">Pass rate</div>
         <div class="metric-value ${passClass}">${e(formatPassRate(summary.passed, summary.total))}</div>
       </div>
-      <div class="metric">
-        <div class="metric-label" data-tip="Rows that met their pass threshold this run.\nExample: 2/3 means one case still fails.\nIncludes both unchanged passes and newly recovered ones.">Passed</div>
+      <div class="metric" data-tip="Rows that met their pass threshold this run.\nExample: 2/3 means one case still fails.\nIncludes both unchanged passes and newly recovered ones.">
+        <div class="metric-label">Passed</div>
         <div class="metric-value">${summary.passed}<span style="font-size:16px;font-weight:400;color:var(--muted)">/${summary.total}</span></div>
       </div>
-      <div class="metric">
-        <div class="metric-label" data-tip="Regressions: rows that passed last run but fail now.\nExample: your prompt change broke the conciseness check.\nGate with --max-new-failures=0 to block merges on any regression.">New failures</div>
+      <div class="metric" data-tip="Regressions: rows that passed last run but fail now.\nExample: your prompt change broke the conciseness check.\nGate with --max-new-failures=0 to block merges on any regression.">
+        <div class="metric-label">New failures</div>
         <div class="metric-value ${newlyFailing.length > 0 ? 'fail' : 'pass'}">${newlyFailing.length}</div>
       </div>
-      <div class="metric">
-        <div class="metric-label" data-tip="Recoveries: rows that failed last run but pass now.\nExample: your prompt fix resolved the verbosity failure.\nPositive signal — track over time to confirm the fix holds.">New passes</div>
+      <div class="metric" data-tip="Recoveries: rows that failed last run but pass now.\nExample: your prompt fix resolved the verbosity failure.\nPositive signal — track over time to confirm the fix holds.">
+        <div class="metric-label">New passes</div>
         <div class="metric-value ${newlyPassing.length > 0 ? 'pass' : ''}">${newlyPassing.length}</div>
       </div>
-      <div class="metric">
-        <div class="metric-label" data-tip="Are trend comparisons meaningful?\n• compatible — same dataset + rubric versions, safe to diff\n• warning — dataset or rubric version changed; treat trends as approximate\n• blocked — breaking version mismatch; new/lost failures may be noise, not signal\nExample: bumping datasetVersion from v1 to v2 triggers a warning.">Baseline</div>
+      <div class="metric" data-tip="Are trend comparisons meaningful?\n• compatible — same dataset + rubric versions, safe to diff\n• warning — dataset or rubric version changed; treat trends as approximate\n• blocked — breaking version mismatch; new/lost failures may be noise, not signal\nExample: bumping datasetVersion from v1 to v2 triggers a warning.">
+        <div class="metric-label">Baseline</div>
         <div class="metric-value" style="font-size:15px;padding-top:5px">
           <span class="compat-badge compat-${compatClass}">${e(compatStatus)}</span>
         </div>
@@ -1059,18 +1088,24 @@ ${renderCssVariables(theme)}
     ${renderCollapsibleSection({
       id: 'gate-policy',
       title: 'Gate policy',
-      summary: pluralize(current.suiteManifests?.length ?? 0, 'suite manifest'),
+      summary: `${pluralize(current.suiteManifests?.length ?? 0, 'suite manifest')} • ${compatStatus}`,
       body: gatePolicyTable(current),
+      summaryTone: compatibilityTone,
     })}
 
-    ${context.history.length > 1
-      ? (() => {
-        const passRates = context.history.map((h) => h.passRate);
+    ${(() => {
+      const passRates = context.history.length > 0
+        ? context.history.map((h) => h.passRate)
+        : [summary.passRate];
+
+      if (context.history.length > 1) {
         const { direction, change } = calculateTrend(passRates);
         return renderCollapsibleSection({
           id: 'pass-rate-trend',
           title: 'Pass-rate trend',
           summary: `${formatPassRate(summary.passed, summary.total)} current`,
+          summaryTone: suiteSummaryTone,
+          collapsed: false,
           body: `
         <div class="history-row">
           <div class="history-row-label">Overall pass rate</div>
@@ -1081,23 +1116,41 @@ ${renderCssVariables(theme)}
         </div>
       `,
         });
-      })()
-      : ''
-    }
+      }
+
+      return renderCollapsibleSection({
+        id: 'pass-rate-trend',
+        title: 'Pass-rate trend',
+        summary: `${formatPassRate(summary.passed, summary.total)} current • add another run to graph trend`,
+        summaryTone: 'warn',
+        collapsed: false,
+        body: `
+      <div class="history-row">
+        <div class="history-row-label">Overall pass rate</div>
+        <div class="history-row-trend trend-stable">
+          ${renderSparkline(passRates)}
+          <span>Need at least 2 runs to show direction</span>
+        </div>
+      </div>
+    `,
+      });
+    })()}
 
     ${renderCollapsibleSection({
       id: 'suite-summary',
       title: 'Suite summary',
-      summary: pluralize(current.suites.length, 'suite'),
+      summary: suiteSummaryText,
       body: suiteSummaryTable(current.suites),
+      summaryTone: suiteSummaryTone,
     })}
 
     ${datasetChangelog.length
       ? renderCollapsibleSection({
         id: 'dataset-changelog',
         title: 'Dataset changelog',
-        summary: pluralize(datasetChangelog.length, 'entry'),
+        summary: datasetChangelogSummary,
         body: datasetChangelogTable(datasetChangelog),
+        summaryTone: 'warn',
       })
       : ''
     }
@@ -1105,7 +1158,8 @@ ${renderCssVariables(theme)}
     ${renderCollapsibleSection({
       id: 'failing-rows',
       title: 'Failing rows',
-      summary: pluralize(failingRows.length, 'row'),
+      summary: failingRowsSummary,
+      summaryTone: failingRowsTone,
       rightControls: `<div style="display:flex;align-items:center;gap:12px">
           ${failingRows.length > 0 ? `<div class="view-switcher">
             <button class="view-btn active" onclick="switchView('failrows','details',this)">Details</button>
@@ -1124,7 +1178,8 @@ ${renderCssVariables(theme)}
     ${renderCollapsibleSection({
       id: 'all-rows',
       title: 'All rows',
-      summary: pluralize(current.rows.length, 'row'),
+      summary: allRowsSummary,
+      summaryTone: allRowsTone,
       rightControls: `<div style="display:flex;align-items:center;gap:12px">
           <div class="view-switcher">
             <button class="view-btn active" onclick="switchView('allrows','details',this)">Details</button>
@@ -1141,7 +1196,8 @@ ${renderCssVariables(theme)}
       ? renderCollapsibleSection({
         id: 'baseline-compatibility',
         title: 'Baseline compatibility',
-        summary: pluralize(compat.issues.length, 'issue'),
+        summary: baselineCompatibilitySummary,
+        summaryTone: compatibilityTone,
         body: `<div class="table-wrap"><table>
         <thead><tr><th>Suite</th><th>Severity</th><th>Issue</th><th>Dataset</th><th>Rubric</th></tr></thead>
         <tbody>${compat.issues

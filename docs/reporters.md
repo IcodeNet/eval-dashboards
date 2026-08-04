@@ -12,3 +12,12 @@ Multiple reporters can be requested in one command:
 ```sh
 eval-dashboards report --input=.evals_output --reporter=html --reporter=text
 ```
+
+Compare any two runs directly in the report flow:
+
+```sh
+eval-dashboards report --input=.evals_output --run-id=run-2026-08-03 --baseline-run-id=run-2026-07-28 --reporter=html
+```
+
+- `--run-id`: chooses the current run to render.
+- `--baseline-run-id`: chooses the comparison baseline run.

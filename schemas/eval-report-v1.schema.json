@@ -1,824 +1,827 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "https://raw.githubusercontent.com/icodenet/eval-dashboards/main/schemas/eval-report-v1.schema.json",
-    "title": "EvalReportV1",
-    "description": "Versioned artifact format for AI agent and LLM evaluations. Runner-agnostic, offline-first, and designed for standardized taxonomy across diverse eval harnesses.",
-    "type": "object",
-    "required": [
-        "schemaVersion",
-        "run",
-        "suites",
-        "rows"
-    ],
-    "properties": {
-        "schemaVersion": {
-            "const": "eval-report/v1",
-            "description": "Schema version; do not break lightly. New schemaVersion only for breaking changes."
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/icodenet/eval-dashboards/main/schemas/eval-report-v1.schema.json",
+  "title": "EvalReportV1",
+  "description": "Versioned artifact format for AI agent and LLM evaluations. Runner-agnostic, offline-first, and designed for standardized taxonomy across diverse eval harnesses.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "run",
+    "suites",
+    "rows"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "eval-report/v1",
+      "description": "Schema version; do not break lightly. New schemaVersion only for breaking changes."
+    },
+    "run": {
+      "$ref": "#/definitions/EvalRun"
+    },
+    "suites": {
+      "type": "array",
+      "description": "Suite-level summaries. One row per suite.",
+      "items": {
+        "$ref": "#/definitions/EvalSuiteSummary"
+      }
+    },
+    "rows": {
+      "type": "array",
+      "description": "Individual eval rows; runner-agnostic evidence format.",
+      "items": {
+        "$ref": "#/definitions/EvalRow"
+      }
+    },
+    "suiteManifests": {
+      "type": "array",
+      "description": "Optional: suite metadata, gate policies, and governance declarations. Enables taxonomy-aware gating and grouping.",
+      "items": {
+        "$ref": "#/definitions/SuiteManifest"
+      }
+    },
+    "rubricContracts": {
+      "type": "array",
+      "description": "Optional: registries of rubrics and axis versions per suite. Enables baseline compatibility checks.",
+      "items": {
+        "$ref": "#/definitions/SuiteRubricContract"
+      }
+    },
+    "baselineCompatibility": {
+      "$ref": "#/definitions/BaselineCompatibilityResult",
+      "description": "Optional: assessment of compatibility with a previous run (dataset/rubric drift detection)."
+    },
+    "datasetChangelog": {
+      "type": "array",
+      "description": "Optional: changelog entries documenting dataset/rubric evolution for audited comparisons.",
+      "items": {
+        "$ref": "#/definitions/DatasetChangelogEntry"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional: free-form metadata for extensions or runner-specific context."
+    }
+  },
+  "definitions": {
+    "EvalRun": {
+      "type": "object",
+      "required": [
+        "id",
+        "generatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique run identifier (e.g., git commit SHA, CI build ID, timestamp)."
         },
-        "run": {
-            "$ref": "#/definitions/EvalRun"
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this report was generated."
         },
-        "suites": {
-            "type": "array",
-            "description": "Suite-level summaries. One row per suite.",
-            "items": {
-                "$ref": "#/definitions/EvalSuiteSummary"
-            }
+        "project": {
+          "type": "string",
+          "description": "Optional: project or product name."
         },
-        "rows": {
-            "type": "array",
-            "description": "Individual eval rows; runner-agnostic evidence format.",
-            "items": {
-                "$ref": "#/definitions/EvalRow"
-            }
+        "team": {
+          "type": "string",
+          "description": "Optional: team or squad name."
         },
-        "suiteManifests": {
-            "type": "array",
-            "description": "Optional: suite metadata, gate policies, and governance declarations. Enables taxonomy-aware gating and grouping.",
-            "items": {
-                "$ref": "#/definitions/SuiteManifest"
-            }
+        "kind": {
+          "type": "string",
+          "description": "Optional: run kind (e.g., 'regression', 'release-candidate', 'experimental')."
         },
-        "rubricContracts": {
-            "type": "array",
-            "description": "Optional: registries of rubrics and axis versions per suite. Enables baseline compatibility checks.",
-            "items": {
-                "$ref": "#/definitions/SuiteRubricContract"
-            }
+        "branch": {
+          "type": "string",
+          "description": "Optional: source branch name."
         },
-        "baselineCompatibility": {
-            "$ref": "#/definitions/BaselineCompatibilityResult",
-            "description": "Optional: assessment of compatibility with a previous run (dataset/rubric drift detection)."
+        "commit": {
+          "type": "string",
+          "description": "Optional: commit SHA or revision identifier."
         },
-        "datasetChangelog": {
-            "type": "array",
-            "description": "Optional: changelog entries documenting dataset/rubric evolution for audited comparisons.",
-            "items": {
-                "$ref": "#/definitions/DatasetChangelogEntry"
-            }
+        "buildId": {
+          "type": "string",
+          "description": "Optional: CI build ID or pipeline run ID."
+        },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional: URL linking back to the source (e.g., CI log, PR, dashboard)."
+        }
+      }
+    },
+    "EvalSuiteSummary": {
+      "type": "object",
+      "required": [
+        "id",
+        "total",
+        "passed",
+        "failed"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Suite identifier; must match suite names in rows."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional: human-readable suite name."
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of rows in this suite."
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of passing rows."
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of failing rows."
+        },
+        "passRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Optional: pre-computed pass rate (0.0 to 1.0). If omitted, computed as passed / total."
+        }
+      }
+    },
+    "EvalRow": {
+      "type": "object",
+      "required": [
+        "id",
+        "suite",
+        "passed"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique row identifier within the suite."
+        },
+        "suite": {
+          "type": "string",
+          "description": "Suite this row belongs to; must match a suite ID."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "deterministic",
+            "agent",
+            "llm-judge",
+            "human-review"
+          ],
+          "description": "Optional: type of evaluation. Informs which evidence fields to expect."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional: human-readable test or scenario name."
+        },
+        "question": {
+          "type": "string",
+          "description": "Optional: input question or prompt for agent/LLM evals."
+        },
+        "datasetId": {
+          "type": "string",
+          "description": "Optional: stable identifier for the source dataset (for grouping and baseline compatibility)."
+        },
+        "scenarioId": {
+          "type": "string",
+          "description": "Optional: scenario or use-case identifier."
+        },
+        "rubricId": {
+          "type": "string",
+          "description": "Optional: rubric version or identifier used to score this row."
+        },
+        "rubricVariant": {
+          "type": "string",
+          "description": "Optional: variant name if multiple rubric versions were tested."
+        },
+        "judgeModel": {
+          "type": "string",
+          "description": "Optional (llm-judge kind): model used for judging (e.g., 'gpt-4', 'claude-opus')."
+        },
+        "judgeVerdict": {
+          "type": "boolean",
+          "description": "Optional (llm-judge kind): the judge's pass/fail verdict."
+        },
+        "judgeCategory": {
+          "type": "string",
+          "description": "Optional (llm-judge kind): category or reason from the judge."
+        },
+        "judgeReasoning": {
+          "type": "string",
+          "description": "Optional (llm-judge kind): full reasoning from the judge."
+        },
+        "promptVersion": {
+          "type": "string",
+          "description": "Optional: version/hash of the prompt template used."
+        },
+        "agentChannel": {
+          "type": "string",
+          "description": "Optional: agent channel, variant, or feature flag."
+        },
+        "agentVersion": {
+          "type": "string",
+          "description": "Optional: agent version, commit, or deployment tag."
+        },
+        "agentReasoning": {
+          "type": "string",
+          "description": "Optional: reasoning or log output from the agent."
+        },
+        "groundTruthVerdict": {
+          "type": "boolean",
+          "description": "Optional: ground truth label (used to calibrate judges)."
+        },
+        "groundTruthCategory": {
+          "type": "string",
+          "description": "Optional: ground truth category."
+        },
+        "groundTruthAnnotation": {
+          "type": "string",
+          "description": "Optional: additional ground truth annotation."
+        },
+        "input": {
+          "type": "string",
+          "description": "Optional: input to the system under test (e.g., user query)."
+        },
+        "output": {
+          "type": "string",
+          "description": "Optional: actual output from the system."
+        },
+        "expected": {
+          "type": "string",
+          "description": "Optional: expected output for deterministic checks."
+        },
+        "turns": {
+          "type": "array",
+          "description": "Optional: conversation turns for multi-turn agent evals.",
+          "items": {
+            "$ref": "#/definitions/ConversationTurn"
+          }
+        },
+        "toolCalls": {
+          "type": "array",
+          "description": "Optional: tool calls made by the agent.",
+          "items": {
+            "$ref": "#/definitions/ToolCall"
+          }
+        },
+        "axisScores": {
+          "type": "object",
+          "description": "Optional: named rubric axis scores (e.g., {'helpfulness': 0.8, 'safety': 1.0}).",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether this row passed. Required for gate checks."
+        },
+        "score": {
+          "type": "number",
+          "description": "Optional: numeric score (0.0–1.0 or custom range)."
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "description": "Optional: failure severity. Informs gate decisions and dashboard cues."
+        },
+        "category": {
+          "type": "string",
+          "description": "Optional: failure category or classification (e.g., 'timeout', 'malformed', 'off-topic')."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Optional: human-readable reason for failure."
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Optional: execution time in milliseconds."
         },
         "metadata": {
-            "type": "object",
-            "description": "Optional: free-form metadata for extensions or runner-specific context."
+          "$ref": "#/definitions/RowMetadata",
+          "description": "Optional: free-form metadata for extensions. Includes portable provenance/lifecycle conventions when present."
         }
+      }
     },
-    "definitions": {
-        "EvalRun": {
-            "type": "object",
-            "required": [
-                "id",
-                "generatedAt"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "Unique run identifier (e.g., git commit SHA, CI build ID, timestamp)."
-                },
-                "generatedAt": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "ISO 8601 timestamp when this report was generated."
-                },
-                "project": {
-                    "type": "string",
-                    "description": "Optional: project or product name."
-                },
-                "team": {
-                    "type": "string",
-                    "description": "Optional: team or squad name."
-                },
-                "kind": {
-                    "type": "string",
-                    "description": "Optional: run kind (e.g., 'regression', 'release-candidate', 'experimental')."
-                },
-                "branch": {
-                    "type": "string",
-                    "description": "Optional: source branch name."
-                },
-                "commit": {
-                    "type": "string",
-                    "description": "Optional: commit SHA or revision identifier."
-                },
-                "buildId": {
-                    "type": "string",
-                    "description": "Optional: CI build ID or pipeline run ID."
-                },
-                "sourceUrl": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "Optional: URL linking back to the source (e.g., CI log, PR, dashboard)."
-                }
-            }
+    "RowMetadata": {
+      "type": "object",
+      "properties": {
+        "provenance": {
+          "$ref": "#/definitions/RowProvenance"
         },
-        "EvalSuiteSummary": {
-            "type": "object",
-            "required": [
-                "id",
-                "total",
-                "passed",
-                "failed"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "Suite identifier; must match suite names in rows."
-                },
-                "name": {
-                    "type": "string",
-                    "description": "Optional: human-readable suite name."
-                },
-                "total": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Total number of rows in this suite."
-                },
-                "passed": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Number of passing rows."
-                },
-                "failed": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Number of failing rows."
-                },
-                "passRate": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "description": "Optional: pre-computed pass rate (0.0 to 1.0). If omitted, computed as passed / total."
-                }
-            }
-        },
-        "EvalRow": {
-            "type": "object",
-            "required": [
-                "id",
-                "suite",
-                "passed"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "description": "Unique row identifier within the suite."
-                },
-                "suite": {
-                    "type": "string",
-                    "description": "Suite this row belongs to; must match a suite ID."
-                },
-                "kind": {
-                    "type": "string",
-                    "enum": [
-                        "deterministic",
-                        "agent",
-                        "llm-judge",
-                        "human-review"
-                    ],
-                    "description": "Optional: type of evaluation. Informs which evidence fields to expect."
-                },
-                "name": {
-                    "type": "string",
-                    "description": "Optional: human-readable test or scenario name."
-                },
-                "question": {
-                    "type": "string",
-                    "description": "Optional: input question or prompt for agent/LLM evals."
-                },
-                "datasetId": {
-                    "type": "string",
-                    "description": "Optional: stable identifier for the source dataset (for grouping and baseline compatibility)."
-                },
-                "scenarioId": {
-                    "type": "string",
-                    "description": "Optional: scenario or use-case identifier."
-                },
-                "rubricId": {
-                    "type": "string",
-                    "description": "Optional: rubric version or identifier used to score this row."
-                },
-                "rubricVariant": {
-                    "type": "string",
-                    "description": "Optional: variant name if multiple rubric versions were tested."
-                },
-                "judgeModel": {
-                    "type": "string",
-                    "description": "Optional (llm-judge kind): model used for judging (e.g., 'gpt-4', 'claude-opus')."
-                },
-                "judgeVerdict": {
-                    "type": "boolean",
-                    "description": "Optional (llm-judge kind): the judge's pass/fail verdict."
-                },
-                "judgeCategory": {
-                    "type": "string",
-                    "description": "Optional (llm-judge kind): category or reason from the judge."
-                },
-                "judgeReasoning": {
-                    "type": "string",
-                    "description": "Optional (llm-judge kind): full reasoning from the judge."
-                },
-                "promptVersion": {
-                    "type": "string",
-                    "description": "Optional: version/hash of the prompt template used."
-                },
-                "agentChannel": {
-                    "type": "string",
-                    "description": "Optional: agent channel, variant, or feature flag."
-                },
-                "agentVersion": {
-                    "type": "string",
-                    "description": "Optional: agent version, commit, or deployment tag."
-                },
-                "agentReasoning": {
-                    "type": "string",
-                    "description": "Optional: reasoning or log output from the agent."
-                },
-                "groundTruthVerdict": {
-                    "type": "boolean",
-                    "description": "Optional: ground truth label (used to calibrate judges)."
-                },
-                "groundTruthCategory": {
-                    "type": "string",
-                    "description": "Optional: ground truth category."
-                },
-                "groundTruthAnnotation": {
-                    "type": "string",
-                    "description": "Optional: additional ground truth annotation."
-                },
-                "input": {
-                    "type": "string",
-                    "description": "Optional: input to the system under test (e.g., user query)."
-                },
-                "output": {
-                    "type": "string",
-                    "description": "Optional: actual output from the system."
-                },
-                "expected": {
-                    "type": "string",
-                    "description": "Optional: expected output for deterministic checks."
-                },
-                "turns": {
-                    "type": "array",
-                    "description": "Optional: conversation turns for multi-turn agent evals.",
-                    "items": {
-                        "$ref": "#/definitions/ConversationTurn"
-                    }
-                },
-                "toolCalls": {
-                    "type": "array",
-                    "description": "Optional: tool calls made by the agent.",
-                    "items": {
-                        "$ref": "#/definitions/ToolCall"
-                    }
-                },
-                "axisScores": {
-                    "type": "object",
-                    "description": "Optional: named rubric axis scores (e.g., {'helpfulness': 0.8, 'safety': 1.0}).",
-                    "additionalProperties": {
-                        "type": "number"
-                    }
-                },
-                "passed": {
-                    "type": "boolean",
-                    "description": "Whether this row passed. Required for gate checks."
-                },
-                "score": {
-                    "type": "number",
-                    "description": "Optional: numeric score (0.0–1.0 or custom range)."
-                },
-                "severity": {
-                    "type": "string",
-                    "enum": [
-                        "none",
-                        "low",
-                        "medium",
-                        "high",
-                        "critical"
-                    ],
-                    "description": "Optional: failure severity. Informs gate decisions and dashboard cues."
-                },
-                "category": {
-                    "type": "string",
-                    "description": "Optional: failure category or classification (e.g., 'timeout', 'malformed', 'off-topic')."
-                },
-                "reason": {
-                    "type": "string",
-                    "description": "Optional: human-readable reason for failure."
-                },
-                "durationMs": {
-                    "type": "number",
-                    "minimum": 0,
-                    "description": "Optional: execution time in milliseconds."
-                },
-                "metadata": {
-                    "$ref": "#/definitions/RowMetadata",
-                    "description": "Optional: free-form metadata for extensions. Includes portable provenance/lifecycle conventions when present."
-                }
-            }
-        },
-        "RowMetadata": {
-            "type": "object",
-            "properties": {
-                "provenance": {
-                    "$ref": "#/definitions/RowProvenance"
-                },
-                "lifecycle": {
-                    "$ref": "#/definitions/RowLifecycle"
-                }
-            },
-            "additionalProperties": true,
-            "description": "Optional row metadata. Additional fields are allowed for runner-specific extensions."
-        },
-        "RowProvenance": {
-            "type": "object",
-            "required": [
-                "source"
-            ],
-            "properties": {
-                "source": {
-                    "type": "string",
-                    "enum": [
-                        "synthetic",
-                        "labelled-synthetic",
-                        "production-review",
-                        "incident",
-                        "regression",
-                        "custom"
-                    ],
-                    "description": "Where this row came from."
-                },
-                "addedBy": {
-                    "type": "string",
-                    "description": "Optional author or system that added this row."
-                },
-                "reason": {
-                    "type": "string",
-                    "description": "Optional rationale for why this row exists."
-                },
-                "sourceRef": {
-                    "type": "string",
-                    "description": "Optional pointer to source evidence (issue, trace, incident, etc.)."
-                }
-            },
-            "additionalProperties": false
-        },
-        "RowLifecycle": {
-            "type": "object",
-            "required": [
-                "status"
-            ],
-            "properties": {
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "proposed",
-                        "active",
-                        "deprecated",
-                        "quarantined",
-                        "custom"
-                    ],
-                    "description": "Lifecycle state for this row."
-                },
-                "since": {
-                    "type": "string",
-                    "description": "Optional date/version marker for when the current status started."
-                },
-                "note": {
-                    "type": "string",
-                    "description": "Optional free-form lifecycle note."
-                }
-            },
-            "additionalProperties": false
-        },
-        "ConversationTurn": {
-            "type": "object",
-            "required": [
-                "role",
-                "content"
-            ],
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "enum": [
-                        "user",
-                        "assistant",
-                        "system",
-                        "tool"
-                    ],
-                    "description": "Role of the speaker in the turn."
-                },
-                "content": {
-                    "type": "string",
-                    "description": "Message content."
-                },
-                "toolCall": {
-                    "type": "object",
-                    "description": "Optional: if this turn includes a tool call.",
-                    "properties": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "args": {
-                            "type": "object"
-                        }
-                    }
-                },
-                "toolResult": {
-                    "type": "string",
-                    "description": "Optional: result from calling the tool."
-                },
-                "timestamp": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "Optional: when this turn occurred."
-                },
-                "durationMs": {
-                    "type": "number",
-                    "minimum": 0,
-                    "description": "Optional: duration of this turn."
-                }
-            }
-        },
-        "ToolCall": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Tool name."
-                },
-                "args": {
-                    "type": "object",
-                    "description": "Optional: tool arguments."
-                },
-                "result": {
-                    "type": "string",
-                    "description": "Optional: tool result."
-                },
-                "resultIsError": {
-                    "type": "boolean",
-                    "description": "Optional: whether the result was an error."
-                },
-                "durationMs": {
-                    "type": "number",
-                    "minimum": 0,
-                    "description": "Optional: execution time."
-                }
-            }
-        },
-        "SuiteManifest": {
-            "type": "object",
-            "required": [
-                "name",
-                "target",
-                "datasetSource",
-                "datasetVersion",
-                "riskArea",
-                "graders",
-                "gate"
-            ],
-            "allOf": [
-                {
-                    "if": {
-                        "properties": {
-                            "gate": {
-                                "type": "object",
-                                "properties": {
-                                    "mode": {
-                                        "const": "blocking"
-                                    }
-                                },
-                                "required": [
-                                    "mode"
-                                ]
-                            }
-                        },
-                        "required": [
-                            "gate"
-                        ]
-                    },
-                    "then": {
-                        "required": [
-                            "rubricVersion"
-                        ]
-                    }
-                },
-                {
-                    "if": {
-                        "properties": {
-                            "graders": {
-                                "type": "array",
-                                "contains": {
-                                    "const": "llm-judge"
-                                }
-                            }
-                        },
-                        "required": [
-                            "graders"
-                        ]
-                    },
-                    "then": {
-                        "required": [
-                            "rubricVersion"
-                        ]
-                    }
-                }
-            ],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Suite name; must match suite ID in suites array."
-                },
-                "target": {
-                    "type": "string",
-                    "enum": [
-                        "agent",
-                        "conversation",
-                        "judge",
-                        "custom"
-                    ],
-                    "description": "What is being evaluated."
-                },
-                "owner": {
-                    "type": "string",
-                    "description": "Optional: team or person responsible."
-                },
-                "datasetSource": {
-                    "type": "string",
-                    "enum": [
-                        "synthetic",
-                        "labelled-synthetic",
-                        "production-sample",
-                        "manual",
-                        "custom"
-                    ],
-                    "description": "How the dataset was sourced."
-                },
-                "datasetPath": {
-                    "type": "string",
-                    "description": "Optional: repository-relative path or URL to the dataset source file."
-                },
-                "datasetVersion": {
-                    "type": "string",
-                    "description": "Stable dataset version for baseline compatibility checks. Use semantic versioning or commit SHA."
-                },
-                "rubricVersion": {
-                    "type": "string",
-                    "description": "Rubric version for baseline compatibility checks. Required when gate.mode is blocking or graders include llm-judge."
-                },
-                "riskArea": {
-                    "type": "string",
-                    "enum": [
-                        "compliance",
-                        "pii",
-                        "prompt-safety",
-                        "response-quality",
-                        "tool-use",
-                        "tool-routing",
-                        "groundedness",
-                        "relevance",
-                        "custom"
-                    ],
-                    "description": "Why this suite exists (governance and reporting)."
-                },
-                "graders": {
-                    "type": "array",
-                    "description": "How rows in this suite are scored.",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "deterministic-assertions",
-                            "human-labelled-calibration",
-                            "llm-judge",
-                            "tool-call-check",
-                            "custom"
-                        ]
-                    }
-                },
-                "gate": {
-                    "$ref": "#/definitions/GatePolicy"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Optional: narrative description of the suite purpose."
-                }
-            }
-        },
-        "GatePolicy": {
-            "type": "object",
-            "required": [
-                "mode",
-                "thresholds"
-            ],
-            "properties": {
-                "mode": {
-                    "type": "string",
-                    "enum": [
-                        "blocking",
-                        "report-only"
-                    ],
-                    "description": "If 'blocking', @icodenet/eval-dashboards check will enforce thresholds. If 'report-only', thresholds appear in reports but do not block."
-                },
-                "thresholds": {
-                    "type": "object",
-                    "description": "Named thresholds (e.g., {'passRate': 0.9}). Built-in keys include pass-rate aliases (passRate/pass_rate/passrate), maxCriticalFailures, and criticalFailureRate. Unknown keys are currently reported but not enforced.",
-                    "additionalProperties": {
-                        "type": "number"
-                    }
-                }
-            }
-        },
-        "RegisteredRubric": {
-            "type": "object",
-            "required": [
-                "axis",
-                "version"
-            ],
-            "properties": {
-                "axis": {
-                    "type": "string",
-                    "description": "Rubric axis name (e.g., 'helpfulness', 'safety', 'correctness')."
-                },
-                "version": {
-                    "type": "string",
-                    "description": "Axis version for baseline compatibility."
-                },
-                "sourcePath": {
-                    "type": "string",
-                    "description": "Optional: file path or URL to the rubric definition."
-                },
-                "summary": {
-                    "type": "string",
-                    "description": "Optional: brief description of the axis."
-                }
-            }
-        },
-        "SuiteRubricContract": {
-            "type": "object",
-            "required": [
-                "suiteName",
-                "rubricVersion",
-                "rubrics"
-            ],
-            "properties": {
-                "suiteName": {
-                    "type": "string",
-                    "description": "Suite this contract applies to."
-                },
-                "rubricVersion": {
-                    "type": "string",
-                    "description": "Overall rubric version."
-                },
-                "rubrics": {
-                    "type": "array",
-                    "description": "Array of registered rubric axes.",
-                    "items": {
-                        "$ref": "#/definitions/RegisteredRubric"
-                    }
-                }
-            }
-        },
-        "BaselineCompatibilityResult": {
-            "type": "object",
-            "required": [
-                "status",
-                "issues"
-            ],
-            "properties": {
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "compatible",
-                        "warning",
-                        "blocked"
-                    ],
-                    "description": "Overall compatibility assessment."
-                },
-                "issues": {
-                    "type": "array",
-                    "description": "List of compatibility issues detected.",
-                    "items": {
-                        "$ref": "#/definitions/BaselineCompatibilityIssue"
-                    }
-                }
-            }
-        },
-        "BaselineCompatibilityIssue": {
-            "type": "object",
-            "required": [
-                "suite",
-                "severity",
-                "reason"
-            ],
-            "properties": {
-                "suite": {
-                    "type": "string",
-                    "description": "Suite affected by this issue."
-                },
-                "severity": {
-                    "type": "string",
-                    "enum": [
-                        "warning",
-                        "blocking"
-                    ],
-                    "description": "Severity of the issue."
-                },
-                "reason": {
-                    "type": "string",
-                    "description": "Human-readable explanation."
-                },
-                "baselineDatasetVersion": {
-                    "type": "string",
-                    "description": "Optional: dataset version in the baseline."
-                },
-                "candidateDatasetVersion": {
-                    "type": "string",
-                    "description": "Optional: dataset version in the candidate run."
-                },
-                "baselineRubricVersion": {
-                    "type": "string",
-                    "description": "Optional: rubric version in the baseline."
-                },
-                "candidateRubricVersion": {
-                    "type": "string",
-                    "description": "Optional: rubric version in the candidate run."
-                }
-            }
-        },
-        "DatasetChangelogEntry": {
-            "type": "object",
-            "required": [
-                "suiteName",
-                "datasetVersion",
-                "rubricVersion",
-                "changedAt",
-                "changeType",
-                "summary",
-                "rowChanges"
-            ],
-            "properties": {
-                "suiteName": {
-                    "type": "string",
-                    "description": "Suite associated with this change."
-                },
-                "datasetVersion": {
-                    "type": "string",
-                    "description": "Dataset version after this change."
-                },
-                "rubricVersion": {
-                    "type": "string",
-                    "description": "Rubric version paired with this dataset version."
-                },
-                "changedAt": {
-                    "type": "string",
-                    "description": "Date or timestamp marker for when this change landed."
-                },
-                "changeType": {
-                    "type": "string",
-                    "enum": [
-                        "initial-baseline",
-                        "patch",
-                        "minor",
-                        "major"
-                    ],
-                    "description": "Change classification for governance and trend interpretation."
-                },
-                "summary": {
-                    "type": "string",
-                    "description": "Human-readable summary of what changed and why."
-                },
-                "rowChanges": {
-                    "$ref": "#/definitions/DatasetRowChanges"
-                }
-            }
-        },
-        "DatasetRowChanges": {
-            "type": "object",
-            "required": [
-                "added",
-                "updated",
-                "removed",
-                "relabelled"
-            ],
-            "properties": {
-                "added": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "updated": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "removed": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "relabelled": {
-                    "type": "number",
-                    "minimum": 0
-                }
-            }
+        "lifecycle": {
+          "$ref": "#/definitions/RowLifecycle"
         }
+      },
+      "additionalProperties": true,
+      "description": "Optional row metadata. Additional fields are allowed for runner-specific extensions."
+    },
+    "RowProvenance": {
+      "type": "object",
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "synthetic",
+            "labelled-synthetic",
+            "production-review",
+            "incident",
+            "regression",
+            "custom"
+          ],
+          "description": "Where this row came from."
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "Optional author or system that added this row."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Optional rationale for why this row exists."
+        },
+        "sourceRef": {
+          "type": "string",
+          "description": "Optional pointer to source evidence (issue, trace, incident, etc.)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "RowLifecycle": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "active",
+            "deprecated",
+            "quarantined",
+            "custom"
+          ],
+          "description": "Lifecycle state for this row."
+        },
+        "since": {
+          "type": "string",
+          "description": "Optional date/version marker for when the current status started."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional free-form lifecycle note."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConversationTurn": {
+      "type": "object",
+      "required": [
+        "role",
+        "content"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "user",
+            "assistant",
+            "system",
+            "tool"
+          ],
+          "description": "Role of the speaker in the turn."
+        },
+        "content": {
+          "type": "string",
+          "description": "Message content."
+        },
+        "toolCall": {
+          "type": "object",
+          "description": "Optional: if this turn includes a tool call.",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "args": {
+              "type": "object"
+            }
+          }
+        },
+        "toolResult": {
+          "type": "string",
+          "description": "Optional: result from calling the tool."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional: when this turn occurred."
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Optional: duration of this turn."
+        }
+      }
+    },
+    "ToolCall": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Tool name."
+        },
+        "args": {
+          "type": "object",
+          "description": "Optional: tool arguments."
+        },
+        "result": {
+          "type": "string",
+          "description": "Optional: tool result."
+        },
+        "resultIsError": {
+          "type": "boolean",
+          "description": "Optional: whether the result was an error."
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Optional: execution time."
+        }
+      }
+    },
+    "SuiteManifest": {
+      "type": "object",
+      "required": [
+        "name",
+        "target",
+        "datasetSource",
+        "datasetVersion",
+        "riskArea",
+        "graders",
+        "gate"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "gate": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "const": "blocking"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              }
+            },
+            "required": [
+              "gate"
+            ]
+          },
+          "then": {
+            "required": [
+              "rubricVersion"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "graders": {
+                "type": "array",
+                "contains": {
+                  "const": "llm-judge"
+                }
+              }
+            },
+            "required": [
+              "graders"
+            ]
+          },
+          "then": {
+            "required": [
+              "rubricVersion"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Suite name; must match suite ID in suites array."
+        },
+        "target": {
+          "type": "string",
+          "enum": [
+            "agent",
+            "conversation",
+            "judge",
+            "custom"
+          ],
+          "description": "What is being evaluated."
+        },
+        "owner": {
+          "type": "string",
+          "description": "Optional: team or person responsible."
+        },
+        "datasetSource": {
+          "type": "string",
+          "enum": [
+            "synthetic",
+            "labelled-synthetic",
+            "production-sample",
+            "manual",
+            "custom"
+          ],
+          "description": "How the dataset was sourced."
+        },
+        "datasetPath": {
+          "type": "string",
+          "description": "Optional: repository-relative path or URL to the dataset source file."
+        },
+        "datasetVersion": {
+          "type": "string",
+          "description": "Stable dataset version for baseline compatibility checks. Use semantic versioning or commit SHA."
+        },
+        "rubricVersion": {
+          "type": "string",
+          "description": "Rubric version for baseline compatibility checks. Required when gate.mode is blocking or graders include llm-judge."
+        },
+        "riskArea": {
+          "type": "string",
+          "enum": [
+            "compliance",
+            "pii",
+            "content-safety",
+            "prompt-safety",
+            "tone-of-voice",
+            "factuality",
+            "response-quality",
+            "tool-use",
+            "tool-routing",
+            "groundedness",
+            "relevance",
+            "custom"
+          ],
+          "description": "Why this suite exists (governance and reporting)."
+        },
+        "graders": {
+          "type": "array",
+          "description": "How rows in this suite are scored.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "deterministic-assertions",
+              "human-labelled-calibration",
+              "llm-judge",
+              "tool-call-check",
+              "custom"
+            ]
+          }
+        },
+        "gate": {
+          "$ref": "#/definitions/GatePolicy"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional: narrative description of the suite purpose."
+        }
+      }
+    },
+    "GatePolicy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "thresholds"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "blocking",
+            "report-only"
+          ],
+          "description": "If 'blocking', @icodenet/eval-dashboards check will enforce thresholds. If 'report-only', thresholds appear in reports but do not block."
+        },
+        "thresholds": {
+          "type": "object",
+          "description": "Named thresholds (e.g., {'passRate': 0.9}). Built-in keys include pass-rate aliases (passRate/pass_rate/passrate), maxCriticalFailures, and criticalFailureRate. Unknown keys are currently reported but not enforced.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "RegisteredRubric": {
+      "type": "object",
+      "required": [
+        "axis",
+        "version"
+      ],
+      "properties": {
+        "axis": {
+          "type": "string",
+          "description": "Rubric axis name (e.g., 'helpfulness', 'safety', 'correctness')."
+        },
+        "version": {
+          "type": "string",
+          "description": "Axis version for baseline compatibility."
+        },
+        "sourcePath": {
+          "type": "string",
+          "description": "Optional: file path or URL to the rubric definition."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Optional: brief description of the axis."
+        }
+      }
+    },
+    "SuiteRubricContract": {
+      "type": "object",
+      "required": [
+        "suiteName",
+        "rubricVersion",
+        "rubrics"
+      ],
+      "properties": {
+        "suiteName": {
+          "type": "string",
+          "description": "Suite this contract applies to."
+        },
+        "rubricVersion": {
+          "type": "string",
+          "description": "Overall rubric version."
+        },
+        "rubrics": {
+          "type": "array",
+          "description": "Array of registered rubric axes.",
+          "items": {
+            "$ref": "#/definitions/RegisteredRubric"
+          }
+        }
+      }
+    },
+    "BaselineCompatibilityResult": {
+      "type": "object",
+      "required": [
+        "status",
+        "issues"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "compatible",
+            "warning",
+            "blocked"
+          ],
+          "description": "Overall compatibility assessment."
+        },
+        "issues": {
+          "type": "array",
+          "description": "List of compatibility issues detected.",
+          "items": {
+            "$ref": "#/definitions/BaselineCompatibilityIssue"
+          }
+        }
+      }
+    },
+    "BaselineCompatibilityIssue": {
+      "type": "object",
+      "required": [
+        "suite",
+        "severity",
+        "reason"
+      ],
+      "properties": {
+        "suite": {
+          "type": "string",
+          "description": "Suite affected by this issue."
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "warning",
+            "blocking"
+          ],
+          "description": "Severity of the issue."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable explanation."
+        },
+        "baselineDatasetVersion": {
+          "type": "string",
+          "description": "Optional: dataset version in the baseline."
+        },
+        "candidateDatasetVersion": {
+          "type": "string",
+          "description": "Optional: dataset version in the candidate run."
+        },
+        "baselineRubricVersion": {
+          "type": "string",
+          "description": "Optional: rubric version in the baseline."
+        },
+        "candidateRubricVersion": {
+          "type": "string",
+          "description": "Optional: rubric version in the candidate run."
+        }
+      }
+    },
+    "DatasetChangelogEntry": {
+      "type": "object",
+      "required": [
+        "suiteName",
+        "datasetVersion",
+        "rubricVersion",
+        "changedAt",
+        "changeType",
+        "summary",
+        "rowChanges"
+      ],
+      "properties": {
+        "suiteName": {
+          "type": "string",
+          "description": "Suite associated with this change."
+        },
+        "datasetVersion": {
+          "type": "string",
+          "description": "Dataset version after this change."
+        },
+        "rubricVersion": {
+          "type": "string",
+          "description": "Rubric version paired with this dataset version."
+        },
+        "changedAt": {
+          "type": "string",
+          "description": "Date or timestamp marker for when this change landed."
+        },
+        "changeType": {
+          "type": "string",
+          "enum": [
+            "initial-baseline",
+            "patch",
+            "minor",
+            "major"
+          ],
+          "description": "Change classification for governance and trend interpretation."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Human-readable summary of what changed and why."
+        },
+        "rowChanges": {
+          "$ref": "#/definitions/DatasetRowChanges"
+        }
+      }
+    },
+    "DatasetRowChanges": {
+      "type": "object",
+      "required": [
+        "added",
+        "updated",
+        "removed",
+        "relabelled"
+      ],
+      "properties": {
+        "added": {
+          "type": "number",
+          "minimum": 0
+        },
+        "updated": {
+          "type": "number",
+          "minimum": 0
+        },
+        "removed": {
+          "type": "number",
+          "minimum": 0
+        },
+        "relabelled": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
     }
+  }
 }

@@ -48,7 +48,11 @@ This repository also accepts ticket/initial prefixes before the type, for exampl
 1. Update `package.json` and `CHANGELOG.md` for the intended version.
 2. Merge or push the release commit to `main`.
 3. Run `.github/workflows/publish.yml` manually with the version input.
-4. The workflow validates, builds, publishes to npm, and creates the GitHub release.
+4. The workflow runs `pnpm release:prepare` before publish, which enforces:
+	- project checks (`pnpm check`)
+	- deterministic regeneration of release dashboards/screenshots (`pnpm assets:regenerate`)
+	- no drift in tracked release assets (`git diff --exit-code -- eval-report eval-report-dark docs/images`)
+5. Publish proceeds only when all checks pass, then creates the npm package and GitHub release.
 
 ## Local Dry Run
 
@@ -56,6 +60,7 @@ Use dry run to preview next release without publishing:
 
 ```bash
 pnpm install
+pnpm release:prepare
 pnpm release:dry
 ```
 

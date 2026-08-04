@@ -76,7 +76,7 @@ These concepts already exist in `eval-report/v1`. They must become first-class p
 | `target` | `agent` \| `conversation` \| `judge` \| `custom` |
 | `datasetSource` / `datasetVersion` | Provenance and comparability |
 | `rubricVersion` | Rubric drift detection |
-| `riskArea` | Why the suite exists: `compliance`, `pii`, `prompt-safety`, `response-quality`, `tool-use`, `tool-routing`, `groundedness`, `relevance`, `custom`, … |
+| `riskArea` | Why the suite exists: `compliance`, `pii`, `content-safety`, `prompt-safety`, `tone-of-voice`, `factuality`, `response-quality`, `tool-use`, `tool-routing`, `groundedness`, `relevance`, `custom`, … |
 | `graders` | How scored: deterministic, human-labelled, llm-judge, tool-call-check, custom |
 | `gate` | `mode: blocking \| report-only` + thresholds |
 

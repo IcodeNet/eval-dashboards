@@ -129,3 +129,11 @@ export const selectBaseline = (
 ): EvalReportV1 | undefined => {
   return reports.find((report) => report.run.id === baselineRunId);
 };
+
+/** Select a report by explicit run ID. */
+export const selectRun = (
+  reports: EvalReportV1[],
+  runId: string,
+): EvalReportV1 | undefined => {
+  return reports.find((report) => report.run.id === runId);
+};
