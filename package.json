@@ -1,84 +1,85 @@
 {
-    "name": "@icodenet/eval-dashboards",
-    "version": "0.3.1",
-    "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
-    "type": "module",
-    "author": "icodenet <byronth@gmail.com>",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/IcodeNet/eval-dashboards.git"
+  "name": "@icodenet/eval-dashboards",
+  "version": "0.3.1",
+  "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
+  "type": "module",
+  "author": "icodenet <byronth@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IcodeNet/eval-dashboards.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js"
-        },
-        "./package.json": "./package.json"
-    },
-    "bin": {
-        "eval-dashboards": "dist/cli/index.js"
-    },
-    "files": [
-        "dist",
-        "README.md",
-        "docs",
-        "examples/**/*.md",
-        "examples/basic-json/*.json",
-        "examples/agent-quality-preset/**",
-        "examples/llm-agent-evals/*.ts",
-        "examples/vitest-evals/*.ts",
-        "examples/jest-custom-reporter/*.ts",
-        "examples/github-actions/*.yml",
-        "examples/azure-devops/*.yml"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsx src/cli/index.ts",
-        "example:llm-agent-evals": "tsx examples/llm-agent-evals/run-local-agent-evals.ts",
-        "example:llm-agent-report": "pnpm example:llm-agent-evals && pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
-        "prepare": "lefthook install",
-        "release": "semantic-release",
-        "release:dry": "semantic-release --dry-run --no-ci",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "typecheck": "tsc --noEmit",
-        "check": "pnpm typecheck && pnpm test && pnpm build"
-    },
-    "keywords": [
-        "evals",
-        "evaluation",
-        "reports",
-        "llm-evals",
-        "testing",
-        "quality-gates"
-    ],
-    "license": "MIT",
-    "publishConfig": {
-        "access": "public"
-    },
-    "engines": {
-        "node": ">=20"
-    },
-    "devDependencies": {
-        "@commitlint/cli": "^19.8.1",
-        "@commitlint/config-conventional": "^19.8.1",
-        "@semantic-release/changelog": "^6.0.3",
-        "@semantic-release/commit-analyzer": "^13.0.1",
-        "@semantic-release/git": "^10.0.1",
-        "@semantic-release/github": "^11.0.6",
-        "@semantic-release/npm": "^12.0.2",
-        "@semantic-release/release-notes-generator": "^14.0.3",
-        "@types/node": "^22.0.0",
-        "lefthook": "^1.13.4",
-        "semantic-release": "^24.2.7",
-        "tsup": "^8.4.0",
-        "tsx": "^4.21.0",
-        "typescript": "^5.9.0",
-        "vitest": "^3.2.0"
-    },
-    "dependencies": {
-        "@octokit/rest": "^22.0.1"
-    }
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "eval-dashboards": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs",
+    "examples/**/*.md",
+    "examples/basic-json/*.json",
+    "examples/agent-quality-preset/**",
+    "examples/llm-agent-evals/*.ts",
+    "examples/vitest-evals/*.ts",
+    "examples/jest-custom-reporter/*.ts",
+    "examples/github-actions/*.yml",
+    "examples/azure-devops/*.yml"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli/index.ts",
+    "example:llm-agent-evals": "tsx examples/llm-agent-evals/run-local-agent-evals.ts",
+    "example:llm-agent-report": "pnpm example:llm-agent-evals && pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
+    "metrics:adoption": "tsx scripts/collect-adoption-metrics.ts",
+    "prepare": "lefthook install",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run --no-ci",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "keywords": [
+    "evals",
+    "evaluation",
+    "reports",
+    "llm-evals",
+    "testing",
+    "quality-gates"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/npm": "^12.0.2",
+    "@semantic-release/release-notes-generator": "^14.0.3",
+    "@types/node": "^22.0.0",
+    "lefthook": "^1.13.4",
+    "semantic-release": "^24.2.7",
+    "tsup": "^8.4.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.1"
+  }
 }

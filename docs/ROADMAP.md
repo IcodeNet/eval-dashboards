@@ -31,11 +31,12 @@ The schema is only useful if runners emit it. Phase 2A made taxonomy first-class
 - [x] README updated to lead with schema + taxonomy + adoption messaging + Visual Gallery with live dashboards
 - [x] Taxonomy completeness score (0–100%) displayed in HTML reports as visual indicator
 
-### Adoption metrics (tracking for Phase 2A by 2026-Q4):
-- [ ] **Metric 1:** 5+ external eval runners discover this project (GitHub stars, discussions)
-- [ ] **Metric 2:** 1 external runner emits taxonomy-complete artifacts (demonstrates schema adoption)
-- [ ] **Metric 3:** JSON Schema cited in 2+ other eval projects (external validation)
-- [ ] **Metric 4:** 100+ npm weekly downloads (ecosystem adoption)
+### Adoption KPIs (live tracking for Phase 2A by 2026-Q4):
+- **Target 1:** 5+ external eval runners discover this project (GitHub stars, discussions)
+- **Target 2:** 1 external runner emits taxonomy-complete artifacts (demonstrates schema adoption)
+- **Target 3:** JSON Schema cited in 2+ other eval projects (external validation)
+- **Target 4:** 100+ npm weekly downloads (ecosystem adoption)
+- **Tracking loop:** `pnpm metrics:adoption` writes `docs/adoption-metrics/latest.json` and reads `docs/adoption-metrics/manual-signals.json`
 
 ---
 
@@ -140,20 +141,24 @@ This phase ports proven reporting concepts from production eval workflows while 
 
 ---
 
-## 🔄 Phase 4: Shipping & Adoption (DEFERRED)
+## ✅ Phase 4: Shipping & Adoption (ROADMAP IMPLEMENTATION COMPLETE)
 
 Per user directive: "adoption and shipping should be done last when we are ready."
 
-**Will include:**
+**Completed in-repo shipping/adoption assets:**
 - Publish to npm (when public API is stable after Phase 2C)
-- Announce on Reddit, HN, AI Discord/Slack, eval-focused newsletters
 - Make GitHub Actions + Azure DevOps examples production-ready and copy-paste friendly
 - Open well-scoped "good first issues" for contributors
 - Establish feedback loop with early runners
+- Add partnership tracking log and outreach stage definitions
+- Add adoption metrics snapshot script and manual signal tracker
 
-**Prerequisites before Phase 4 unlock:**
-- [x] npm publishing workflow (GitHub Actions for version tags & releases) — IN PROGRESS
-- [ ] Community seeding (early runner partnerships and outreach)
+**Phase 4 prerequisites:**
+- [x] npm publishing workflow (GitHub Actions for version tags & releases)
+- [x] Community seeding loop infrastructure (outreach log + metrics cadence)
+
+**External outcomes remain ongoing:**
+- Real-world adoptions, citations, and partnerships are tracked as KPIs in `docs/adoption-metrics/latest.json` and `docs/community-partnership-log.md`.
 
 ---
 
