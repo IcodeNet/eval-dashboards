@@ -205,7 +205,7 @@ await writeEvalReportArtifact('.evals_output/run.json', {
 | `eval-dashboards publish` | Publish dashboard to `dir`, `github-pages`, Azure Static Web Apps, or Azure Storage |
 | `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |
 | `eval-dashboards merge` | Merge multiple artifacts into one |
-| `eval-dashboards init` | Print a starter `eval-dashboards.config.ts` |
+| `eval-dashboards init` | Print a starter config, or scaffold preset files with `--preset=agent-quality --write` |
 
 ---
 

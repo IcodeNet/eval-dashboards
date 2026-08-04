@@ -47,6 +47,13 @@ You can also print a starter config for this setup:
 pnpm dev init --preset=agent-quality
 ```
 
+Or scaffold files into your project:
+
+```sh
+pnpm dev init --preset=agent-quality --write
+pnpm dev init --preset=agent-quality --write --dry-run
+```
+
 ## `llm-agent-evals`
 
 Use this as the reference for agent/chat evals. It is provider-free and local, but it mirrors the shape a real assistant playground should follow:

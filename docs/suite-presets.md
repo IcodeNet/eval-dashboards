@@ -58,4 +58,18 @@ Print a starter configuration for the template with:
 eval-dashboards init --preset=agent-quality
 ```
 
-The command does not change files. It prints a config pointed at `examples/agent-quality-preset/artifacts`, which you can copy into your project after copying the preset template.
+Write scaffold files for a new project with:
+
+```sh
+eval-dashboards init --preset=agent-quality --write
+```
+
+This writes:
+
+- `eval-dashboards.config.ts`
+- `eval/datasets/agent-quality-cases.jsonl`
+- `eval/rubrics/agent-quality-rubrics.json`
+- `.evals_output/run-agent-quality-template.json`
+- `.github/workflows/eval-quality.yml.snippet`
+
+Use `--dry-run --write` to preview paths without writing, `--out-dir <path>` to target another directory, and `--force` to overwrite existing files.

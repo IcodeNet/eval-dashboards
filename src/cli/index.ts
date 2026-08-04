@@ -8,6 +8,13 @@ import { publishReport, type PublishTarget } from '../publish/publish.js';
 import { renderGroupedIndexHtml, renderReports, type ReporterName } from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
 import { optionBoolean, optionNumber, optionString, optionStrings, parseArgs } from './args.js';
+import {
+  buildAgentQualityScaffoldFiles,
+  planScaffoldWrites,
+  renderAgentQualityInitConfig,
+  renderDefaultInitConfig,
+  writeScaffoldFiles,
+} from './init-scaffold.js';
 
 const usage = `eval-dashboards <command>
 
@@ -19,7 +26,7 @@ Commands:
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
   publish  Publish or dry-run publish for a static dashboard.
-  init     Print starter config.
+  init     Print starter config or scaffold preset files.
 `;
 
 const loadContext = async (input: string, reportDir: string, baselineRunId?: string) => {
@@ -97,21 +104,27 @@ const main = async (): Promise<void> => {
 
   if (command === 'init') {
     const preset = optionString(options, 'preset', '');
+    const shouldWrite = optionBoolean(options, 'write');
+    const dryRun = optionBoolean(options, 'dry-run');
+    const outDir = optionString(options, 'out-dir', '.');
+    const force = optionBoolean(options, 'force');
 
     if (preset === 'agent-quality') {
-      console.log(`export default {
-  input: ['examples/agent-quality-preset/artifacts'],
-  reportDir: 'eval-dashboard',
-  reporters: ['html', 'json-summary', 'markdown-summary', 'text'],
-  gates: {
-    minPassRate: 0.9,
-    maxNewFailures: 0,
-    zeroCritical: true,
-    failOnBaselineBlocked: true,
-  },
-  // Copy examples/agent-quality-preset into your repo, then replace the
-  // template artifact with reports emitted by your runner.
-};`);
+      if (!shouldWrite) {
+        console.log(renderAgentQualityInitConfig());
+        return;
+      }
+
+      const files = buildAgentQualityScaffoldFiles();
+
+      if (dryRun) {
+        const planned = planScaffoldWrites(outDir, files);
+        console.log(`Would write ${planned.length} file(s):\n${planned.join('\n')}`);
+        return;
+      }
+
+      const written = await writeScaffoldFiles(outDir, files, force);
+      console.log(`Wrote ${written.length} file(s):\n${written.join('\n')}`);
       return;
     }
 
@@ -119,12 +132,7 @@ const main = async (): Promise<void> => {
       throw Object.assign(new Error(`Unknown init preset ${preset}.`), { exitCode: 2 });
     }
 
-    console.log(`export default {
-  input: ['.evals_output/**/*.json'],
-  reportDir: 'eval-dashboard',
-  reporters: ['html', 'json-summary', 'markdown-summary', 'text'],
-  gates: { minPassRate: 0.9, maxNewFailures: 0, zeroCritical: true },
-};`);
+    console.log(renderDefaultInitConfig());
     return;
   }
 
