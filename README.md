@@ -82,19 +82,21 @@ The HTML dashboard is fully responsive and works in both light and dark themes. 
 - Percentage change calculation comparing current to baseline
 
 **Suite Summary** (breakdown by test suite)
+- Collapsed by default with one-line summary and expand/collapse affordance
 - Counts: total, passed, failed
 - Pass-rate bar chart per suite
-- Color-coded pass indicators
+- Suite pills include hover tooltips with pass rate and pass/fail counts
 
 **Failing Rows** (grouped view)
 - Rows organized hierarchically by dataset → scenario
-- Collapsible sections for easy navigation
+- Section collapsed by default; expand only when triaging regressions
 - Taxonomy completeness score (0–100%) with visual indicators
 - Kind badges (deterministic, agent, llm-judge, human-review)
 - Severity chips (low, medium, high, critical)
 
 **All Rows** (complete inventory)
 - Same hierarchical grouping as failing rows
+- Section collapsed by default to keep first view focused on summary signals
 - Includes both passing and failing results
 - Full context for auditing and learning
 

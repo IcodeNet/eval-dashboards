@@ -676,6 +676,42 @@ const datasetChangelogTable = (entries: NonNullable<EvalReportV1['datasetChangel
   </table></div>`;
 };
 
+const pluralize = (count: number, singular: string, plural = `${singular}s`): string =>
+  `${count} ${count === 1 ? singular : plural}`;
+
+type CollapsibleSectionOptions = {
+  id: string;
+  title: string;
+  summary: string;
+  body: string;
+  rightControls?: string;
+  collapsed?: boolean;
+};
+
+const renderCollapsibleSection = ({
+  id,
+  title,
+  summary,
+  body,
+  rightControls,
+  collapsed = true,
+}: CollapsibleSectionOptions): string => {
+  const isCollapsed = collapsed;
+  return `<div class="section collapsible${isCollapsed ? ' collapsed' : ''}" data-section-id="${e(id)}">
+      <div class="section-header">
+        <div class="section-header-left">
+          <button class="section-toggle" type="button" aria-expanded="${isCollapsed ? 'false' : 'true'}" aria-controls="section-body-${e(id)}" onclick="toggleSection(this)">
+            <span class="section-toggle-icon" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>
+            <span class="section-toggle-label">${e(title)}</span>
+          </button>
+          <span class="section-summary">${e(summary)}</span>
+        </div>
+        ${rightControls ?? ''}
+      </div>
+      <div id="section-body-${e(id)}" class="section-body">${body}</div>
+    </div>`;
+};
+
 const renderHtml = (context: ReportContext): string => {
   const { locale, current, comparison, baselineCompatibility: compat } = context;
   const { run, rows } = current;
@@ -730,8 +766,14 @@ ${renderCssVariables(theme)}
 
     /* ── Sections ── */
     .section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
-    .section-header { padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--surface-muted); display: flex; align-items: center; justify-content: space-between; }
-    .section-header h2 { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .section-header { padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface-muted); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .section-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .section-toggle { border: none; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; padding: 2px 0; }
+    .section-toggle:hover { color: var(--ink); }
+    .section-toggle-icon { display: inline-block; width: 10px; text-align: center; font-size: 12px; transform: translateY(-.5px); }
+    .section-toggle-label { white-space: nowrap; }
+    .section-summary { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .section.collapsible.collapsed .section-body { display: none; }
     .section-body { padding: 0; }
 
     /* ── Tables ── */
@@ -922,29 +964,38 @@ ${renderCssVariables(theme)}
         .map((suite) => {
           const passRate = suite.total > 0 ? suite.passed / suite.total : 0;
           const pillClass = suite.failed > 0 ? 'suite-pill-fail' : 'suite-pill-pass';
-          return `<span class="suite-pill ${pillClass}">${e(suite.name ?? suite.id)} ${e((passRate * 100).toFixed(1))}%</span>`;
+          const suiteLabel = suite.name ?? suite.id;
+          const passPct = (passRate * 100).toFixed(1);
+          const tip = `${suiteLabel}\nPass rate: ${passPct}%\nPassed: ${suite.passed}/${suite.total}\nFailed: ${suite.failed}`;
+          return `<span class="suite-pill ${pillClass}" data-tip="${e(tip)}">${e(suiteLabel)} ${e(passPct)}%</span>`;
         })
         .join('')}</div>`
       : ''
     }
 
-    <div class="section">
-      <div class="section-header"><h2>Run metadata</h2></div>
-      <div class="section-body">${metadataCards(run, totalDurationMs)}</div>
-    </div>
+    ${renderCollapsibleSection({
+      id: 'run-metadata',
+      title: 'Run metadata',
+      summary: [run.branch, run.commit, run.buildId].filter(Boolean).join(' • ') || 'Run identity and provenance details',
+      body: metadataCards(run, totalDurationMs),
+    })}
 
-    <div class="section">
-      <div class="section-header"><h2>Gate policy</h2></div>
-      <div class="section-body">${gatePolicyTable(current)}</div>
-    </div>
+    ${renderCollapsibleSection({
+      id: 'gate-policy',
+      title: 'Gate policy',
+      summary: pluralize(current.suiteManifests?.length ?? 0, 'suite manifest'),
+      body: gatePolicyTable(current),
+    })}
 
     ${context.history.length > 1
       ? (() => {
         const passRates = context.history.map((h) => h.passRate);
         const { direction, change } = calculateTrend(passRates);
-        return `<div class="section">
-      <div class="section-header"><h2>Pass-rate trend</h2></div>
-      <div class="section-body">
+        return renderCollapsibleSection({
+          id: 'pass-rate-trend',
+          title: 'Pass-rate trend',
+          summary: `${formatPassRate(summary.passed, summary.total)} current`,
+          body: `
         <div class="history-row">
           <div class="history-row-label">Overall pass rate</div>
           <div class="history-row-trend trend-${direction}">
@@ -952,91 +1003,93 @@ ${renderCssVariables(theme)}
             <span>${change}</span>
           </div>
         </div>
-      </div>
-    </div>`;
+      `,
+        });
       })()
       : ''
     }
 
-    <div class="section">
-      <div class="section-header"><h2>Suite summary</h2></div>
-      <div class="section-body">${suiteSummaryTable(current.suites)}</div>
-    </div>
+    ${renderCollapsibleSection({
+      id: 'suite-summary',
+      title: 'Suite summary',
+      summary: pluralize(current.suites.length, 'suite'),
+      body: suiteSummaryTable(current.suites),
+    })}
 
     ${datasetChangelog.length
-      ? `<div class="section">
-      <div class="section-header"><h2>Dataset changelog</h2></div>
-      <div class="section-body">${datasetChangelogTable(datasetChangelog)}</div>
-    </div>`
+      ? renderCollapsibleSection({
+        id: 'dataset-changelog',
+        title: 'Dataset changelog',
+        summary: pluralize(datasetChangelog.length, 'entry'),
+        body: datasetChangelogTable(datasetChangelog),
+      })
       : ''
     }
 
-    <div class="section">
-      <div class="section-header">
-        <h2>Failing rows</h2>
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:12px;color:var(--muted)">${failingRows.length} row${failingRows.length === 1 ? '' : 's'}</span>
+    ${renderCollapsibleSection({
+      id: 'failing-rows',
+      title: 'Failing rows',
+      summary: pluralize(failingRows.length, 'row'),
+      rightControls: `<div style="display:flex;align-items:center;gap:12px">
           ${failingRows.length > 0 ? `<div class="view-switcher">
             <button class="view-btn active" onclick="switchView('failrows','details',this)">Details</button>
             <button class="view-btn" onclick="switchView('failrows','table',this)">Table</button>
             <button class="view-btn" onclick="switchView('failrows','json',this)">JSON</button>
           </div>` : ''}
-        </div>
-      </div>
-      <div class="section-body">
-        ${failingRows.length > 0
-      ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true)}</div>
+        </div>`,
+      body: `${failingRows.length > 0
+        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true)}</div>
              <div id="failrows-table" class="view-pane">${flatRowsTable(failingRows)}</div>
              <div id="failrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(failingRows, null, 2))}</pre></div>`
-      : '<p class="empty">No failing rows.</p>'
-    }
-      </div>
-    </div>
+        : '<p class="empty">No failing rows.</p>'
+        }`,
+    })}
 
-    <div class="section">
-      <div class="section-header">
-        <h2>All rows</h2>
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:12px;color:var(--muted)">${current.rows.length} row${current.rows.length === 1 ? '' : 's'}</span>
+    ${renderCollapsibleSection({
+      id: 'all-rows',
+      title: 'All rows',
+      summary: pluralize(current.rows.length, 'row'),
+      rightControls: `<div style="display:flex;align-items:center;gap:12px">
           <div class="view-switcher">
             <button class="view-btn active" onclick="switchView('allrows','details',this)">Details</button>
             <button class="view-btn" onclick="switchView('allrows','table',this)">Table</button>
             <button class="view-btn" onclick="switchView('allrows','json',this)">JSON</button>
           </div>
-        </div>
-      </div>
-      <div class="section-body">
-        <div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true)}</div>
+        </div>`,
+      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true)}</div>
         <div id="allrows-table" class="view-pane">${flatRowsTable(current.rows)}</div>
-        <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>
-      </div>
-    </div>
+        <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>`,
+    })}
 
     ${compat?.issues.length
-      ? `<div class="section">
-      <div class="section-header"><h2>Baseline compatibility</h2></div>
-      <div class="section-body"><div class="table-wrap"><table>
+      ? renderCollapsibleSection({
+        id: 'baseline-compatibility',
+        title: 'Baseline compatibility',
+        summary: pluralize(compat.issues.length, 'issue'),
+        body: `<div class="table-wrap"><table>
         <thead><tr><th>Suite</th><th>Severity</th><th>Issue</th><th>Dataset</th><th>Rubric</th></tr></thead>
         <tbody>${compat.issues
-        .map(
-          (i) => `<tr>
+            .map(
+              (i) => `<tr>
           <td>${e(i.suite)}</td>
           <td><span class="severity sev-${i.severity === 'blocking' ? 'critical' : 'medium'}">${e(i.severity)}</span></td>
           <td class="reason">${e(i.reason)}</td>
           <td>${e([i.baselineDatasetVersion, i.candidateDatasetVersion].filter(Boolean).join(' → '))}</td>
           <td>${e([i.baselineRubricVersion, i.candidateRubricVersion].filter(Boolean).join(' → '))}</td>
         </tr>`,
-        )
-        .join('')}</tbody>
-      </table></div></div>
-    </div>`
+            )
+            .join('')}</tbody>
+      </table></div>`,
+      })
       : ''
     }
 
-    <div class="section">
-      <div class="section-header"><h2>How to read this report</h2></div>
-      <div class="section-body">${renderHowToRead()}</div>
-    </div>
+    ${renderCollapsibleSection({
+      id: 'how-to-read',
+      title: 'How to read this report',
+      summary: 'Reference guide for interpreting scores, gates, and trend shifts',
+      body: renderHowToRead(),
+    })}
 
     <footer>
       Generated by <a href="https://github.com/icodenet/eval-dashboards" target="_blank" rel="noopener">@icodenet/eval-dashboards</a>
@@ -1046,6 +1099,14 @@ ${renderCssVariables(theme)}
   <div id="eval-tooltip" role="tooltip"></div>
 
   <script>
+    function toggleSection(btn) {
+      var section = btn.closest('.section.collapsible');
+      if (!section) return;
+      var isCollapsed = section.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+      var icon = btn.querySelector('.section-toggle-icon');
+      if (icon) icon.textContent = isCollapsed ? '▸' : '▾';
+    }
     function toggleRow(tr) {
       var isOpen = tr.classList.contains('open');
       tr.classList.toggle('open', !isOpen);

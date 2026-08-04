@@ -199,6 +199,39 @@ describe('render html safety and taxonomy scoring', () => {
         expect(html).toContain('manifest hash');
         expect(html).toContain('quality 100.0%');
         expect(html).toContain('safety 50.0%');
+        expect(html).toContain('class="suite-pill suite-pill-pass" data-tip="quality');
+        expect(html).toContain('class="suite-pill suite-pill-fail" data-tip="safety');
+    });
+
+    it('renders sections collapsed by default with summary and toggle affordance', async () => {
+        const reportDir = await createTempDir();
+        const current: EvalReportV1 = {
+            schemaVersion: 'eval-report/v1',
+            run: {
+                id: 'run-collapsed',
+                generatedAt: '2026-08-03T12:00:00.000Z',
+                branch: 'refs/heads/main',
+            },
+            suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+            rows: [{ id: 'row-collapsed', suite: 'quality', passed: true }],
+        };
+
+        await renderReports(
+            {
+                current,
+                previous: undefined,
+                history: [],
+                comparison: compareRuns(current, undefined),
+                reportDir,
+            },
+            ['html'],
+        );
+
+        const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+        expect(html).toContain('class="section collapsible collapsed" data-section-id="suite-summary"');
+        expect(html).toContain('class="section-toggle-icon" aria-hidden="true">▸</span>');
+        expect(html).toContain('class="section-summary">1 suite</span>');
+        expect(html).toContain('onclick="toggleSection(this)"');
     });
 
     it('renders markdown diff sections for row flips', async () => {
