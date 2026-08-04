@@ -294,6 +294,48 @@ describe('render html safety and taxonomy scoring', () => {
         expect(md).toContain('| Build | 255446 |');
     });
 
+    it('renders latency distribution stats when rows include durationMs', async () => {
+        const reportDir = await createTempDir();
+        const current: EvalReportV1 = {
+            schemaVersion: 'eval-report/v1',
+            run: {
+                id: 'run-latency',
+                generatedAt: '2026-08-03T12:00:00.000Z',
+            },
+            suites: [{ id: 'quality', total: 4, passed: 4, failed: 0 }],
+            rows: [
+                { id: 'r1', suite: 'quality', passed: true, durationMs: 100 },
+                { id: 'r2', suite: 'quality', passed: true, durationMs: 200 },
+                { id: 'r3', suite: 'quality', passed: true, durationMs: 400 },
+                { id: 'r4', suite: 'quality', passed: true, durationMs: 1000 },
+            ],
+        };
+
+        await renderReports(
+            {
+                current,
+                previous: undefined,
+                history: [],
+                comparison: compareRuns(current, undefined),
+                reportDir,
+            },
+            ['markdown-summary', 'html'],
+        );
+
+        const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+        expect(md).toContain('| Rows with duration | 4/4 |');
+        expect(md).toContain('| Latency p50 | 200ms |');
+        expect(md).toContain('| Latency p95 | 1.0s |');
+        expect(md).toContain('| Average row latency | 425ms |');
+        expect(md).toContain('| Max row latency | 1.0s |');
+
+        const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+        expect(html).toContain('Rows with duration');
+        expect(html).toContain('4/4');
+        expect(html).toContain('Latency p50');
+        expect(html).toContain('Latency p95');
+    });
+
     it('renders gate policy source links and report reference section', async () => {
         const reportDir = await createTempDir();
         const current: EvalReportV1 = {

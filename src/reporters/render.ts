@@ -37,6 +37,16 @@ type GroupedIndexGroup = {
   failed: number;
 };
 
+type DurationStats = {
+  count: number;
+  totalRows: number;
+  totalMs: number;
+  averageMs: number;
+  p50Ms: number;
+  p95Ms: number;
+  maxMs: number;
+};
+
 export const renderReports = async (
   context: ReportContext,
   reporters: ReporterName[],
@@ -92,6 +102,7 @@ const renderText = (context: ReportContext): string => {
 const renderMarkdown = (context: ReportContext): string => {
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
+  const durationStats = calculateDurationStats(context.current.rows);
   const provenance = reportProvenance(context.current);
   const lines = [
     '# Eval Report',
@@ -107,6 +118,14 @@ const renderMarkdown = (context: ReportContext): string => {
     `| Provenance | ${provenance.label} |`,
     `| Dataset changelog entries | ${changelogCount} |`,
   ];
+
+  if (durationStats) {
+    lines.push(`| Rows with duration | ${durationStats.count}/${durationStats.totalRows} |`);
+    lines.push(`| Latency p50 | ${formatDuration(durationStats.p50Ms)} |`);
+    lines.push(`| Latency p95 | ${formatDuration(durationStats.p95Ms)} |`);
+    lines.push(`| Average row latency | ${formatDuration(durationStats.averageMs)} |`);
+    lines.push(`| Max row latency | ${formatDuration(durationStats.maxMs)} |`);
+  }
 
   if (summary.run.branch) lines.push(`| Branch | ${summary.run.branch} |`);
   if (summary.run.commit) lines.push(`| Commit | ${summary.run.commit} |`);
@@ -216,7 +235,39 @@ const gatePolicyTable = (report: EvalReportV1): string => {
   </table></div>`;
 };
 
-const metadataCards = (run: EvalReportV1['run'], totalDurationMs: number): string => {
+const percentileNearestRank = (sortedValues: number[], percentile: number): number => {
+  const rank = Math.ceil((percentile / 100) * sortedValues.length);
+  const index = Math.max(0, Math.min(sortedValues.length - 1, rank - 1));
+  return sortedValues[index] ?? 0;
+};
+
+const calculateDurationStats = (rows: EvalRow[]): DurationStats | undefined => {
+  const durations = rows
+    .map((row) => Number(row.durationMs))
+    .filter((value) => Number.isFinite(value) && value >= 0)
+    .sort((left, right) => left - right);
+
+  if (durations.length === 0) return undefined;
+
+  const totalMs = durations.reduce((sum, value) => sum + value, 0);
+  const count = durations.length;
+
+  return {
+    count,
+    totalRows: rows.length,
+    totalMs,
+    averageMs: totalMs / count,
+    p50Ms: percentileNearestRank(durations, 50),
+    p95Ms: percentileNearestRank(durations, 95),
+    maxMs: durations[count - 1] ?? 0,
+  };
+};
+
+const metadataCards = (
+  run: EvalReportV1['run'],
+  totalDurationMs: number,
+  durationStats?: DurationStats,
+): string => {
   const cards: Array<{ label: string; value: string; tip: string }> = [];
   cards.push({ label: 'Generated', value: run.generatedAt, tip: 'When this report run was generated.' });
   if (run.buildId) cards.push({ label: 'Build', value: run.buildId, tip: 'Build identifier recorded by the eval runner.' });
@@ -228,6 +279,33 @@ const metadataCards = (run: EvalReportV1['run'], totalDurationMs: number): strin
       label: 'Reported duration',
       value: formatDuration(totalDurationMs),
       tip: 'Sum of row durations in this artifact.',
+    });
+  }
+  if (durationStats) {
+    cards.push({
+      label: 'Rows with duration',
+      value: `${durationStats.count}/${durationStats.totalRows}`,
+      tip: 'Rows with finite durationMs values divided by total rows.',
+    });
+    cards.push({
+      label: 'Latency p50',
+      value: formatDuration(durationStats.p50Ms),
+      tip: 'Median row duration using nearest-rank percentile.',
+    });
+    cards.push({
+      label: 'Latency p95',
+      value: formatDuration(durationStats.p95Ms),
+      tip: '95th percentile row duration using nearest-rank percentile.',
+    });
+    cards.push({
+      label: 'Avg row latency',
+      value: formatDuration(durationStats.averageMs),
+      tip: 'Arithmetic mean row duration across rows with durationMs.',
+    });
+    cards.push({
+      label: 'Max row latency',
+      value: formatDuration(durationStats.maxMs),
+      tip: 'Maximum row duration in this artifact.',
     });
   }
 
@@ -724,10 +802,8 @@ const renderHtml = (context: ReportContext): string => {
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
   const passClass = summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
-  const totalDurationMs = rows
-    .map((r) => Number(r.durationMs))
-    .filter((n) => Number.isFinite(n) && n >= 0)
-    .reduce((a, b) => a + b, 0);
+  const durationStats = calculateDurationStats(rows);
+  const totalDurationMs = durationStats?.totalMs ?? 0;
 
   return `<!doctype html>
 <html lang="en" data-theme="${e(theme.name)}">
@@ -977,7 +1053,7 @@ ${renderCssVariables(theme)}
       id: 'run-metadata',
       title: 'Run metadata',
       summary: [run.branch, run.commit, run.buildId].filter(Boolean).join(' • ') || 'Run identity and provenance details',
-      body: metadataCards(run, totalDurationMs),
+      body: metadataCards(run, totalDurationMs, durationStats),
     })}
 
     ${renderCollapsibleSection({
