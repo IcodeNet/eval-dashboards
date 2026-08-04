@@ -73,3 +73,9 @@ This writes:
 - `.github/workflows/eval-quality.yml.snippet`
 
 Use `--dry-run --write` to preview paths without writing, `--out-dir <path>` to target another directory, and `--force` to overwrite existing files.
+
+For a guided dry-run walkthrough that explains the eval flow and setup steps:
+
+```sh
+eval-dashboards init --preset=agent-quality --teach
+```

@@ -4,7 +4,9 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   buildAgentQualityScaffoldFiles,
+  initUsage,
   planScaffoldWrites,
+  renderAgentQualityTeachMode,
   writeScaffoldFiles,
 } from '../src/cli/init-scaffold.js';
 
@@ -60,5 +62,22 @@ describe('init scaffold', () => {
 
     const config = await readFile(path.join(outDir, 'eval-dashboards.config.ts'), 'utf8');
     expect(config).toContain("reportDir: 'eval-dashboard'");
+  });
+
+  it('renders teach mode as a dry-run walkthrough', async () => {
+    const outDir = await createTempDir();
+    const files = buildAgentQualityScaffoldFiles();
+    const walkthrough = renderAgentQualityTeachMode(outDir, files);
+
+    expect(walkthrough).toContain('Teach mode (dry-run): no files were written.');
+    expect(walkthrough).toContain('How eval-dashboards works:');
+    expect(walkthrough).toContain('Suggested setup steps:');
+    expect(walkthrough).toContain(path.join(outDir, 'eval-dashboards.config.ts'));
+  });
+
+  it('includes init usage details for help mode', () => {
+    expect(initUsage).toContain('eval-dashboards init [options]');
+    expect(initUsage).toContain('--teach');
+    expect(initUsage).toContain('--dry-run');
   });
 });

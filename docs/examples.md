@@ -52,6 +52,7 @@ Or scaffold files into your project:
 ```sh
 pnpm dev init --preset=agent-quality --write
 pnpm dev init --preset=agent-quality --write --dry-run
+pnpm dev init --preset=agent-quality --teach
 ```
 
 ## `llm-agent-evals`

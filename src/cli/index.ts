@@ -10,8 +10,10 @@ import { loadConfig, mergeConfig } from '../config/load-config.js';
 import { optionBoolean, optionNumber, optionString, optionStrings, parseArgs } from './args.js';
 import {
   buildAgentQualityScaffoldFiles,
+  initUsage,
   planScaffoldWrites,
   renderAgentQualityInitConfig,
+  renderAgentQualityTeachMode,
   renderDefaultInitConfig,
   writeScaffoldFiles,
 } from './init-scaffold.js';
@@ -103,19 +105,30 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'init') {
+    if (optionBoolean(options, 'help')) {
+      console.log(initUsage);
+      return;
+    }
+
     const preset = optionString(options, 'preset', '');
     const shouldWrite = optionBoolean(options, 'write');
     const dryRun = optionBoolean(options, 'dry-run');
+    const teach = optionBoolean(options, 'teach');
     const outDir = optionString(options, 'out-dir', '.');
     const force = optionBoolean(options, 'force');
 
     if (preset === 'agent-quality') {
+      const files = buildAgentQualityScaffoldFiles();
+
+      if (teach) {
+        console.log(renderAgentQualityTeachMode(outDir, files));
+        return;
+      }
+
       if (!shouldWrite) {
         console.log(renderAgentQualityInitConfig());
         return;
       }
-
-      const files = buildAgentQualityScaffoldFiles();
 
       if (dryRun) {
         const planned = planScaffoldWrites(outDir, files);

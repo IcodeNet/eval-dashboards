@@ -6,6 +6,17 @@ export type ScaffoldFile = {
   content: string;
 };
 
+export const initUsage = `eval-dashboards init [options]
+
+Options:
+  --preset=agent-quality   Use the agent-quality starter preset.
+  --write                  Write scaffold files to disk.
+  --dry-run                Preview the write plan without writing files.
+  --teach                  Print a step-by-step walkthrough (safe dry-run mode).
+  --out-dir=<path>         Target directory for scaffold files (default: current dir).
+  --force                  Overwrite scaffold files if they already exist.
+`;
+
 export const renderDefaultInitConfig = (): string => `export default {
   input: ['.evals_output/**/*.json'],
   reportDir: 'eval-dashboard',
@@ -191,6 +202,32 @@ const fileExists = async (filePath: string): Promise<boolean> => {
 
 export const planScaffoldWrites = (outputDir: string, files: ScaffoldFile[]): string[] =>
   files.map((file) => path.resolve(outputDir, file.relativePath));
+
+export const renderAgentQualityTeachMode = (outputDir: string, files: ScaffoldFile[]): string => {
+  const plannedPaths = planScaffoldWrites(outputDir, files);
+
+  return [
+    'Teach mode (dry-run): no files were written.',
+    '',
+    'How eval-dashboards works:',
+    '1. Your runner emits eval-report/v1 JSON artifacts into .evals_output/.',
+    '2. lint checks taxonomy/shape issues quickly before expensive checks.',
+    '3. check enforces pass/fail gates (pass rate, critical failures, baseline rules).',
+    '4. report generates HTML + machine-readable summaries for review.',
+    '5. publish copies the generated dashboard to your hosting target.',
+    '',
+    `Scaffold plan for ${path.resolve(outputDir)}:`,
+    ...plannedPaths.map((plannedPath, index) => `${index + 1}. ${plannedPath}`),
+    '',
+    'Suggested setup steps:',
+    '1. Write files: eval-dashboards init --preset=agent-quality --write',
+    '2. Emit your real artifact to .evals_output/ (replace the template run file).',
+    '3. Run: eval-dashboards lint --input=.evals_output',
+    '4. Run: eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical',
+    '5. Run: eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard',
+    '6. Optional publish: eval-dashboards publish --input=.evals_output --report-dir=eval-dashboard --target=dir',
+  ].join('\n');
+};
 
 export const writeScaffoldFiles = async (
   outputDir: string,
