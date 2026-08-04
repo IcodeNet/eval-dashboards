@@ -4,7 +4,7 @@ This runbook closes the Phase 4 feedback-loop requirement by making adoption tra
 
 ## Weekly loop
 
-1. Run `pnpm metrics:adoption`.
+1. Confirm `.github/workflows/adoption-metrics.yml` ran (or trigger it manually).
 2. Review `docs/adoption-metrics/latest.json`.
 3. Update `docs/adoption-metrics/manual-signals.json` with:
    - confirmed external runner adoptions
@@ -12,6 +12,13 @@ This runbook closes the Phase 4 feedback-loop requirement by making adoption tra
    - active outreach and pilot status
 4. Log outreach activity in `docs/community-partnership-log.md`.
 5. Add notable changes to `CHANGELOG.md` when they affect product direction.
+
+## Automation
+
+- Workflow: `.github/workflows/adoption-metrics.yml`
+- Schedule: every Monday at 06:30 UTC
+- Manual trigger: Actions -> Adoption Metrics -> Run workflow
+- Commit behavior: updates `docs/adoption-metrics/latest.json` (and `manual-signals.json` only if changed)
 
 ## Signals and ownership
 
