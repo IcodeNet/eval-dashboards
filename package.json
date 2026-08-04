@@ -35,7 +35,7 @@
   ],
   "scripts": {
     "assets:regenerate": "tsx scripts/regenerate-release-assets.ts",
-    "assets:verify": "pnpm assets:regenerate && git diff --exit-code -- eval-report eval-report-dark docs/images",
+    "assets:verify": "tsx scripts/verify-release-assets.ts",
     "build": "tsup",
     "dev": "tsx src/cli/index.ts",
     "example:llm-agent-evals": "tsx examples/llm-agent-evals/run-local-agent-evals.ts",
