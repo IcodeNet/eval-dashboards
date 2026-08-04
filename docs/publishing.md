@@ -19,3 +19,10 @@ eval-dashboards publish --target=github-pages --dry-run --repo=icodenet/eval-das
 eval-dashboards publish --target=azure-static-webapp --dry-run --app-name=eval-dashboard
 eval-dashboards publish --target=azure-storage --dry-run --account=myevalreports --container='$web'
 ```
+
+Operational pattern for reviewer-gated merges on GitHub Pages:
+
+- `docs/github-approval-gate-pattern.md`
+- `examples/github-actions/eval-quality.yml`
+- `examples/github-actions/eval-approval-gate.yml`
+- `examples/github-actions/cleanup-pr-eval-results.yml`

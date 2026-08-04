@@ -89,6 +89,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 	- Captured so far: prefer directory inputs over config globs, require rubric versions for blocking suites, clean generated artifact directories before writing, make suite summaries row-complete, and expose/embed the generated static dashboard instead of duplicating it with host-app summary cards.
 	- Type packaging captured: emit declarations and expose them with `main`, `types`, and `exports`; verified with `pnpm build`, `npm pack`, and a temporary downstream TypeScript compile against the packed tarball.
 	- Adapter boundary captured: keep project-specific dataset rows local, but move repeated artifact assembly mechanics into public eval-dashboards helpers.
+	- Approval-gate pattern captured: document `eval-results` branch layout, `pr-meta.json` wiring, commit-status contract (`eval/quality-gate`), environment approval flow, and cleanup workflow templates for closed PRs.
 	- Planning slices captured in ROADMAP: dataset governance, versioned rubrics, judge calibration, CI quality tiers, suite templates, setup scaffolding, and schema/taxonomy decision rules.
 
 ## Next Phases

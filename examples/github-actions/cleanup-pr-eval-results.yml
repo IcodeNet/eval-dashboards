@@ -1,0 +1,43 @@
+name: Cleanup PR eval results
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: eval-results
+
+      - name: Remove PR folder and refresh manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr_number='${{ github.event.pull_request.number }}'
+          rm -rf "pr/$pr_number"
+
+          if [[ -f pr/index.json ]]; then
+            jq "map(select(.pr_number != ($pr_number | tonumber)))" pr/index.json > pr/index.json.tmp
+            mv pr/index.json.tmp pr/index.json
+          fi
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "No eval-results cleanup needed"
+            exit 0
+          fi
+
+          git config user.name "eval-results-bot"
+          git config user.email "eval-results-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "cleanup: remove eval results for closed PR #${{ github.event.pull_request.number }}"
+          git push origin HEAD:eval-results

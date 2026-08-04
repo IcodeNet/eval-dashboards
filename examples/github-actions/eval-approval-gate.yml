@@ -1,0 +1,94 @@
+name: Eval approval gate
+
+on:
+  push:
+    branches:
+      - eval-results
+    paths:
+      - pr/**
+
+permissions:
+  deployments: write
+  statuses: write
+
+jobs:
+  detect-pr-results:
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.detect.outputs.pr_number }}
+      source_sha: ${{ steps.detect.outputs.source_sha }}
+      dashboard_url: ${{ steps.detect.outputs.dashboard_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: eval-results
+
+      - name: Detect newest PR metadata
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=$(find pr -type f -name pr-meta.json | sort | tail -n1)
+          test -n "$file"
+          pr_number=$(jq -r '.pr_number' "$file")
+          source_sha=$(jq -r '.source_commit_sha' "$file")
+          dashboard_url=$(jq -r '.dashboard_url' "$file")
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "dashboard_url=$dashboard_url" >> "$GITHUB_OUTPUT"
+
+  await-approval:
+    needs: detect-pr-results
+    if: ${{ needs.detect-pr-results.outputs.pr_number != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pr_number: ["${{ needs.detect-pr-results.outputs.pr_number }}"]
+    environment:
+      name: eval-approval
+      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Approval checkpoint
+        run: |
+          echo "Review dashboard: ${{ needs.detect-pr-results.outputs.dashboard_url }}"
+          echo "Approve this environment to set eval/quality-gate=success"
+
+  set-success:
+    needs: [detect-pr-results, await-approval]
+    if: ${{ needs.detect-pr-results.outputs.source_sha != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set eval status to success
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.EVAL_REPORTS_TOKEN }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ needs.detect-pr-results.outputs.source_sha }}',
+              state: 'success',
+              context: 'eval/quality-gate',
+              target_url: '${{ needs.detect-pr-results.outputs.dashboard_url }}',
+              description: 'Eval results approved by reviewer',
+            });
+
+  set-failure:
+    needs: [detect-pr-results, await-approval]
+    if: ${{ failure() && needs.detect-pr-results.outputs.source_sha != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set eval status to failure
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.EVAL_REPORTS_TOKEN }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ needs.detect-pr-results.outputs.source_sha }}',
+              state: 'failure',
+              context: 'eval/quality-gate',
+              target_url: '${{ needs.detect-pr-results.outputs.dashboard_url }}',
+              description: 'Eval approval was rejected or gate failed',
+            });

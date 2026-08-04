@@ -272,6 +272,8 @@ export default {
 
 **CI/CD:**
 - [GitHub Actions](examples/github-actions/eval-quality.yml)
+- [GitHub Actions approval gate](examples/github-actions/eval-approval-gate.yml)
+- [GitHub Actions PR cleanup](examples/github-actions/cleanup-pr-eval-results.yml)
 - [Azure Pipelines](examples/azure-devops/azure-pipelines-eval.yml)
 
 ---
@@ -309,6 +311,7 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - [Reporters](docs/reporters.md) — HTML, text, Markdown, JSON
 - [Gates](docs/gates.md) — quality gates and CI integration
 - [Publishing](docs/publishing.md) — GitHub Pages, Azure, custom
+- [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating with GitHub Pages data branch
 - [Roadmap](docs/ROADMAP.md) — phases and adoption plan
 - [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
 

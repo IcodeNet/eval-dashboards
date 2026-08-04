@@ -207,6 +207,10 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - Provide portable inputs for run metadata, suite case results, suite manifest defaults, rubric contracts, provenance/lifecycle defaults, and output writing.
    - Helpers compute suite totals from rows so adapters cannot drift into aggregate-only summaries.
    - Keep raw test case data as a project concern; only the normalized row evidence and governance metadata should cross into `eval-report/v1`.
+- [x] Capture GitHub approval-gate and dashboard branch pattern as reusable docs/examples
+   - Document branch-as-database layout (`main/`, `pr/`, history manifests, `pr-meta.json`) and retention caps.
+   - Provide workflow templates for status transitions (`pending` -> `success|failure`) with environment approvals.
+   - Provide cleanup workflow template for closed PR data in the publish branch.
 - [x] Feed Ask Byron integration lessons back into templates before treating them as stable
    - Directory inputs are safer than literal glob strings in config (`input: ['.evals_output']`).
    - Blocking suite manifests need explicit `rubricVersion` values.
