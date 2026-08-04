@@ -176,7 +176,7 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 - [x] Wire `eval-dashboards lint`, `check`, and `report` into Ask Byron workflows
 - [x] Add rubric contracts plus row provenance/lifecycle metadata
 - [x] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard
-- [ ] Generate the first published dashboard baseline and document initial quality gaps
+- [x] Generate the first published dashboard baseline and document initial quality gaps
 
 ### Stream B: eval-dashboards setup-layer evolution
 
