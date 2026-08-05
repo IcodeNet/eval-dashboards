@@ -62,6 +62,18 @@ Common calibration thresholds:
 
 Treat these as starting points. Tighten or relax by risk area, judge stability, and label quality.
 
+### Threshold Key Aliases
+
+`check-gates` accepts multiple key spellings for calibration thresholds. Use one naming style consistently in your suite manifests.
+
+| Metric | Accepted key names |
+|---|---|
+| Judge agreement minimum | `minJudgeAgreementRate`, `min_judge_agreement_rate`, `min-judge-agreement-rate`, `judgeAgreementRate`, `judge_agreement_rate`, `judge-agreement-rate` |
+| Judge disagreement maximum | `maxJudgeDisagreementRate`, `max_judge_disagreement_rate`, `max-judge-disagreement-rate`, `judgeDisagreementRate`, `judge_disagreement_rate`, `judge-disagreement-rate` |
+| Axis-score delta maximum | `maxAxisScoreDelta`, `max_axis_score_delta`, `max-axis-score-delta`, `axisDeltaTolerance`, `axis_delta_tolerance`, `axis-delta-tolerance` |
+
+For non-calibration suite gating in the same manifest, pass-rate and critical-failure keys are also supported by `check-gates`.
+
 ## 5) Multi-Turn Groundedness Axes
 
 For multi-turn groundedness, add episode-level axes in addition to per-turn checks.
