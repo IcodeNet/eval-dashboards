@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.2] — 2026-08-05
+
+### Fixed
+
+- Git/tag dependency installs now include built CLI/runtime output by running `pnpm build` in `prepack`, ensuring `dist/` and the `eval-dashboards` bin are available to consumers.
+
+---
+
 ## [0.5.1] — 2026-08-05
 
 ### Fixed

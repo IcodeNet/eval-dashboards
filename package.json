@@ -1,6 +1,6 @@
 {
   "name": "@icodenet/eval-dashboards",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
   "type": "module",
   "author": "icodenet <byronth@gmail.com>",
@@ -42,6 +42,7 @@
     "example:llm-agent-report": "pnpm example:llm-agent-evals && pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
     "metrics:adoption": "tsx scripts/collect-adoption-metrics.ts",
     "prepare": "node -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', { stdio: 'inherit' }); } else { console.log('skip lefthook install (no .git)'); }\"",
+    "prepack": "pnpm build",
     "release": "semantic-release",
     "release:dry": "semantic-release --dry-run --no-ci",
     "release:prepare": "pnpm check && pnpm assets:verify",
