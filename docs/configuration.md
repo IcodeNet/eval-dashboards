@@ -37,3 +37,9 @@ CLI overrides:
 - `--baseline-run-id=<run-id>`: explicit baseline selection (highest priority).
 - `--baseline-strategy=rolling|champion`: strategy when baseline run ID is omitted.
 - `--baseline-lookback=<n>`: limit candidate prior runs considered by the strategy.
+
+Recommended artifact layout:
+
+- Write one file per run under `.evals_output` (for example `.evals_output/<runId>.json`).
+- Preserve prior run files so `rolling` and `champion` strategies can select meaningful baselines and history commands can build trends.
+- Use single-file overwrite workflows only when you do not need cross-run comparisons.

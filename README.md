@@ -35,7 +35,7 @@ pnpm add -D @icodenet/eval-dashboards
 
 ```sh
 # 1. Emit a taxonomy-complete artifact from your runner
-my-eval-runner --output=.evals_output/run.json
+my-eval-runner --output=.evals_output/run-2026-08-05T170000Z.json
 
 # 2. Generate an HTML dashboard
 eval-dashboards report --input=.evals_output --reporter=html
@@ -45,6 +45,22 @@ eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failur
 
 # 4. Publish to GitHub Pages
 eval-dashboards publish --target=github-pages --repo=owner/repo
+```
+
+Use one file per run in `.evals_output` instead of overwriting a single artifact. History-preserving output enables baseline selection (`rolling` / `champion`) and trend reports.
+
+Common CI gate recipes:
+
+- PR policy (rolling baseline):
+
+```sh
+eval-dashboards check --input=.evals_output --baseline-strategy=rolling --allow-blocked-baseline --max-new-failures=0 --zero-critical
+```
+
+- Main policy (champion baseline from recent history):
+
+```sh
+eval-dashboards check --input=.evals_output --baseline-strategy=champion --baseline-lookback=20 --max-new-failures=0 --zero-critical
 ```
 
 See working examples:
@@ -193,6 +209,8 @@ await writeEvalReportArtifact('.evals_output/run.json', {
 ```
 
 `createEvalReportArtifact(...)` computes suite totals from rows and validates the artifact before returning it. `writeEvalReportArtifact(...)` writes the JSON and can clean the output directory when `cleanOutputDir: true` is passed.
+
+Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot workflow. Most teams should keep run history files for baseline-aware checks and trend reporting.
 
 ---
 

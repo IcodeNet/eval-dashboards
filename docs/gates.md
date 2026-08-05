@@ -16,6 +16,22 @@ Example:
 eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
 ```
 
+Baseline-aware options:
+
+- `--baseline-run-id=<run-id>`: explicit baseline.
+- `--baseline-strategy=rolling|champion`: choose baseline from discovered prior runs when `--baseline-run-id` is omitted.
+- `--baseline-lookback=<n>`: restrict baseline candidates to the most recent `n` prior runs before strategy selection.
+
+Typical workflow policies:
+
+```sh
+# Pull request policy: compare against previous run, tolerate blocked baseline compatibility while suites evolve.
+eval-dashboards check --input=.evals_output --baseline-strategy=rolling --allow-blocked-baseline --max-new-failures=0 --zero-critical
+
+# Main policy: compare against strongest recent same-mode run.
+eval-dashboards check --input=.evals_output --baseline-strategy=champion --baseline-lookback=20 --max-new-failures=0 --zero-critical
+```
+
 Fast preflight lint before expensive eval stages:
 
 ```sh
