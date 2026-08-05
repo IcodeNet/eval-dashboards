@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.1] — 2026-08-05
+
+### Fixed
+
+- Git/tag consumption compatibility: `prepare` now skips `lefthook install` when no `.git` directory is present (for dependency installs outside a git worktree).
+
+---
+
 ## [0.5.0] — 2026-08-05
 
 ### Added
