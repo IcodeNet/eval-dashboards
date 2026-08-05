@@ -13,7 +13,7 @@
 | `retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration` | Preset suite names | These are useful defaults for agent-quality setup, but product teams may rename, split, or merge them. Do not require them in `eval-report/v1`. |
 | Dataset file layout, JSONL starter cases, rubric templates, CI tiers | Preset files and examples | These accelerate adoption without forcing every runner or domain into the same storage format. |
 | Threshold recommendations, gate mode recommendations, lifecycle examples | Documentation and examples | Defaults are useful teaching material, but teams need to tune them by risk and cost. |
-| Product-specific case contracts such as Ask Byron golden cases | Host application | Local datasets contain product semantics, expected source files, and domain categories that should not leak into the shared package contract. |
+| Product-specific case contracts from a host app | Host application | Local datasets contain product semantics, expected source files, and domain categories that should not leak into the shared package contract. |
 | Artifact assembly mechanics such as suite totals, validation, output cleanup, and row mapping callbacks | Public adapter helpers | These mechanics are portable and reduce drift, while preserving project-specific row mapping in the host application. |
 
 ## Additive Schema Rules
@@ -40,5 +40,5 @@ Do not remove, rename, or narrow existing `eval-report/v1` fields in place. If a
 
 - Suite presets remain setup guidance, not schema-required suite ids.
 - Runner adapter helpers own repeatable artifact mechanics, not product-specific dataset contracts.
-- Ask Byron integration lessons can graduate into presets, examples, lint rules, or adapter helpers, but not into hard-coded schema semantics unless another integration proves the same need.
+- Integration lessons can graduate into presets, examples, lint rules, or adapter helpers, but not into hard-coded schema semantics unless another independent integration proves the same need.
 - `eval-report/v1` remains additive through the current setup-layer work.

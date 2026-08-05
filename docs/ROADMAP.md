@@ -162,23 +162,23 @@ Per user directive: "adoption and shipping should be done last when we are ready
 
 ---
 
-## 🚧 Phase 4A: Ask Byron Proving Ground & Setup Layer (PARTIALLY COMPLETE; NEXT SLICES REMAIN)
+## 🚧 Phase 4A: Reference Integration Proving Ground & Setup Layer (PARTIALLY COMPLETE; NEXT SLICES REMAIN)
 
 This phase runs two parallel streams that feed each other:
 
-1. **Ask Byron integration stream** proves the package against a real assistant eval program.
+1. **reference integration stream** proves the package against a real assistant eval program.
 2. **eval-dashboards setup-layer stream** turns repeated integration patterns into reusable presets, templates, and guidance.
 
 The schema should remain runner-agnostic and portable. Domain-specific suite names should generally be shipped as documented presets/templates rather than hard-coded schema enums, unless a concept proves broadly reusable across eval programs.
 
-### Stream A: Ask Byron eval integration
+### Stream A: reference integration eval stream
 
-- [x] Inspect the existing Ask Byron eval runner, datasets, and CI wiring
+- [x] Inspect the existing reference integration eval runner, datasets, and CI wiring
 - [x] Add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency
-- [x] Map current Ask Byron eval results into `eval-report/v1`
+- [x] Map current reference integration eval results into `eval-report/v1`
 - [x] Emit `.evals_output/*.json` artifacts from existing eval runs
 - [x] Add suite manifests, dataset versions, rubric versions, and dashboard gates
-- [x] Wire `eval-dashboards lint`, `check`, and `report` into Ask Byron workflows
+- [x] Wire `eval-dashboards lint`, `check`, and `report` into reference integration workflows
 - [x] Add rubric contracts plus row provenance/lifecycle metadata
 - [x] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard
 - [x] Generate the first published dashboard baseline and document initial quality gaps
@@ -205,10 +205,10 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 - [x] Add docs showing how suite presets map to `riskArea`, `target`, `graders`, gates, and rubric contracts
 - [x] Add a repo-context glossary for terms that may be new to users, especially `eval-report/v1`, `suite`, `dataset`, and `rubric`
    - Explain `eval-report/v1` as version 1 of the JSON artifact contract that runners emit and eval-dashboards validates/reports on.
-   - Explain each term in the context of the artifact contract, setup scaffolding, generated reports, and real integrations such as Ask Byron.
+   - Explain each term in the context of the artifact contract, setup scaffolding, generated reports, and real integrations such as reference integration.
    - Show how the terms relate: datasets provide cases, suites group cases by intent/risk, and rubrics define the scoring rules and pass/fail expectations.
 - [x] Add runner-adapter primitives for teams starting from existing eval results
-   - Do not absorb app-specific dataset contracts such as Ask Byron's `GoldenCase` or exact `EvalRunSummary` shape.
+   - Do not absorb app-specific dataset contracts or exact host-application summary object shapes.
    - Provide portable inputs for run metadata, suite case results, suite manifest defaults, rubric contracts, provenance/lifecycle defaults, and output writing.
    - Helpers compute suite totals from rows so adapters cannot drift into aggregate-only summaries.
    - Keep raw test case data as a project concern; only the normalized row evidence and governance metadata should cross into `eval-report/v1`.
@@ -216,7 +216,7 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
    - Document branch-as-database layout (`main/`, `pr/`, history manifests, `pr-meta.json`) and retention caps.
    - Provide workflow templates for status transitions (`pending` -> `success|failure`) with environment approvals.
    - Provide cleanup workflow template for closed PR data in the publish branch.
-- [x] Feed Ask Byron integration lessons back into templates before treating them as stable
+- [x] Feed reference integration lessons back into templates before treating them as stable
    - Directory inputs are safer than literal glob strings in config (`input: ['.evals_output']`).
    - Blocking suite manifests need explicit `rubricVersion` values.
    - Setup scaffolding should clean generated `.evals_output` before writing the current artifact.
@@ -241,11 +241,11 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 
 ### Implementation rule
 
-Start with presets, fixtures, docs, and CLI scaffolding. Amend `eval-report/v1` only when Ask Byron or another real integration proves that a setup concept is portable enough to become part of the shared artifact contract.
+Start with presets, fixtures, docs, and CLI scaffolding. Amend `eval-report/v1` only when reference integration or another real integration proves that a setup concept is portable enough to become part of the shared artifact contract.
 
 ### Setup-layer planning slices
 
-These slices turn the Ask Byron proving-ground work into reusable setup-layer work without baking Ask Byron-specific suite names into the core contract.
+These slices turn the reference integration proving-ground work into reusable setup-layer work without baking reference integration-specific suite names into the core contract.
 
 #### Dataset governance
 
@@ -279,7 +279,7 @@ These slices turn the Ask Byron proving-ground work into reusable setup-layer wo
 #### Suite templates
 
 - Ship suite template docs/fixtures for the proposed presets above, each with target, risk area, graders, dataset expectations, rubric contract, and suggested gates.
-- Mark presets experimental until at least Ask Byron plus one other integration validates the shape.
+- Mark presets experimental until at least reference integration plus one other integration validates the shape.
 - Keep preset names stable enough for docs and generated config, but avoid requiring them in `eval-report/v1`.
 
 #### Setup scaffolding
@@ -295,14 +295,14 @@ These slices turn the Ask Byron proving-ground work into reusable setup-layer wo
 - Recommended shape: a normalized `RunnerEvalResult` / `RunnerEvalCaseResult` input plus `createEvalReportArtifact(...)` and `writeEvalReportArtifact(...)` helpers.
 - The helper should accept project-specific row mapping callbacks, because prompts, questions, expected source files, and local categories differ by product.
 - The helper should own repeatable mechanics: stable row ids, suite totals from rows, suite manifest defaults, rubric contract attachment, provenance/lifecycle defaults, run metadata, validation, and generated-output cleanup.
-- Avoid hard-coding Ask Byron suite ids. Use suite presets as optional defaults that can be renamed or overridden by the consuming team.
+- Avoid hard-coding reference integration suite ids. Use suite presets as optional defaults that can be renamed or overridden by the consuming team.
 
 #### Schema and taxonomy decision rules
 
 - Add schema fields only for concepts that are portable across runners and domains, not for one assistant's suite taxonomy.
 - Prefer preset metadata or docs for opinionated setup defaults; use validation/lint rules to teach completeness before making fields required.
 - Keep `eval-report/v1` additive until a breaking change is unavoidable, then introduce a new schema version with migration notes.
-- Use Ask Byron as evidence for setup ergonomics, not as the sole basis for hard-coded artifact semantics.
+- Use reference integration as evidence for setup ergonomics, not as the sole basis for hard-coded artifact semantics.
 
 ---
 

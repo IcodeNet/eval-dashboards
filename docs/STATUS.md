@@ -70,17 +70,17 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Planned / In Assessment
 
-### Parallel Ask Byron + eval-dashboards workstreams
+### Parallel reference integration + eval-dashboards workstreams
 
-- [x] Ask Byron: inspect existing eval runner, dataset shape, scoring, and CI workflow.
-- [x] Ask Byron: add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency.
-- [x] Ask Byron: map current eval output into `eval-report/v1` without replacing the existing runner.
-- [x] Ask Byron: emit `.evals_output/*.json` artifacts with suite summaries and row-level evidence.
-- [x] Ask Byron: add suite manifests, dataset versions, rubric versions, and dashboard gates.
-- [x] Ask Byron: wire `eval-dashboards lint`, `check`, and `report` into local/CI eval commands.
-- [x] Ask Byron: add rubric contracts plus row provenance and lifecycle metadata.
-- [x] Ask Byron: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
-- [x] Ask Byron: create first published dashboard baseline and document quality gaps.
+- [x] reference integration: inspect existing eval runner, dataset shape, scoring, and CI workflow.
+- [x] reference integration: add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency.
+- [x] reference integration: map current eval output into `eval-report/v1` without replacing the existing runner.
+- [x] reference integration: emit `.evals_output/*.json` artifacts with suite summaries and row-level evidence.
+- [x] reference integration: add suite manifests, dataset versions, rubric versions, and dashboard gates.
+- [x] reference integration: wire `eval-dashboards lint`, `check`, and `report` into local/CI eval commands.
+- [x] reference integration: add rubric contracts plus row provenance and lifecycle metadata.
+- [x] reference integration: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
+- [x] reference integration: create first published dashboard baseline and document quality gaps.
 - [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
 - [x] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
 - [x] eval-dashboards: decide which setup concepts belong in schema fields/enums, preset files, examples, or docs.
@@ -89,7 +89,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] eval-dashboards: document how presets map to `riskArea`, `target`, `graders`, gate policies, and rubric contracts.
 - [x] eval-dashboards: add a repo-context glossary explaining `eval-report/v1`, suite, dataset, rubric, runner, and row terminology.
 - [x] eval-dashboards: add runner-adapter primitives so teams with an existing eval runner can map local results into `eval-report/v1` without hand-writing aggregate, manifest, rubric, and output-cleanup boilerplate.
-- [x] Cross-feed: use Ask Byron integration learnings to amend eval-dashboards roadmap, templates, and docs before stabilizing setup-layer APIs.
+- [x] Cross-feed: use reference integration learnings to amend eval-dashboards roadmap, templates, and docs before stabilizing setup-layer APIs.
 	- Captured so far: prefer directory inputs over config globs, require rubric versions for blocking suites, clean generated artifact directories before writing, make suite summaries row-complete, and expose/embed the generated static dashboard instead of duplicating it with host-app summary cards.
 	- Type packaging captured: emit declarations and expose them with `main`, `types`, and `exports`; verified with `pnpm build`, `npm pack`, and a temporary downstream TypeScript compile against the packed tarball.
 	- Adapter boundary captured: keep project-specific dataset rows local, but move repeated artifact assembly mechanics into public eval-dashboards helpers.

@@ -16,7 +16,7 @@
 These terms show up throughout the schema, CLI, docs, and generated reports:
 
 - `eval-report/v1`: version 1 of the JSON artifact contract. A runner writes this artifact with `schemaVersion: "eval-report/v1"`; `eval-dashboards` reads it to validate, gate, compare, and render reports. See [artifact-format.md](artifact-format.md) for the exact shape.
-- **Runner**: the code that executes eval cases. It might be Vitest, Jest, a Python script, an agent harness, or product-specific code such as Ask Byron's `eval/run-evals.ts`.
+- **Runner**: the code that executes eval cases. It might be Vitest, Jest, a Python script, an agent harness, or product-specific host-application code.
 - **Dataset**: the source set of cases/questions being evaluated. Datasets need stable ids and versions so teams know whether a pass-rate change came from product behavior or from changing the cases.
 - **Suite**: a named group of related rows from a run, usually tied to one intent or risk area such as retrieval recall, refusal safety, groundedness, or tool routing.
 - **Rubric**: the scoring rules for a suite or judge. Rubrics explain what counts as a pass, which axes matter, and when a change should bump `rubricVersion`.
