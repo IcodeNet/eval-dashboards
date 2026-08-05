@@ -7,6 +7,8 @@ import {
   type EvalRun,
   type EvalSeverity,
   type EvalSuiteSummary,
+  type RowLifecycle,
+  type RowProvenance,
   type SuiteManifest,
   type SuiteRubricContract,
 } from '../model/eval-report-v1.js';
@@ -79,19 +81,35 @@ const defaultRowMetadata = (): NonNullable<EvalRow['metadata']> => ({
   lifecycle: { status: 'active' },
 });
 
+const mergeProvenance = (provenance: RowProvenance | undefined): RowProvenance => {
+  const defaults: RowProvenance = { source: 'synthetic' };
+  if (!provenance) return defaults;
+
+  return {
+    ...defaults,
+    ...provenance,
+    source: provenance.source ?? defaults.source,
+  };
+};
+
+const mergeLifecycle = (lifecycle: RowLifecycle | undefined): RowLifecycle => {
+  const defaults: RowLifecycle = { status: 'active' };
+  if (!lifecycle) return defaults;
+
+  return {
+    ...defaults,
+    ...lifecycle,
+    status: lifecycle.status ?? defaults.status,
+  };
+};
+
 const mergeRowMetadata = (
   metadata: EvalRow['metadata'],
 ): EvalRow['metadata'] => ({
   ...defaultRowMetadata(),
   ...metadata,
-  provenance: {
-    ...defaultRowMetadata().provenance,
-    ...metadata?.provenance,
-  },
-  lifecycle: {
-    ...defaultRowMetadata().lifecycle,
-    ...metadata?.lifecycle,
-  },
+  provenance: mergeProvenance(metadata?.provenance),
+  lifecycle: mergeLifecycle(metadata?.lifecycle),
 });
 
 const summarizeSuites = (rows: EvalRow[]): EvalSuiteSummary[] => {
