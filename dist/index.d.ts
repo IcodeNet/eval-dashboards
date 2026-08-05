@@ -184,6 +184,7 @@ declare const validateEvalReport: (value: unknown) => ValidationResult;
 
 declare const assessBaselineCompatibility: (candidateManifests: readonly SuiteManifest[] | undefined, baselineManifests: readonly SuiteManifest[] | undefined, hasComparison: boolean) => BaselineCompatibilityResult | undefined;
 
+type BaselineStrategy = 'rolling' | 'champion';
 type RunHistoryEntry = ReturnType<typeof summarizeReport>;
 type RunComparison = {
     currentRunId: string;
@@ -263,6 +264,12 @@ declare const resolveTheme: (theme: string | Partial<EvalReportsTheme> | undefin
 type ReporterName = 'text' | 'json-summary' | 'markdown-summary' | 'html';
 declare const renderGroupedIndexHtml: (reports: EvalReportV1[], locale?: string) => string;
 
+type BaselineConfig = {
+    /** Baseline run selection strategy when baselineRunId is not specified. */
+    strategy?: BaselineStrategy;
+    /** Optional lookback window (number of prior runs considered by the strategy). */
+    lookback?: number;
+};
 type EvalReportsConfig = {
     /** Glob patterns or directory for artifact discovery. Default: ['.evals_output/**\/*.json'] */
     input?: string | string[];
@@ -276,6 +283,8 @@ type EvalReportsConfig = {
     theme?: string | Partial<EvalReportsTheme>;
     /** BCP 47 locale for date/number formatting. Default: 'en-GB' */
     locale?: string;
+    /** Baseline comparison selection rules. */
+    baseline?: BaselineConfig;
 };
 
 /**

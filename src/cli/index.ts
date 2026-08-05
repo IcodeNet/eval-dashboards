@@ -1,6 +1,13 @@
 import path from 'node:path';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
-import { buildHistory, compareRuns, selectBaseline, selectRun } from '../history/history.js';
+import {
+  buildHistory,
+  compareRuns,
+  selectBaseline,
+  selectBaselineByStrategy,
+  selectRun,
+  type BaselineStrategy,
+} from '../history/history.js';
 import { readEvalReports, writeJsonFile, writeTextFile } from '../io/reports.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
@@ -34,6 +41,8 @@ Commands:
 type LoadContextOptions = {
   runId?: string;
   baselineRunId?: string;
+  baselineStrategy?: BaselineStrategy;
+  baselineLookback?: number;
 };
 
 const loadContext = async (
@@ -71,12 +80,11 @@ const loadContext = async (
     );
   }
 
-  // If explicit baseline is not provided, use the run immediately before current.
-  if (!previous && reports.length > 1) {
-    const currentIndex = reports.findIndex((report) => report.run.id === current.run.id);
-    if (currentIndex > 0) {
-      previous = reports[currentIndex - 1];
-    }
+  if (!previous) {
+    previous = selectBaselineByStrategy(reports, current.run.id, {
+      strategy: options?.baselineStrategy ?? 'rolling',
+      lookback: options?.baselineLookback,
+    });
   }
 
   return {
@@ -100,6 +108,17 @@ const gateConfigFromOptions = (
   maxNewFailures: optionNumber(options, 'max-new-failures'),
   zeroCritical: optionBoolean(options, 'zero-critical'),
 });
+
+const baselineStrategyFromOptions = (
+  options: Record<string, string | boolean | string[]>,
+): BaselineStrategy | undefined => {
+  const strategy = optionString(options, 'baseline-strategy', '');
+  if (!strategy) return undefined;
+  if (strategy === 'rolling' || strategy === 'champion') return strategy;
+  throw Object.assign(new Error(`Unknown baseline strategy ${strategy}. Use rolling or champion.`), {
+    exitCode: 2,
+  });
+};
 
 const main = async (): Promise<void> => {
   const { command, options } = parseArgs(process.argv.slice(2));
@@ -179,9 +198,13 @@ const main = async (): Promise<void> => {
   if (command === 'report') {
     const runId = optionString(options, 'run-id', '');
     const baselineRunId = optionString(options, 'baseline-run-id', '');
+    const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
+    const baselineLookback = optionNumber(options, 'baseline-lookback') ?? config.baseline?.lookback;
     const context = await loadContext(input, reportDir, {
       runId: runId || undefined,
       baselineRunId: baselineRunId || undefined,
+      baselineStrategy,
+      baselineLookback,
     });
     const reporters = (config.reporters ?? ['html', 'text']) as ReporterName[];
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
@@ -202,7 +225,13 @@ const main = async (): Promise<void> => {
 
   if (command === 'check') {
     const baselineRunId = optionString(options, 'baseline-run-id', '');
-    const context = await loadContext(input, reportDir, { baselineRunId: baselineRunId || undefined });
+    const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
+    const baselineLookback = optionNumber(options, 'baseline-lookback') ?? config.baseline?.lookback;
+    const context = await loadContext(input, reportDir, {
+      baselineRunId: baselineRunId || undefined,
+      baselineStrategy,
+      baselineLookback,
+    });
     const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
     const gateConfig = {
       ...(config.gates ?? {}),

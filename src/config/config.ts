@@ -1,6 +1,14 @@
 import type { ReporterName } from '../reporters/render.js';
 import type { GateConfig } from '../gates/check-gates.js';
 import type { EvalReportsTheme } from '../reporters/themes.js';
+import type { BaselineStrategy } from '../history/history.js';
+
+export type BaselineConfig = {
+  /** Baseline run selection strategy when baselineRunId is not specified. */
+  strategy?: BaselineStrategy;
+  /** Optional lookback window (number of prior runs considered by the strategy). */
+  lookback?: number;
+};
 
 export type EvalReportsConfig = {
   /** Glob patterns or directory for artifact discovery. Default: ['.evals_output/**\/*.json'] */
@@ -15,4 +23,6 @@ export type EvalReportsConfig = {
   theme?: string | Partial<EvalReportsTheme>;
   /** BCP 47 locale for date/number formatting. Default: 'en-GB' */
   locale?: string;
+  /** Baseline comparison selection rules. */
+  baseline?: BaselineConfig;
 };

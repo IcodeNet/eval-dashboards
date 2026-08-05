@@ -139,6 +139,51 @@ var compareRuns = (current, previous) => {
 var selectBaseline = (reports, baselineRunId) => {
   return reports.find((report) => report.run.id === baselineRunId);
 };
+var runMode = (report) => {
+  if (!report.metadata || typeof report.metadata !== "object") return void 0;
+  const mode = report.metadata.mode;
+  return typeof mode === "string" ? mode : void 0;
+};
+var selectBaselineByStrategy = (reports, currentRunId, options = {}) => {
+  const strategy = options.strategy ?? "rolling";
+  const ordered = [...reports].sort(
+    (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt)
+  );
+  const currentIndex = ordered.findIndex((report) => report.run.id === currentRunId);
+  if (currentIndex <= 0) {
+    return void 0;
+  }
+  const candidateSlice = ordered.slice(0, currentIndex);
+  const current = ordered[currentIndex];
+  const currentMode = current ? runMode(current) : void 0;
+  const modeMatchedCandidates = currentMode !== void 0 ? candidateSlice.filter((report) => runMode(report) === currentMode) : candidateSlice;
+  const lookback = options.lookback;
+  const candidates = lookback !== void 0 && Number.isFinite(lookback) && lookback > 0 ? modeMatchedCandidates.slice(-Math.trunc(lookback)) : modeMatchedCandidates;
+  if (candidates.length === 0) {
+    return void 0;
+  }
+  if (strategy === "rolling") {
+    return candidates[candidates.length - 1];
+  }
+  let champion = candidates[0];
+  let championPassRate = summarizeReport(champion).passRate;
+  for (const report of candidates.slice(1)) {
+    const passRate = summarizeReport(report).passRate;
+    if (passRate > championPassRate) {
+      champion = report;
+      championPassRate = passRate;
+      continue;
+    }
+    if (passRate === championPassRate) {
+      const reportTs = Date.parse(report.run.generatedAt);
+      const championTs = Date.parse(champion.run.generatedAt);
+      if (reportTs > championTs) {
+        champion = report;
+      }
+    }
+  }
+  return champion;
+};
 var selectRun = (reports, runId) => {
   return reports.find((report) => report.run.id === runId);
 };
@@ -2842,11 +2887,11 @@ var loadContext = async (input, reportDir, options) => {
       { exitCode: 2 }
     );
   }
-  if (!previous && reports.length > 1) {
-    const currentIndex = reports.findIndex((report) => report.run.id === current.run.id);
-    if (currentIndex > 0) {
-      previous = reports[currentIndex - 1];
-    }
+  if (!previous) {
+    previous = selectBaselineByStrategy(reports, current.run.id, {
+      strategy: options?.baselineStrategy ?? "rolling",
+      lookback: options?.baselineLookback
+    });
   }
   return {
     current,
@@ -2860,6 +2905,14 @@ var loadContext = async (input, reportDir, options) => {
     ),
     reportDir
   };
+};
+var baselineStrategyFromOptions = (options) => {
+  const strategy = optionString(options, "baseline-strategy", "");
+  if (!strategy) return void 0;
+  if (strategy === "rolling" || strategy === "champion") return strategy;
+  throw Object.assign(new Error(`Unknown baseline strategy ${strategy}. Use rolling or champion.`), {
+    exitCode: 2
+  });
 };
 var main = async () => {
   const { command, options } = parseArgs(process.argv.slice(2));
@@ -2921,9 +2974,13 @@ ${written.join("\n")}`);
   if (command === "report") {
     const runId = optionString(options, "run-id", "");
     const baselineRunId = optionString(options, "baseline-run-id", "");
+    const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
+    const baselineLookback = optionNumber(options, "baseline-lookback") ?? config.baseline?.lookback;
     const context = await loadContext(input, reportDir, {
       runId: runId || void 0,
-      baselineRunId: baselineRunId || void 0
+      baselineRunId: baselineRunId || void 0,
+      baselineStrategy,
+      baselineLookback
     });
     const reporters = config.reporters ?? ["html", "text"];
     const theme = optionString(options, "theme", "") || config.theme;
@@ -2942,7 +2999,13 @@ ${written.join("\n")}`);
   }
   if (command === "check") {
     const baselineRunId = optionString(options, "baseline-run-id", "");
-    const context = await loadContext(input, reportDir, { baselineRunId: baselineRunId || void 0 });
+    const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
+    const baselineLookback = optionNumber(options, "baseline-lookback") ?? config.baseline?.lookback;
+    const context = await loadContext(input, reportDir, {
+      baselineRunId: baselineRunId || void 0,
+      baselineStrategy,
+      baselineLookback
+    });
     const allowBlockedBaseline = optionBoolean(options, "allow-blocked-baseline");
     const gateConfig = {
       ...config.gates ?? {},

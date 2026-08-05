@@ -1,5 +1,7 @@
 import { type EvalReportV1, type EvalRow, rowKey, summarizeReport } from '../model/eval-report-v1.js';
 
+export type BaselineStrategy = 'rolling' | 'champion';
+
 export type RunHistoryEntry = ReturnType<typeof summarizeReport>;
 
 export type RowStability = 'stable' | 'flaky' | 'persistent-failure';
@@ -128,6 +130,77 @@ export const selectBaseline = (
   baselineRunId: string,
 ): EvalReportV1 | undefined => {
   return reports.find((report) => report.run.id === baselineRunId);
+};
+
+type BaselineSelectionOptions = {
+  strategy?: BaselineStrategy;
+  lookback?: number;
+};
+
+const runMode = (report: EvalReportV1): string | undefined => {
+  if (!report.metadata || typeof report.metadata !== 'object') return undefined;
+  const mode = (report.metadata as Record<string, unknown>).mode;
+  return typeof mode === 'string' ? mode : undefined;
+};
+
+/** Select a baseline relative to the current run using a strategy. */
+export const selectBaselineByStrategy = (
+  reports: EvalReportV1[],
+  currentRunId: string,
+  options: BaselineSelectionOptions = {},
+): EvalReportV1 | undefined => {
+  const strategy = options.strategy ?? 'rolling';
+  const ordered = [...reports].sort(
+    (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt),
+  );
+  const currentIndex = ordered.findIndex((report) => report.run.id === currentRunId);
+
+  if (currentIndex <= 0) {
+    return undefined;
+  }
+
+  const candidateSlice = ordered.slice(0, currentIndex);
+  const current = ordered[currentIndex];
+  const currentMode = current ? runMode(current) : undefined;
+  const modeMatchedCandidates =
+    currentMode !== undefined
+      ? candidateSlice.filter((report) => runMode(report) === currentMode)
+      : candidateSlice;
+  const lookback = options.lookback;
+  const candidates =
+    lookback !== undefined && Number.isFinite(lookback) && lookback > 0
+      ? modeMatchedCandidates.slice(-Math.trunc(lookback))
+      : modeMatchedCandidates;
+
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
+  if (strategy === 'rolling') {
+    return candidates[candidates.length - 1];
+  }
+
+  let champion = candidates[0]!;
+  let championPassRate = summarizeReport(champion).passRate;
+
+  for (const report of candidates.slice(1)) {
+    const passRate = summarizeReport(report).passRate;
+    if (passRate > championPassRate) {
+      champion = report;
+      championPassRate = passRate;
+      continue;
+    }
+
+    if (passRate === championPassRate) {
+      const reportTs = Date.parse(report.run.generatedAt);
+      const championTs = Date.parse(champion.run.generatedAt);
+      if (reportTs > championTs) {
+        champion = report;
+      }
+    }
+  }
+
+  return champion;
 };
 
 /** Select a report by explicit run ID. */

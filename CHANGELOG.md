@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.4] — 2026-08-05
+
+### Added
+
+- Baseline selection strategies for `report` and `check`: `--baseline-strategy=rolling|champion` with optional `--baseline-lookback`.
+- Config support for baseline rules via `baseline.strategy` and `baseline.lookback` in `eval-dashboards.config.*`.
+
+### Changed
+
+- Strategy-based baseline selection now prefers candidate runs with matching `metadata.mode` (for example, avoids comparing live runs against offline runs when both are present).
+
+---
+
 ## [0.5.3] — 2026-08-05
 
 ### Fixed

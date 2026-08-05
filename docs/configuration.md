@@ -1,6 +1,6 @@
 # Configuration
 
-Planned config locations:
+Config locations:
 
 - `eval-dashboards.config.ts`
 - `eval-dashboards.config.js`
@@ -18,6 +18,10 @@ export default {
     maxNewFailures: 0,
     zeroCritical: true,
   },
+  baseline: {
+    strategy: 'champion', // 'rolling' | 'champion'
+    lookback: 30, // optional number of prior runs considered
+  },
   publish: {
     target: 'github-pages',
     githubPages: {
@@ -27,3 +31,9 @@ export default {
   },
 };
 ```
+
+CLI overrides:
+
+- `--baseline-run-id=<run-id>`: explicit baseline selection (highest priority).
+- `--baseline-strategy=rolling|champion`: strategy when baseline run ID is omitted.
+- `--baseline-lookback=<n>`: limit candidate prior runs considered by the strategy.
