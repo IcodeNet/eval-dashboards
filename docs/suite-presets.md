@@ -56,6 +56,8 @@ For multi-turn suites, include episode-level assertions in addition to per-turn 
 - delayed safety/injection resilience (adversarial turns after trust-building)
 - end-to-end goal completion over the full conversation trajectory
 
+For detailed axis-scoring guidance (single-axis vs multi-axis, tolerance bands, and multi-turn groundedness), see [judge-axis-rubric-scales.md](judge-axis-rubric-scales.md).
+
 ## CI Tiers
 
 Use these presets across three tiers:

@@ -23,6 +23,8 @@ The emitted rows demonstrate both sides of the contract:
 
 The suite manifest and rubric contract are included in every run so report comparisons can say whether a latest-vs-baseline trend is meaningful. The example also emits a `judge-calibration` suite so the calibration gate and report section have labelled rows to work with.
 
+For axis-score design and calibration labeling guidance, see [docs/judge-axis-rubric-scales.md](../../docs/judge-axis-rubric-scales.md).
+
 ## How to map this to a real repo
 
 This example is deliberately synthetic. To make it easier to reuse, read it as a template for your own runner rather than as a product you should copy verbatim:

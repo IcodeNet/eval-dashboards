@@ -203,6 +203,8 @@ If your runner emits judge-calibration rows, include `groundTruthVerdict` and `g
 
 That means each labelled calibration row should carry the expected pass/fail label and the labelled axis scores that the judge is supposed to match. The calibration gate uses those values to measure judge agreement and axis-score drift, and the report section shows the comparison so you can see where the judge matches or diverges from the labelled example.
 
+For scoring-scale and axis-design guidance (including single-axis vs multi-axis patterns and multi-turn groundedness), see [Judge axis rubric scales](judge-axis-rubric-scales.md).
+
 The local agent example now generates a separate `judge-calibration` suite with those fields so you can see the pattern end to end:
 
 - [Local runner script](../examples/llm-agent-evals/run-local-agent-evals.ts)
@@ -223,4 +225,5 @@ The local agent example now generates a separate `judge-calibration` suite with 
 - Full contract details: [Artifact format](artifact-format.md)
 - Config options: [Configuration](configuration.md)
 - Taxonomy depth: [Taxonomy guide](taxonomy.md)
+- Judge scoring guidance: [Judge axis rubric scales](judge-axis-rubric-scales.md)
 - Preset scaffolding and CLI usage: [README](../README.md)
