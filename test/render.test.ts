@@ -138,6 +138,68 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Added new evaluation rows for coverage.');
   });
 
+  it('renders judge calibration summary when labelled verdict rows are present', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-calibration',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'judge-calibration', total: 3, passed: 2, failed: 1 }],
+      rows: [
+        {
+          id: 'case-1',
+          suite: 'judge-calibration',
+          passed: true,
+          kind: 'llm-judge',
+          severity: 'none',
+          category: 'judge-calibration',
+          judgeVerdict: true,
+          groundTruthVerdict: true,
+        },
+        {
+          id: 'case-2',
+          suite: 'judge-calibration',
+          passed: false,
+          kind: 'llm-judge',
+          severity: 'high',
+          category: 'judge-calibration',
+          judgeVerdict: false,
+          groundTruthVerdict: true,
+        },
+        {
+          id: 'case-3',
+          suite: 'judge-calibration',
+          passed: true,
+          kind: 'llm-judge',
+          severity: 'none',
+          category: 'judge-calibration',
+          judgeVerdict: false,
+          groundTruthVerdict: false,
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Judge calibration');
+    expect(html).toContain('3 labelled rows');
+    expect(html).toContain('66.7% agreement');
+    expect(html).toContain('1 disagreement');
+    expect(html).toContain('Agreement pairs');
+  });
+
   it('renders provenance badge and suite pass-rate pills', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

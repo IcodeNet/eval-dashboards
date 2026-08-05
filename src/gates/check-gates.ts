@@ -56,6 +56,32 @@ export const checkGates = (
 
     const actual = suiteSummary.total > 0 ? suiteSummary.passed / suiteSummary.total : 0;
     const suiteRows = report.rows.filter((row) => row.suite === manifest.name);
+    const calibrationRows = suiteRows.filter(
+      (row) => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined,
+    );
+    const calibrationDisagreements = calibrationRows.filter(
+      (row) => row.judgeVerdict !== row.groundTruthVerdict,
+    ).length;
+    const calibrationAgreementRate =
+      calibrationRows.length > 0
+        ? (calibrationRows.length - calibrationDisagreements) / calibrationRows.length
+        : 1;
+    const calibrationDisagreementRate =
+      calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : 0;
+    const calibrationAxisRows = suiteRows.filter(
+      (row) => row.axisScores !== undefined && row.groundTruthAxisScores !== undefined,
+    );
+    const calibrationAxisDeltas = calibrationAxisRows.flatMap((row) =>
+      Object.entries(row.axisScores ?? {}).flatMap(([axis, score]) => {
+        const groundTruthScore = row.groundTruthAxisScores?.[axis];
+        if (groundTruthScore === undefined) return [];
+        return [Math.abs(score - groundTruthScore)];
+      }),
+    );
+    const calibrationAxisDelta =
+      calibrationAxisDeltas.length > 0
+        ? Math.max(...calibrationAxisDeltas)
+        : 0;
     const criticalFailures = suiteRows.filter(
       (row) => !row.passed && row.severity === 'critical',
     ).length;
@@ -94,6 +120,48 @@ export const checkGates = (
       if (isCriticalFailureRateKey && criticalFailureRate > threshold) {
         failures.push(
           `Suite "${manifest.name}" critical failure rate ${criticalFailureRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+        );
+      }
+
+      const isJudgeAgreementRateKey =
+        normalizedMetric === 'minjudgeagreementrate' ||
+        normalizedMetric === 'min_judge_agreement_rate' ||
+        normalizedMetric === 'min-judge-agreement-rate' ||
+        normalizedMetric === 'judgeagreementrate' ||
+        normalizedMetric === 'judge_agreement_rate' ||
+        normalizedMetric === 'judge-agreement-rate';
+
+      if (isJudgeAgreementRateKey && calibrationAgreementRate < threshold) {
+        failures.push(
+          `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+        );
+      }
+
+      const isJudgeDisagreementRateKey =
+        normalizedMetric === 'maxjudgedisagreementrate' ||
+        normalizedMetric === 'max_judge_disagreement_rate' ||
+        normalizedMetric === 'max-judge-disagreement-rate' ||
+        normalizedMetric === 'judgedisagreementrate' ||
+        normalizedMetric === 'judge_disagreement_rate' ||
+        normalizedMetric === 'judge-disagreement-rate';
+
+      if (isJudgeDisagreementRateKey && calibrationDisagreementRate > threshold) {
+        failures.push(
+          `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+        );
+      }
+
+      const isAxisScoreDeltaKey =
+        normalizedMetric === 'maxaxisscoredelta' ||
+        normalizedMetric === 'max_axis_score_delta' ||
+        normalizedMetric === 'max-axis-score-delta' ||
+        normalizedMetric === 'axisdeltatolerance' ||
+        normalizedMetric === 'axis_delta_tolerance' ||
+        normalizedMetric === 'axis-delta-tolerance';
+
+      if (isAxisScoreDeltaKey && calibrationAxisDelta > threshold) {
+        failures.push(
+          `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
         );
       }
     }

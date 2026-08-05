@@ -223,6 +223,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['groundTruthAxisScores'] !== undefined) {
+        if (!isObject(row['groundTruthAxisScores'])) {
+          errors.push(`rows[${index}].groundTruthAxisScores must be an object when provided.`);
+        } else {
+          for (const [axis, score] of Object.entries(row['groundTruthAxisScores'] as Record<string, unknown>)) {
+            if (!isNumber(score)) {
+              errors.push(`rows[${index}].groundTruthAxisScores.${axis} must be a number.`);
+            }
+          }
+        }
+      }
+
       if (row['metadata'] !== undefined) {
         if (!isObject(row['metadata'])) {
           errors.push(`rows[${index}].metadata must be an object when provided.`);

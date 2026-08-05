@@ -107,13 +107,16 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
-**Phase 4: Shipping & Adoption** (after 2C/3 complete)
+**Immediate next implementation slices**
 
-- Publish to npm when API is stable
+- Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
+
+**External Phase 4: Shipping & Adoption**
+
 - Announce on Reddit, HN, AI communities, eval-focused newsletters
-- Create production-ready GitHub Actions + Azure DevOps templates
+- Expand real-world runner partnerships and external integration examples
 - Open scoped "good first issues" for contributors
-- Establish feedback loop with early adopters
+- Continue the feedback loop with early adopters
 
 **Phase 5+: Long-term (post-v1.0)**
 

@@ -178,6 +178,7 @@ export type EvalRow = {
   groundTruthVerdict?: boolean;
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
+  groundTruthAxisScores?: Record<string, number>;
   input?: string;
   output?: string;
   expected?: string;

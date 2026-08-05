@@ -518,46 +518,83 @@ const groupRows = (
 const renderRowDetail = (r: EvalRow, colSpan: number): string => {
   const fields: string[] = [];
 
-  const field = (label: string, value: string | undefined | null, mono = false, full = false) => {
+  const field = (
+    label: string,
+    value: string | undefined | null,
+    mono = false,
+    full = false,
+    tip?: string,
+  ) => {
     if (!value) return;
     fields.push(`<div class="detail-field${full ? ' full-width' : ''}">
-      <span class="detail-field-label">${label}</span>
+      <span class="detail-field-label"${tip ? ` data-tip="${e(tip)}"` : ''}>${label}</span>
       <span class="detail-field-value${mono ? ' mono' : ''}">${e(value)}</span>
     </div>`);
   };
 
-  field('Input', r.input, true, true);
-  field('Output', r.output, true, true);
-  field('Expected', r.expected, true, true);
-  field('Ground truth category', r.groundTruthCategory, false, false);
-  field('Ground truth annotation', r.groundTruthAnnotation, true, true);
-  field('Judge model', r.judgeModel);
-  field('Judge verdict', r.judgeVerdict != null ? String(r.judgeVerdict) : null);
-  field('Judge reasoning', r.judgeReasoning, true, true);
+  field('Input', r.input, true, true, 'The prompt, question, or case input shown to the runner or judge.');
+  field('Output', r.output, true, true, 'The answer or response produced by the runner or agent.');
+  field('Expected', r.expected, true, true, 'The expected result or target answer for this case when provided.');
+  field(
+    'Ground truth verdict',
+    r.groundTruthVerdict != null ? String(r.groundTruthVerdict) : null,
+    false,
+    false,
+    'The labelled correct answer for this calibration case. True means the judge should pass; false means the judge should fail.',
+  );
+  field(
+    'Ground truth category',
+    r.groundTruthCategory,
+    false,
+    false,
+    'The labelled failure or outcome category for the calibration case.',
+  );
+  field(
+    'Ground truth annotation',
+    r.groundTruthAnnotation,
+    true,
+    true,
+    'Human-written notes that explain why the labelled verdict or category is correct.',
+  );
+  field('Judge model', r.judgeModel, false, false, 'The grader model or judge used to score this row.');
+  field(
+    'Judge verdict',
+    r.judgeVerdict != null ? String(r.judgeVerdict) : null,
+    false,
+    false,
+    'The verdict produced by the judge or scorer for this row.',
+  );
+  field(
+    'Judge reasoning',
+    r.judgeReasoning,
+    true,
+    true,
+    'The judge explanation for why it gave this verdict or score.',
+  );
 
   if (r.axisScores && Object.keys(r.axisScores).length) {
     const chips = Object.entries(r.axisScores)
       .map(([k, v]) => `<span class="axis-score-chip">${e(k)}: ${typeof v === 'number' ? v.toFixed(2) : e(String(v))}</span>`)
       .join('');
     fields.push(`<div class="detail-field full-width">
-      <span class="detail-field-label">Axis scores</span>
+      <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores">${chips}</div>
     </div>`);
   }
 
   if (r.toolCalls?.length) {
     fields.push(`<div class="detail-field full-width">
-      <span class="detail-field-label">Tool calls</span>
+      <span class="detail-field-label" data-tip="Tool calls made while evaluating this row.">Tool calls</span>
       <div class="axis-scores">${r.toolCalls.map((t) => `<span class="axis-score-chip">${e(t.name)}</span>`).join('')}</div>
     </div>`);
   }
 
-  field('Turns', r.turns != null ? String(r.turns) : null);
-  field('Duration', r.durationMs != null ? `${r.durationMs} ms` : null);
-  field('Agent version', r.agentVersion);
-  field('Prompt version', r.promptVersion);
-  field('Rubric ID', r.rubricId);
-  field('Category', r.category);
+  field('Turns', r.turns != null ? String(r.turns) : null, false, false, 'Conversation turns captured during the evaluation.');
+  field('Duration', r.durationMs != null ? `${r.durationMs} ms` : null, false, false, 'Runtime recorded for this row.');
+  field('Agent version', r.agentVersion, false, false, 'The agent build or version evaluated for this row.');
+  field('Prompt version', r.promptVersion, false, false, 'The prompt or instruction version used for this row.');
+  field('Rubric ID', r.rubricId, false, false, 'The rubric or scoring identifier used for this row.');
+  field('Category', r.category, false, false, 'The machine-readable category assigned to this row.');
 
   if (!fields.length) return '';
   return `<tr class="detail-row"><td colspan="${colSpan}"><div class="detail-panel">${fields.join('')}</div></td></tr>`;
@@ -792,6 +829,91 @@ const renderCollapsibleSection = ({
     </div>`;
 };
 
+type JudgeCalibrationSummary = {
+  total: number;
+  agreements: number;
+  disagreements: number;
+  agreementRate: number;
+  suiteSummaries: Array<{
+    suite: string;
+    total: number;
+    agreements: number;
+    disagreements: number;
+    agreementRate: number;
+  }>;
+};
+
+const summarizeJudgeCalibration = (rows: EvalRow[]): JudgeCalibrationSummary | undefined => {
+  const calibrationRows = rows.filter(
+    (row) => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined,
+  );
+
+  if (calibrationRows.length === 0) return undefined;
+
+  const bySuite = new Map<string, { total: number; agreements: number; disagreements: number }>();
+  let agreements = 0;
+  let disagreements = 0;
+
+  for (const row of calibrationRows) {
+    const suite = row.suite;
+    const agrees = row.judgeVerdict === row.groundTruthVerdict;
+    const suiteStats = bySuite.get(suite) ?? { total: 0, agreements: 0, disagreements: 0 };
+
+    suiteStats.total += 1;
+    if (agrees) {
+      suiteStats.agreements += 1;
+      agreements += 1;
+    } else {
+      suiteStats.disagreements += 1;
+      disagreements += 1;
+    }
+
+    bySuite.set(suite, suiteStats);
+  }
+
+  return {
+    total: calibrationRows.length,
+    agreements,
+    disagreements,
+    agreementRate: agreements / calibrationRows.length,
+    suiteSummaries: Array.from(bySuite.entries()).map(([suite, stats]) => ({
+      suite,
+      total: stats.total,
+      agreements: stats.agreements,
+      disagreements: stats.disagreements,
+      agreementRate: stats.total > 0 ? stats.agreements / stats.total : 0,
+    })),
+  };
+};
+
+const judgeCalibrationTable = (summary: JudgeCalibrationSummary): string =>
+  `<div class="meta-grid">
+    <div class="meta-card"><div class="meta-label" data-tip="How many labelled calibration rows are available for comparison.">Labelled rows</div><div class="meta-value">${summary.total}</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="The share of calibration rows where the judge matched the labelled verdict.">Agreement rate</div><div class="meta-value">${(summary.agreementRate * 100).toFixed(1)}%</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="The number of calibration rows where the judge disagreed with the labelled verdict.">Disagreements</div><div class="meta-value">${summary.disagreements}</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="The count of rows where the judge and the labelled verdict matched.">Agreement pairs</div><div class="meta-value">${summary.agreements}/${summary.total}</div></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      ${th('Suite', 'Calibration suite that groups the labelled judge rows.')}
+      ${th('Labelled', 'Number of rows with a human-labelled ground truth verdict for this suite.', 'num')}
+      ${th('Agree', 'Rows where the judge verdict matched the ground truth verdict.', 'num')}
+      ${th('Disagree', 'Rows where the judge verdict did not match the ground truth verdict.', 'num')}
+      ${th('Agreement rate', 'Agree divided by labelled rows for this suite.', 'num')}
+    </tr></thead>
+    <tbody>${summary.suiteSummaries
+    .map(
+      (suite) => `<tr>
+          <td>${e(suite.suite)}</td>
+          <td class="num">${suite.total}</td>
+          <td class="num pass">${suite.agreements}</td>
+          <td class="num fail">${suite.disagreements}</td>
+          <td>${e(`${(suite.agreementRate * 100).toFixed(1)}%`)}</td>
+        </tr>`,
+    )
+    .join('')}</tbody>
+  </table></div>`;
+
 const renderHtml = (context: ReportContext): string => {
   const { locale, current, comparison, baselineCompatibility: compat } = context;
   const { run, rows } = current;
@@ -800,6 +922,7 @@ const renderHtml = (context: ReportContext): string => {
   const provenance = reportProvenance(current);
   const theme = resolveTheme(context.theme);
   const summary = summarizeReport(current);
+  const judgeCalibration = summarizeJudgeCalibration(rows);
   const failingRows = rows.filter((r) => !r.passed);
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
@@ -822,6 +945,9 @@ const renderHtml = (context: ReportContext): string => {
   const allRowsSummary = `${pluralize(current.rows.length, 'row')} • ${summary.failed} failing • ${formatPassRate(summary.passed, summary.total)} pass rate`;
   const datasetChangelogSummary = `${pluralize(datasetChangelog.length, 'entry')} • +${datasetChangelogTotals.added} / ~${datasetChangelogTotals.updated} / -${datasetChangelogTotals.removed}`;
   const baselineCompatibilitySummary = `${compatStatus} • ${pluralize(compat?.issues.length ?? 0, 'issue')}`;
+  const judgeCalibrationSummary = judgeCalibration
+    ? `${pluralize(judgeCalibration.total, 'labelled row')} • ${(judgeCalibration.agreementRate * 100).toFixed(1)}% agreement • ${pluralize(judgeCalibration.disagreements, 'disagreement')}`
+    : '';
   const suiteSummaryTone: 'pass' | 'warn' | 'fail' =
     summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
   const failingRowsTone: 'pass' | 'warn' | 'fail' =
@@ -1143,6 +1269,17 @@ ${renderCssVariables(theme)}
       body: suiteSummaryTable(current.suites),
       summaryTone: suiteSummaryTone,
     })}
+
+    ${judgeCalibration
+      ? renderCollapsibleSection({
+        id: 'judge-calibration',
+        title: 'Judge calibration',
+        summary: judgeCalibrationSummary,
+        body: judgeCalibrationTable(judgeCalibration),
+        summaryTone: judgeCalibration.disagreements === 0 ? 'pass' : 'warn',
+      })
+      : ''
+    }
 
     ${datasetChangelog.length
       ? renderCollapsibleSection({

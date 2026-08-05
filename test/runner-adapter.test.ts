@@ -99,4 +99,43 @@ describe('runner adapter', () => {
     expect(report.run.id).toBe('run-4');
     expect(written).toMatchObject({ schemaVersion: 'eval-report/v1', run: { id: 'run-4' } });
   });
+
+  it('defaults row metadata provenance and lifecycle when mapping cases', () => {
+    const report = createEvalReportArtifact(
+      {
+        run: { id: 'run-5' },
+        cases: [{ suite: 'quality', passed: true }],
+      },
+      { generatedAt },
+    );
+
+    expect(report.rows[0].metadata).toMatchObject({
+      provenance: { source: 'synthetic' },
+      lifecycle: { status: 'active' },
+    });
+  });
+
+  it('merges explicit row metadata with default provenance and lifecycle values', () => {
+    const report = createEvalReportArtifact(
+      {
+        run: { id: 'run-6' },
+        cases: [
+          {
+            suite: 'quality',
+            passed: true,
+            metadata: {
+              provenance: { source: 'labelled-synthetic', reason: 'labelled example' },
+              lifecycle: { status: 'deprecated', note: 'legacy case' },
+            },
+          },
+        ],
+      },
+      { generatedAt },
+    );
+
+    expect(report.rows[0].metadata).toMatchObject({
+      provenance: { source: 'labelled-synthetic', reason: 'labelled example' },
+      lifecycle: { status: 'deprecated', note: 'legacy case' },
+    });
+  });
 });

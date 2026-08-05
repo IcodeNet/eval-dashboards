@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export type ScaffoldFile = {
@@ -451,6 +451,19 @@ export const writeScaffoldFiles = async (
         { exitCode: 2 },
       );
     }
+  }
+
+  const generatedOutputDirs = Array.from(
+    new Set(
+      files
+        .map((file) => file.relativePath)
+        .filter((relativePath) => relativePath.startsWith('.evals_output/'))
+        .map((relativePath) => path.resolve(outputDir, path.dirname(relativePath))),
+    ),
+  );
+
+  for (const generatedOutputDir of generatedOutputDirs) {
+    await rm(generatedOutputDir, { recursive: true, force: true });
   }
 
   for (const file of files) {

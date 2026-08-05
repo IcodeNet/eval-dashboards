@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -48,6 +48,21 @@ describe('init scaffold', () => {
 
     expect(config).toContain("input: ['.evals_output']");
     expect(dataset).toContain('"suite":"retrieval-recall"');
+  });
+
+  it('cleans scaffold-managed generated output before rewriting template artifacts', async () => {
+    const outDir = await createTempDir();
+    const files = buildAgentQualityScaffoldFiles();
+    const staleArtifactPath = path.join(outDir, '.evals_output', 'stale-run.json');
+
+    await mkdir(path.dirname(staleArtifactPath), { recursive: true });
+    await writeFile(staleArtifactPath, '{"stale":true}', 'utf8');
+    await writeScaffoldFiles(outDir, files);
+
+    await expect(readFile(staleArtifactPath, 'utf8')).rejects.toThrow();
+    await expect(readFile(path.join(outDir, '.evals_output', 'run-agent-quality-template.json'), 'utf8')).resolves.toContain(
+      'agent-quality-template-run',
+    );
   });
 
   it('fails on conflicts unless force is enabled', async () => {

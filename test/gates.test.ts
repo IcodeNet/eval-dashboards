@@ -238,4 +238,133 @@ describe('checkGates', () => {
     expect(thresholdResult.passed).toBe(false);
     expect(thresholdResult.failures[0]).toMatch(/critical failure rate 0.500 exceeds blocking threshold/);
   });
+
+  it('enforces judge disagreement rate threshold for blocking calibration suites', () => {
+    const calibrationReport: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'judge-calibration', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'judge-calibration', total: 3, passed: 2, failed: 1 }],
+      rows: [
+        {
+          id: 'case-1',
+          suite: 'judge-calibration',
+          passed: true,
+          kind: 'llm-judge',
+          judgeVerdict: true,
+          groundTruthVerdict: true,
+        },
+        {
+          id: 'case-2',
+          suite: 'judge-calibration',
+          passed: false,
+          kind: 'llm-judge',
+          judgeVerdict: false,
+          groundTruthVerdict: true,
+        },
+        {
+          id: 'case-3',
+          suite: 'judge-calibration',
+          passed: true,
+          kind: 'llm-judge',
+          judgeVerdict: false,
+          groundTruthVerdict: false,
+        },
+      ],
+      suiteManifests: [
+        {
+          name: 'judge-calibration',
+          target: 'judge',
+          datasetSource: 'manual',
+          datasetVersion: '1.0.0',
+          rubricVersion: '1.0.0',
+          riskArea: 'custom',
+          graders: ['human-labelled-calibration'],
+          gate: { mode: 'blocking', thresholds: { maxJudgeDisagreementRate: 0.2 } },
+        },
+      ],
+    };
+
+    const result = checkGates(calibrationReport, compareRuns(calibrationReport, undefined), {});
+
+    expect(result.passed).toBe(false);
+    expect(result.failures[0]).toMatch(/judge disagreement rate 0.333 exceeds blocking threshold/);
+  });
+
+  it('passes when judge agreement rate threshold is met for calibration suites', () => {
+    const calibrationReport: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'judge-calibration-pass', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'judge-calibration', total: 4, passed: 4, failed: 0 }],
+      rows: [
+        { id: 'case-1', suite: 'judge-calibration', passed: true, kind: 'llm-judge', judgeVerdict: true, groundTruthVerdict: true },
+        { id: 'case-2', suite: 'judge-calibration', passed: true, kind: 'llm-judge', judgeVerdict: false, groundTruthVerdict: false },
+        { id: 'case-3', suite: 'judge-calibration', passed: true, kind: 'llm-judge', judgeVerdict: true, groundTruthVerdict: true },
+        { id: 'case-4', suite: 'judge-calibration', passed: true, kind: 'llm-judge', judgeVerdict: false, groundTruthVerdict: false },
+      ],
+      suiteManifests: [
+        {
+          name: 'judge-calibration',
+          target: 'judge',
+          datasetSource: 'manual',
+          datasetVersion: '1.0.0',
+          rubricVersion: '1.0.0',
+          riskArea: 'custom',
+          graders: ['human-labelled-calibration'],
+          gate: { mode: 'blocking', thresholds: { minJudgeAgreementRate: 0.95 } },
+        },
+      ],
+    };
+
+    const result = checkGates(calibrationReport, compareRuns(calibrationReport, undefined), {});
+
+    expect(result.passed).toBe(true);
+    expect(result.failures).toHaveLength(0);
+  });
+
+  it('enforces judge axis-score delta threshold for blocking calibration suites', () => {
+    const calibrationReport: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'judge-axis-calibration', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'judge-calibration', total: 2, passed: 1, failed: 1 }],
+      rows: [
+        {
+          id: 'case-1',
+          suite: 'judge-calibration',
+          passed: true,
+          kind: 'llm-judge',
+          judgeVerdict: true,
+          groundTruthVerdict: true,
+          axisScores: { groundedness: 0.9, correctness: 0.95 },
+          groundTruthAxisScores: { groundedness: 0.88, correctness: 0.93 },
+        },
+        {
+          id: 'case-2',
+          suite: 'judge-calibration',
+          passed: false,
+          kind: 'llm-judge',
+          judgeVerdict: false,
+          groundTruthVerdict: true,
+          axisScores: { groundedness: 0.4, correctness: 0.45 },
+          groundTruthAxisScores: { groundedness: 0.9, correctness: 0.95 },
+        },
+      ],
+      suiteManifests: [
+        {
+          name: 'judge-calibration',
+          target: 'judge',
+          datasetSource: 'manual',
+          datasetVersion: '1.0.0',
+          rubricVersion: '1.0.0',
+          riskArea: 'custom',
+          graders: ['human-labelled-calibration'],
+          gate: { mode: 'blocking', thresholds: { maxAxisScoreDelta: 0.1 } },
+        },
+      ],
+    };
+
+    const result = checkGates(calibrationReport, compareRuns(calibrationReport, undefined), {});
+
+    expect(result.passed).toBe(false);
+    expect(result.failures[0]).toMatch(/judge axis-score delta 0.500 exceeds blocking threshold/);
+  });
 });

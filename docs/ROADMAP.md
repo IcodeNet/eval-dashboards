@@ -78,7 +78,7 @@ The schema is only useful if runners emit it. Phase 2A made taxonomy first-class
 
 ---
 
-## 🚧 Phase 3B: Governance Hardening & Output Safety (IN PROGRESS)
+## ✅ Phase 3B: Governance Hardening & Output Safety (COMPLETE)
 
 This phase closes gaps discovered while comparing the package against a mature regulated eval workflow. Focus: make comparisons trustworthy, strengthen taxonomy correctness, and enforce safe report output defaults.
 
@@ -162,7 +162,7 @@ Per user directive: "adoption and shipping should be done last when we are ready
 
 ---
 
-## 🚧 Phase 4A: Ask Byron Proving Ground & Setup Layer (PLANNED)
+## 🚧 Phase 4A: Ask Byron Proving Ground & Setup Layer (PARTIALLY COMPLETE; NEXT SLICES REMAIN)
 
 This phase runs two parallel streams that feed each other:
 
@@ -320,15 +320,14 @@ These slices turn the Ask Byron proving-ground work into reusable setup-layer wo
 ## 🎯 Recommended next steps (prioritized by impact)
 
 **Immediate (next 1–2 weeks):**
-1. Implement industry coverage audit P0 suites (goal-success, intent-resolution, task-adherence, sensitive-disclosure, agency-boundary)
-   - Source of truth: `docs/industry-coverage-audit.md`
-   - Unblocks security/governance maturity and closes highest-impact preset gaps
-2. Add dedicated multi-turn eval track (`multiturn-trajectory`) across presets, starter datasets, rubrics, and scaffold templates
-   - Include turn-sequence assertions for context retention, state consistency, delayed safety checks, and episode-level goal completion
-   - Aligns with production agentic-eval practice where failures appear only after turn 2+
-3. npm publishing workflow (GitHub Actions for semantic versioning, releases, npm publish)
-   - Unblocks teams to `npm install @icodenet/eval-dashboards`
-   - Required for Phase 4 unlock
+1. Add stricter dataset governance completeness checks to the fast preflight path
+   - Extend the current lifecycle/provenance enforcement into duplicate case ids, stronger provenance note coverage, and row evidence consistency checks
+   - This turns governance guidance into enforceable setup hygiene
+2. Expand judge calibration report drills only if more labelled fixtures are added
+   - Current agreement/disagreement and tolerance-band gates are runnable; next value comes from richer labelled sets and per-axis drill-downs
+   - Keep the surface small unless a real integration proves the extra fidelity is needed
+3. Continue external adoption prep
+   - Community seeding, integrations, and production CI templates remain the shipping-adoption workstream
 
 **Short term (Phase 4 preparation, next 2–3 weeks):**
 4. Community seeding: early runner partnerships and integration examples
@@ -336,8 +335,8 @@ These slices turn the Ask Byron proving-ground work into reusable setup-layer wo
    - Gathers feedback before public announcement
 
 **Medium term (Phase 4 execution, post-npm readiness):**
-5. Public npm release + announcement
-6. GitHub Actions + Azure DevOps templates for production use
+5. External adoption push: announcement, citations, and real-world integrations
+6. Continue hardening production CI templates with approval-gate and publish-branch patterns
 7. Community building (issues, feedback, iterations)
 
 ---

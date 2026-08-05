@@ -74,6 +74,26 @@ const createDefaultRow = <CaseResult extends RunnerEvalCaseResult>(
   metadata: caseResult.metadata,
 });
 
+const defaultRowMetadata = (): NonNullable<EvalRow['metadata']> => ({
+  provenance: { source: 'synthetic' },
+  lifecycle: { status: 'active' },
+});
+
+const mergeRowMetadata = (
+  metadata: EvalRow['metadata'],
+): EvalRow['metadata'] => ({
+  ...defaultRowMetadata(),
+  ...metadata,
+  provenance: {
+    ...defaultRowMetadata().provenance,
+    ...metadata?.provenance,
+  },
+  lifecycle: {
+    ...defaultRowMetadata().lifecycle,
+    ...metadata?.lifecycle,
+  },
+});
+
 const summarizeSuites = (rows: EvalRow[]): EvalSuiteSummary[] => {
   const suites = new Map<string, { total: number; passed: number; failed: number }>();
 
@@ -115,16 +135,22 @@ export const createEvalReportArtifact = <CaseResult extends RunnerEvalCaseResult
   const generatedAt = toIsoString(options.generatedAt ?? result.run?.generatedAt ?? new Date());
   const runId = result.run?.id ?? `run-${generatedAt}`;
   const rowId = options.rowId ?? ((caseResult: CaseResult, index: number) => caseResult.id ?? `${caseResult.suite}-${index + 1}`);
-  const rows = result.cases.map((caseResult, index) =>
-    options.mapRow
+  const rows = result.cases.map((caseResult, index) => {
+    const row = options.mapRow
       ? options.mapRow(caseResult, index)
-      : createDefaultRow(caseResult, index, rowId),
+      : createDefaultRow(caseResult, index, rowId);
+
+    return {
+      ...row,
+      metadata: mergeRowMetadata(row.metadata ?? caseResult.metadata),
+    };
+  },
   );
   const suites = summarizeSuites(rows);
   const generatedSuiteManifests = options.createSuiteManifest
     ? suites
-        .map((suite) => options.createSuiteManifest?.(suite.id, rows.filter((row) => row.suite === suite.id)))
-        .filter((manifest): manifest is SuiteManifest => manifest !== undefined)
+      .map((suite) => options.createSuiteManifest?.(suite.id, rows.filter((row) => row.suite === suite.id)))
+      .filter((manifest): manifest is SuiteManifest => manifest !== undefined)
     : [];
   const suiteManifests = result.suiteManifests ?? generatedSuiteManifests;
 

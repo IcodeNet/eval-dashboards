@@ -9,6 +9,8 @@ type Scenario = {
   forbiddenPhrases: string[];
   expectedTool: 'knowledge-base' | 'none';
   category: string;
+  groundTruthVerdict: boolean;
+  groundTruthAxisScores: Record<string, number>;
 };
 
 type AgentRun = {
@@ -25,6 +27,8 @@ const scenarios: Scenario[] = [
     forbiddenPhrases: ['guaranteed improvement'],
     expectedTool: 'knowledge-base',
     category: 'groundedness',
+    groundTruthVerdict: true,
+    groundTruthAxisScores: { groundedness: 0.95, response_quality: 0.9 },
   },
   {
     id: 'tool-use',
@@ -33,6 +37,8 @@ const scenarios: Scenario[] = [
     forbiddenPhrases: ['upload your token'],
     expectedTool: 'knowledge-base',
     category: 'tool-use',
+    groundTruthVerdict: true,
+    groundTruthAxisScores: { tool_use: 0.96, response_quality: 0.88 },
   },
   {
     id: 'concise-answer',
@@ -41,6 +47,8 @@ const scenarios: Scenario[] = [
     forbiddenPhrases: ['firstly', 'secondly', 'thirdly'],
     expectedTool: 'none',
     category: 'response-quality',
+    groundTruthVerdict: false,
+    groundTruthAxisScores: { response_quality: 0.42, groundedness: 0.35 },
   },
 ];
 
@@ -105,6 +113,23 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
         },
         description: 'Provider-free local chat evals for prompt, tool, and answer quality changes.',
       },
+      {
+        name: 'judge-calibration',
+        target: 'judge',
+        datasetSource: 'labelled-synthetic',
+        datasetVersion: '1.0.0',
+        rubricVersion: '1.0.0',
+        riskArea: 'custom',
+        graders: ['human-labelled-calibration'],
+        gate: {
+          mode: 'blocking',
+          thresholds: {
+            minJudgeAgreementRate: 0.9,
+            maxAxisScoreDelta: 0.15,
+          },
+        },
+        description: 'Labelled judge calibration rows for agreement and axis-score tolerance checks.',
+      },
     ],
     rubricContracts: [
       {
@@ -116,8 +141,17 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
           { axis: 'response-quality', version: '1.0.0', summary: 'Answers are direct and concise.' },
         ],
       },
+      {
+        suiteName: 'judge-calibration',
+        rubricVersion: '1.0.0',
+        rubrics: [
+          { axis: 'groundedness', version: '1.0.0', summary: 'Judge labels match labelled examples.' },
+          { axis: 'tool-use', version: '1.0.0', summary: 'Judge labels preserve tool-use expectations.' },
+          { axis: 'response-quality', version: '1.0.0', summary: 'Judge labels stay within axis tolerances.' },
+        ],
+      },
     ],
-    rows,
+    rows: [...rows, ...buildCalibrationRows(agentVersion)],
   };
 };
 
@@ -172,6 +206,49 @@ const buildRows = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2', scenario: Sc
     },
   ];
 };
+
+const buildCalibrationRows = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2'): EvalRow[] =>
+  scenarios.map((scenario) => {
+    const judgeVerdict = agentVersion === 'demo-agent-v1' ? !scenario.groundTruthVerdict : scenario.groundTruthVerdict;
+    const axisScores = agentVersion === 'demo-agent-v1'
+      ? Object.fromEntries(
+        Object.entries(scenario.groundTruthAxisScores).map(([axis, score]) => [axis, Math.max(0, Math.min(1, score - 0.2))]),
+      )
+      : scenario.groundTruthAxisScores;
+
+    return {
+      id: `${scenario.id}:calibration`,
+      suite: 'judge-calibration',
+      kind: 'llm-judge',
+      name: `${scenario.id} calibration`,
+      datasetId: 'judge-calibration-set',
+      scenarioId: scenario.id,
+      rubricId: scenario.category,
+      judgeModel: 'rule-based-example-judge',
+      judgeVerdict,
+      judgeCategory: judgeVerdict ? 'passed' : 'missed-expected-label',
+      judgeReasoning: judgeVerdict
+        ? 'Judge label matches the labelled example.'
+        : 'Judge label diverged from the labelled example.',
+      groundTruthVerdict: scenario.groundTruthVerdict,
+      groundTruthCategory: scenario.category,
+      groundTruthAnnotation: `Labelled calibration case for ${scenario.id}.`,
+      groundTruthAxisScores: scenario.groundTruthAxisScores,
+      axisScores,
+      promptVersion: agentVersion === 'demo-agent-v1' ? 'prompt-v1' : 'prompt-v2',
+      input: scenario.question,
+      output: agentVersion === 'demo-agent-v1' ? 'label mismatch example' : 'labelled calibration match',
+      passed: judgeVerdict === scenario.groundTruthVerdict,
+      severity: judgeVerdict === scenario.groundTruthVerdict ? 'none' : 'medium',
+      category: scenario.category,
+      reason: judgeVerdict === scenario.groundTruthVerdict ? undefined : 'Judge calibration disagreement.',
+      durationMs: 2,
+      metadata: {
+        provenance: { source: 'labelled-synthetic', reason: 'Judge calibration example' },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
 
 const runLocalAgent = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2', scenario: Scenario): AgentRun => {
   const toolCalls = scenario.expectedTool === 'knowledge-base' ? ['knowledge-base'] : [];
