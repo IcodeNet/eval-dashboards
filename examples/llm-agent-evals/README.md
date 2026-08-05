@@ -21,7 +21,12 @@ The emitted rows demonstrate both sides of the contract:
 - `kind: "llm-judge"`: judge-scored answer quality with rubric id, judge verdict, judge category, judge reasoning, and severity.
 - `kind: "llm-judge"` calibration rows: labelled examples with `groundTruthVerdict`, `groundTruthAxisScores`, and metadata that let the calibration gate compare judge output against known labels.
 
-The suite manifest and rubric contract are included in every run so report comparisons can say whether a latest-vs-baseline trend is meaningful. The example also emits a `judge-calibration` suite so the calibration gate and report section have labelled rows to work with.
+The calibration output is intentionally split into two suites so reports make axis coverage obvious:
+
+- `judge-calibration-single-axis`: one-axis labelled scoring (`tool_use` only)
+- `judge-calibration-multi-axis`: multi-axis labelled scoring (`groundedness` + `response-quality`)
+
+The suite manifests and rubric contracts are included in every run so report comparisons can say whether a latest-vs-baseline trend is meaningful. The example emits both calibration suites above so the calibration gate and report sections show single-axis and multi-axis evidence side by side.
 
 For axis-score design and calibration labeling guidance, see [docs/judge-axis-rubric-scales.md](../../docs/judge-axis-rubric-scales.md).
 
@@ -37,6 +42,7 @@ This example is deliberately synthetic. To make it easier to reuse, read it as a
 | `legacyPromptResponse()` / `improvedPromptResponse()` | Prompt or policy version | Point these at real prompt templates, instruction bundles, or commit SHAs. |
 | `judgeAnswer()` | Rubric or scorer | Replace the heuristic with your production judge, rubric, or human review flow. |
 | `local-chat-quality` | Main evaluation suite | Rename it to the business area your team actually tracks. |
-| `judge-calibration` | Label-quality suite | Keep calibrated examples separate so you can measure judge agreement without mixing them into product evals. |
+| `judge-calibration-single-axis` | Label-quality suite (one-axis) | Keep one-axis calibrated examples separate so single-axis drift is easy to inspect. |
+| `judge-calibration-multi-axis` | Label-quality suite (multi-axis) | Keep multi-axis calibrated examples separate so per-axis drift is visible. |
 
 If you only do one thing, make one example row traceable from dataset to runner to rubric to report. That single path is what makes the example feel like a real repo instead of a demo script.

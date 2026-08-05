@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] — 2026-08-05
+
+### Added
+
+- Explicit single-axis and multi-axis judge-calibration suite examples in `examples/llm-agent-evals` so report output clearly proves both scoring patterns.
+- Threshold-key alias documentation in `docs/judge-axis-rubric-scales.md` that matches `check-gates` calibration key handling.
+
+### Changed
+
+- LLM agent example docs now call out side-by-side single-axis vs multi-axis calibration evidence in generated reports.
+
+---
+
 ## [0.4.0] — 2026-08-04
 
 ### Added

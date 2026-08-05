@@ -1,6 +1,6 @@
 {
   "name": "@icodenet/eval-dashboards",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
   "type": "module",
   "author": "icodenet <byronth@gmail.com>",

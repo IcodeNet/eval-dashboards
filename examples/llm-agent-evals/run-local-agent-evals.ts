@@ -9,6 +9,7 @@ type Scenario = {
   forbiddenPhrases: string[];
   expectedTool: 'knowledge-base' | 'none';
   category: string;
+  calibrationShape: 'single-axis' | 'multi-axis';
   groundTruthVerdict: boolean;
   groundTruthAxisScores: Record<string, number>;
 };
@@ -27,6 +28,7 @@ const scenarios: Scenario[] = [
     forbiddenPhrases: ['guaranteed improvement'],
     expectedTool: 'knowledge-base',
     category: 'groundedness',
+    calibrationShape: 'multi-axis',
     groundTruthVerdict: true,
     groundTruthAxisScores: { groundedness: 0.95, response_quality: 0.9 },
   },
@@ -37,8 +39,9 @@ const scenarios: Scenario[] = [
     forbiddenPhrases: ['upload your token'],
     expectedTool: 'knowledge-base',
     category: 'tool-use',
+    calibrationShape: 'single-axis',
     groundTruthVerdict: true,
-    groundTruthAxisScores: { tool_use: 0.96, response_quality: 0.88 },
+    groundTruthAxisScores: { tool_use: 0.96 },
   },
   {
     id: 'concise-answer',
@@ -47,6 +50,7 @@ const scenarios: Scenario[] = [
     forbiddenPhrases: ['firstly', 'secondly', 'thirdly'],
     expectedTool: 'none',
     category: 'response-quality',
+    calibrationShape: 'multi-axis',
     groundTruthVerdict: false,
     groundTruthAxisScores: { response_quality: 0.42, groundedness: 0.35 },
   },
@@ -114,7 +118,7 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
         description: 'Provider-free local chat evals for prompt, tool, and answer quality changes.',
       },
       {
-        name: 'judge-calibration',
+        name: 'judge-calibration-single-axis',
         target: 'judge',
         datasetSource: 'labelled-synthetic',
         datasetVersion: '1.0.0',
@@ -128,7 +132,24 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
             maxAxisScoreDelta: 0.15,
           },
         },
-        description: 'Labelled judge calibration rows for agreement and axis-score tolerance checks.',
+        description: 'Labelled judge calibration rows with one-axis labels to prove single-axis scoring.',
+      },
+      {
+        name: 'judge-calibration-multi-axis',
+        target: 'judge',
+        datasetSource: 'labelled-synthetic',
+        datasetVersion: '1.0.0',
+        rubricVersion: '1.0.0',
+        riskArea: 'custom',
+        graders: ['human-labelled-calibration'],
+        gate: {
+          mode: 'blocking',
+          thresholds: {
+            minJudgeAgreementRate: 0.9,
+            maxAxisScoreDelta: 0.15,
+          },
+        },
+        description: 'Labelled judge calibration rows with multiple axes to prove multi-axis scoring.',
       },
     ],
     rubricContracts: [
@@ -142,11 +163,17 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
         ],
       },
       {
-        suiteName: 'judge-calibration',
+        suiteName: 'judge-calibration-single-axis',
+        rubricVersion: '1.0.0',
+        rubrics: [
+          { axis: 'tool-use', version: '1.0.0', summary: 'Judge labels preserve single-axis tool-use expectations.' },
+        ],
+      },
+      {
+        suiteName: 'judge-calibration-multi-axis',
         rubricVersion: '1.0.0',
         rubrics: [
           { axis: 'groundedness', version: '1.0.0', summary: 'Judge labels match labelled examples.' },
-          { axis: 'tool-use', version: '1.0.0', summary: 'Judge labels preserve tool-use expectations.' },
           { axis: 'response-quality', version: '1.0.0', summary: 'Judge labels stay within axis tolerances.' },
         ],
       },
@@ -218,9 +245,12 @@ const buildCalibrationRows = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2'): 
 
     return {
       id: `${scenario.id}:calibration`,
-      suite: 'judge-calibration',
+      suite:
+        scenario.calibrationShape === 'single-axis'
+          ? 'judge-calibration-single-axis'
+          : 'judge-calibration-multi-axis',
       kind: 'llm-judge',
-      name: `${scenario.id} calibration`,
+      name: `${scenario.id} ${scenario.calibrationShape} calibration`,
       datasetId: 'judge-calibration-set',
       scenarioId: scenario.id,
       rubricId: scenario.category,
