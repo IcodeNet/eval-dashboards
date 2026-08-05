@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.3] — 2026-08-05
+
+### Fixed
+
+- Git/tag consumers now receive built runtime + type artifacts by shipping `dist/` in the release commit/tag.
+
+---
+
 ## [0.5.2] — 2026-08-05
 
 ### Fixed
