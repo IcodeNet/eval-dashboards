@@ -68,6 +68,11 @@ test/           vitest tests
 - **CLI:** keep exit codes meaningful (`0` pass, `1` gates failed, `2` invalid config/artifact, `3` no reports) unless docs say otherwise.
 - **Examples must stay runnable.** If you change the artifact shape, update examples and tests together.
 
+## Completion ledger (mandatory)
+
+Before marking work complete, follow `CHECKS_LEDGER.md` in this repository.
+Always include raw GitHub Actions log verification for workflows touched by your change; do not rely only on green status badges.
+
 ## How to take work
 
 1. Pick an item from `docs/STATUS.md` Remaining or a Phase from `docs/PROPOSITION-AND-TAXONOMY.md`.
