@@ -1,17 +1,69 @@
 import type { RunComparison } from '../history/history.js';
 import { type EvalReportV1, summarizeReport } from '../model/eval-report-v1.js';
 import type { BaselineCompatibilityResult } from '../model/eval-report-v1.js';
+import { lintReportTaxonomy } from './lint-taxonomy.js';
+
+export type NewFailureKeyMode =
+  | 'row'
+  | 'scenario'
+  | 'scenario-category'
+  | 'id-category';
 
 export type GateConfig = {
   minPassRate?: number;
   maxNewFailures?: number;
   zeroCritical?: boolean;
   failOnBaselineBlocked?: boolean;
+  maxWarnings?: number;
+  maxWarningsByCode?: Record<string, number>;
+  failOnWarningCodes?: string[];
+  newFailureKey?: NewFailureKeyMode;
+  requiredPassingSuites?: string[];
 };
 
 export type GateResult = {
   passed: boolean;
   failures: string[];
+  diagnostics: string[];
+};
+
+const canonicalFailureKey = (
+  suite: string,
+  id: string,
+  scenarioId: string | undefined,
+  category: string | undefined,
+  mode: NewFailureKeyMode,
+): string => {
+  if (mode === 'scenario' && scenarioId) return `${suite}:${scenarioId}`;
+  if (mode === 'scenario-category' && scenarioId) {
+    return `${suite}:${scenarioId}:${category ?? 'uncategorized'}`;
+  }
+  if (mode === 'id-category') {
+    return `${suite}:${id}:${category ?? 'uncategorized'}`;
+  }
+  return `${suite}:${id}`;
+};
+
+const warningCountByCode = (codes: string[]): Map<string, number> => {
+  const counts = new Map<string, number>();
+  for (const code of codes) {
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+  return counts;
+};
+
+const topFailureReasons = (report: EvalReportV1): string[] => {
+  const buckets = new Map<string, number>();
+  for (const row of report.rows) {
+    if (row.passed) continue;
+    const key = row.category ?? row.reason ?? 'uncategorized';
+    buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+
+  return [...buckets.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 5)
+    .map(([reason, count]) => `${reason}=${count}`);
 };
 
 export const checkGates = (
@@ -22,6 +74,7 @@ export const checkGates = (
 ): GateResult => {
   const summary = summarizeReport(report);
   const failures: string[] = [];
+  const diagnostics: string[] = [];
 
   if (config.minPassRate !== undefined && summary.passRate < config.minPassRate) {
     failures.push(
@@ -29,12 +82,23 @@ export const checkGates = (
     );
   }
 
-  if (
-    config.maxNewFailures !== undefined &&
-    comparison.newlyFailing.length > config.maxNewFailures
-  ) {
+  const newFailureKeyMode = config.newFailureKey ?? 'row';
+  const canonicalNewFailureKeys = new Set(
+    comparison.newlyFailing.map((row) =>
+      canonicalFailureKey(row.suite, row.id, row.scenarioId, row.category, newFailureKeyMode),
+    ),
+  );
+  const canonicalNewFailureCount = canonicalNewFailureKeys.size;
+
+  if (config.maxNewFailures !== undefined && canonicalNewFailureCount > config.maxNewFailures) {
     failures.push(
-      `New failures ${comparison.newlyFailing.length} exceed allowed ${config.maxNewFailures}.`,
+      `New failures ${canonicalNewFailureCount} exceed allowed ${config.maxNewFailures} (key=${newFailureKeyMode}, raw=${comparison.newlyFailing.length}).`,
+    );
+  }
+
+  if (comparison.newlyFailing.length > 0 && newFailureKeyMode !== 'row') {
+    diagnostics.push(
+      `Canonical new-failure count (${newFailureKeyMode}) ${canonicalNewFailureCount} from ${comparison.newlyFailing.length} raw rows.`,
     );
   }
 
@@ -45,6 +109,45 @@ export const checkGates = (
   const shouldFailOnBlockedBaseline = config.failOnBaselineBlocked !== false;
   if (shouldFailOnBlockedBaseline && baselineCompatibility?.status === 'blocked') {
     failures.push('Baseline compatibility is blocked due to dataset/rubric version drift.');
+  }
+
+  const requiredPassingSuites = config.requiredPassingSuites ?? [];
+  for (const suiteName of requiredPassingSuites) {
+    const suiteSummary = report.suites.find((suite) => suite.id === suiteName || suite.name === suiteName);
+    if (!suiteSummary) {
+      failures.push(`Required passing suite "${suiteName}" is missing from this run.`);
+      continue;
+    }
+
+    if (suiteSummary.failed > 0) {
+      failures.push(
+        `Required passing suite "${suiteName}" has failures (${suiteSummary.failed}/${suiteSummary.total}).`,
+      );
+    }
+  }
+
+  const lintWarnings = lintReportTaxonomy(report).issues.filter((issue) => issue.level === 'warning');
+  const lintWarningCodes = lintWarnings.map((issue) => issue.code);
+  const lintWarningCounts = warningCountByCode(lintWarningCodes);
+
+  if (config.maxWarnings !== undefined && lintWarnings.length > config.maxWarnings) {
+    failures.push(
+      `Lint warnings ${lintWarnings.length} exceed allowed ${config.maxWarnings}.`,
+    );
+  }
+
+  for (const [code, maxAllowed] of Object.entries(config.maxWarningsByCode ?? {})) {
+    const actual = lintWarningCounts.get(code) ?? 0;
+    if (actual > maxAllowed) {
+      failures.push(`Lint warning code ${code} count ${actual} exceeds allowed ${maxAllowed}.`);
+    }
+  }
+
+  for (const code of config.failOnWarningCodes ?? []) {
+    const actual = lintWarningCounts.get(code) ?? 0;
+    if (actual > 0) {
+      failures.push(`Lint warning code ${code} is configured as fail-on-warning and appeared ${actual} time(s).`);
+    }
   }
 
   // Enforce per-suite thresholds declared in blocking suite manifests
@@ -167,8 +270,23 @@ export const checkGates = (
     }
   }
 
+  const reasonBreakdown = topFailureReasons(report);
+  if (reasonBreakdown.length > 0) {
+    diagnostics.push(`Top failing categories: ${reasonBreakdown.join(', ')}`);
+  }
+
+  if (lintWarnings.length > 0) {
+    const warningBreakdown = [...lintWarningCounts.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 8)
+      .map(([code, count]) => `${code}=${count}`)
+      .join(', ');
+    diagnostics.push(`Lint warning breakdown: ${warningBreakdown}`);
+  }
+
   return {
     passed: failures.length === 0,
     failures,
+    diagnostics,
   };
 };

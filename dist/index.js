@@ -34,6 +34,7 @@ var summarizeReport = (report) => {
 var isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 var isString = (value) => typeof value === "string";
 var isNumber = (value) => typeof value === "number" && Number.isFinite(value);
+var isRunConfigSnapshotValue = (value) => value === null || isString(value) || isNumber(value) || typeof value === "boolean";
 var isSeverity = (value) => isString(value) && severityOrder.includes(value);
 var rowKinds = ["deterministic", "agent", "llm-judge", "human-review"];
 var isRowKind = (value) => isString(value) && rowKinds.includes(value);
@@ -92,6 +93,30 @@ var validateEvalReport = (value) => {
     }
     if (!isString(value.run.generatedAt) || Number.isNaN(Date.parse(value.run.generatedAt))) {
       errors.push("run.generatedAt must be an ISO date string.");
+    }
+    if (value.run.configSnapshot !== void 0) {
+      if (!isObject(value.run.configSnapshot)) {
+        errors.push("run.configSnapshot must be an object when provided.");
+      } else {
+        const snapshot = value.run.configSnapshot;
+        if (snapshot.redacted !== void 0 && typeof snapshot.redacted !== "boolean") {
+          errors.push("run.configSnapshot.redacted must be a boolean when provided.");
+        }
+        if (snapshot.source !== void 0 && !isString(snapshot.source)) {
+          errors.push("run.configSnapshot.source must be a string when provided.");
+        }
+        if (!isObject(snapshot.values)) {
+          errors.push("run.configSnapshot.values must be an object.");
+        } else {
+          for (const [key, val] of Object.entries(snapshot.values)) {
+            if (!isRunConfigSnapshotValue(val)) {
+              errors.push(
+                `run.configSnapshot.values.${key} must be a string, number, boolean, or null.`
+              );
+            }
+          }
+        }
+      }
     }
   }
   if (!Array.isArray(value.suites)) {
@@ -519,102 +544,6 @@ var compareRuns = (current, previous) => {
   };
 };
 
-// src/gates/check-gates.ts
-var checkGates = (report, comparison, config, baselineCompatibility) => {
-  const summary = summarizeReport(report);
-  const failures = [];
-  if (config.minPassRate !== void 0 && summary.passRate < config.minPassRate) {
-    failures.push(
-      `Pass rate ${summary.passRate.toFixed(3)} is below required ${config.minPassRate.toFixed(3)}.`
-    );
-  }
-  if (config.maxNewFailures !== void 0 && comparison.newlyFailing.length > config.maxNewFailures) {
-    failures.push(
-      `New failures ${comparison.newlyFailing.length} exceed allowed ${config.maxNewFailures}.`
-    );
-  }
-  if (config.zeroCritical === true && summary.severityCounts.critical > 0) {
-    failures.push(`Critical failures ${summary.severityCounts.critical} exceed allowed 0.`);
-  }
-  const shouldFailOnBlockedBaseline = config.failOnBaselineBlocked !== false;
-  if (shouldFailOnBlockedBaseline && baselineCompatibility?.status === "blocked") {
-    failures.push("Baseline compatibility is blocked due to dataset/rubric version drift.");
-  }
-  for (const manifest of report.suiteManifests ?? []) {
-    if (manifest.gate.mode !== "blocking") continue;
-    const suiteSummary = report.suites.find((s) => s.id === manifest.name || s.name === manifest.name);
-    if (!suiteSummary) continue;
-    const actual = suiteSummary.total > 0 ? suiteSummary.passed / suiteSummary.total : 0;
-    const suiteRows = report.rows.filter((row) => row.suite === manifest.name);
-    const calibrationRows = suiteRows.filter(
-      (row) => row.judgeVerdict !== void 0 && row.groundTruthVerdict !== void 0
-    );
-    const calibrationDisagreements = calibrationRows.filter(
-      (row) => row.judgeVerdict !== row.groundTruthVerdict
-    ).length;
-    const calibrationAgreementRate = calibrationRows.length > 0 ? (calibrationRows.length - calibrationDisagreements) / calibrationRows.length : 1;
-    const calibrationDisagreementRate = calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : 0;
-    const calibrationAxisRows = suiteRows.filter(
-      (row) => row.axisScores !== void 0 && row.groundTruthAxisScores !== void 0
-    );
-    const calibrationAxisDeltas = calibrationAxisRows.flatMap(
-      (row) => Object.entries(row.axisScores ?? {}).flatMap(([axis, score]) => {
-        const groundTruthScore = row.groundTruthAxisScores?.[axis];
-        if (groundTruthScore === void 0) return [];
-        return [Math.abs(score - groundTruthScore)];
-      })
-    );
-    const calibrationAxisDelta = calibrationAxisDeltas.length > 0 ? Math.max(...calibrationAxisDeltas) : 0;
-    const criticalFailures = suiteRows.filter(
-      (row) => !row.passed && row.severity === "critical"
-    ).length;
-    const criticalFailureRate = suiteSummary.total > 0 ? criticalFailures / suiteSummary.total : 0;
-    for (const [metric, threshold] of Object.entries(manifest.gate.thresholds)) {
-      const isPassRateKey = metric === "passRate" || metric.toLowerCase().includes("passrate") || metric.toLowerCase().includes("pass_rate");
-      if (isPassRateKey && actual < threshold) {
-        failures.push(
-          `Suite "${manifest.name}" pass rate ${actual.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`
-        );
-      }
-      const normalizedMetric = metric.toLowerCase();
-      const isMaxCriticalFailuresKey = normalizedMetric === "maxcriticalfailures" || normalizedMetric === "max_critical_failures" || normalizedMetric === "max-critical-failures";
-      if (isMaxCriticalFailuresKey && criticalFailures > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" critical failures ${criticalFailures} exceed blocking threshold ${metric}=${threshold.toFixed(3)}.`
-        );
-      }
-      const isCriticalFailureRateKey = normalizedMetric === "criticalfailurerate" || normalizedMetric === "critical_failure_rate" || normalizedMetric === "critical-failure-rate";
-      if (isCriticalFailureRateKey && criticalFailureRate > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" critical failure rate ${criticalFailureRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`
-        );
-      }
-      const isJudgeAgreementRateKey = normalizedMetric === "minjudgeagreementrate" || normalizedMetric === "min_judge_agreement_rate" || normalizedMetric === "min-judge-agreement-rate" || normalizedMetric === "judgeagreementrate" || normalizedMetric === "judge_agreement_rate" || normalizedMetric === "judge-agreement-rate";
-      if (isJudgeAgreementRateKey && calibrationAgreementRate < threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`
-        );
-      }
-      const isJudgeDisagreementRateKey = normalizedMetric === "maxjudgedisagreementrate" || normalizedMetric === "max_judge_disagreement_rate" || normalizedMetric === "max-judge-disagreement-rate" || normalizedMetric === "judgedisagreementrate" || normalizedMetric === "judge_disagreement_rate" || normalizedMetric === "judge-disagreement-rate";
-      if (isJudgeDisagreementRateKey && calibrationDisagreementRate > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`
-        );
-      }
-      const isAxisScoreDeltaKey = normalizedMetric === "maxaxisscoredelta" || normalizedMetric === "max_axis_score_delta" || normalizedMetric === "max-axis-score-delta" || normalizedMetric === "axisdeltatolerance" || normalizedMetric === "axis_delta_tolerance" || normalizedMetric === "axis-delta-tolerance";
-      if (isAxisScoreDeltaKey && calibrationAxisDelta > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`
-        );
-      }
-    }
-  }
-  return {
-    passed: failures.length === 0,
-    failures
-  };
-};
-
 // src/gates/lint-taxonomy.ts
 function lintReportTaxonomy(report) {
   const issues = [];
@@ -757,6 +686,183 @@ function lintReportsTaxonomy(reports) {
     issues
   };
 }
+
+// src/gates/check-gates.ts
+var canonicalFailureKey = (suite, id, scenarioId, category, mode) => {
+  if (mode === "scenario" && scenarioId) return `${suite}:${scenarioId}`;
+  if (mode === "scenario-category" && scenarioId) {
+    return `${suite}:${scenarioId}:${category ?? "uncategorized"}`;
+  }
+  if (mode === "id-category") {
+    return `${suite}:${id}:${category ?? "uncategorized"}`;
+  }
+  return `${suite}:${id}`;
+};
+var warningCountByCode = (codes) => {
+  const counts = /* @__PURE__ */ new Map();
+  for (const code of codes) {
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+  return counts;
+};
+var topFailureReasons = (report) => {
+  const buckets = /* @__PURE__ */ new Map();
+  for (const row of report.rows) {
+    if (row.passed) continue;
+    const key = row.category ?? row.reason ?? "uncategorized";
+    buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+  return [...buckets.entries()].sort((left, right) => right[1] - left[1]).slice(0, 5).map(([reason, count]) => `${reason}=${count}`);
+};
+var checkGates = (report, comparison, config, baselineCompatibility) => {
+  const summary = summarizeReport(report);
+  const failures = [];
+  const diagnostics = [];
+  if (config.minPassRate !== void 0 && summary.passRate < config.minPassRate) {
+    failures.push(
+      `Pass rate ${summary.passRate.toFixed(3)} is below required ${config.minPassRate.toFixed(3)}.`
+    );
+  }
+  const newFailureKeyMode = config.newFailureKey ?? "row";
+  const canonicalNewFailureKeys = new Set(
+    comparison.newlyFailing.map(
+      (row) => canonicalFailureKey(row.suite, row.id, row.scenarioId, row.category, newFailureKeyMode)
+    )
+  );
+  const canonicalNewFailureCount = canonicalNewFailureKeys.size;
+  if (config.maxNewFailures !== void 0 && canonicalNewFailureCount > config.maxNewFailures) {
+    failures.push(
+      `New failures ${canonicalNewFailureCount} exceed allowed ${config.maxNewFailures} (key=${newFailureKeyMode}, raw=${comparison.newlyFailing.length}).`
+    );
+  }
+  if (comparison.newlyFailing.length > 0 && newFailureKeyMode !== "row") {
+    diagnostics.push(
+      `Canonical new-failure count (${newFailureKeyMode}) ${canonicalNewFailureCount} from ${comparison.newlyFailing.length} raw rows.`
+    );
+  }
+  if (config.zeroCritical === true && summary.severityCounts.critical > 0) {
+    failures.push(`Critical failures ${summary.severityCounts.critical} exceed allowed 0.`);
+  }
+  const shouldFailOnBlockedBaseline = config.failOnBaselineBlocked !== false;
+  if (shouldFailOnBlockedBaseline && baselineCompatibility?.status === "blocked") {
+    failures.push("Baseline compatibility is blocked due to dataset/rubric version drift.");
+  }
+  const requiredPassingSuites = config.requiredPassingSuites ?? [];
+  for (const suiteName of requiredPassingSuites) {
+    const suiteSummary = report.suites.find((suite) => suite.id === suiteName || suite.name === suiteName);
+    if (!suiteSummary) {
+      failures.push(`Required passing suite "${suiteName}" is missing from this run.`);
+      continue;
+    }
+    if (suiteSummary.failed > 0) {
+      failures.push(
+        `Required passing suite "${suiteName}" has failures (${suiteSummary.failed}/${suiteSummary.total}).`
+      );
+    }
+  }
+  const lintWarnings = lintReportTaxonomy(report).issues.filter((issue) => issue.level === "warning");
+  const lintWarningCodes = lintWarnings.map((issue) => issue.code);
+  const lintWarningCounts = warningCountByCode(lintWarningCodes);
+  if (config.maxWarnings !== void 0 && lintWarnings.length > config.maxWarnings) {
+    failures.push(
+      `Lint warnings ${lintWarnings.length} exceed allowed ${config.maxWarnings}.`
+    );
+  }
+  for (const [code, maxAllowed] of Object.entries(config.maxWarningsByCode ?? {})) {
+    const actual = lintWarningCounts.get(code) ?? 0;
+    if (actual > maxAllowed) {
+      failures.push(`Lint warning code ${code} count ${actual} exceeds allowed ${maxAllowed}.`);
+    }
+  }
+  for (const code of config.failOnWarningCodes ?? []) {
+    const actual = lintWarningCounts.get(code) ?? 0;
+    if (actual > 0) {
+      failures.push(`Lint warning code ${code} is configured as fail-on-warning and appeared ${actual} time(s).`);
+    }
+  }
+  for (const manifest of report.suiteManifests ?? []) {
+    if (manifest.gate.mode !== "blocking") continue;
+    const suiteSummary = report.suites.find((s) => s.id === manifest.name || s.name === manifest.name);
+    if (!suiteSummary) continue;
+    const actual = suiteSummary.total > 0 ? suiteSummary.passed / suiteSummary.total : 0;
+    const suiteRows = report.rows.filter((row) => row.suite === manifest.name);
+    const calibrationRows = suiteRows.filter(
+      (row) => row.judgeVerdict !== void 0 && row.groundTruthVerdict !== void 0
+    );
+    const calibrationDisagreements = calibrationRows.filter(
+      (row) => row.judgeVerdict !== row.groundTruthVerdict
+    ).length;
+    const calibrationAgreementRate = calibrationRows.length > 0 ? (calibrationRows.length - calibrationDisagreements) / calibrationRows.length : 1;
+    const calibrationDisagreementRate = calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : 0;
+    const calibrationAxisRows = suiteRows.filter(
+      (row) => row.axisScores !== void 0 && row.groundTruthAxisScores !== void 0
+    );
+    const calibrationAxisDeltas = calibrationAxisRows.flatMap(
+      (row) => Object.entries(row.axisScores ?? {}).flatMap(([axis, score]) => {
+        const groundTruthScore = row.groundTruthAxisScores?.[axis];
+        if (groundTruthScore === void 0) return [];
+        return [Math.abs(score - groundTruthScore)];
+      })
+    );
+    const calibrationAxisDelta = calibrationAxisDeltas.length > 0 ? Math.max(...calibrationAxisDeltas) : 0;
+    const criticalFailures = suiteRows.filter(
+      (row) => !row.passed && row.severity === "critical"
+    ).length;
+    const criticalFailureRate = suiteSummary.total > 0 ? criticalFailures / suiteSummary.total : 0;
+    for (const [metric, threshold] of Object.entries(manifest.gate.thresholds)) {
+      const isPassRateKey = metric === "passRate" || metric.toLowerCase().includes("passrate") || metric.toLowerCase().includes("pass_rate");
+      if (isPassRateKey && actual < threshold) {
+        failures.push(
+          `Suite "${manifest.name}" pass rate ${actual.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`
+        );
+      }
+      const normalizedMetric = metric.toLowerCase();
+      const isMaxCriticalFailuresKey = normalizedMetric === "maxcriticalfailures" || normalizedMetric === "max_critical_failures" || normalizedMetric === "max-critical-failures";
+      if (isMaxCriticalFailuresKey && criticalFailures > threshold) {
+        failures.push(
+          `Suite "${manifest.name}" critical failures ${criticalFailures} exceed blocking threshold ${metric}=${threshold.toFixed(3)}.`
+        );
+      }
+      const isCriticalFailureRateKey = normalizedMetric === "criticalfailurerate" || normalizedMetric === "critical_failure_rate" || normalizedMetric === "critical-failure-rate";
+      if (isCriticalFailureRateKey && criticalFailureRate > threshold) {
+        failures.push(
+          `Suite "${manifest.name}" critical failure rate ${criticalFailureRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`
+        );
+      }
+      const isJudgeAgreementRateKey = normalizedMetric === "minjudgeagreementrate" || normalizedMetric === "min_judge_agreement_rate" || normalizedMetric === "min-judge-agreement-rate" || normalizedMetric === "judgeagreementrate" || normalizedMetric === "judge_agreement_rate" || normalizedMetric === "judge-agreement-rate";
+      if (isJudgeAgreementRateKey && calibrationAgreementRate < threshold) {
+        failures.push(
+          `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`
+        );
+      }
+      const isJudgeDisagreementRateKey = normalizedMetric === "maxjudgedisagreementrate" || normalizedMetric === "max_judge_disagreement_rate" || normalizedMetric === "max-judge-disagreement-rate" || normalizedMetric === "judgedisagreementrate" || normalizedMetric === "judge_disagreement_rate" || normalizedMetric === "judge-disagreement-rate";
+      if (isJudgeDisagreementRateKey && calibrationDisagreementRate > threshold) {
+        failures.push(
+          `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`
+        );
+      }
+      const isAxisScoreDeltaKey = normalizedMetric === "maxaxisscoredelta" || normalizedMetric === "max_axis_score_delta" || normalizedMetric === "max-axis-score-delta" || normalizedMetric === "axisdeltatolerance" || normalizedMetric === "axis_delta_tolerance" || normalizedMetric === "axis-delta-tolerance";
+      if (isAxisScoreDeltaKey && calibrationAxisDelta > threshold) {
+        failures.push(
+          `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`
+        );
+      }
+    }
+  }
+  const reasonBreakdown = topFailureReasons(report);
+  if (reasonBreakdown.length > 0) {
+    diagnostics.push(`Top failing categories: ${reasonBreakdown.join(", ")}`);
+  }
+  if (lintWarnings.length > 0) {
+    const warningBreakdown = [...lintWarningCounts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 8).map(([code, count]) => `${code}=${count}`).join(", ");
+    diagnostics.push(`Lint warning breakdown: ${warningBreakdown}`);
+  }
+  return {
+    passed: failures.length === 0,
+    failures,
+    diagnostics
+  };
+};
 
 // src/publish/publish.ts
 import { cp, mkdir, readdir, readFile } from "fs/promises";

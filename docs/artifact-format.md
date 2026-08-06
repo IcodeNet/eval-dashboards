@@ -10,6 +10,25 @@ Think of it as the shared handoff file between eval execution and reporting:
 2. `eval-dashboards` reads that artifact from `.evals_output/` or another configured input directory.
 3. The package produces checks, history, summaries, and static dashboards from the normalized fields below.
 
+## Why These Fields Exist
+
+- Logs are ephemeral and hard to query; artifact rows are durable and gateable.
+- Config drift is a common root cause for live-eval instability; snapshots improve reproducibility.
+- Judge/rubric drift can appear as regressions without product changes; governance metadata prevents false narratives.
+
+## What To Emit
+
+- A dedicated `preflight` suite with deterministic probe rows.
+- A sanitized `run.configSnapshot` block that never contains secrets.
+- Judge/rubric identity fields (`judgeModel`, `rubricId`, `promptVersion`, `rubricContracts`).
+
+## How To Emit It Safely
+
+- Put probe outcomes in `rows[]` rather than only CI logs.
+- Set `run.configSnapshot.redacted=true` when emitting environment-derived values.
+- Restrict `run.configSnapshot.values` to non-sensitive scalar values (`string`, `number`, `boolean`, `null`).
+- Keep rubric guidance consistent across runs and version changes explicitly.
+
 ```ts
 export type EvalReportV1 = {
   schemaVersion: 'eval-report/v1';
@@ -23,6 +42,11 @@ export type EvalReportV1 = {
     commit?: string;
     buildId?: string;
     sourceUrl?: string;
+    configSnapshot?: {
+      redacted?: boolean;
+      source?: string;
+      values: Record<string, string | number | boolean | null>;
+    };
   };
   suites: EvalSuiteSummary[];
   rows: EvalRow[];
@@ -85,6 +109,8 @@ Agent and LLM judge reports should use the first-class optional judge fields ins
 - `agentVersion`: version of the evaluated agent or workflow.
 - `groundTruthVerdict`, `groundTruthCategory`, and `groundTruthAnnotation`: labelled calibration evidence for judge evals.
 
+When using judge-based groundedness/relevance suites, ensure rubric guidance does not penalize extra details that remain consistent with reference/context.
+
 ## Suite Governance
 
 Suites can carry opinionated but portable governance metadata:
@@ -125,6 +151,8 @@ export type SuiteManifest = {
 `rubricVersion` remains optional for compatibility, but is required for governance-critical suites: when `gate.mode` is `blocking`, or when `graders` includes `llm-judge`.
 
 Use `target: 'agent'` for live agent behavior, tool use, channel, prompt, and version checks. Use `target: 'judge'` for judge calibration suites where the evaluated subject is the judge itself.
+
+For fail-fast live pipelines, define a dedicated `preflight` suite (`target: 'custom'`) with deterministic probe rows and gate it via required suite pass checks.
 
 Rubric contracts describe the axes used by judge and human-review rows:
 

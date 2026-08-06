@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] — 2026-08-06
+
+### Added
+
+- New gate controls for warning budgets and enforcement:
+	- `maxWarnings`
+	- `maxWarningsByCode`
+	- `failOnWarningCodes`
+- Canonical new-failure keying with `newFailureKey` (`row`, `scenario`, `scenario-category`, `id-category`) to reduce multi-row inflation.
+- Required suite-pass enforcement via `requiredPassingSuites` for fail-fast preflight workflows.
+- Gate diagnostics output for failure reason breakdown and warning-code breakdown.
+- Optional artifact contract support for `run.configSnapshot` with redaction-aware scalar values.
+- Validation coverage for `run.configSnapshot` fields and value types.
+
+### Changed
+
+- `check` CLI now accepts warning and canonical-key gate options and surfaces diagnostics on pass/fail output.
+- Completion ledger now requires explicit example/release report artifact regeneration checks when report output changes.
+- Core docs now emphasize operational Why/What/How guidance for preflight gating, canonical failure counting, warning budgets, and secure config snapshots.
+
+---
+
 ## [0.5.4] — 2026-08-05
 
 ### Added

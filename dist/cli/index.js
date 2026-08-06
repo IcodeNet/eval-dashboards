@@ -196,6 +196,7 @@ import path from "path";
 var isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 var isString = (value) => typeof value === "string";
 var isNumber = (value) => typeof value === "number" && Number.isFinite(value);
+var isRunConfigSnapshotValue = (value) => value === null || isString(value) || isNumber(value) || typeof value === "boolean";
 var isSeverity = (value) => isString(value) && severityOrder.includes(value);
 var rowKinds = ["deterministic", "agent", "llm-judge", "human-review"];
 var isRowKind = (value) => isString(value) && rowKinds.includes(value);
@@ -254,6 +255,30 @@ var validateEvalReport = (value) => {
     }
     if (!isString(value.run.generatedAt) || Number.isNaN(Date.parse(value.run.generatedAt))) {
       errors.push("run.generatedAt must be an ISO date string.");
+    }
+    if (value.run.configSnapshot !== void 0) {
+      if (!isObject(value.run.configSnapshot)) {
+        errors.push("run.configSnapshot must be an object when provided.");
+      } else {
+        const snapshot = value.run.configSnapshot;
+        if (snapshot.redacted !== void 0 && typeof snapshot.redacted !== "boolean") {
+          errors.push("run.configSnapshot.redacted must be a boolean when provided.");
+        }
+        if (snapshot.source !== void 0 && !isString(snapshot.source)) {
+          errors.push("run.configSnapshot.source must be a string when provided.");
+        }
+        if (!isObject(snapshot.values)) {
+          errors.push("run.configSnapshot.values must be an object.");
+        } else {
+          for (const [key, val] of Object.entries(snapshot.values)) {
+            if (!isRunConfigSnapshotValue(val)) {
+              errors.push(
+                `run.configSnapshot.values.${key} must be a string, number, boolean, or null.`
+              );
+            }
+          }
+        }
+      }
     }
   }
   if (!Array.isArray(value.suites)) {
@@ -766,17 +791,56 @@ function lintReportsTaxonomy(reports) {
 }
 
 // src/gates/check-gates.ts
+var canonicalFailureKey = (suite, id, scenarioId, category, mode) => {
+  if (mode === "scenario" && scenarioId) return `${suite}:${scenarioId}`;
+  if (mode === "scenario-category" && scenarioId) {
+    return `${suite}:${scenarioId}:${category ?? "uncategorized"}`;
+  }
+  if (mode === "id-category") {
+    return `${suite}:${id}:${category ?? "uncategorized"}`;
+  }
+  return `${suite}:${id}`;
+};
+var warningCountByCode = (codes) => {
+  const counts = /* @__PURE__ */ new Map();
+  for (const code of codes) {
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+  return counts;
+};
+var topFailureReasons = (report) => {
+  const buckets = /* @__PURE__ */ new Map();
+  for (const row of report.rows) {
+    if (row.passed) continue;
+    const key = row.category ?? row.reason ?? "uncategorized";
+    buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+  return [...buckets.entries()].sort((left, right) => right[1] - left[1]).slice(0, 5).map(([reason, count]) => `${reason}=${count}`);
+};
 var checkGates = (report, comparison, config, baselineCompatibility) => {
   const summary = summarizeReport(report);
   const failures = [];
+  const diagnostics = [];
   if (config.minPassRate !== void 0 && summary.passRate < config.minPassRate) {
     failures.push(
       `Pass rate ${summary.passRate.toFixed(3)} is below required ${config.minPassRate.toFixed(3)}.`
     );
   }
-  if (config.maxNewFailures !== void 0 && comparison.newlyFailing.length > config.maxNewFailures) {
+  const newFailureKeyMode = config.newFailureKey ?? "row";
+  const canonicalNewFailureKeys = new Set(
+    comparison.newlyFailing.map(
+      (row) => canonicalFailureKey(row.suite, row.id, row.scenarioId, row.category, newFailureKeyMode)
+    )
+  );
+  const canonicalNewFailureCount = canonicalNewFailureKeys.size;
+  if (config.maxNewFailures !== void 0 && canonicalNewFailureCount > config.maxNewFailures) {
     failures.push(
-      `New failures ${comparison.newlyFailing.length} exceed allowed ${config.maxNewFailures}.`
+      `New failures ${canonicalNewFailureCount} exceed allowed ${config.maxNewFailures} (key=${newFailureKeyMode}, raw=${comparison.newlyFailing.length}).`
+    );
+  }
+  if (comparison.newlyFailing.length > 0 && newFailureKeyMode !== "row") {
+    diagnostics.push(
+      `Canonical new-failure count (${newFailureKeyMode}) ${canonicalNewFailureCount} from ${comparison.newlyFailing.length} raw rows.`
     );
   }
   if (config.zeroCritical === true && summary.severityCounts.critical > 0) {
@@ -785,6 +849,39 @@ var checkGates = (report, comparison, config, baselineCompatibility) => {
   const shouldFailOnBlockedBaseline = config.failOnBaselineBlocked !== false;
   if (shouldFailOnBlockedBaseline && baselineCompatibility?.status === "blocked") {
     failures.push("Baseline compatibility is blocked due to dataset/rubric version drift.");
+  }
+  const requiredPassingSuites = config.requiredPassingSuites ?? [];
+  for (const suiteName of requiredPassingSuites) {
+    const suiteSummary = report.suites.find((suite) => suite.id === suiteName || suite.name === suiteName);
+    if (!suiteSummary) {
+      failures.push(`Required passing suite "${suiteName}" is missing from this run.`);
+      continue;
+    }
+    if (suiteSummary.failed > 0) {
+      failures.push(
+        `Required passing suite "${suiteName}" has failures (${suiteSummary.failed}/${suiteSummary.total}).`
+      );
+    }
+  }
+  const lintWarnings = lintReportTaxonomy(report).issues.filter((issue) => issue.level === "warning");
+  const lintWarningCodes = lintWarnings.map((issue) => issue.code);
+  const lintWarningCounts = warningCountByCode(lintWarningCodes);
+  if (config.maxWarnings !== void 0 && lintWarnings.length > config.maxWarnings) {
+    failures.push(
+      `Lint warnings ${lintWarnings.length} exceed allowed ${config.maxWarnings}.`
+    );
+  }
+  for (const [code, maxAllowed] of Object.entries(config.maxWarningsByCode ?? {})) {
+    const actual = lintWarningCounts.get(code) ?? 0;
+    if (actual > maxAllowed) {
+      failures.push(`Lint warning code ${code} count ${actual} exceeds allowed ${maxAllowed}.`);
+    }
+  }
+  for (const code of config.failOnWarningCodes ?? []) {
+    const actual = lintWarningCounts.get(code) ?? 0;
+    if (actual > 0) {
+      failures.push(`Lint warning code ${code} is configured as fail-on-warning and appeared ${actual} time(s).`);
+    }
   }
   for (const manifest of report.suiteManifests ?? []) {
     if (manifest.gate.mode !== "blocking") continue;
@@ -855,9 +952,18 @@ var checkGates = (report, comparison, config, baselineCompatibility) => {
       }
     }
   }
+  const reasonBreakdown = topFailureReasons(report);
+  if (reasonBreakdown.length > 0) {
+    diagnostics.push(`Top failing categories: ${reasonBreakdown.join(", ")}`);
+  }
+  if (lintWarnings.length > 0) {
+    const warningBreakdown = [...lintWarningCounts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 8).map(([code, count]) => `${code}=${count}`).join(", ");
+    diagnostics.push(`Lint warning breakdown: ${warningBreakdown}`);
+  }
   return {
     passed: failures.length === 0,
-    failures
+    failures,
+    diagnostics
   };
 };
 
@@ -2906,6 +3012,34 @@ var loadContext = async (input, reportDir, options) => {
     reportDir
   };
 };
+var gateConfigFromOptions = (options) => {
+  const newFailureKey = optionString(options, "new-failure-key", "");
+  const warningBudgets = optionStrings(options, "max-warning-code", []);
+  const maxWarningsByCode = {};
+  for (const budget of warningBudgets) {
+    const [code, rawCount] = budget.split(":", 2);
+    const count = Number(rawCount);
+    if (!code || !Number.isFinite(count)) continue;
+    maxWarningsByCode[code] = count;
+  }
+  const allowedNewFailureKeys = [
+    "row",
+    "scenario",
+    "scenario-category",
+    "id-category"
+  ];
+  const parsedNewFailureKey = allowedNewFailureKeys.includes(newFailureKey) ? newFailureKey : void 0;
+  return {
+    minPassRate: optionNumber(options, "min-pass-rate"),
+    maxNewFailures: optionNumber(options, "max-new-failures"),
+    zeroCritical: optionBoolean(options, "zero-critical"),
+    maxWarnings: optionNumber(options, "max-warnings"),
+    maxWarningsByCode: Object.keys(maxWarningsByCode).length > 0 ? maxWarningsByCode : void 0,
+    failOnWarningCodes: optionStrings(options, "fail-on-warning-code", []),
+    newFailureKey: parsedNewFailureKey,
+    requiredPassingSuites: optionStrings(options, "require-suite-pass", [])
+  };
+};
 var baselineStrategyFromOptions = (options) => {
   const strategy = optionString(options, "baseline-strategy", "");
   if (!strategy) return void 0;
@@ -2924,7 +3058,12 @@ var main = async () => {
     gates: {
       minPassRate: optionNumber(options, "min-pass-rate") ?? fileConfig.gates?.minPassRate,
       maxNewFailures: optionNumber(options, "max-new-failures") ?? fileConfig.gates?.maxNewFailures,
-      zeroCritical: optionBoolean(options, "zero-critical") ?? fileConfig.gates?.zeroCritical
+      zeroCritical: optionBoolean(options, "zero-critical") ?? fileConfig.gates?.zeroCritical,
+      maxWarnings: optionNumber(options, "max-warnings") ?? fileConfig.gates?.maxWarnings,
+      maxWarningsByCode: fileConfig.gates?.maxWarningsByCode,
+      failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
+      newFailureKey: fileConfig.gates?.newFailureKey,
+      requiredPassingSuites: fileConfig.gates?.requiredPassingSuites
     }
   });
   const input = config.input ? Array.isArray(config.input) ? config.input[0] ?? ".evals_output" : config.input : ".evals_output";
@@ -3009,6 +3148,7 @@ ${written.join("\n")}`);
     const allowBlockedBaseline = optionBoolean(options, "allow-blocked-baseline");
     const gateConfig = {
       ...config.gates ?? {},
+      ...gateConfigFromOptions(options),
       ...allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}
     };
     const result = checkGates(
@@ -3018,11 +3158,18 @@ ${written.join("\n")}`);
       context.baselineCompatibility
     );
     if (result.passed) {
+      if (result.diagnostics.length > 0) {
+        console.log(`Gate diagnostics:
+${result.diagnostics.join("\n")}`);
+      }
       console.log("Eval gates passed.");
       return;
     }
+    const diagnostics = result.diagnostics.length > 0 ? `
+Diagnostics:
+${result.diagnostics.join("\n")}` : "";
     console.error(`Eval gates failed:
-${result.failures.join("\n")}`);
+${result.failures.join("\n")}${diagnostics}`);
     process.exitCode = 1;
     return;
   }

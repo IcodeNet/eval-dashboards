@@ -24,6 +24,7 @@ import {
   renderDefaultInitConfig,
   writeScaffoldFiles,
 } from './init-scaffold.js';
+import type { NewFailureKeyMode } from '../gates/check-gates.js';
 
 const usage = `eval-dashboards <command>
 
@@ -103,11 +104,40 @@ const loadContext = async (
 
 const gateConfigFromOptions = (
   options: Record<string, string | boolean | string[]>,
-): GateConfig => ({
-  minPassRate: optionNumber(options, 'min-pass-rate'),
-  maxNewFailures: optionNumber(options, 'max-new-failures'),
-  zeroCritical: optionBoolean(options, 'zero-critical'),
-});
+): GateConfig => {
+  const newFailureKey = optionString(options, 'new-failure-key', '');
+  const warningBudgets = optionStrings(options, 'max-warning-code', []);
+  const maxWarningsByCode: Record<string, number> = {};
+
+  for (const budget of warningBudgets) {
+    const [code, rawCount] = budget.split(':', 2);
+    const count = Number(rawCount);
+    if (!code || !Number.isFinite(count)) continue;
+    maxWarningsByCode[code] = count;
+  }
+
+  const allowedNewFailureKeys: NewFailureKeyMode[] = [
+    'row',
+    'scenario',
+    'scenario-category',
+    'id-category',
+  ];
+
+  const parsedNewFailureKey = allowedNewFailureKeys.includes(newFailureKey as NewFailureKeyMode)
+    ? (newFailureKey as NewFailureKeyMode)
+    : undefined;
+
+  return {
+    minPassRate: optionNumber(options, 'min-pass-rate'),
+    maxNewFailures: optionNumber(options, 'max-new-failures'),
+    zeroCritical: optionBoolean(options, 'zero-critical'),
+    maxWarnings: optionNumber(options, 'max-warnings'),
+    maxWarningsByCode: Object.keys(maxWarningsByCode).length > 0 ? maxWarningsByCode : undefined,
+    failOnWarningCodes: optionStrings(options, 'fail-on-warning-code', []),
+    newFailureKey: parsedNewFailureKey,
+    requiredPassingSuites: optionStrings(options, 'require-suite-pass', []),
+  };
+};
 
 const baselineStrategyFromOptions = (
   options: Record<string, string | boolean | string[]>,
@@ -135,6 +165,11 @@ const main = async (): Promise<void> => {
       minPassRate: optionNumber(options, 'min-pass-rate') ?? fileConfig.gates?.minPassRate,
       maxNewFailures: optionNumber(options, 'max-new-failures') ?? fileConfig.gates?.maxNewFailures,
       zeroCritical: optionBoolean(options, 'zero-critical') ?? fileConfig.gates?.zeroCritical,
+      maxWarnings: optionNumber(options, 'max-warnings') ?? fileConfig.gates?.maxWarnings,
+      maxWarningsByCode: fileConfig.gates?.maxWarningsByCode,
+      failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
+      newFailureKey: fileConfig.gates?.newFailureKey,
+      requiredPassingSuites: fileConfig.gates?.requiredPassingSuites,
     },
   });
 
@@ -235,6 +270,7 @@ const main = async (): Promise<void> => {
     const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
     const gateConfig = {
       ...(config.gates ?? {}),
+      ...gateConfigFromOptions(options),
       ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
     };
     const result = checkGates(
@@ -245,11 +281,15 @@ const main = async (): Promise<void> => {
     );
 
     if (result.passed) {
+      if (result.diagnostics.length > 0) {
+        console.log(`Gate diagnostics:\n${result.diagnostics.join('\n')}`);
+      }
       console.log('Eval gates passed.');
       return;
     }
 
-    console.error(`Eval gates failed:\n${result.failures.join('\n')}`);
+    const diagnostics = result.diagnostics.length > 0 ? `\nDiagnostics:\n${result.diagnostics.join('\n')}` : '';
+    console.error(`Eval gates failed:\n${result.failures.join('\n')}${diagnostics}`);
     process.exitCode = 1;
     return;
   }

@@ -95,6 +95,15 @@ type DatasetChangelogEntry = {
     summary: string;
     rowChanges: DatasetRowChanges;
 };
+type RunConfigSnapshotValue = string | number | boolean | null;
+type RunConfigSnapshot = {
+    /** Indicates whether sensitive values were redacted before emission. */
+    redacted?: boolean;
+    /** Optional emitter/source label (e.g., eval-runner, workflow-step). */
+    source?: string;
+    /** Sanitized runtime parameters captured for debugging and auditability. */
+    values: Record<string, RunConfigSnapshotValue>;
+};
 type EvalRun = {
     id: string;
     generatedAt: string;
@@ -105,6 +114,7 @@ type EvalRun = {
     commit?: string;
     buildId?: string;
     sourceUrl?: string;
+    configSnapshot?: RunConfigSnapshot;
 };
 type EvalSuiteSummary = {
     id: string;
@@ -196,15 +206,22 @@ type RunComparison = {
 declare const buildHistory: (reports: EvalReportV1[]) => RunHistoryEntry[];
 declare const compareRuns: (current: EvalReportV1, previous?: EvalReportV1) => RunComparison;
 
+type NewFailureKeyMode = 'row' | 'scenario' | 'scenario-category' | 'id-category';
 type GateConfig = {
     minPassRate?: number;
     maxNewFailures?: number;
     zeroCritical?: boolean;
     failOnBaselineBlocked?: boolean;
+    maxWarnings?: number;
+    maxWarningsByCode?: Record<string, number>;
+    failOnWarningCodes?: string[];
+    newFailureKey?: NewFailureKeyMode;
+    requiredPassingSuites?: string[];
 };
 type GateResult = {
     passed: boolean;
     failures: string[];
+    diagnostics: string[];
 };
 declare const checkGates: (report: EvalReportV1, comparison: RunComparison, config: GateConfig, baselineCompatibility?: BaselineCompatibilityResult) => GateResult;
 

@@ -46,6 +46,80 @@ describe('checkGates', () => {
     expect(result.failures).toHaveLength(0);
   });
 
+  it('supports canonical new-failure counting with scenario-category key', () => {
+    const previousReport: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'previous-dedupe', generatedAt: '2026-07-30T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 3, passed: 3, failed: 0 }],
+      rows: [
+        { id: 'a', suite: 'quality', scenarioId: 'topic-1', category: 'groundedness', passed: true },
+        { id: 'b', suite: 'quality', scenarioId: 'topic-1', category: 'groundedness', passed: true },
+        { id: 'c', suite: 'quality', scenarioId: 'topic-2', category: 'groundedness', passed: true },
+      ],
+    };
+
+    const currentReport: EvalReportV1 = {
+      ...previousReport,
+      run: { id: 'current-dedupe', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 3, passed: 0, failed: 3 }],
+      rows: [
+        { id: 'a', suite: 'quality', scenarioId: 'topic-1', category: 'groundedness', passed: false },
+        { id: 'b', suite: 'quality', scenarioId: 'topic-1', category: 'groundedness', passed: false },
+        { id: 'c', suite: 'quality', scenarioId: 'topic-2', category: 'groundedness', passed: false },
+      ],
+    };
+
+    const result = checkGates(currentReport, compareRuns(currentReport, previousReport), {
+      maxNewFailures: 2,
+      newFailureKey: 'scenario-category',
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.diagnostics.some((line) => line.includes('Canonical new-failure count'))).toBe(true);
+  });
+
+  it('fails when warning budget is exceeded', () => {
+    const reportWithWarnings: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'warning-budget', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    };
+
+    const result = checkGates(reportWithWarnings, compareRuns(reportWithWarnings, undefined), {
+      maxWarnings: 2,
+      maxWarningsByCode: { 'missing-kind': 0 },
+      failOnWarningCodes: ['missing-severity'],
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.some((line) => line.includes('Lint warnings'))).toBe(true);
+    expect(result.failures.some((line) => line.includes('missing-kind'))).toBe(true);
+    expect(result.failures.some((line) => line.includes('missing-severity'))).toBe(true);
+  });
+
+  it('enforces required passing suites for preflight gates', () => {
+    const reportWithPreflightFailure: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'preflight', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [
+        { id: 'preflight', total: 1, passed: 0, failed: 1 },
+        { id: 'quality', total: 1, passed: 1, failed: 0 },
+      ],
+      rows: [
+        { id: 'probe', suite: 'preflight', passed: false, category: 'preflight', kind: 'deterministic' },
+        { id: 'quality-row', suite: 'quality', passed: true, category: 'quality', kind: 'deterministic' },
+      ],
+    };
+
+    const result = checkGates(reportWithPreflightFailure, compareRuns(reportWithPreflightFailure, undefined), {
+      requiredPassingSuites: ['preflight'],
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.failures[0]).toMatch(/Required passing suite "preflight" has failures/);
+  });
+
   it('enforces blocking suite manifest passRate threshold when breached', () => {
     const reportWithManifest: EvalReportV1 = {
       ...current,

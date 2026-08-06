@@ -22,6 +22,9 @@ const isString = (value: unknown): value is string => typeof value === 'string';
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+const isRunConfigSnapshotValue = (value: unknown): boolean =>
+  value === null || isString(value) || isNumber(value) || typeof value === 'boolean';
+
 const isSeverity = (value: unknown): value is EvalSeverity =>
   isString(value) && severityOrder.includes(value as EvalSeverity);
 
@@ -92,6 +95,34 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
 
     if (!isString(value.run.generatedAt) || Number.isNaN(Date.parse(value.run.generatedAt))) {
       errors.push('run.generatedAt must be an ISO date string.');
+    }
+
+    if (value.run.configSnapshot !== undefined) {
+      if (!isObject(value.run.configSnapshot)) {
+        errors.push('run.configSnapshot must be an object when provided.');
+      } else {
+        const snapshot = value.run.configSnapshot as Record<string, unknown>;
+
+        if (snapshot.redacted !== undefined && typeof snapshot.redacted !== 'boolean') {
+          errors.push('run.configSnapshot.redacted must be a boolean when provided.');
+        }
+
+        if (snapshot.source !== undefined && !isString(snapshot.source)) {
+          errors.push('run.configSnapshot.source must be a string when provided.');
+        }
+
+        if (!isObject(snapshot.values)) {
+          errors.push('run.configSnapshot.values must be an object.');
+        } else {
+          for (const [key, val] of Object.entries(snapshot.values as Record<string, unknown>)) {
+            if (!isRunConfigSnapshotValue(val)) {
+              errors.push(
+                `run.configSnapshot.values.${key} must be a string, number, boolean, or null.`,
+              );
+            }
+          }
+        }
+      }
     }
   }
 

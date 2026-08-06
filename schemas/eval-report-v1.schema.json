@@ -107,8 +107,41 @@
           "type": "string",
           "format": "uri",
           "description": "Optional: URL linking back to the source (e.g., CI log, PR, dashboard)."
+        },
+        "configSnapshot": {
+          "$ref": "#/definitions/RunConfigSnapshot",
+          "description": "Optional: sanitized runtime parameter snapshot for debugging and reproducibility."
         }
       }
+    },
+    "RunConfigSnapshot": {
+      "type": "object",
+      "required": [
+        "values"
+      ],
+      "properties": {
+        "redacted": {
+          "type": "boolean",
+          "description": "Whether sensitive values were redacted before emission."
+        },
+        "source": {
+          "type": "string",
+          "description": "Optional emitter/source label (for example, eval-runner or workflow-step)."
+        },
+        "values": {
+          "type": "object",
+          "description": "Sanitized runtime parameters captured for debugging.",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "EvalSuiteSummary": {
       "type": "object",

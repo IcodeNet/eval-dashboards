@@ -13,6 +13,53 @@ describe('validateEvalReport', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts a sanitized run.configSnapshot block', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-07-31T10:00:00.000Z',
+        configSnapshot: {
+          redacted: true,
+          source: 'ci-live-preflight',
+          values: {
+            mode: 'live',
+            searchIndexName: 'byron-profile',
+            retrievalThreshold: 0.01,
+            searchApiKeySet: false,
+            openAiApiKeySet: false,
+          },
+        },
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects run.configSnapshot values with unsupported types', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-07-31T10:00:00.000Z',
+        configSnapshot: {
+          values: {
+            bad: ['not-supported'],
+          },
+        },
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'run.configSnapshot.values.bad must be a string, number, boolean, or null.',
+    );
+  });
+
   it('accepts first-class LLM judge row fields', () => {
     const result = validateEvalReport({
       schemaVersion: 'eval-report/v1',

@@ -54,6 +54,13 @@ eval-dashboards publish --target=github-pages --repo=owner/repo
 
 Use one file per run in `.evals_output` instead of overwriting a single artifact. History-preserving output enables baseline selection (`rolling` / `champion`) and trend reports.
 
+Important concepts for reliable CI gates:
+
+- **Preflight first:** emit and require a lightweight `preflight` suite before expensive live/judge suites.
+- **Canonical new failures:** count regressions by scenario/category when one scenario can emit multiple rows.
+- **Warning budgets:** treat taxonomy warnings as explicit risk budgets, not invisible noise.
+- **Sanitized config snapshots:** include non-secret runtime context in `run.configSnapshot` for triage.
+
 Common CI gate recipes:
 
 - PR policy (rolling baseline):
@@ -66,6 +73,12 @@ eval-dashboards check --input=.evals_output --baseline-strategy=rolling --allow-
 
 ```sh
 eval-dashboards check --input=.evals_output --baseline-strategy=champion --baseline-lookback=20 --max-new-failures=0 --zero-critical
+```
+
+- Strict live policy with preflight + warning controls:
+
+```sh
+eval-dashboards check --input=.evals_output --require-suite-pass=preflight --new-failure-key=scenario-category --max-new-failures=0 --max-warnings=5 --max-warning-code=missing-kind:0 --fail-on-warning-code=missing-judge-model --zero-critical
 ```
 
 See working examples:

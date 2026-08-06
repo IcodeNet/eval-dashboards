@@ -26,6 +26,14 @@ If CLI/report/publish behavior changed, also run at least one focused command th
 - `pnpm dev check --input=<artifact-dir> ...`
 - `pnpm dev publish --target=dir --input=<artifact-dir> --report-dir=<out-dir> --out-dir=<publish-dir>`
 
+If report rendering, report fixtures, or report assets changed, regenerate and verify tracked example/release artifacts:
+
+- `pnpm assets:regenerate`
+- `pnpm assets:verify`
+- `git diff --exit-code -- eval-report eval-report-dark docs/images`
+
+Record whether artifact regeneration produced expected diffs and whether those diffs were committed.
+
 ## 4) History and Trend Integrity
 
 - Confirm run-history files are preserved when trend behavior is expected.
@@ -42,6 +50,7 @@ If CLI/report/publish behavior changed, also run at least one focused command th
 
 - Code, tests, and docs are in sync.
 - Required checks are green, or blockers are explicitly called out.
+- Example/release report artifacts are regenerated and verified when output-affecting changes are present.
 - Final report states:
   - what changed,
   - what was verified,

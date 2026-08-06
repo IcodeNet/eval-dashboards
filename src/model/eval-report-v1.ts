@@ -136,6 +136,17 @@ export type DatasetChangelogEntry = {
   rowChanges: DatasetRowChanges;
 };
 
+export type RunConfigSnapshotValue = string | number | boolean | null;
+
+export type RunConfigSnapshot = {
+  /** Indicates whether sensitive values were redacted before emission. */
+  redacted?: boolean;
+  /** Optional emitter/source label (e.g., eval-runner, workflow-step). */
+  source?: string;
+  /** Sanitized runtime parameters captured for debugging and auditability. */
+  values: Record<string, RunConfigSnapshotValue>;
+};
+
 export type EvalRun = {
   id: string;
   generatedAt: string;
@@ -146,6 +157,7 @@ export type EvalRun = {
   commit?: string;
   buildId?: string;
   sourceUrl?: string;
+  configSnapshot?: RunConfigSnapshot;
 };
 
 export type EvalSuiteSummary = {
