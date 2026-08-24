@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-08-17T06:44:49.000Z",
+  "generatedAt": "2026-08-24T06:44:52.862Z",
   "repository": "IcodeNet/eval-dashboards",
   "npm": {
     "packageName": "@icodenet/eval-dashboards",
-    "weeklyDownloads": 229
+    "weeklyDownloads": 54
   },
   "github": {
     "stars": 1,
     "forks": 0,
     "openIssues": 0,
-    "schemaCitationSearchCount": null
+    "schemaCitationSearchCount": 10
   },
   "manualSignals": {
     "externalRunnerAdoptions": 0,
