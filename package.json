@@ -24,6 +24,7 @@
     "dist",
     "README.md",
     "docs",
+    "skills/eval-dashboards-adopt/SKILL.md",
     "examples/**/*.md",
     "examples/basic-json/*.json",
     "examples/agent-quality-preset/**",

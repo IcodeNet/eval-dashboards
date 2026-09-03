@@ -299,6 +299,15 @@ export default {
 
 ---
 
+## Adopt With An Agent Skill
+
+Already have an eval runner and just want dashboards, gates, and history
+without hand-wiring the adapter? Point a coding agent (Claude Code, Cursor,
+Copilot, Hermes, etc.) at [skills/eval-dashboards-adopt/SKILL.md](skills/eval-dashboards-adopt/SKILL.md)
+and give it access to your repo — it inspects your existing eval command,
+writes a thin adapter with `writeEvalReportArtifact`, wires `check`/`report`
+into your CI, and opens a PR.
+
 ## Examples
 
 **TypeScript / Node.js:**

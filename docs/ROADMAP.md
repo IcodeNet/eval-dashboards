@@ -325,7 +325,7 @@ Real user friction (missing presets, awkward adapter ergonomics, schema gaps) is
 
 ### Backlog
 
-- [ ] Author `SKILL.md` for "adopt eval-dashboards into an existing repo" (inspect runner → adapter → CI wiring → PR)
+- [x] Author `SKILL.md` for "adopt eval-dashboards into an existing repo" (inspect runner → adapter → CI wiring → PR) — see `skills/eval-dashboards-adopt/SKILL.md`, linked from README
 - [ ] Validate the skill end-to-end against at least one of this repo's own runner examples (Vitest, Jest, plain Node) as a dry run before pointing it at an external repo
 - [ ] Decide distribution channel(s) for the skill itself (public skill registry, npm companion package, docs-linked download) — verify skill-format cross-agent compatibility is mature enough before committing build time
 - [ ] Use each skill run as an adoption-funnel event: log outcome in `docs/community-partnership-log.md`, feed friction back into `docs/industry-coverage-audit.md` / this roadmap
