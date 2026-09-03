@@ -306,6 +306,33 @@ These slices turn the reference integration proving-ground work into reusable se
 
 ---
 
+## 📋 Phase 4B: Agent-skill adoption channel (PROPOSED — not started)
+
+**Problem this addresses:** adoption metrics show the schema-first bet has not converted into external usage (`docs/adoption-metrics/latest.json`: 27 weekly downloads, 1 star, 0 external runner adoptions, outreach not started as of 2026-08-31). The current onboarding path requires a human to discover the package, read multiple docs, and hand-wire an adapter before getting any payoff — a multi-hour investment with unproven return. That is the likely root cause of stalled adoption, not a tracking or messaging gap.
+
+**Proposed fix:** stop asking teams to adopt the schema before they see value. Instead, ship an installable **agent skill** ("adopt eval-dashboards into an existing repo") that a coding agent (Claude Code, Copilot, Cursor, Hermes, etc.) runs directly against a target repo. The skill should:
+
+1. Inspect the team's existing eval runner and output format (Vitest/Jest/pytest/custom script).
+2. Write a thin adapter using the existing public helpers (`writeEvalReportArtifact` / `createEvalReportArtifact`) — no hand-authored JSON shape.
+3. Wire `eval-dashboards report` / `check` into their existing CI file (GitHub Actions or Azure Pipelines, using `examples/github-actions/` and `examples/azure-devops/` as templates).
+4. Open a PR with the change, so the team reviews a working diff instead of following a tutorial.
+
+This turns onboarding from a multi-hour manual task into a ~10-minute agent-run task, and makes the skill itself the marketing asset (distribute via public skill registries / "Show HN: an agent skill that upgrades your eval output", not just README traffic).
+
+### Why this belongs before further preset/rubric investment
+
+Real user friction (missing presets, awkward adapter ergonomics, schema gaps) is far more valuable once it comes from genuine external integrations than from internal guessing. This channel is the fastest way to get that first real external artifact and turn `community-partnership-log.md` from cold outreach into a self-serve funnel.
+
+### Backlog
+
+- [ ] Author `SKILL.md` for "adopt eval-dashboards into an existing repo" (inspect runner → adapter → CI wiring → PR)
+- [ ] Validate the skill end-to-end against at least one of this repo's own runner examples (Vitest, Jest, plain Node) as a dry run before pointing it at an external repo
+- [ ] Decide distribution channel(s) for the skill itself (public skill registry, npm companion package, docs-linked download) — verify skill-format cross-agent compatibility is mature enough before committing build time
+- [ ] Use each skill run as an adoption-funnel event: log outcome in `docs/community-partnership-log.md`, feed friction back into `docs/industry-coverage-audit.md` / this roadmap
+- [ ] Only after real external friction is observed: prioritize the P0/P1 preset gaps in `docs/industry-coverage-audit.md` (`agency-boundary`, `sensitive-disclosure`, etc.) against actual reported gaps rather than guesswork
+
+---
+
 ## 🔮 Longer-term ideas (post-v1.0)
 
 - Plugin system for custom reporters (existing custom-reporter-plugin example is a starting point)
@@ -328,6 +355,7 @@ These slices turn the reference integration proving-ground work into reusable se
    - Keep the surface small unless a real integration proves the extra fidelity is needed
 3. Continue external adoption prep
    - Community seeding, integrations, and production CI templates remain the shipping-adoption workstream
+   - See Phase 4B: an agent-skill adoption channel is the proposed unblock for stalled external adoption — prioritize authoring that skill over further outreach-log entries
 
 **Short term (Phase 4 preparation, next 2–3 weeks):**
 4. Community seeding: early runner partnerships and integration examples
