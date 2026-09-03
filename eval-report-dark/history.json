@@ -12,6 +12,9 @@
     "passed": 69,
     "failed": 6,
     "passRate": 0.92,
+    "matchedExpectation": 69,
+    "expectationMismatches": 6,
+    "matchedExpectationRate": 0.92,
     "severityCounts": {
       "none": 69,
       "low": 2,
@@ -53,6 +56,9 @@
     "passed": 73,
     "failed": 2,
     "passRate": 0.9733333333333334,
+    "matchedExpectation": 73,
+    "expectationMismatches": 2,
+    "matchedExpectationRate": 0.9733333333333334,
     "severityCounts": {
       "none": 73,
       "low": 1,
