@@ -371,6 +371,7 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating with GitHub Pages data branch
 - [Roadmap](docs/ROADMAP.md) — phases and adoption plan
 - [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
+- [Case study: adopting eval-dashboards in assistant-ui](docs/case-studies/assistant-ui/README.md) — first real external-repo adoption, with real bugs found and fixed
 
 See [examples/](examples/) for runnable demos.
 

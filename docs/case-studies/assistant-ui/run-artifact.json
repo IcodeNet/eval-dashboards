@@ -1,0 +1,440 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "prompt-evals-1788443087058",
+    "project": "assistant-ui-prompt-evals",
+    "generatedAt": "2026-09-03T13:44:47.058Z"
+  },
+  "suites": [
+    {
+      "id": "prompt-guidance-ab",
+      "name": "prompt-guidance-ab",
+      "total": 18,
+      "passed": 14,
+      "failed": 4,
+      "passRate": 0.7777777777777778
+    }
+  ],
+  "rows": [
+    {
+      "id": "pr-review-comments:baseline",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": false,
+      "score": 0,
+      "severity": "low",
+      "category": "baseline-evidence",
+      "scenarioId": "pr-review-comments",
+      "promptVersion": "baseline",
+      "reason": "The comment on timeoutMs references the previous value ('bumped from 8000 to 10000'), which violates the rule against referencing prior values or the change.",
+      "input": "You are addressing review feedback on a pull request.\nA reviewer asked: raise `timeoutMs` from 8000 to 10000, because the\npayments API got slower.\nApply the change to src/config.ts.",
+      "output": "(no guidance — undirected baseline)",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "pr-review-comments:describe-now",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": false,
+      "score": 0,
+      "severity": "low",
+      "category": "candidate-guidance",
+      "scenarioId": "pr-review-comments",
+      "promptVersion": "describe-now",
+      "reason": "The comment says the value was 'raised', which references the change even though it doesn't cite the old number.",
+      "input": "You are addressing review feedback on a pull request.\nA reviewer asked: raise `timeoutMs` from 8000 to 10000, because the\npayments API got slower.\nApply the change to src/config.ts.",
+      "output": "Comments describe the code as it is, not how it changed.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "pr-review-comments:no-history",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": false,
+      "score": 0,
+      "severity": "low",
+      "category": "candidate-guidance",
+      "scenarioId": "pr-review-comments",
+      "promptVersion": "no-history",
+      "reason": "The comment on timeoutMs ('bumped from 8000 to 10000 due to slower payments API') references the previous value and the change, violating the rule.",
+      "input": "You are addressing review feedback on a pull request.\nA reviewer asked: raise `timeoutMs` from 8000 to 10000, because the\npayments API got slower.\nApply the change to src/config.ts.",
+      "output": "Never write comments that reference the PR, the review, or a previous version of the code.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "pr-review-comments:why-not-what",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": false,
+      "score": 0,
+      "severity": "low",
+      "category": "candidate-guidance",
+      "scenarioId": "pr-review-comments",
+      "promptVersion": "why-not-what",
+      "reason": "The comment on timeoutMs references the previous value and the change ('bumped from 8000 to 10000'), which fails the criterion.",
+      "input": "You are addressing review feedback on a pull request.\nA reviewer asked: raise `timeoutMs` from 8000 to 10000, because the\npayments API got slower.\nApply the change to src/config.ts.",
+      "output": "Comments explain why the code is the way it is; they never narrate what changed.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "pr-review-comments:delete-stale",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "pr-review-comments",
+      "promptVersion": "delete-stale",
+      "input": "You are addressing review feedback on a pull request.\nA reviewer asked: raise `timeoutMs` from 8000 to 10000, because the\npayments API got slower.\nApply the change to src/config.ts.",
+      "output": "When you change code, delete any comment that only records its history.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "pr-review-comments:drop-tombstones",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "pr-review-comments",
+      "promptVersion": "drop-tombstones",
+      "input": "You are addressing review feedback on a pull request.\nA reviewer asked: raise `timeoutMs` from 8000 to 10000, because the\npayments API got slower.\nApply the change to src/config.ts.",
+      "output": "Code comments describe the current code, never its history. When you edit a line, remove any nearby comment that just narrates a past change.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "bugfix-comments:baseline",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "baseline-evidence",
+      "scenarioId": "bugfix-comments",
+      "promptVersion": "baseline",
+      "input": "A bug was reported: formatName crashes when `user` is null or undefined.\nFix it so it returns an empty string in that case.\nEdit src/format.ts.",
+      "output": "(no guidance — undirected baseline)",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "bugfix-comments:describe-now",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "bugfix-comments",
+      "promptVersion": "describe-now",
+      "input": "A bug was reported: formatName crashes when `user` is null or undefined.\nFix it so it returns an empty string in that case.\nEdit src/format.ts.",
+      "output": "Comments describe the code as it is, not how it changed.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "bugfix-comments:no-history",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "bugfix-comments",
+      "promptVersion": "no-history",
+      "input": "A bug was reported: formatName crashes when `user` is null or undefined.\nFix it so it returns an empty string in that case.\nEdit src/format.ts.",
+      "output": "Never write comments that reference the PR, the review, or a previous version of the code.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "bugfix-comments:why-not-what",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "bugfix-comments",
+      "promptVersion": "why-not-what",
+      "input": "A bug was reported: formatName crashes when `user` is null or undefined.\nFix it so it returns an empty string in that case.\nEdit src/format.ts.",
+      "output": "Comments explain why the code is the way it is; they never narrate what changed.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "bugfix-comments:delete-stale",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "bugfix-comments",
+      "promptVersion": "delete-stale",
+      "input": "A bug was reported: formatName crashes when `user` is null or undefined.\nFix it so it returns an empty string in that case.\nEdit src/format.ts.",
+      "output": "When you change code, delete any comment that only records its history.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "bugfix-comments:drop-tombstones",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "bugfix-comments",
+      "promptVersion": "drop-tombstones",
+      "input": "A bug was reported: formatName crashes when `user` is null or undefined.\nFix it so it returns an empty string in that case.\nEdit src/format.ts.",
+      "output": "Code comments describe the current code, never its history. When you edit a line, remove any nearby comment that just narrates a past change.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "verbose-new-code:baseline",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "baseline-evidence",
+      "scenarioId": "verbose-new-code",
+      "promptVersion": "baseline",
+      "input": "Create src/debounce.ts that exports a `debounce(fn, ms)` function:\nit returns a wrapped function that delays calling `fn` until `ms`\nmilliseconds have passed since the last call.",
+      "output": "(no guidance — undirected baseline)",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "verbose-new-code:describe-now",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "verbose-new-code",
+      "promptVersion": "describe-now",
+      "input": "Create src/debounce.ts that exports a `debounce(fn, ms)` function:\nit returns a wrapped function that delays calling `fn` until `ms`\nmilliseconds have passed since the last call.",
+      "output": "Comments describe the code as it is, not how it changed.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "verbose-new-code:no-history",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "verbose-new-code",
+      "promptVersion": "no-history",
+      "input": "Create src/debounce.ts that exports a `debounce(fn, ms)` function:\nit returns a wrapped function that delays calling `fn` until `ms`\nmilliseconds have passed since the last call.",
+      "output": "Never write comments that reference the PR, the review, or a previous version of the code.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "verbose-new-code:why-not-what",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "verbose-new-code",
+      "promptVersion": "why-not-what",
+      "input": "Create src/debounce.ts that exports a `debounce(fn, ms)` function:\nit returns a wrapped function that delays calling `fn` until `ms`\nmilliseconds have passed since the last call.",
+      "output": "Comments explain why the code is the way it is; they never narrate what changed.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "verbose-new-code:delete-stale",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "verbose-new-code",
+      "promptVersion": "delete-stale",
+      "input": "Create src/debounce.ts that exports a `debounce(fn, ms)` function:\nit returns a wrapped function that delays calling `fn` until `ms`\nmilliseconds have passed since the last call.",
+      "output": "When you change code, delete any comment that only records its history.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    },
+    {
+      "id": "verbose-new-code:drop-tombstones",
+      "suite": "prompt-guidance-ab",
+      "kind": "agent",
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "candidate-guidance",
+      "scenarioId": "verbose-new-code",
+      "promptVersion": "drop-tombstones",
+      "input": "Create src/debounce.ts that exports a `debounce(fn, ms)` function:\nit returns a wrapped function that delays calling `fn` until `ms`\nmilliseconds have passed since the last call.",
+      "output": "Code comments describe the current code, never its history. When you edit a line, remove any nearby comment that just narrates a past change.",
+      "metadata": {
+        "provenance": {
+          "source": "synthetic",
+          "reason": "AGENTS.md comment-hygiene A/B case"
+        },
+        "lifecycle": {
+          "status": "active"
+        }
+      }
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "prompt-guidance-ab",
+      "target": "agent",
+      "datasetSource": "synthetic",
+      "datasetVersion": "1.0.0",
+      "rubricVersion": "1.0.0",
+      "riskArea": "custom",
+      "graders": [
+        "llm-judge"
+      ],
+      "gate": {
+        "mode": "report-only",
+        "thresholds": {
+          "passRate": 0
+        }
+      },
+      "description": "A/B pass rate per guidance candidate against AGENTS.md comment-hygiene cases. baseline failing is expected evidence, not a regression."
+    }
+  ]
+}
