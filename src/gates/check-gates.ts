@@ -11,6 +11,15 @@ export type NewFailureKeyMode =
 
 export type GateConfig = {
   minPassRate?: number;
+  /**
+   * Minimum rate of rows whose outcome matched their declared
+   * `expectedOutcome` (see `rowMatchedExpectation`). Prefer this over
+   * `minPassRate` for suites that intentionally mix rows expected to fail
+   * (e.g. an A/B harness's baseline) with rows expected to pass — a flat
+   * `minPassRate` gate on such a suite blends the two into a misleading
+   * number.
+   */
+  minMatchedExpectationRate?: number;
   maxNewFailures?: number;
   zeroCritical?: boolean;
   failOnBaselineBlocked?: boolean;
@@ -79,6 +88,16 @@ export const checkGates = (
   if (config.minPassRate !== undefined && summary.passRate < config.minPassRate) {
     failures.push(
       `Pass rate ${summary.passRate.toFixed(3)} is below required ${config.minPassRate.toFixed(3)}.`,
+    );
+  }
+
+  if (
+    config.minMatchedExpectationRate !== undefined &&
+    summary.matchedExpectationRate < config.minMatchedExpectationRate
+  ) {
+    failures.push(
+      `Matched-expectation rate ${summary.matchedExpectationRate.toFixed(3)} is below required ` +
+        `${config.minMatchedExpectationRate.toFixed(3)} (${summary.expectationMismatches} row(s) did not match their declared expectedOutcome).`,
     );
   }
 

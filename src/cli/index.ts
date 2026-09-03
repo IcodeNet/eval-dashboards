@@ -129,6 +129,7 @@ const gateConfigFromOptions = (
 
   return {
     minPassRate: optionNumber(options, 'min-pass-rate'),
+    minMatchedExpectationRate: optionNumber(options, 'min-matched-expectation-rate'),
     maxNewFailures: optionNumber(options, 'max-new-failures'),
     zeroCritical: optionBoolean(options, 'zero-critical'),
     maxWarnings: optionNumber(options, 'max-warnings'),
@@ -163,6 +164,8 @@ const main = async (): Promise<void> => {
       : undefined,
     gates: {
       minPassRate: optionNumber(options, 'min-pass-rate') ?? fileConfig.gates?.minPassRate,
+      minMatchedExpectationRate:
+        optionNumber(options, 'min-matched-expectation-rate') ?? fileConfig.gates?.minMatchedExpectationRate,
       maxNewFailures: optionNumber(options, 'max-new-failures') ?? fileConfig.gates?.maxNewFailures,
       zeroCritical: optionBoolean(options, 'zero-critical') ?? fileConfig.gates?.zeroCritical,
       maxWarnings: optionNumber(options, 'max-warnings') ?? fileConfig.gates?.maxWarnings,

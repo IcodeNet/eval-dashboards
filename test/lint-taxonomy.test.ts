@@ -240,6 +240,42 @@ describe('lintReportTaxonomy', () => {
     expect(result.issues.some((issue) => issue.code === 'missing-row-lifecycle')).toBe(false);
     expect(result.issues.some((issue) => issue.code === 'missing-row-provenance')).toBe(false);
   });
+
+  it('warns when a row unexpectedly passes despite declaring expectedOutcome: fail', () => {
+    const report = makeReport({
+      rows: [
+        {
+          id: 'baseline',
+          suite: 'quality',
+          passed: true,
+          expectedOutcome: 'fail',
+        },
+      ],
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+    });
+
+    const result = lintReportTaxonomy(report);
+    expect(result.issues.some((issue) => issue.code === 'expectation-mismatch' && issue.level === 'warning')).toBe(
+      true,
+    );
+  });
+
+  it('does not warn when a row matches its declared expectedOutcome', () => {
+    const report = makeReport({
+      rows: [
+        {
+          id: 'baseline',
+          suite: 'quality',
+          passed: false,
+          expectedOutcome: 'fail',
+        },
+      ],
+      suites: [{ id: 'quality', total: 1, passed: 0, failed: 1 }],
+    });
+
+    const result = lintReportTaxonomy(report);
+    expect(result.issues.some((issue) => issue.code === 'expectation-mismatch')).toBe(false);
+  });
 });
 
 describe('lintReportsTaxonomy', () => {

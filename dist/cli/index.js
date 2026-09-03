@@ -75,10 +75,13 @@ var severityOrder = [
   "critical"
 ];
 var rowKey = (row) => `${row.suite}:${row.id}`;
+var rowMatchedExpectation = (row) => row.expectedOutcome === "fail" ? !row.passed : row.passed;
 var summarizeReport = (report) => {
   const total = report.rows.length;
   const passed = report.rows.filter((row) => row.passed).length;
   const failed = total - passed;
+  const matchedExpectation = report.rows.filter((row) => rowMatchedExpectation(row)).length;
+  const expectationMismatches = total - matchedExpectation;
   const severityCounts = Object.fromEntries(
     severityOrder.map((severity) => [severity, 0])
   );
@@ -92,6 +95,9 @@ var summarizeReport = (report) => {
     passed,
     failed,
     passRate: total === 0 ? 0 : passed / total,
+    matchedExpectation,
+    expectationMismatches,
+    matchedExpectationRate: total === 0 ? 0 : matchedExpectation / total,
     severityCounts,
     suites: report.suites
   };
@@ -750,6 +756,13 @@ function lintReportTaxonomy(report) {
         });
       }
     }
+    if (row.expectedOutcome !== void 0 && !rowMatchedExpectation(row)) {
+      issues.push({
+        level: "warning",
+        code: "expectation-mismatch",
+        message: `Row ${key} declared expectedOutcome: '${row.expectedOutcome}' but passed: ${row.passed} \u2014 the actual outcome does not match what was expected. For an expected-fail row (e.g. an A/B baseline), an unexpected pass usually means the case is not testing what it claims to.`
+      });
+    }
   }
   for (const suite of report.suites) {
     const counts = suiteRowCounts.get(suite.id) ?? { total: 0, passed: 0, failed: 0 };
@@ -824,6 +837,11 @@ var checkGates = (report, comparison, config, baselineCompatibility) => {
   if (config.minPassRate !== void 0 && summary.passRate < config.minPassRate) {
     failures.push(
       `Pass rate ${summary.passRate.toFixed(3)} is below required ${config.minPassRate.toFixed(3)}.`
+    );
+  }
+  if (config.minMatchedExpectationRate !== void 0 && summary.matchedExpectationRate < config.minMatchedExpectationRate) {
+    failures.push(
+      `Matched-expectation rate ${summary.matchedExpectationRate.toFixed(3)} is below required ${config.minMatchedExpectationRate.toFixed(3)} (${summary.expectationMismatches} row(s) did not match their declared expectedOutcome).`
     );
   }
   const newFailureKeyMode = config.newFailureKey ?? "row";
@@ -3031,6 +3049,7 @@ var gateConfigFromOptions = (options) => {
   const parsedNewFailureKey = allowedNewFailureKeys.includes(newFailureKey) ? newFailureKey : void 0;
   return {
     minPassRate: optionNumber(options, "min-pass-rate"),
+    minMatchedExpectationRate: optionNumber(options, "min-matched-expectation-rate"),
     maxNewFailures: optionNumber(options, "max-new-failures"),
     zeroCritical: optionBoolean(options, "zero-critical"),
     maxWarnings: optionNumber(options, "max-warnings"),
@@ -3057,6 +3076,7 @@ var main = async () => {
     reporters: options["reporter"] ? optionStrings(options, "reporter", []) : void 0,
     gates: {
       minPassRate: optionNumber(options, "min-pass-rate") ?? fileConfig.gates?.minPassRate,
+      minMatchedExpectationRate: optionNumber(options, "min-matched-expectation-rate") ?? fileConfig.gates?.minMatchedExpectationRate,
       maxNewFailures: optionNumber(options, "max-new-failures") ?? fileConfig.gates?.maxNewFailures,
       zeroCritical: optionBoolean(options, "zero-critical") ?? fileConfig.gates?.zeroCritical,
       maxWarnings: optionNumber(options, "max-warnings") ?? fileConfig.gates?.maxWarnings,

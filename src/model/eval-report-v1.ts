@@ -198,6 +198,13 @@ export type EvalRow = {
   toolCalls?: ToolCall[];
   axisScores?: Record<string, number>;
   passed: boolean;
+  /**
+   * What outcome this row was expected to have, when that differs from
+   * "expected to pass" — e.g. an A/B harness's baseline row is expected to
+   * fail (proof the case tests something); a passing baseline is the actual
+   * anomaly. Omit for the common case where passing is always the goal.
+   */
+  expectedOutcome?: 'pass' | 'fail';
   score?: number;
   severity?: EvalSeverity;
   category?: string;
@@ -224,6 +231,16 @@ export type EvalSummary = {
   passed: number;
   failed: number;
   passRate: number;
+  /**
+   * Rows whose outcome matched their `expectedOutcome` (or defaulted to
+   * "expected to pass" when unset). Use this, not `passRate`, as the
+   * headline signal for suites that intentionally mix rows expected to
+   * fail (e.g. an A/B harness's baseline) with rows expected to pass —
+   * a flat `passRate` blends the two and produces a misleading number.
+   */
+  matchedExpectation: number;
+  expectationMismatches: number;
+  matchedExpectationRate: number;
   severityCounts: Record<EvalSeverity, number>;
   suites: EvalSuiteSummary[];
 };
@@ -238,10 +255,21 @@ export const severityOrder: EvalSeverity[] = [
 
 export const rowKey = (row: Pick<EvalRow, 'suite' | 'id'>): string => `${row.suite}:${row.id}`;
 
+/**
+ * Whether a row's actual pass/fail outcome matches what it was expected to
+ * be. Rows without `expectedOutcome` default to "expected to pass", so this
+ * agrees with `row.passed` for the common case and only diverges for rows
+ * that explicitly declare `expectedOutcome: 'fail'`.
+ */
+export const rowMatchedExpectation = (row: Pick<EvalRow, 'passed' | 'expectedOutcome'>): boolean =>
+  row.expectedOutcome === 'fail' ? !row.passed : row.passed;
+
 export const summarizeReport = (report: EvalReportV1): EvalSummary => {
   const total = report.rows.length;
   const passed = report.rows.filter((row) => row.passed).length;
   const failed = total - passed;
+  const matchedExpectation = report.rows.filter((row) => rowMatchedExpectation(row)).length;
+  const expectationMismatches = total - matchedExpectation;
   const severityCounts = Object.fromEntries(
     severityOrder.map((severity) => [severity, 0]),
   ) as Record<EvalSeverity, number>;
@@ -257,6 +285,9 @@ export const summarizeReport = (report: EvalReportV1): EvalSummary => {
     passed,
     failed,
     passRate: total === 0 ? 0 : passed / total,
+    matchedExpectation,
+    expectationMismatches,
+    matchedExpectationRate: total === 0 ? 0 : matchedExpectation / total,
     severityCounts,
     suites: report.suites,
   };

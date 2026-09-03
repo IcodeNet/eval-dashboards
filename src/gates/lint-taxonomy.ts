@@ -1,4 +1,4 @@
-import type { EvalReportV1 } from '../model/eval-report-v1.js';
+import { rowMatchedExpectation, type EvalReportV1 } from '../model/eval-report-v1.js';
 
 export type TaxonomyLintLevel = 'error' | 'warning';
 
@@ -124,6 +124,18 @@ export function lintReportTaxonomy(report: EvalReportV1): TaxonomyLintResult {
           message: `Agent row ${key} is missing agentVersion/promptVersion.`,
         });
       }
+    }
+
+    if (row.expectedOutcome !== undefined && !rowMatchedExpectation(row)) {
+      issues.push({
+        level: 'warning',
+        code: 'expectation-mismatch',
+        message:
+          `Row ${key} declared expectedOutcome: '${row.expectedOutcome}' but ` +
+          `passed: ${row.passed} — the actual outcome does not match what was expected. ` +
+          `For an expected-fail row (e.g. an A/B baseline), an unexpected pass usually means ` +
+          `the case is not testing what it claims to.`,
+      });
     }
   }
 

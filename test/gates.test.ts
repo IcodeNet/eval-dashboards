@@ -441,4 +441,26 @@ describe('checkGates', () => {
     expect(result.passed).toBe(false);
     expect(result.failures[0]).toMatch(/judge axis-score delta 0.500 exceeds blocking threshold/);
   });
+
+  it('gates on matchedExpectationRate instead of raw passRate for baseline/candidate suites', () => {
+    const abReport: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'ab-suite', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'ab', total: 2, passed: 1, failed: 1 }],
+      rows: [
+        { id: 'baseline', suite: 'ab', passed: false, expectedOutcome: 'fail' },
+        { id: 'candidate', suite: 'ab', passed: true },
+      ],
+    };
+
+    const rawPassRateResult = checkGates(abReport, compareRuns(abReport, undefined), {
+      minPassRate: 0.9,
+    });
+    expect(rawPassRateResult.passed).toBe(false);
+
+    const expectationResult = checkGates(abReport, compareRuns(abReport, undefined), {
+      minMatchedExpectationRate: 0.9,
+    });
+    expect(expectationResult.passed).toBe(true);
+  });
 });
