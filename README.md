@@ -302,11 +302,18 @@ export default {
 ## Adopt With An Agent Skill
 
 Already have an eval runner and just want dashboards, gates, and history
-without hand-wiring the adapter? Point a coding agent (Claude Code, Cursor,
-Copilot, Hermes, etc.) at [skills/eval-dashboards-adopt/SKILL.md](skills/eval-dashboards-adopt/SKILL.md)
-and give it access to your repo — it inspects your existing eval command,
+without hand-wiring the adapter? Install the skill directly into your repo:
+
+```sh
+npx skills add IcodeNet/eval-dashboards -s eval-dashboards-adopt -y
+```
+
+This clones the skill into `.agents/skills/eval-dashboards-adopt/`, wired for
+Claude Code, Codex, GitHub Copilot, OpenCode, Hermes Agent, and other agents.
+Then point your coding agent at it — it inspects your existing eval command,
 writes a thin adapter with `writeEvalReportArtifact`, wires `check`/`report`
-into your CI, and opens a PR.
+into your CI, and opens a PR. See [skills/eval-dashboards-adopt/SKILL.md](skills/eval-dashboards-adopt/SKILL.md)
+for the full procedure.
 
 ## Examples
 
