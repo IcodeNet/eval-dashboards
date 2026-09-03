@@ -19,8 +19,19 @@ export type RunnerEvalCaseResult = {
   id?: string;
   suite: string;
   passed: boolean;
+  kind?: EvalRow['kind'];
   name?: string;
   question?: string;
+  datasetId?: string;
+  scenarioId?: string;
+  rubricId?: string;
+  judgeModel?: string;
+  judgeVerdict?: boolean;
+  judgeCategory?: string;
+  judgeReasoning?: string;
+  promptVersion?: string;
+  agentChannel?: string;
+  agentVersion?: string;
   input?: string;
   output?: string;
   expected?: string;
@@ -62,8 +73,19 @@ const createDefaultRow = <CaseResult extends RunnerEvalCaseResult>(
 ): EvalRow => ({
   id: rowId(caseResult, index),
   suite: caseResult.suite,
+  kind: caseResult.kind,
   name: caseResult.name,
   question: caseResult.question,
+  datasetId: caseResult.datasetId,
+  scenarioId: caseResult.scenarioId,
+  rubricId: caseResult.rubricId,
+  judgeModel: caseResult.judgeModel,
+  judgeVerdict: caseResult.judgeVerdict,
+  judgeCategory: caseResult.judgeCategory,
+  judgeReasoning: caseResult.judgeReasoning,
+  promptVersion: caseResult.promptVersion,
+  agentChannel: caseResult.agentChannel,
+  agentVersion: caseResult.agentVersion,
   input: caseResult.input,
   output: caseResult.output,
   expected: caseResult.expected,

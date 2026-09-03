@@ -107,6 +107,17 @@ the CLI account used for this run (403, allowed models were
 via the harness's own `JUDGE_MODEL`/`AGENT_MODEL` env vars fixed it — no code
 change needed, but worth knowing if you reproduce this run.
 
+## Open question: baseline vs. candidate pass rate
+
+The suite-level `passRate` (77.8%, 14/18) blends two kinds of rows that mean
+opposite things for this harness shape: `baseline-evidence` rows are
+*supposed* to fail (a passing baseline means the case tests nothing), while
+`candidate-guidance` rows are the real pass/fail signal. A flat suite pass
+rate is not the right headline metric here — the per-row `category` and the
+report's row table are the correct signal, not the aggregate. This is
+tracked as an open decision in `docs/ROADMAP.md` Phase 4B rather than
+resolved silently.
+
 ## Status
 
 This adapter and CLI wiring exist **locally only**, in a worktree of

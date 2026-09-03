@@ -138,4 +138,44 @@ describe('runner adapter', () => {
       lifecycle: { status: 'deprecated', note: 'legacy case' },
     });
   });
+
+  it('carries taxonomy fields through the default row mapper without requiring mapRow', () => {
+    const report = createEvalReportArtifact(
+      {
+        run: { id: 'run-7' },
+        cases: [
+          {
+            suite: 'quality',
+            passed: true,
+            kind: 'agent',
+            datasetId: 'dataset-v1',
+            scenarioId: 'scenario-1',
+            rubricId: 'rubric-v1',
+            promptVersion: 'prompt-v1',
+            agentChannel: 'production',
+            agentVersion: 'agent-v2',
+            judgeModel: 'judge-v1',
+            judgeVerdict: true,
+            judgeCategory: 'passed',
+            judgeReasoning: 'matched rubric',
+          },
+        ],
+      },
+      { generatedAt },
+    );
+
+    expect(report.rows[0]).toMatchObject({
+      kind: 'agent',
+      datasetId: 'dataset-v1',
+      scenarioId: 'scenario-1',
+      rubricId: 'rubric-v1',
+      promptVersion: 'prompt-v1',
+      agentChannel: 'production',
+      agentVersion: 'agent-v2',
+      judgeModel: 'judge-v1',
+      judgeVerdict: true,
+      judgeCategory: 'passed',
+      judgeReasoning: 'matched rubric',
+    });
+  });
 });
