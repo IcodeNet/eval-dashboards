@@ -41,6 +41,8 @@
     "dev": "tsx src/cli/index.ts",
     "example:llm-agent-evals": "tsx examples/llm-agent-evals/run-local-agent-evals.ts",
     "example:llm-agent-report": "pnpm example:llm-agent-evals && pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
+    "example:financial-domain-ollama-evals": "tsx examples/financial-domain-ollama-evals/run-financial-domain-evals.ts",
+    "example:financial-domain-ollama-report": "pnpm example:financial-domain-ollama-evals && pnpm dev report --input=examples/financial-domain-ollama-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
     "metrics:adoption": "tsx scripts/collect-adoption-metrics.ts",
     "prepare": "node -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', { stdio: 'inherit' }); } else { console.log('skip lefthook install (no .git)'); }\"",
     "prepack": "pnpm build",

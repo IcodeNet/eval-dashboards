@@ -7,6 +7,7 @@ Required examples live under `examples/`:
 - `jest-custom-reporter`
 - `vitest-evals`
 - `llm-agent-evals`
+- `financial-domain-ollama-evals`
 - `github-actions`
 - `azure-devops`
 - `static-html-dashboard`
@@ -82,6 +83,18 @@ For a real local agent or assistant playground, keep the same artifact boundary:
 - Put provider-specific request ids, token counts, or trace urls in `metadata`.
 - Keep `suiteManifests.datasetVersion` and `suiteManifests.rubricVersion` stable unless the dataset or rubric actually changed.
 - Add a second run before judging improvement, because latest-vs-previous comparisons need a baseline.
+
+## `financial-domain-ollama-evals`
+
+Use this as the reference for a real local model in a regulated domain. Unlike `llm-agent-evals`, the agent call is a genuine HTTP request to a locally running [Ollama](https://ollama.com) model — no mocked responses:
+
+```sh
+pnpm example:financial-domain-ollama-report
+```
+
+Requires Ollama running locally with a model pulled; see [examples/financial-domain-ollama-evals/README.md](../examples/financial-domain-ollama-evals/README.md) for setup. If Ollama is not reachable, the runner logs a message and exits cleanly without writing an artifact — treat live-model suites as opt-in when infrastructure is absent, the same policy the CI-tiers guidance in [ROADMAP.md](ROADMAP.md) recommends.
+
+The example demonstrates a `blocking` refusal-safety gate (`riskArea: 'compliance'`) alongside a `report-only` factual-quality suite — the two gate modes a regulated-domain chat agent typically needs side by side.
 
 ## Planned Examples
 
