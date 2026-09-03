@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] — 2026-09-03
+
+### Added
+
+- `EvalRow.expectedOutcome: 'pass' | 'fail'` — lets a row declare that failing is its expected/correct outcome (e.g. an A/B harness's baseline row, which should reproduce a mistake as proof the case tests something). Matches the `xfail`/expected-failure convention from pytest/JUnit rather than a bespoke category string. Rows without it default to "expected to pass", same as `passed` behaves today — fully backward-compatible.
+- `rowMatchedExpectation()` helper (exported from the package root) — whether a row's actual outcome matched its declared `expectedOutcome`.
+- `EvalSummary.matchedExpectation` / `expectationMismatches` / `matchedExpectationRate` — alongside the existing `passed` / `passRate`, for suites that mix expected-fail and expected-pass rows where a flat pass rate is misleading.
+- `expectation-mismatch` lint warning when a row's actual outcome disagrees with its declared `expectedOutcome`.
+- `minMatchedExpectationRate` gate config option and matching `--min-matched-expectation-rate` CLI flag, as the correct alternative to `minPassRate` for A/B-shaped suites.
+- `RunnerEvalCaseResult` (the input type for `writeEvalReportArtifact`/`createEvalReportArtifact`) now accepts `kind`, `datasetId`, `scenarioId`, `rubricId`, `judgeModel`/`judgeVerdict`/`judgeCategory`/`judgeReasoning`, `promptVersion`, `agentChannel`, `agentVersion` directly — `createDefaultRow` copies them through without requiring the `mapRow` escape hatch.
+
+### Fixed
+
+- Real-world adoption case study (`docs/case-studies/assistant-ui/README.md`, running this package against `assistant-ui/assistant-ui`'s own eval harness) surfaced both gaps above: taxonomy fields were silently dropped from the default row mapper, and the suite pass rate was misleading for baseline/candidate-shaped suites. Both are fixed in this release.
+
+---
+
 ## [0.6.0] — 2026-08-06
 
 ### Added
