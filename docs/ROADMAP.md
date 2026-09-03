@@ -326,7 +326,7 @@ Real user friction (missing presets, awkward adapter ergonomics, schema gaps) is
 ### Backlog
 
 - [x] Author `SKILL.md` for "adopt eval-dashboards into an existing repo" (inspect runner → adapter → CI wiring → PR) — see `skills/eval-dashboards-adopt/SKILL.md`, linked from README
-- [ ] Validate the skill end-to-end against at least one of this repo's own runner examples (Vitest, Jest, plain Node) as a dry run before pointing it at an external repo
+- [x] Validate the skill end-to-end against a synthetic target repo (ad-hoc `run.mjs` with no `eval-report/v1` knowledge) — installed the package via npm from local tarball path, wrote a thin adapter with `writeEvalReportArtifact`, then ran `lint` (0 errors, correctly flagged missing `kind`/`severity` as warnings), `check` (gates passed), and `report` (HTML rendered real rows) — all exited 0. Confirms `skills/eval-dashboards-adopt/SKILL.md` ships via `npm install` (package.json `files` fix works) and the procedure holds up against a genuinely external, non-eval-dashboards-aware runner.
 - [ ] Decide distribution channel(s) for the skill itself (public skill registry, npm companion package, docs-linked download) — verify skill-format cross-agent compatibility is mature enough before committing build time
 - [ ] Use each skill run as an adoption-funnel event: log outcome in `docs/community-partnership-log.md`, feed friction back into `docs/industry-coverage-audit.md` / this roadmap
 - [ ] Only after real external friction is observed: prioritize the P0/P1 preset gaps in `docs/industry-coverage-audit.md` (`agency-boundary`, `sensitive-disclosure`, etc.) against actual reported gaps rather than guesswork
