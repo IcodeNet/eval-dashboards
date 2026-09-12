@@ -441,13 +441,13 @@ Make onboarding and ecosystem fit obvious in one place: setup path, CI path, tax
 
 ### 4C.1 Docs site foundation on GitHub Pages (P0)
 
-- [x] Create a docs-site structure under version control (for example `docs-site/` or equivalent static-docs layout) and publish via GitHub Pages workflow.
+- [ ] Create a docs-site structure under version control (for example `docs-site/` or equivalent static-docs layout) and publish via GitHub Pages workflow (workflow is committed; deployment blocked until repo Pages permissions/settings are enabled).
 - [x] Keep docs fully static and repo-owned (no hosted dependency required).
 - [x] Add versioned navigation sections for: Getting Started, CLI, Schema/Taxonomy, CI Gates, Publishing, Integrations.
 
 Acceptance criteria:
 
-- A stable public docs URL exists and is generated from this repository on merge to main.
+- A stable public docs URL exists and is generated from this repository on merge to main (currently blocked by GitHub Pages permission/settings on this repo).
 - Every core CLI command page includes runnable examples.
 
 ### 4C.2 CLI-first onboarding path (P0)

@@ -120,7 +120,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ### Phase 4C docs-site adoption checklist (in progress)
 
-- [x] 4C.1 Stand up static product docs site on GitHub Pages.
+- [ ] 4C.1 Stand up static product docs site on GitHub Pages (workflow committed; deployment currently blocked by repo Pages permissions/settings).
 - [x] 4C.2 Publish CLI-first onboarding flow centered on `init` + local-agent setup prompts.
 - [x] 4C.3 Publish interoperability guides (Promptfoo, DeepEval, OpenEvals/AgentEvals, trace stacks).
 - [ ] 4C.4 Add assistant-ui reference integration case study with reproducible commands.
