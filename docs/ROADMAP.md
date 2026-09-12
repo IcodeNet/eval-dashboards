@@ -504,8 +504,8 @@ Acceptance criteria:
 
 ### 4C.5 Adoption measurement for docs effectiveness (P1)
 
-- [ ] Add lightweight docs adoption signals (page-to-action checks, integration example usage markers, docs update cadence).
-- [ ] Track friction points as documentation backlog items, not only product backlog items.
+- [x] Add lightweight docs adoption signals (page-to-action checks, integration example usage markers, docs update cadence).
+- [x] Track friction points as documentation backlog items, not only product backlog items.
 
 Acceptance criteria:
 
@@ -604,12 +604,11 @@ Acceptance criteria:
 
 **Short term (next 2–3 weeks):**
 3. Publish assistant-ui reference integration case study (4C.4)
-4. Add docs-adoption measurement loop (4C.5)
-5. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
-6. Continue dataset-governance hardening in lint/check preflight
+4. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
+5. Continue dataset-governance hardening in lint/check preflight
 
 **Medium term:**
-7. External adoption push and community feedback loop
+6. External adoption push and community feedback loop
 
 ---
 

@@ -434,6 +434,8 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - [CLI help snapshots](docs/cli-help/) — exact `--help` outputs tracked for truth-sync
 - [Publishing](docs/publishing.md) — GitHub Pages, Azure, custom
 - [Integrations ("Works with" guides)](docs/integrations/README.md) — Promptfoo, DeepEval, OpenAI/AgentEvals, Anthropic methodology, Langfuse, Weave, Phoenix, Braintrust, Ragas, TruLens, Patronus, trace stacks
+- [Adoption feedback loop](docs/adoption-feedback-loop.md) — weekly page-to-action checks, usage markers, and cadence signals
+- [Docs adoption friction backlog](docs/adoption-friction-backlog.md) — documentation blockers tracked with owner/severity/next action
 - [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating with GitHub Pages data branch
 - [Roadmap](docs/ROADMAP.md) — phases and adoption plan
 - [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)

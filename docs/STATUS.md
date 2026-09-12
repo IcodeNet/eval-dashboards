@@ -124,7 +124,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] 4C.2 Publish CLI-first onboarding flow centered on `init` + local-agent setup prompts.
 - [x] 4C.3 Publish interoperability guides (Promptfoo, DeepEval, OpenEvals/AgentEvals, trace stacks).
 - [ ] 4C.4 Add assistant-ui reference integration case study with reproducible commands.
-- [ ] 4C.5 Add docs-adoption measurement loop and friction backlog.
+- [x] 4C.5 Add docs-adoption measurement loop and friction backlog.
 - [x] 4C.6 Run docs truth-sync sweep across README/ROADMAP/STATUS/help/publishing/examples.
 - [x] 4C.7 Expand interoperability docs for supplementary eval toolchains and operations stack guidance.
 - [x] 4C.8 Add integration risk register (runtime/version drift, sidecar dependencies, schema drift, cloud coupling, synthetic overfitting).

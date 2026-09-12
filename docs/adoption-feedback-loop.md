@@ -1,45 +1,77 @@
 # Adoption Feedback Loop
 
-This runbook closes the Phase 4 feedback-loop requirement by making adoption tracking repeatable and reviewable.
+This runbook makes docs-adoption measurement repeatable and ties friction directly to a documentation backlog.
 
-## Weekly loop
+## Weekly operating loop
 
 1. Confirm `.github/workflows/adoption-metrics.yml` ran (or trigger it manually).
 2. Review `docs/adoption-metrics/latest.json`.
-3. Update `docs/adoption-metrics/manual-signals.json` with:
-   - confirmed external runner adoptions
-   - confirmed schema citations
-   - active outreach and pilot status
-4. Log outreach activity in `docs/community-partnership-log.md`.
-5. Add notable changes to `CHANGELOG.md` when they affect product direction.
+3. Update `docs/adoption-metrics/manual-signals.json` with maintainer-verified outcomes.
+4. Run page-to-action and cadence checks, then update `docs/adoption-friction-backlog.md`.
+5. Prioritize next docs edits using the highest-severity unresolved friction items.
+6. Log outreach and partnership stage changes in `docs/community-partnership-log.md`.
 
-## Automation
+## Signals tracked (lightweight)
 
-- Workflow: `.github/workflows/adoption-metrics.yml`
-- Schedule: every Monday at 06:30 UTC
-- Manual trigger: Actions -> Adoption Metrics -> Run workflow
-- Commit behavior: updates `docs/adoption-metrics/latest.json` (and `manual-signals.json` only if changed)
+### 1) Page-to-action checks
 
-## Signals and ownership
+Goal: each key docs page should let a new team complete one concrete action in under 10 minutes.
 
-- Automated signals:
-  - npm weekly downloads
-  - GitHub stars/forks/issues
-  - GitHub code-search count for schema citation hints
-- Manual verified signals:
-  - external runner adoptions
-  - schema citations verified by maintainers
-  - outreach started and active pilot count
+Track these checks weekly:
 
-## Exit criteria for partnership readiness
+- Getting Started -> successful `init` run (`eval-dashboards init --preset=agent-quality --write`).
+- CLI page -> successful `lint/check/report` run on one maintained example.
+- Publishing page -> successful static publish dry run or target publish run.
+- Integrations page -> successful `import` conversion for at least one external tool output.
 
-The outreach pipeline is healthy when all of the following are true:
+If a check fails, open a new `DOC-F###` row in `docs/adoption-friction-backlog.md` before the review ends.
 
-- outreach started and tracked each week
-- at least one active pilot exists
-- at least one external runner has emitted taxonomy-complete artifacts
+### 2) Integration example usage markers
+
+Goal: know which interoperability docs are actually used.
+
+Track these markers:
+
+- Number of distinct integration pages updated in the last 30 days.
+- Number of maintained examples validated by the `examples` job in `.github/workflows/ci.yml`.
+- Number of verified external-tool import runs logged by maintainers.
+
+### 3) Docs update cadence
+
+Goal: prevent stale guidance.
+
+Track these cadence checks:
+
+- Days since last docs truth-sync commit touching README/ROADMAP/STATUS/publishing/examples/help snapshots.
+- Days since last integration guide refresh.
+- Days since last adoption-metrics refresh.
+
+If any cadence check exceeds 30 days, open a new `DOC-F###` row in the backlog.
+
+## Ownership
+
+- Workflow owner: repository maintainers.
+- Metrics refresh owner: repository maintainers.
+- Friction triage owner: repository maintainers.
+
+## Friction triage policy
+
+- Every unresolved docs friction item must live in `docs/adoption-friction-backlog.md` with severity, owner, and next action.
+- Assign the next sequential `DOC-F###` identifier when adding an item.
+- Include signal source and opened date so priority is based on observed friction, not intuition.
+- Friction items are documentation backlog work, not only product backlog work.
+
+## Exit criteria for healthy adoption loop
+
+All conditions must be true for two consecutive weekly reviews:
+
+- Page-to-action checks pass for Getting Started, CLI, Publishing, and Integrations.
+- Friction backlog has no unresolved Critical items older than 14 days.
+- At least one external-tool import path is verified during the week.
+- Docs cadence checks are green (no key doc stale for >30 days).
 
 ## Notes
 
-- External adoption outcomes are real-world KPIs and remain ongoing.
-- Roadmap completion here means the tracking and execution loop is implemented in-repo.
+- For weekly checks, record pass/fail outcomes in the friction backlog and use `manual-signals.json` `notes` for a one-line summary.
+- External adoption outcomes are ongoing KPIs; completion means the loop exists and is actively used.
+- Keep this process runner-agnostic and artifact-first: prioritize `eval-report/v1` conversion quality over tool-specific UI flows.
