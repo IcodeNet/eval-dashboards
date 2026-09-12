@@ -368,9 +368,9 @@ Acceptance criteria:
 
 ### 4B.4 Statistical gating mode (P2)
 
-- [ ] Add optional confidence-aware regression gates (for example bootstrap confidence interval over pass-rate deltas).
-- [ ] Keep deterministic threshold gates as default; statistical mode remains opt-in.
-- [ ] Show confidence context in markdown/html summaries.
+- [x] Add optional confidence-aware regression gates (bootstrap confidence interval over pass-rate deltas vs baseline).
+- [x] Keep deterministic threshold gates as default; statistical mode remains opt-in.
+- [x] Show confidence context in markdown/html summaries.
 
 Acceptance criteria:
 
@@ -529,9 +529,9 @@ Acceptance criteria:
 ## 🎯 Recommended next steps (prioritized by impact)
 
 **Immediate (next 1–2 weeks):**
-1. Start Phase 4B.4 optional statistical gating mode
-   - Keep deterministic thresholds as default
-   - Add confidence context to markdown/html summaries when statistical mode is enabled
+1. Start Phase 4B.7 human adjudication package
+   - Export unresolved rows into adjudication bundles
+   - Merge reviewer verdicts back with provenance trail
 2. Keep CI-native machine outputs as the 4B.6 follow-on slice
    - ensure one-hop links from CI failures back to row-level evidence
 
@@ -541,8 +541,8 @@ Acceptance criteria:
 5. Continue dataset-governance hardening in lint/check preflight
 
 **Medium term:**
-6. Statistical gate mode after sample-size/stability prerequisites (4B.4)
-7. Human adjudication package (4B.7)
+6. Human adjudication package hardening and UX polish (4B.7)
+7. Cost-quality frontier and benchmark packs (4B.8)
 8. External adoption push and community feedback loop
 
 ---

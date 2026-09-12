@@ -401,6 +401,57 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Latency p95');
   });
 
+  it('renders statistical confidence context in markdown and html when bootstrap mode is enabled', async () => {
+    const reportDir = await createTempDir();
+    const previous: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-stat-prev', generatedAt: '2026-08-03T11:00:00.000Z' },
+      suites: [{ id: 'quality', total: 4, passed: 2, failed: 2 }],
+      rows: [
+        { id: 'p1', suite: 'quality', passed: true },
+        { id: 'p2', suite: 'quality', passed: true },
+        { id: 'p3', suite: 'quality', passed: false },
+        { id: 'p4', suite: 'quality', passed: false },
+      ],
+    };
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-stat-current', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 4, passed: 3, failed: 1 }],
+      rows: [
+        { id: 'c1', suite: 'quality', passed: true },
+        { id: 'c2', suite: 'quality', passed: true },
+        { id: 'c3', suite: 'quality', passed: true },
+        { id: 'c4', suite: 'quality', passed: false },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous,
+        history: [],
+        comparison: compareRuns(current, previous),
+        reportDir,
+        statistical: {
+          mode: 'bootstrap',
+          confidenceLevel: 0.9,
+          bootstrapSamples: 400,
+          minPassRateDelta: 0,
+        },
+      },
+      ['markdown-summary', 'html'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).toContain('| Statistical context | bootstrap CI (90%, n=400)');
+    expect(md).toContain('required min Δ=0.000');
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Statistical context');
+    expect(html).toContain('bootstrap CI (90%, n=400)');
+  });
+
   it('renders gate policy source links and report reference section', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

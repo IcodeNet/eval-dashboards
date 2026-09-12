@@ -2,6 +2,12 @@ import type { RunComparison } from '../history/history.js';
 import { type EvalReportV1, summarizeReport } from '../model/eval-report-v1.js';
 import type { BaselineCompatibilityResult } from '../model/eval-report-v1.js';
 import { lintReportTaxonomy } from './lint-taxonomy.js';
+import {
+  bootstrapPassRateDelta,
+  validateStatisticalGateConfig,
+  type StatisticalGateConfig,
+  type StatisticalGateMode,
+} from './statistical.js';
 
 export type NewFailureKeyMode =
   | 'row'
@@ -28,6 +34,7 @@ export type GateConfig = {
   failOnWarningCodes?: string[];
   newFailureKey?: NewFailureKeyMode;
   requiredPassingSuites?: string[];
+  statistical?: StatisticalGateConfig;
 };
 
 export type GateResult = {
@@ -80,6 +87,7 @@ export const checkGates = (
   comparison: RunComparison,
   config: GateConfig,
   baselineCompatibility?: BaselineCompatibilityResult,
+  previousReport?: EvalReportV1,
 ): GateResult => {
   const summary = summarizeReport(report);
   const failures: string[] = [];
@@ -301,6 +309,52 @@ export const checkGates = (
       .map(([code, count]) => `${code}=${count}`)
       .join(', ');
     diagnostics.push(`Lint warning breakdown: ${warningBreakdown}`);
+  }
+
+  const statistical = config.statistical;
+  const statisticalMode = statistical?.mode ?? 'off';
+  const statisticalConfigErrors = validateStatisticalGateConfig(statistical);
+  if (statisticalConfigErrors.length > 0) {
+    failures.push(
+      ...statisticalConfigErrors.map((message) => `Invalid statistical gate config: ${message}`),
+    );
+  }
+  if (statisticalMode === 'bootstrap' && statisticalConfigErrors.length === 0) {
+    if (!previousReport) {
+      failures.push('Statistical gating mode requires a baseline run (none selected).');
+    } else {
+      const currentOutcomes: number[] = report.rows.map((row) => (row.passed ? 1 : 0));
+      const previousOutcomes: number[] = previousReport.rows.map((row) => (row.passed ? 1 : 0));
+      const confidenceLevel = statistical?.confidenceLevel ?? 0.95;
+      const bootstrapSamples = Math.max(200, Math.floor(statistical?.bootstrapSamples ?? 2000));
+      const minPassRateDelta = statistical?.minPassRateDelta ?? 0;
+
+      if (currentOutcomes.length === 0 || previousOutcomes.length === 0) {
+        failures.push(
+          'Statistical gating mode requires non-empty current and baseline rows to estimate pass-rate confidence.',
+        );
+      } else if (currentOutcomes.length !== previousOutcomes.length) {
+        failures.push(
+          `Statistical gating mode requires comparable row counts for current and baseline runs (current=${currentOutcomes.length}, baseline=${previousOutcomes.length}).`,
+        );
+      } else {
+        const stats = bootstrapPassRateDelta(currentOutcomes, previousOutcomes, {
+          confidenceLevel,
+          bootstrapSamples,
+          seedHint: `${report.run.id}:${previousReport.run.id}`,
+        });
+
+        diagnostics.push(
+          `Statistical gate (bootstrap, confidence=${stats.confidenceLevel.toFixed(2)}, samples=${stats.bootstrapSamples}): observed ΔpassRate=${stats.observedDelta.toFixed(3)}, CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min Δ=${minPassRateDelta.toFixed(3)}.`,
+        );
+
+        if (stats.upperBound < minPassRateDelta) {
+          failures.push(
+            `Statistical gate failed: upper confidence bound for pass-rate delta ${stats.upperBound.toFixed(3)} is below required ${minPassRateDelta.toFixed(3)}.`,
+          );
+        }
+      }
+    }
   }
 
   return {

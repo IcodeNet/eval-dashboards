@@ -11,6 +11,10 @@ import {
 import { readEvalReports, writeJsonFile, writeTextFile } from '../io/reports.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
+import {
+  type StatisticalGateMode,
+  validateStatisticalGateConfig,
+} from '../gates/statistical.js';
 import { publishReport, type PublishTarget } from '../publish/publish.js';
 import {
   renderGroupedIndexHtml,
@@ -143,6 +147,25 @@ const gateConfigFromOptions = (
   const parsedNewFailureKey = allowedNewFailureKeys.includes(newFailureKey as NewFailureKeyMode)
     ? (newFailureKey as NewFailureKeyMode)
     : undefined;
+  const statisticalMode = statisticalModeFromOptions(options);
+  const confidenceLevel = optionNumber(options, 'confidence-level');
+  const bootstrapSamples = optionNumber(options, 'bootstrap-samples');
+  const minPassRateDelta = optionNumber(options, 'min-pass-rate-delta');
+  const statisticalFields = {
+    mode: statisticalMode,
+    confidenceLevel,
+    bootstrapSamples,
+    minPassRateDelta,
+  };
+  const statistical =
+    statisticalMode !== undefined ||
+    confidenceLevel !== undefined ||
+    bootstrapSamples !== undefined ||
+    minPassRateDelta !== undefined
+      ? (Object.fromEntries(
+        Object.entries(statisticalFields).filter(([, value]) => value !== undefined),
+      ) as NonNullable<GateConfig['statistical']>)
+      : undefined;
 
   return {
     minPassRate: optionNumber(options, 'min-pass-rate'),
@@ -154,6 +177,7 @@ const gateConfigFromOptions = (
     failOnWarningCodes: optionStrings(options, 'fail-on-warning-code', []),
     newFailureKey: parsedNewFailureKey,
     requiredPassingSuites: optionStrings(options, 'require-suite-pass', []),
+    ...(statistical ? { statistical } : {}),
   };
 };
 
@@ -179,6 +203,26 @@ const reportProfileFromOptions = (
   });
 };
 
+const statisticalModeFromOptions = (
+  options: Record<string, string | boolean | string[]>,
+): StatisticalGateMode | undefined => {
+  const mode = optionString(options, 'statistical-mode', '').trim().toLowerCase();
+  if (!mode) return undefined;
+  if (mode === 'off' || mode === 'bootstrap') return mode;
+  throw Object.assign(new Error(`Unknown statistical mode ${mode}. Use off or bootstrap.`), {
+    exitCode: 2,
+  });
+};
+
+const assertValidStatisticalGateConfig = (gateConfig: GateConfig): void => {
+  const errors = validateStatisticalGateConfig(gateConfig.statistical);
+  if (errors.length > 0) {
+    throw Object.assign(new Error(`Invalid statistical gate config: ${errors[0]}`), {
+      exitCode: 2,
+    });
+  }
+};
+
 const main = async (): Promise<void> => {
   const rawArgs = process.argv.slice(2);
   const { command, options } = parseArgs(rawArgs);
@@ -202,6 +246,16 @@ const main = async (): Promise<void> => {
       failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
       newFailureKey: fileConfig.gates?.newFailureKey,
       requiredPassingSuites: fileConfig.gates?.requiredPassingSuites,
+      statistical: {
+        mode: statisticalModeFromOptions(options) ?? fileConfig.gates?.statistical?.mode,
+        confidenceLevel:
+          optionNumber(options, 'confidence-level') ?? fileConfig.gates?.statistical?.confidenceLevel,
+        bootstrapSamples:
+          optionNumber(options, 'bootstrap-samples') ?? fileConfig.gates?.statistical?.bootstrapSamples,
+        minPassRateDelta:
+          optionNumber(options, 'min-pass-rate-delta') ??
+          fileConfig.gates?.statistical?.minPassRateDelta,
+      },
     },
   });
 
@@ -365,7 +419,14 @@ const main = async (): Promise<void> => {
     const reporters = (config.reporters ?? ['html', 'text']) as ReporterName[];
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
     const locale = optionString(options, 'locale', '') || config.locale;
-    const outputs = await renderReports({ ...context, theme, locale, profile }, reporters);
+    assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });
+    const outputs = await renderReports({
+      ...context,
+      theme,
+      locale,
+      profile,
+      statistical: config.gates?.statistical,
+    }, reporters);
     console.log(outputs.join('\n'));
     return;
   }
@@ -389,16 +450,26 @@ const main = async (): Promise<void> => {
       baselineLookback,
     });
     const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
-    const gateConfig = {
+    const cliGateOverrides = gateConfigFromOptions(options);
+    const gateConfig: GateConfig = {
       ...(config.gates ?? {}),
-      ...gateConfigFromOptions(options),
+      ...cliGateOverrides,
       ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
     };
+
+    if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
+      gateConfig.statistical = {
+        ...(config.gates?.statistical ?? {}),
+        ...(cliGateOverrides.statistical ?? {}),
+      };
+    }
+    assertValidStatisticalGateConfig(gateConfig);
     const result = checkGates(
       context.current,
       context.comparison,
       gateConfig,
       context.baselineCompatibility,
+      context.previous,
     );
 
     if (result.passed) {

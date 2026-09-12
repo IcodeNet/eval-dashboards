@@ -39,6 +39,10 @@ Initial gates:
 - `failOnWarningCodes`
 - `requiredPassingSuites`
 - `newFailureKey`
+- `statistical.mode` (`off` or `bootstrap`)
+- `statistical.confidenceLevel`
+- `statistical.bootstrapSamples`
+- `statistical.minPassRateDelta`
 
 Example:
 
@@ -70,6 +74,15 @@ Baseline-aware options:
 - `--baseline-strategy=rolling|champion`: choose baseline from discovered prior runs when `--baseline-run-id` is omitted.
 - `--baseline-lookback=<n>`: restrict baseline candidates to the most recent `n` prior runs before strategy selection.
 
+Statistical gate options (opt-in):
+
+- `--statistical-mode=off|bootstrap`: enable confidence-aware pass-rate delta gating (default `off`).
+- `--confidence-level=<0..1>`: confidence interval level for bootstrap mode (default `0.95`).
+- `--bootstrap-samples=<n>`: number of bootstrap resamples (integer, minimum `200`, default `2000`).
+- `--min-pass-rate-delta=<n>`: minimum acceptable pass-rate delta vs baseline. The gate fails only when the bootstrap confidence interval is fully below this threshold (upper bound `< n`).
+
+Current assumption: bootstrap draws are unpaired across all rows in each run (not scenario-paired resampling), and row counts must match between current and baseline runs. Use this as a conservative run-le...[truncated]
+
 Typical workflow policies:
 
 ```sh
@@ -81,6 +94,9 @@ eval-dashboards check --input=.evals_output --baseline-strategy=champion --basel
 
 # Strict live policy: require preflight pass and bound warning risk.
 eval-dashboards check --input=.evals_output --require-suite-pass=preflight --new-failure-key=scenario-category --max-new-failures=0 --max-warnings=5 --max-warning-code=missing-kind:0 --fail-on-warning-code=missing-judge-model --zero-critical
+
+# Statistical policy: require confidence that pass-rate delta is not regressing vs baseline.
+eval-dashboards check --input=.evals_output --baseline-strategy=rolling --statistical-mode=bootstrap --confidence-level=0.95 --bootstrap-samples=2000 --min-pass-rate-delta=0
 ```
 
 Fast preflight lint before expensive eval stages:

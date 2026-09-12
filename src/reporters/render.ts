@@ -11,6 +11,7 @@ import {
 } from '../model/eval-report-v1.js';
 import { writeJsonFile, writeTextFile } from '../io/reports.js';
 import { formatDate, formatPassRate, formatDuration } from '../utils/format.js';
+import { bootstrapPassRateDelta, type StatisticalGateConfig } from '../gates/statistical.js';
 import {
   resolveTheme,
   renderCssVariables,
@@ -30,6 +31,7 @@ export type ReportContext = {
   theme?: string | Partial<EvalReportsTheme>;
   locale?: string;
   profile?: ReportProfile;
+  statistical?: StatisticalGateConfig;
 };
 
 type GroupedIndexGroup = {
@@ -102,11 +104,32 @@ const renderText = (context: ReportContext): string => {
   ].join('\n');
 };
 
+const statisticalContextSummary = (context: ReportContext): string | undefined => {
+  const mode = context.statistical?.mode ?? 'off';
+  if (mode !== 'bootstrap') return undefined;
+  if (!context.previous) return 'bootstrap mode enabled; baseline unavailable for confidence interval';
+
+  const currentOutcomes: number[] = context.current.rows.map((row) => (row.passed ? 1 : 0));
+  const previousOutcomes: number[] = context.previous.rows.map((row) => (row.passed ? 1 : 0));
+  if (currentOutcomes.length === 0 || previousOutcomes.length === 0) {
+    return 'bootstrap mode enabled; non-empty current and baseline rows are required for confidence interval';
+  }
+
+  const stats = bootstrapPassRateDelta(currentOutcomes, previousOutcomes, {
+    confidenceLevel: context.statistical?.confidenceLevel,
+    bootstrapSamples: context.statistical?.bootstrapSamples,
+    seedHint: `${context.current.run.id}:${context.previous.run.id}`,
+  });
+  const minPassRateDelta = context.statistical?.minPassRateDelta ?? 0;
+  return `bootstrap CI (${(stats.confidenceLevel * 100).toFixed(0)}%, n=${stats.bootstrapSamples}) ΔpassRate=${stats.observedDelta.toFixed(3)} CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min Δ=${minPassRateDelta.toFixed(3)}`;
+};
+
 const renderMarkdown = (context: ReportContext): string => {
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
   const durationStats = calculateDurationStats(context.current.rows);
   const provenance = reportProvenance(context.current);
+  const statisticalSummary = statisticalContextSummary(context);
   const lines = [
     '# Eval Report',
     '',
@@ -118,6 +141,7 @@ const renderMarkdown = (context: ReportContext): string => {
     `| New failures | ${context.comparison.newlyFailing.length} |`,
     `| New passes | ${context.comparison.newlyPassing.length} |`,
     `| Baseline compatibility | ${context.baselineCompatibility?.status ?? 'not compared'} |`,
+    ...(statisticalSummary ? [`| Statistical context | ${statisticalSummary} |`] : []),
     `| Provenance | ${provenance.label} |`,
     `| Dataset changelog entries | ${changelogCount} |`,
   ];
@@ -1082,6 +1106,7 @@ const renderHtml = (context: ReportContext): string => {
   const failingRows = rows.filter((r) => !r.passed);
   const guardrailSummary = summarizeGuardrailRows(current);
   const guardrailProfileEnabled = context.profile === 'guardrail';
+  const statisticalSummary = statisticalContextSummary(context);
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
   const passClass = summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
@@ -1376,6 +1401,17 @@ ${renderCssVariables(theme)}
       body: gatePolicyTable(current),
       summaryTone: compatibilityTone,
     })}
+
+    ${statisticalSummary
+      ? renderCollapsibleSection({
+        id: 'statistical-context',
+        title: 'Statistical context',
+        summary: statisticalSummary,
+        summaryTone: statisticalSummary.includes('required') || statisticalSummary.includes('unavailable') ? 'warn' : 'pass',
+        body: `<div style="padding:12px 16px;color:var(--muted)">${e(statisticalSummary)}</div>`,
+      })
+      : ''
+    }
 
     ${(() => {
       const passRates = context.history.length > 0

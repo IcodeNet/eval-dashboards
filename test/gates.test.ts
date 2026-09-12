@@ -23,6 +23,26 @@ const current: EvalReportV1 = {
   ],
 };
 
+const buildBinaryRateReport = (
+  runId: string,
+  suite: string,
+  total: number,
+  passed: number,
+): EvalReportV1 => {
+  const rows = Array.from({ length: total }, (_, idx) => ({
+    id: `${suite}-${idx + 1}`,
+    suite,
+    passed: idx < passed,
+  }));
+
+  return {
+    schemaVersion: 'eval-report/v1',
+    run: { id: runId, generatedAt: '2026-07-31T10:00:00.000Z' },
+    suites: [{ id: suite, total, passed, failed: total - passed }],
+    rows,
+  };
+};
+
 describe('checkGates', () => {
   it('fails when pass rate, new failure, and critical gates are breached', () => {
     const result = checkGates(current, compareRuns(current, previous), {
@@ -462,5 +482,115 @@ describe('checkGates', () => {
       minMatchedExpectationRate: 0.9,
     });
     expect(expectationResult.passed).toBe(true);
+  });
+
+  it('fails bootstrap statistical gate when upper confidence bound drops below required delta', () => {
+    const previousReport = buildBinaryRateReport('baseline-stat-fail', 'quality', 240, 204);
+    const currentReport = buildBinaryRateReport('current-stat-fail', 'quality', 240, 156);
+
+    const result = checkGates(
+      currentReport,
+      compareRuns(currentReport, previousReport),
+      {
+        statistical: {
+          mode: 'bootstrap',
+          confidenceLevel: 0.95,
+          bootstrapSamples: 3000,
+          minPassRateDelta: 0,
+        },
+      },
+      undefined,
+      previousReport,
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.some((line) => line.includes('Statistical gate failed'))).toBe(true);
+    expect(result.diagnostics.some((line) => line.includes('Statistical gate (bootstrap'))).toBe(true);
+  });
+
+  it('passes bootstrap statistical gate when upper confidence bound meets required delta', () => {
+    const previousReport = buildBinaryRateReport('baseline-stat-pass', 'quality', 240, 168);
+    const currentReport = buildBinaryRateReport('current-stat-pass', 'quality', 240, 204);
+
+    const result = checkGates(
+      currentReport,
+      compareRuns(currentReport, previousReport),
+      {
+        statistical: {
+          mode: 'bootstrap',
+          confidenceLevel: 0.95,
+          bootstrapSamples: 3000,
+          minPassRateDelta: 0,
+        },
+      },
+      undefined,
+      previousReport,
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.failures).toHaveLength(0);
+    expect(result.diagnostics.some((line) => line.includes('CI=['))).toBe(true);
+  });
+
+  it('fails bootstrap statistical gate when baseline run is missing', () => {
+    const result = checkGates(
+      current,
+      compareRuns(current, undefined),
+      {
+        statistical: {
+          mode: 'bootstrap',
+          confidenceLevel: 0.95,
+          bootstrapSamples: 1000,
+          minPassRateDelta: 0,
+        },
+      },
+      undefined,
+      undefined,
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.failures).toContain('Statistical gating mode requires a baseline run (none selected).');
+  });
+
+  it('passes bootstrap statistical gate when identical runs are within uncertainty bounds', () => {
+    const previousReport = buildBinaryRateReport('baseline-stat-same', 'quality', 120, 108);
+    const currentReport = buildBinaryRateReport('current-stat-same', 'quality', 120, 108);
+
+    const result = checkGates(
+      currentReport,
+      compareRuns(currentReport, previousReport),
+      {
+        statistical: {
+          mode: 'bootstrap',
+          confidenceLevel: 0.95,
+          bootstrapSamples: 3000,
+          minPassRateDelta: 0,
+        },
+      },
+      undefined,
+      previousReport,
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.failures).toHaveLength(0);
+  });
+
+  it('fails with invalid statistical bootstrap config even when called directly as a library function', () => {
+    const result = checkGates(
+      current,
+      compareRuns(current, previous),
+      {
+        statistical: {
+          mode: 'bootstrap',
+          confidenceLevel: 1.5,
+          bootstrapSamples: 100,
+        },
+      },
+      undefined,
+      previous,
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.some((line) => line.includes('Invalid statistical gate config'))).toBe(true);
   });
 });

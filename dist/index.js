@@ -711,6 +711,88 @@ function lintReportsTaxonomy(reports) {
   };
 }
 
+// src/gates/statistical.ts
+var validateStatisticalGateConfig = (config) => {
+  if (!config || config.mode !== "bootstrap") return [];
+  const errors = [];
+  if (config.confidenceLevel !== void 0 && (config.confidenceLevel <= 0 || config.confidenceLevel >= 1)) {
+    errors.push("statistical.confidenceLevel must be > 0 and < 1");
+  }
+  if (config.bootstrapSamples !== void 0 && (!Number.isFinite(config.bootstrapSamples) || config.bootstrapSamples < 200)) {
+    errors.push("statistical.bootstrapSamples must be >= 200");
+  }
+  return errors;
+};
+var quantile = (values, q) => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const clampedQ = Math.min(1, Math.max(0, q));
+  const index = (sorted.length - 1) * clampedQ;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower] ?? 0;
+  const weight = index - lower;
+  const lowerValue = sorted[lower] ?? 0;
+  const upperValue = sorted[upper] ?? lowerValue;
+  return lowerValue + (upperValue - lowerValue) * weight;
+};
+var hashSeed = (text) => {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+var mulberry32 = (seed) => {
+  let t = seed >>> 0;
+  return () => {
+    t += 1831565813;
+    let r = Math.imul(t ^ t >>> 15, 1 | t);
+    r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+};
+var bootstrapMean = (values, random) => {
+  let sum = 0;
+  for (let i = 0; i < values.length; i += 1) {
+    const idx = Math.floor(random() * values.length);
+    sum += values[idx] ?? 0;
+  }
+  return values.length > 0 ? sum / values.length : 0;
+};
+var bootstrapPassRateDelta = (currentOutcomes, previousOutcomes, options) => {
+  const confidenceLevel = options?.confidenceLevel ?? 0.95;
+  if (!(confidenceLevel > 0 && confidenceLevel < 1)) {
+    throw new Error("statistical.confidenceLevel must be > 0 and < 1");
+  }
+  const bootstrapSamples = Math.floor(options?.bootstrapSamples ?? 2e3);
+  if (!Number.isFinite(bootstrapSamples) || bootstrapSamples < 200) {
+    throw new Error("statistical.bootstrapSamples must be >= 200");
+  }
+  const observedCurrentRate = currentOutcomes.reduce((sum, value) => sum + value, 0) / currentOutcomes.length;
+  const observedPreviousRate = previousOutcomes.reduce((sum, value) => sum + value, 0) / previousOutcomes.length;
+  const observedDelta = observedCurrentRate - observedPreviousRate;
+  const alpha = 1 - confidenceLevel;
+  const seed = hashSeed(`${options?.seedHint ?? ""}:${bootstrapSamples}`);
+  const random = mulberry32(seed);
+  const deltas = [];
+  for (let i = 0; i < bootstrapSamples; i += 1) {
+    const sampledCurrentRate = bootstrapMean(currentOutcomes, random);
+    const sampledPreviousRate = bootstrapMean(previousOutcomes, random);
+    deltas.push(sampledCurrentRate - sampledPreviousRate);
+  }
+  return {
+    observedCurrentRate,
+    observedPreviousRate,
+    observedDelta,
+    lowerBound: quantile(deltas, alpha / 2),
+    upperBound: quantile(deltas, 1 - alpha / 2),
+    confidenceLevel,
+    bootstrapSamples
+  };
+};
+
 // src/gates/check-gates.ts
 var canonicalFailureKey = (suite, id, scenarioId, category, mode) => {
   if (mode === "scenario" && scenarioId) return `${suite}:${scenarioId}`;
@@ -738,7 +820,7 @@ var topFailureReasons = (report) => {
   }
   return [...buckets.entries()].sort((left, right) => right[1] - left[1]).slice(0, 5).map(([reason, count]) => `${reason}=${count}`);
 };
-var checkGates = (report, comparison, config, baselineCompatibility) => {
+var checkGates = (report, comparison, config, baselineCompatibility, previousReport) => {
   const summary = summarizeReport(report);
   const failures = [];
   const diagnostics = [];
@@ -885,6 +967,48 @@ var checkGates = (report, comparison, config, baselineCompatibility) => {
   if (lintWarnings.length > 0) {
     const warningBreakdown = [...lintWarningCounts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 8).map(([code, count]) => `${code}=${count}`).join(", ");
     diagnostics.push(`Lint warning breakdown: ${warningBreakdown}`);
+  }
+  const statistical = config.statistical;
+  const statisticalMode = statistical?.mode ?? "off";
+  const statisticalConfigErrors = validateStatisticalGateConfig(statistical);
+  if (statisticalConfigErrors.length > 0) {
+    failures.push(
+      ...statisticalConfigErrors.map((message) => `Invalid statistical gate config: ${message}`)
+    );
+  }
+  if (statisticalMode === "bootstrap" && statisticalConfigErrors.length === 0) {
+    if (!previousReport) {
+      failures.push("Statistical gating mode requires a baseline run (none selected).");
+    } else {
+      const currentOutcomes = report.rows.map((row) => row.passed ? 1 : 0);
+      const previousOutcomes = previousReport.rows.map((row) => row.passed ? 1 : 0);
+      const confidenceLevel = statistical?.confidenceLevel ?? 0.95;
+      const bootstrapSamples = Math.max(200, Math.floor(statistical?.bootstrapSamples ?? 2e3));
+      const minPassRateDelta = statistical?.minPassRateDelta ?? 0;
+      if (currentOutcomes.length === 0 || previousOutcomes.length === 0) {
+        failures.push(
+          "Statistical gating mode requires non-empty current and baseline rows to estimate pass-rate confidence."
+        );
+      } else if (currentOutcomes.length !== previousOutcomes.length) {
+        failures.push(
+          `Statistical gating mode requires comparable row counts for current and baseline runs (current=${currentOutcomes.length}, baseline=${previousOutcomes.length}).`
+        );
+      } else {
+        const stats = bootstrapPassRateDelta(currentOutcomes, previousOutcomes, {
+          confidenceLevel,
+          bootstrapSamples,
+          seedHint: `${report.run.id}:${previousReport.run.id}`
+        });
+        diagnostics.push(
+          `Statistical gate (bootstrap, confidence=${stats.confidenceLevel.toFixed(2)}, samples=${stats.bootstrapSamples}): observed \u0394passRate=${stats.observedDelta.toFixed(3)}, CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min \u0394=${minPassRateDelta.toFixed(3)}.`
+        );
+        if (stats.upperBound < minPassRateDelta) {
+          failures.push(
+            `Statistical gate failed: upper confidence bound for pass-rate delta ${stats.upperBound.toFixed(3)} is below required ${minPassRateDelta.toFixed(3)}.`
+          );
+        }
+      }
+    }
   }
   return {
     passed: failures.length === 0,

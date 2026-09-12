@@ -141,6 +141,7 @@ contains_check "completion bash suggests --runner" "$COMP_BASH" "--runner"
 contains_check "completion bash suggests --ci" "$COMP_BASH" "--ci"
 contains_check "completion bash suggests --playbook" "$COMP_BASH" "--playbook"
 contains_check "completion bash suggests --profile" "$COMP_BASH" "--profile"
+contains_check "completion bash suggests --statistical-mode" "$COMP_BASH" "--statistical-mode"
 contains_check "completion bash suggests --from" "$COMP_BASH" "--from"
 contains_check "completion bash binds evd alias" "$COMP_BASH" "complete -F _eval_dashboards_completions evd"
 
@@ -151,6 +152,7 @@ contains_check "completion zsh binds evd alias" "$COMP_ZSH" "compdef _eval_dashb
 COMP_FISH="$(run_cli completion --shell=fish || true)"
 contains_check "completion fish header" "$COMP_FISH" "# eval-dashboards shell completion (fish)"
 contains_check "completion fish includes completion subcommand" "$COMP_FISH" "__fish_use_subcommand\" -a \"completion\""
+contains_check "completion fish suggests statistical modes" "$COMP_FISH" "--statistical-mode\" -a \"off bootstrap\""
 
 set +e
 INVALID_SHELL_OUTPUT="$(run_cli completion --shell=bad 2>&1)"
@@ -203,6 +205,92 @@ else
 fi
 contains_check "invalid report profile error text" "$INVALID_PROFILE_OUTPUT" "Unknown report profile bad"
 rm -rf "$TMP_GUARDRAIL_DIR"
+
+printf '\n== statistical gate profile ==\n'
+TMP_STAT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/evd-stat-XXXXXX")"
+cat > "$TMP_STAT_DIR/baseline.json" <<'JSON'
+{
+  "schemaVersion": "eval-report/v1",
+  "run": { "id": "baseline-stat", "generatedAt": "2026-09-12T00:00:00.000Z" },
+  "suites": [{ "id": "quality", "total": 4, "passed": 4, "failed": 0 }],
+  "rows": [
+    { "id": "b1", "suite": "quality", "passed": true },
+    { "id": "b2", "suite": "quality", "passed": true },
+    { "id": "b3", "suite": "quality", "passed": true },
+    { "id": "b4", "suite": "quality", "passed": true }
+  ]
+}
+JSON
+cat > "$TMP_STAT_DIR/current.json" <<'JSON'
+{
+  "schemaVersion": "eval-report/v1",
+  "run": { "id": "current-stat", "generatedAt": "2026-09-12T00:01:00.000Z" },
+  "suites": [{ "id": "quality", "total": 4, "passed": 2, "failed": 2 }],
+  "rows": [
+    { "id": "c1", "suite": "quality", "passed": true },
+    { "id": "c2", "suite": "quality", "passed": true },
+    { "id": "c3", "suite": "quality", "passed": false },
+    { "id": "c4", "suite": "quality", "passed": false }
+  ]
+}
+JSON
+set +e
+STAT_FAIL_OUTPUT="$(run_cli check --input="$TMP_STAT_DIR" --run-id=current-stat --baseline-run-id=baseline-stat --statistical-mode=bootstrap --confidence-level=0.95 --bootstrap-samples=400 --min-pass-rate-delta=0.3 2>&1)"
+STAT_FAIL_EXIT=$?
+set -e
+if [ "$STAT_FAIL_EXIT" -eq 1 ]; then
+  pass "statistical gate regression exits 1"
+else
+  fail "statistical gate regression exits 1 (got $STAT_FAIL_EXIT)"
+fi
+contains_check "statistical gate regression reports failure" "$STAT_FAIL_OUTPUT" "Statistical gate failed"
+
+cat > "$TMP_STAT_DIR/eval-dashboards.config.cjs" <<'JS'
+module.exports = {
+  input: '.',
+  gates: {
+    statistical: {
+      mode: 'bootstrap',
+      confidenceLevel: 0.95,
+      bootstrapSamples: 400,
+      minPassRateDelta: 0.3,
+    },
+  },
+};
+JS
+set +e
+STAT_CONFIG_OUTPUT="$(cd "$TMP_STAT_DIR" && node "$CLI_PATH" check --input=. --baseline-run-id=baseline-stat 2>&1)"
+STAT_CONFIG_EXIT=$?
+set -e
+if [ "$STAT_CONFIG_EXIT" -eq 1 ]; then
+  pass "statistical gate from config exits 1"
+else
+  fail "statistical gate from config exits 1 (got $STAT_CONFIG_EXIT)"
+fi
+contains_check "statistical gate from config reports failure" "$STAT_CONFIG_OUTPUT" "Statistical gate failed"
+
+set +e
+STAT_CONFIG_PARTIAL_OVERRIDE_OUTPUT="$(cd "$TMP_STAT_DIR" && node "$CLI_PATH" check --input=. --baseline-run-id=baseline-stat --confidence-level=0.9 2>&1)"
+STAT_CONFIG_PARTIAL_OVERRIDE_EXIT=$?
+set -e
+if [ "$STAT_CONFIG_PARTIAL_OVERRIDE_EXIT" -eq 0 ] || [ "$STAT_CONFIG_PARTIAL_OVERRIDE_EXIT" -eq 1 ]; then
+  pass "statistical gate with partial CLI override evaluates"
+else
+  fail "statistical gate with partial CLI override evaluates (got $STAT_CONFIG_PARTIAL_OVERRIDE_EXIT)"
+fi
+contains_check "statistical gate with partial CLI override keeps bootstrap mode" "$STAT_CONFIG_PARTIAL_OVERRIDE_OUTPUT" "Statistical gate (bootstrap"
+
+set +e
+INVALID_STAT_MODE_OUTPUT="$(run_cli check --input="$TMP_STAT_DIR" --statistical-mode=bad 2>&1)"
+INVALID_STAT_MODE_EXIT=$?
+set -e
+if [ "$INVALID_STAT_MODE_EXIT" -eq 2 ]; then
+  pass "invalid statistical mode exits 2"
+else
+  fail "invalid statistical mode exits 2 (got $INVALID_STAT_MODE_EXIT)"
+fi
+contains_check "invalid statistical mode error text" "$INVALID_STAT_MODE_OUTPUT" "Unknown statistical mode bad"
+rm -rf "$TMP_STAT_DIR"
 
 printf '\n== import command (promptfoo) ==\n'
 TMP_IMPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/evd-import-XXXXXX")"

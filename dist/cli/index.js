@@ -852,6 +852,88 @@ function lintReportsTaxonomy(reports) {
   };
 }
 
+// src/gates/statistical.ts
+var validateStatisticalGateConfig = (config) => {
+  if (!config || config.mode !== "bootstrap") return [];
+  const errors = [];
+  if (config.confidenceLevel !== void 0 && (config.confidenceLevel <= 0 || config.confidenceLevel >= 1)) {
+    errors.push("statistical.confidenceLevel must be > 0 and < 1");
+  }
+  if (config.bootstrapSamples !== void 0 && (!Number.isFinite(config.bootstrapSamples) || config.bootstrapSamples < 200)) {
+    errors.push("statistical.bootstrapSamples must be >= 200");
+  }
+  return errors;
+};
+var quantile = (values, q) => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const clampedQ = Math.min(1, Math.max(0, q));
+  const index = (sorted.length - 1) * clampedQ;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower] ?? 0;
+  const weight = index - lower;
+  const lowerValue = sorted[lower] ?? 0;
+  const upperValue = sorted[upper] ?? lowerValue;
+  return lowerValue + (upperValue - lowerValue) * weight;
+};
+var hashSeed = (text) => {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+var mulberry32 = (seed) => {
+  let t = seed >>> 0;
+  return () => {
+    t += 1831565813;
+    let r = Math.imul(t ^ t >>> 15, 1 | t);
+    r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+};
+var bootstrapMean = (values, random) => {
+  let sum = 0;
+  for (let i = 0; i < values.length; i += 1) {
+    const idx = Math.floor(random() * values.length);
+    sum += values[idx] ?? 0;
+  }
+  return values.length > 0 ? sum / values.length : 0;
+};
+var bootstrapPassRateDelta = (currentOutcomes, previousOutcomes, options) => {
+  const confidenceLevel = options?.confidenceLevel ?? 0.95;
+  if (!(confidenceLevel > 0 && confidenceLevel < 1)) {
+    throw new Error("statistical.confidenceLevel must be > 0 and < 1");
+  }
+  const bootstrapSamples = Math.floor(options?.bootstrapSamples ?? 2e3);
+  if (!Number.isFinite(bootstrapSamples) || bootstrapSamples < 200) {
+    throw new Error("statistical.bootstrapSamples must be >= 200");
+  }
+  const observedCurrentRate = currentOutcomes.reduce((sum, value) => sum + value, 0) / currentOutcomes.length;
+  const observedPreviousRate = previousOutcomes.reduce((sum, value) => sum + value, 0) / previousOutcomes.length;
+  const observedDelta = observedCurrentRate - observedPreviousRate;
+  const alpha = 1 - confidenceLevel;
+  const seed = hashSeed(`${options?.seedHint ?? ""}:${bootstrapSamples}`);
+  const random = mulberry32(seed);
+  const deltas = [];
+  for (let i = 0; i < bootstrapSamples; i += 1) {
+    const sampledCurrentRate = bootstrapMean(currentOutcomes, random);
+    const sampledPreviousRate = bootstrapMean(previousOutcomes, random);
+    deltas.push(sampledCurrentRate - sampledPreviousRate);
+  }
+  return {
+    observedCurrentRate,
+    observedPreviousRate,
+    observedDelta,
+    lowerBound: quantile(deltas, alpha / 2),
+    upperBound: quantile(deltas, 1 - alpha / 2),
+    confidenceLevel,
+    bootstrapSamples
+  };
+};
+
 // src/gates/check-gates.ts
 var canonicalFailureKey = (suite, id, scenarioId, category, mode) => {
   if (mode === "scenario" && scenarioId) return `${suite}:${scenarioId}`;
@@ -879,7 +961,7 @@ var topFailureReasons = (report) => {
   }
   return [...buckets.entries()].sort((left, right) => right[1] - left[1]).slice(0, 5).map(([reason, count]) => `${reason}=${count}`);
 };
-var checkGates = (report, comparison, config, baselineCompatibility) => {
+var checkGates = (report, comparison, config, baselineCompatibility, previousReport) => {
   const summary = summarizeReport(report);
   const failures = [];
   const diagnostics = [];
@@ -1026,6 +1108,48 @@ var checkGates = (report, comparison, config, baselineCompatibility) => {
   if (lintWarnings.length > 0) {
     const warningBreakdown = [...lintWarningCounts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 8).map(([code, count]) => `${code}=${count}`).join(", ");
     diagnostics.push(`Lint warning breakdown: ${warningBreakdown}`);
+  }
+  const statistical = config.statistical;
+  const statisticalMode = statistical?.mode ?? "off";
+  const statisticalConfigErrors = validateStatisticalGateConfig(statistical);
+  if (statisticalConfigErrors.length > 0) {
+    failures.push(
+      ...statisticalConfigErrors.map((message) => `Invalid statistical gate config: ${message}`)
+    );
+  }
+  if (statisticalMode === "bootstrap" && statisticalConfigErrors.length === 0) {
+    if (!previousReport) {
+      failures.push("Statistical gating mode requires a baseline run (none selected).");
+    } else {
+      const currentOutcomes = report.rows.map((row) => row.passed ? 1 : 0);
+      const previousOutcomes = previousReport.rows.map((row) => row.passed ? 1 : 0);
+      const confidenceLevel = statistical?.confidenceLevel ?? 0.95;
+      const bootstrapSamples = Math.max(200, Math.floor(statistical?.bootstrapSamples ?? 2e3));
+      const minPassRateDelta = statistical?.minPassRateDelta ?? 0;
+      if (currentOutcomes.length === 0 || previousOutcomes.length === 0) {
+        failures.push(
+          "Statistical gating mode requires non-empty current and baseline rows to estimate pass-rate confidence."
+        );
+      } else if (currentOutcomes.length !== previousOutcomes.length) {
+        failures.push(
+          `Statistical gating mode requires comparable row counts for current and baseline runs (current=${currentOutcomes.length}, baseline=${previousOutcomes.length}).`
+        );
+      } else {
+        const stats = bootstrapPassRateDelta(currentOutcomes, previousOutcomes, {
+          confidenceLevel,
+          bootstrapSamples,
+          seedHint: `${report.run.id}:${previousReport.run.id}`
+        });
+        diagnostics.push(
+          `Statistical gate (bootstrap, confidence=${stats.confidenceLevel.toFixed(2)}, samples=${stats.bootstrapSamples}): observed \u0394passRate=${stats.observedDelta.toFixed(3)}, CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min \u0394=${minPassRateDelta.toFixed(3)}.`
+        );
+        if (stats.upperBound < minPassRateDelta) {
+          failures.push(
+            `Statistical gate failed: upper confidence bound for pass-rate delta ${stats.upperBound.toFixed(3)} is below required ${minPassRateDelta.toFixed(3)}.`
+          );
+        }
+      }
+    }
   }
   return {
     passed: failures.length === 0,
@@ -1378,11 +1502,29 @@ var renderText = (context) => {
     `Baseline:         ${context.baselineCompatibility?.status ?? "not compared"}`
   ].join("\n");
 };
+var statisticalContextSummary = (context) => {
+  const mode = context.statistical?.mode ?? "off";
+  if (mode !== "bootstrap") return void 0;
+  if (!context.previous) return "bootstrap mode enabled; baseline unavailable for confidence interval";
+  const currentOutcomes = context.current.rows.map((row) => row.passed ? 1 : 0);
+  const previousOutcomes = context.previous.rows.map((row) => row.passed ? 1 : 0);
+  if (currentOutcomes.length === 0 || previousOutcomes.length === 0) {
+    return "bootstrap mode enabled; non-empty current and baseline rows are required for confidence interval";
+  }
+  const stats = bootstrapPassRateDelta(currentOutcomes, previousOutcomes, {
+    confidenceLevel: context.statistical?.confidenceLevel,
+    bootstrapSamples: context.statistical?.bootstrapSamples,
+    seedHint: `${context.current.run.id}:${context.previous.run.id}`
+  });
+  const minPassRateDelta = context.statistical?.minPassRateDelta ?? 0;
+  return `bootstrap CI (${(stats.confidenceLevel * 100).toFixed(0)}%, n=${stats.bootstrapSamples}) \u0394passRate=${stats.observedDelta.toFixed(3)} CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min \u0394=${minPassRateDelta.toFixed(3)}`;
+};
 var renderMarkdown = (context) => {
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
   const durationStats = calculateDurationStats(context.current.rows);
   const provenance = reportProvenance(context.current);
+  const statisticalSummary = statisticalContextSummary(context);
   const lines = [
     "# Eval Report",
     "",
@@ -1394,6 +1536,7 @@ var renderMarkdown = (context) => {
     `| New failures | ${context.comparison.newlyFailing.length} |`,
     `| New passes | ${context.comparison.newlyPassing.length} |`,
     `| Baseline compatibility | ${context.baselineCompatibility?.status ?? "not compared"} |`,
+    ...statisticalSummary ? [`| Statistical context | ${statisticalSummary} |`] : [],
     `| Provenance | ${provenance.label} |`,
     `| Dataset changelog entries | ${changelogCount} |`
   ];
@@ -2100,6 +2243,7 @@ var renderHtml = (context) => {
   const failingRows = rows.filter((r) => !r.passed);
   const guardrailSummary = summarizeGuardrailRows(current);
   const guardrailProfileEnabled = context.profile === "guardrail";
+  const statisticalSummary = statisticalContextSummary(context);
   const compatStatus = compat?.status ?? "not compared";
   const compatClass = compatStatus === "blocked" ? "fail" : compatStatus === "warning" ? "warn" : "pass";
   const passClass = summary.passRate >= 0.9 ? "pass" : summary.passRate >= 0.6 ? "warn" : "fail";
@@ -2395,6 +2539,14 @@ Failed: ${suite.failed}`;
     body: gatePolicyTable(current),
     summaryTone: compatibilityTone
   })}
+
+    ${statisticalSummary ? renderCollapsibleSection({
+    id: "statistical-context",
+    title: "Statistical context",
+    summary: statisticalSummary,
+    summaryTone: statisticalSummary.includes("required") || statisticalSummary.includes("unavailable") ? "warn" : "pass",
+    body: `<div style="padding:12px 16px;color:var(--muted)">${e(statisticalSummary)}</div>`
+  }) : ""}
 
     ${(() => {
     const passRates = context.history.length > 0 ? context.history.map((h) => h.passRate) : [summary.passRate];
@@ -3498,7 +3650,11 @@ var checkFlags = [
   "--baseline-run-id",
   "--baseline-strategy",
   "--baseline-lookback",
-  "--allow-blocked-baseline"
+  "--allow-blocked-baseline",
+  "--statistical-mode",
+  "--confidence-level",
+  "--bootstrap-samples",
+  "--min-pass-rate-delta"
 ];
 var reportFlags = [
   "--input",
@@ -3510,7 +3666,11 @@ var reportFlags = [
   "--baseline-run-id",
   "--baseline-strategy",
   "--baseline-lookback",
-  "--profile"
+  "--profile",
+  "--statistical-mode",
+  "--confidence-level",
+  "--bootstrap-samples",
+  "--min-pass-rate-delta"
 ];
 var importFlags = ["--from", "--input", "--out", "--suite", "--help"];
 var optionValues = {
@@ -3520,7 +3680,8 @@ var optionValues = {
   ci: ["github", "azure", "none"],
   shell: ["bash", "zsh", "fish"],
   importSource: ["promptfoo", "deepeval", "agentevals", "openevals"],
-  reportProfile: ["default", "guardrail"]
+  reportProfile: ["default", "guardrail"],
+  statisticalMode: ["off", "bootstrap"]
 };
 var detectShell = (shellHint) => {
   const source = shellHint ?? process.env.SHELL ?? "";
@@ -3565,6 +3726,7 @@ var renderBash = () => {
     `    --shell) COMPREPLY=( $(compgen -W "${optionValues.shell.join(" ")}" -- "\${cur}") ); return ;;`,
     `    --from) COMPREPLY=( $(compgen -W "${optionValues.importSource.join(" ")}" -- "\${cur}") ); return ;;`,
     `    --profile) COMPREPLY=( $(compgen -W "${optionValues.reportProfile.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --statistical-mode) COMPREPLY=( $(compgen -W "${optionValues.statisticalMode.join(" ")}" -- "\${cur}") ); return ;;`,
     "  esac",
     "",
     "  if [[ ${COMP_CWORD} -eq 1 ]]; then",
@@ -3628,6 +3790,7 @@ var renderZsh = () => {
     --shell) _values "shell" ${optionValues.shell.join(" ")} ;;
     --from) _values "import source" ${optionValues.importSource.join(" ")} ;;
     --profile) _values "report profile" ${optionValues.reportProfile.join(" ")} ;;
+    --statistical-mode) _values "statistical mode" ${optionValues.statisticalMode.join(" ")} ;;
   esac`,
     "}",
     "",
@@ -3685,7 +3848,8 @@ var renderFish = () => {
       `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --ci" -a "${optionValues.ci.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from completion; and __fish_prev_arg_in --shell" -a "${optionValues.shell.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from import; and __fish_prev_arg_in --from" -a "${optionValues.importSource.join(" ")}"`,
-      `complete -c ${cliName} -n "__fish_seen_subcommand_from report; and __fish_prev_arg_in --profile" -a "${optionValues.reportProfile.join(" ")}"`
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from report; and __fish_prev_arg_in --profile" -a "${optionValues.reportProfile.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from report check; and __fish_prev_arg_in --statistical-mode" -a "${optionValues.statisticalMode.join(" ")}"`
     );
   }
   return lines.join("\n");
@@ -4243,6 +4407,19 @@ var gateConfigFromOptions = (options) => {
     "id-category"
   ];
   const parsedNewFailureKey = allowedNewFailureKeys.includes(newFailureKey) ? newFailureKey : void 0;
+  const statisticalMode = statisticalModeFromOptions(options);
+  const confidenceLevel = optionNumber(options, "confidence-level");
+  const bootstrapSamples = optionNumber(options, "bootstrap-samples");
+  const minPassRateDelta = optionNumber(options, "min-pass-rate-delta");
+  const statisticalFields = {
+    mode: statisticalMode,
+    confidenceLevel,
+    bootstrapSamples,
+    minPassRateDelta
+  };
+  const statistical = statisticalMode !== void 0 || confidenceLevel !== void 0 || bootstrapSamples !== void 0 || minPassRateDelta !== void 0 ? Object.fromEntries(
+    Object.entries(statisticalFields).filter(([, value]) => value !== void 0)
+  ) : void 0;
   return {
     minPassRate: optionNumber(options, "min-pass-rate"),
     minMatchedExpectationRate: optionNumber(options, "min-matched-expectation-rate"),
@@ -4252,7 +4429,8 @@ var gateConfigFromOptions = (options) => {
     maxWarningsByCode: Object.keys(maxWarningsByCode).length > 0 ? maxWarningsByCode : void 0,
     failOnWarningCodes: optionStrings(options, "fail-on-warning-code", []),
     newFailureKey: parsedNewFailureKey,
-    requiredPassingSuites: optionStrings(options, "require-suite-pass", [])
+    requiredPassingSuites: optionStrings(options, "require-suite-pass", []),
+    ...statistical ? { statistical } : {}
   };
 };
 var baselineStrategyFromOptions = (options) => {
@@ -4271,6 +4449,22 @@ var reportProfileFromOptions = (options) => {
     exitCode: 2
   });
 };
+var statisticalModeFromOptions = (options) => {
+  const mode = optionString(options, "statistical-mode", "").trim().toLowerCase();
+  if (!mode) return void 0;
+  if (mode === "off" || mode === "bootstrap") return mode;
+  throw Object.assign(new Error(`Unknown statistical mode ${mode}. Use off or bootstrap.`), {
+    exitCode: 2
+  });
+};
+var assertValidStatisticalGateConfig = (gateConfig) => {
+  const errors = validateStatisticalGateConfig(gateConfig.statistical);
+  if (errors.length > 0) {
+    throw Object.assign(new Error(`Invalid statistical gate config: ${errors[0]}`), {
+      exitCode: 2
+    });
+  }
+};
 var main = async () => {
   const rawArgs = process.argv.slice(2);
   const { command, options } = parseArgs(rawArgs);
@@ -4288,7 +4482,13 @@ var main = async () => {
       maxWarningsByCode: fileConfig.gates?.maxWarningsByCode,
       failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
       newFailureKey: fileConfig.gates?.newFailureKey,
-      requiredPassingSuites: fileConfig.gates?.requiredPassingSuites
+      requiredPassingSuites: fileConfig.gates?.requiredPassingSuites,
+      statistical: {
+        mode: statisticalModeFromOptions(options) ?? fileConfig.gates?.statistical?.mode,
+        confidenceLevel: optionNumber(options, "confidence-level") ?? fileConfig.gates?.statistical?.confidenceLevel,
+        bootstrapSamples: optionNumber(options, "bootstrap-samples") ?? fileConfig.gates?.statistical?.bootstrapSamples,
+        minPassRateDelta: optionNumber(options, "min-pass-rate-delta") ?? fileConfig.gates?.statistical?.minPassRateDelta
+      }
     }
   });
   const input = config.input ? Array.isArray(config.input) ? config.input[0] ?? ".evals_output" : config.input : ".evals_output";
@@ -4416,7 +4616,14 @@ ${written.join("\n")}`);
     const reporters = config.reporters ?? ["html", "text"];
     const theme = optionString(options, "theme", "") || config.theme;
     const locale = optionString(options, "locale", "") || config.locale;
-    const outputs = await renderReports({ ...context, theme, locale, profile }, reporters);
+    assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });
+    const outputs = await renderReports({
+      ...context,
+      theme,
+      locale,
+      profile,
+      statistical: config.gates?.statistical
+    }, reporters);
     console.log(outputs.join("\n"));
     return;
   }
@@ -4438,16 +4645,25 @@ ${written.join("\n")}`);
       baselineLookback
     });
     const allowBlockedBaseline = optionBoolean(options, "allow-blocked-baseline");
+    const cliGateOverrides = gateConfigFromOptions(options);
     const gateConfig = {
       ...config.gates ?? {},
-      ...gateConfigFromOptions(options),
+      ...cliGateOverrides,
       ...allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}
     };
+    if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== void 0) {
+      gateConfig.statistical = {
+        ...config.gates?.statistical ?? {},
+        ...cliGateOverrides.statistical ?? {}
+      };
+    }
+    assertValidStatisticalGateConfig(gateConfig);
     const result = checkGates(
       context.current,
       context.comparison,
       gateConfig,
-      context.baselineCompatibility
+      context.baselineCompatibility,
+      context.previous
     );
     if (result.passed) {
       if (result.diagnostics.length > 0) {

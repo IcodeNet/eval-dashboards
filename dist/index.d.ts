@@ -241,6 +241,14 @@ type RunComparison = {
 declare const buildHistory: (reports: EvalReportV1[]) => RunHistoryEntry[];
 declare const compareRuns: (current: EvalReportV1, previous?: EvalReportV1) => RunComparison;
 
+type StatisticalGateMode = 'off' | 'bootstrap';
+type StatisticalGateConfig = {
+    mode?: StatisticalGateMode;
+    confidenceLevel?: number;
+    bootstrapSamples?: number;
+    minPassRateDelta?: number;
+};
+
 type NewFailureKeyMode = 'row' | 'scenario' | 'scenario-category' | 'id-category';
 type GateConfig = {
     minPassRate?: number;
@@ -261,13 +269,14 @@ type GateConfig = {
     failOnWarningCodes?: string[];
     newFailureKey?: NewFailureKeyMode;
     requiredPassingSuites?: string[];
+    statistical?: StatisticalGateConfig;
 };
 type GateResult = {
     passed: boolean;
     failures: string[];
     diagnostics: string[];
 };
-declare const checkGates: (report: EvalReportV1, comparison: RunComparison, config: GateConfig, baselineCompatibility?: BaselineCompatibilityResult) => GateResult;
+declare const checkGates: (report: EvalReportV1, comparison: RunComparison, config: GateConfig, baselineCompatibility?: BaselineCompatibilityResult, previousReport?: EvalReportV1) => GateResult;
 
 type TaxonomyLintLevel = 'error' | 'warning';
 type TaxonomyLintIssue = {

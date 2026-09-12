@@ -94,6 +94,12 @@ eval-dashboards check --input=.evals_output --baseline-strategy=champion --basel
 eval-dashboards check --input=.evals_output --require-suite-pass=preflight --new-failure-key=scenario-category --max-new-failures=0 --max-warnings=5 --max-warning-code=missing-kind:0 --fail-on-warning-code=missing-judge-model --zero-critical
 ```
 
+- Optional statistical policy (bootstrap CI on pass-rate delta vs baseline):
+
+```sh
+eval-dashboards check --input=.evals_output --baseline-strategy=rolling --statistical-mode=bootstrap --confidence-level=0.95 --bootstrap-samples=2000 --min-pass-rate-delta=0
+```
+
 See working examples:
 - **Vitest**: [examples/vitest-evals/README.md](examples/vitest-evals/README.md)
 - **Jest**: [examples/jest-custom-reporter/README.md](examples/jest-custom-reporter/README.md)

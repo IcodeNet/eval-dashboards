@@ -19,9 +19,11 @@ describe('completion command', () => {
     expect(script).toContain('--ci');
     expect(script).toContain('--playbook');
     expect(script).toContain('--profile');
+    expect(script).toContain('--statistical-mode');
     expect(script).toContain('--from');
     expect(script).toContain('promptfoo deepeval agentevals openevals');
     expect(script).toContain('default guardrail');
+    expect(script).toContain('off bootstrap');
     expect(script).toContain('--shell');
   });
 
@@ -35,8 +37,10 @@ describe('completion command', () => {
     expect(script).toContain('complete -c eval-dashboards -n "__fish_use_subcommand" -a "import"');
     expect(script).toContain('complete -c eval-dashboards -n "__fish_use_subcommand" -a "report"');
     expect(script).toContain('complete -c eval-dashboards -n "__fish_seen_subcommand_from report" -l profile');
+    expect(script).toContain('complete -c eval-dashboards -n "__fish_seen_subcommand_from check" -l statistical-mode');
     expect(script).toContain('complete -c evd -n "__fish_seen_subcommand_from completion" -a "install"');
     expect(script).toContain('__fish_prev_arg_in --profile" -a "default guardrail"');
+    expect(script).toContain('__fish_prev_arg_in --statistical-mode" -a "off bootstrap"');
     expect(script).toContain('evals judges multiturn');
   });
 

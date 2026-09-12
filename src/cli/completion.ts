@@ -63,6 +63,10 @@ const checkFlags = [
   '--baseline-strategy',
   '--baseline-lookback',
   '--allow-blocked-baseline',
+  '--statistical-mode',
+  '--confidence-level',
+  '--bootstrap-samples',
+  '--min-pass-rate-delta',
 ] as const;
 
 const reportFlags = [
@@ -76,6 +80,10 @@ const reportFlags = [
   '--baseline-strategy',
   '--baseline-lookback',
   '--profile',
+  '--statistical-mode',
+  '--confidence-level',
+  '--bootstrap-samples',
+  '--min-pass-rate-delta',
 ] as const;
 
 const importFlags = ['--from', '--input', '--out', '--suite', '--help'] as const;
@@ -88,6 +96,7 @@ const optionValues = {
   shell: ['bash', 'zsh', 'fish'],
   importSource: ['promptfoo', 'deepeval', 'agentevals', 'openevals'],
   reportProfile: ['default', 'guardrail'],
+  statisticalMode: ['off', 'bootstrap'],
 } as const;
 
 const detectShell = (shellHint?: string): CompletionShell => {
@@ -138,6 +147,7 @@ const renderBash = (): string => {
     `    --shell) COMPREPLY=( $(compgen -W "${optionValues.shell.join(' ')}" -- "\${cur}") ); return ;;`,
     `    --from) COMPREPLY=( $(compgen -W "${optionValues.importSource.join(' ')}" -- "\${cur}") ); return ;;`,
     `    --profile) COMPREPLY=( $(compgen -W "${optionValues.reportProfile.join(' ')}" -- "\${cur}") ); return ;;`,
+    `    --statistical-mode) COMPREPLY=( $(compgen -W "${optionValues.statisticalMode.join(' ')}" -- "\${cur}") ); return ;;`,
     '  esac',
     '',
     '  if [[ ${COMP_CWORD} -eq 1 ]]; then',
@@ -204,6 +214,7 @@ const renderZsh = (): string => {
     --shell) _values "shell" ${optionValues.shell.join(' ')} ;;
     --from) _values "import source" ${optionValues.importSource.join(' ')} ;;
     --profile) _values "report profile" ${optionValues.reportProfile.join(' ')} ;;
+    --statistical-mode) _values "statistical mode" ${optionValues.statisticalMode.join(' ')} ;;
   esac`,
     '}',
     '',
@@ -270,6 +281,7 @@ const renderFish = (): string => {
       `complete -c ${cliName} -n "__fish_seen_subcommand_from completion; and __fish_prev_arg_in --shell" -a "${optionValues.shell.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from import; and __fish_prev_arg_in --from" -a "${optionValues.importSource.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from report; and __fish_prev_arg_in --profile" -a "${optionValues.reportProfile.join(' ')}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from report check; and __fish_prev_arg_in --statistical-mode" -a "${optionValues.statisticalMode.join(' ')}"`,
     );
   }
 
