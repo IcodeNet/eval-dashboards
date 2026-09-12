@@ -78,12 +78,36 @@ export type EvalRow = {
   promptVersion?: string;
   agentChannel?: string;
   agentVersion?: string;
+  agentReasoning?: string;
   groundTruthVerdict?: boolean;
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
+  groundTruthAxisScores?: Record<string, number>;
   input?: string;
   output?: string;
   expected?: string;
+  turns?: Array<{
+    role: 'user' | 'assistant' | 'system' | 'tool';
+    content: string;
+    toolCall?: { name: string; args: Record<string, unknown> };
+    toolResult?: string;
+    timestamp?: string;
+    durationMs?: number;
+  }>;
+  toolCalls?: Array<{
+    name: string;
+    args?: Record<string, unknown>;
+    result?: string;
+    resultIsError?: boolean;
+    durationMs?: number;
+  }>;
+  trace?: {
+    traceId?: string;
+    spanId?: string;
+    traceUrl?: string;
+    spanUrl?: string;
+  };
+  axisScores?: Record<string, number>;
   passed: boolean;
   score?: number;
   severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
@@ -108,6 +132,8 @@ Agent and LLM judge reports should use the first-class optional judge fields ins
 - `agentChannel`: channel, environment, or release lane for an evaluated agent.
 - `agentVersion`: version of the evaluated agent or workflow.
 - `groundTruthVerdict`, `groundTruthCategory`, and `groundTruthAnnotation`: labelled calibration evidence for judge evals.
+- `trace.traceId`, `trace.spanId`: portable trace/span identifiers when available.
+- `trace.traceUrl`, `trace.spanUrl`: optional deep links to trace evidence that reporters can render as clickable links.
 
 When using judge-based groundedness/relevance suites, ensure rubric guidance does not penalize extra details that remain consistent with reference/context.
 
@@ -132,6 +158,7 @@ export type SuiteManifest = {
     | 'factuality'
     | 'response-quality'
     | 'tool-use'
+    | 'tool-routing'
     | 'groundedness'
     | 'relevance'
     | 'custom';

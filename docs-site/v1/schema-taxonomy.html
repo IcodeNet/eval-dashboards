@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="../styles.css" /><title>Schema/Taxonomy · eval-dashboards docs v1</title></head>
+<body><div class="container"><header><h1>Schema / Taxonomy <small>v1</small></h1><p>Artifact-first contract for runner-agnostic evals.</p></header>
+<nav><a href="./index.html">Home</a><a href="./getting-started.html">Getting Started</a><a href="./cli.html">CLI</a><a href="./ci-gates.html">CI Gates</a><a href="./publishing.html">Publishing</a><a href="./integrations.html">Integrations</a></nav>
+<main>
+<section><h2>Required minimum</h2><pre><code>{
+  "schemaVersion": "eval-report/v1",
+  "run": { "id": "local-run", "generatedAt": "2026-01-01T00:00:00.000Z" },
+  "suites": [{ "id": "quality", "total": 1, "passed": 1, "failed": 0 }],
+  "rows": [{ "id": "case-001", "suite": "quality", "passed": true }]
+}</code></pre></section>
+<section><h2>Taxonomy-complete row targets</h2><ul><li>Classification: <code>kind</code>, <code>severity</code>, <code>category</code></li><li>Agent evidence: <code>turns</code>, <code>toolCalls</code>, <code>agentVersion</code>, <code>promptVersion</code></li><li>Judge evidence: <code>judgeModel</code>, <code>judgeVerdict</code>, <code>judgeReasoning</code>, <code>axisScores</code></li><li>Stable IDs: <code>datasetId</code>, <code>scenarioId</code>, <code>rubricId</code></li><li>Trace links (optional): <code>trace.traceId</code>, <code>trace.spanId</code>, <code>trace.traceUrl</code>, <code>trace.spanUrl</code></li></ul></section>
+<section><h2>Suite governance targets</h2><ul><li><code>riskArea</code>, <code>datasetVersion</code>, <code>rubricVersion</code>, <code>graders</code></li><li><code>gate.mode</code> and explicit thresholds</li><li>Use additive optional fields for v1 evolution.</li></ul></section>
+<section><p>Deep references: <a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/artifact-format.md">docs/artifact-format.md</a>, <a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/taxonomy.md">docs/taxonomy.md</a>, <a href="https://github.com/IcodeNet/eval-dashboards/blob/main/schemas/eval-report-v1.schema.json">schemas/eval-report-v1.schema.json</a>.</p></section>
+</main></div></body></html>

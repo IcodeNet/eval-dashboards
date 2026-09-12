@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="../styles.css" /><title>Publishing · eval-dashboards docs v1</title></head>
+<body><div class="container"><header><h1>Publishing <small>v1</small></h1><p>Static outputs only; no hosted app required.</p></header>
+<nav><a href="./index.html">Home</a><a href="./getting-started.html">Getting Started</a><a href="./cli.html">CLI</a><a href="./schema-taxonomy.html">Schema/Taxonomy</a><a href="./ci-gates.html">CI Gates</a><a href="./integrations.html">Integrations</a></nav>
+<main>
+<section><h2>Local publish targets</h2><pre><code>eval-dashboards publish --target=dir --input=.evals_output --report-dir=eval-dashboard --out-dir=published-eval-report
+eval-dashboards publish --target=github-pages --dry-run --repo=owner/repo
+eval-dashboards publish --target=azure-static-webapp --dry-run --app-name=my-app
+eval-dashboards publish --target=azure-storage --dry-run --account=myaccount --container='$web'</code></pre></section>
+<section><h2>GitHub Pages deployment</h2><p>This repository now includes a Pages workflow that publishes <code>docs-site/</code> as a static site.</p><p>After first run, enable <strong>Settings → Pages → Build and deployment → GitHub Actions</strong>.</p></section>
+<section><p>More: <a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/publishing.md">docs/publishing.md</a>.</p></section>
+</main></div></body></html>

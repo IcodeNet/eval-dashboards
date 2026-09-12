@@ -38,6 +38,19 @@ Emit a taxonomy-complete `eval-report/v1` JSON artifact from any runner (Vitest,
 pnpm add -D @icodenet/eval-dashboards
 ```
 
+CLI names after install:
+
+```sh
+eval-dashboards --help
+evd --help
+```
+
+If you want a custom local alias, add it in your shell profile, for example:
+
+```sh
+alias myeval='evd'
+```
+
 ```sh
 # 1. Emit a taxonomy-complete artifact from your runner
 my-eval-runner --output=.evals_output/run-2026-08-05T170000Z.json
@@ -236,14 +249,34 @@ Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot 
 
 | Command | Description |
 |---|---|
-| `eval-dashboards report` | Generate HTML, text, Markdown, or JSON-summary dashboards from artifacts |
+| `eval-dashboards report` | Generate HTML, text, Markdown, or JSON-summary dashboards from artifacts (`--profile=guardrail` for attack-focused triage) |
 | `eval-dashboards report-index` | Generate grouped multi-report HTML index from discovered artifacts |
 | `eval-dashboards lint` | Run fast semantic/taxonomy preflight checks before expensive eval runs |
 | `eval-dashboards check` | Enforce pass-rate, new-failure, critical-severity, and suite-manifest gates |
 | `eval-dashboards publish` | Publish dashboard to `dir`, `github-pages`, Azure Static Web Apps, or Azure Storage |
 | `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |
 | `eval-dashboards merge` | Merge multiple artifacts into one |
+| `eval-dashboards teach` | Guided onboarding walkthrough (alias of `init --preset=agent-quality --teach`) |
 | `eval-dashboards init` | Print a starter config, or scaffold preset files with `--preset=agent-quality --write` |
+| `eval-dashboards completion` | Print or install shell completion for bash, zsh, or fish |
+| `eval-dashboards import` | Convert third-party eval output JSON to `eval-report/v1` (Promptfoo, DeepEval, AgentEvals; `openevals` alias supported) |
+
+Shell completion quick setup:
+
+```sh
+# auto-install for current shell (works for eval-dashboards + evd)
+eval-dashboards completion install
+
+# manual install examples
+eval-dashboards completion --shell=bash > ~/.eval-dashboards-completion.bash
+source ~/.eval-dashboards-completion.bash
+
+# import Promptfoo JSON output into eval-report/v1
+eval-dashboards import --from=promptfoo --input=./promptfoo-results.json --out=.evals_output/import-promptfoo.json
+
+# render guardrail-focused triage section for attack-style suites
+eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report
+```
 
 ---
 
@@ -361,13 +394,16 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 
 ## Documentation Index
 
+- [Static docs site (v1)](docs-site/v1/index.html) — versioned quickstart + CLI-first onboarding
 - [Taxonomy teaching guide](docs/taxonomy.md) — what makes a "complete" eval report
+- [Teach curriculum](docs/teach-curriculum.md) — detailed novice path from synthetic dataset to gates/history
 - [Artifact format](docs/artifact-format.md) — field-by-field reference
 - [JSON Schema](schemas/eval-report-v1.schema.json) — for validation and SDK generation
 - [Configuration](docs/configuration.md) — all config options
 - [Reporters](docs/reporters.md) — HTML, text, Markdown, JSON
 - [Gates](docs/gates.md) — quality gates and CI integration
 - [Publishing](docs/publishing.md) — GitHub Pages, Azure, custom
+- [Integrations ("Works with" guides)](docs/integrations/README.md) — Promptfoo, DeepEval, OpenEvals/AgentEvals, trace stacks
 - [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating with GitHub Pages data branch
 - [Roadmap](docs/ROADMAP.md) — phases and adoption plan
 - [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)

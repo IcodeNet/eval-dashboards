@@ -12,31 +12,48 @@ import { readEvalReports, writeJsonFile, writeTextFile } from '../io/reports.js'
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
 import { publishReport, type PublishTarget } from '../publish/publish.js';
-import { renderGroupedIndexHtml, renderReports, type ReporterName } from '../reporters/render.js';
+import {
+  renderGroupedIndexHtml,
+  renderReports,
+  type ReportProfile,
+  type ReporterName,
+} from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
 import { optionBoolean, optionNumber, optionString, optionStrings, parseArgs } from './args.js';
 import {
+  buildAgentQualitySetupPlaybook,
   buildAgentQualityScaffoldFiles,
   initUsage,
-  planScaffoldWrites,
+  renderAgentQualityDryRunMode,
   renderAgentQualityInitConfig,
   renderAgentQualityTeachMode,
   renderDefaultInitConfig,
+  resolveAgentQualityInitProfile,
   writeScaffoldFiles,
 } from './init-scaffold.js';
+import {
+  completionUsage,
+  installCompletion,
+  renderCompletionScript,
+  resolveCompletionShell,
+} from './completion.js';
+import { importFromSource, importUsage, resolveImportSource } from './import-adapters.js';
 import type { NewFailureKeyMode } from '../gates/check-gates.js';
 
 const usage = `eval-dashboards <command>
 
 Commands:
-  report   Generate HTML dashboards from eval-report/v1 artifacts.
+  report   Generate HTML dashboards from eval-report/v1 artifacts (use --profile=guardrail for attack-focused triage).
   report-index  Generate grouped multi-report HTML index from discovered artifacts.
   lint     Run fast semantic/taxonomy preflight checks on artifacts.
   check    Enforce eval quality gates.
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
   publish  Publish or dry-run publish for a static dashboard.
+  teach    Guided eval onboarding walkthrough (alias of init --preset=agent-quality --teach).
   init     Print starter config or scaffold preset files.
+  completion  Print shell completion script for bash/zsh/fish.
+  import   Convert third-party eval output JSON into eval-report/v1.
 `;
 
 type LoadContextOptions = {
@@ -151,8 +168,20 @@ const baselineStrategyFromOptions = (
   });
 };
 
+const reportProfileFromOptions = (
+  options: Record<string, string | boolean | string[]>,
+): ReportProfile | undefined => {
+  const profile = optionString(options, 'profile', '').trim().toLowerCase();
+  if (!profile || profile === 'default') return undefined;
+  if (profile === 'guardrail') return 'guardrail';
+  throw Object.assign(new Error(`Unknown report profile ${profile}. Use default or guardrail.`), {
+    exitCode: 2,
+  });
+};
+
 const main = async (): Promise<void> => {
-  const { command, options } = parseArgs(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const { command, options } = parseArgs(rawArgs);
 
   // Load file-based config, then merge CLI flags on top (CLI wins)
   const fileConfig = await loadConfig();
@@ -188,7 +217,9 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  if (command === 'init') {
+  if (command === 'init' || command === 'teach') {
+    const teachCommandMode = command === 'teach';
+
     if (optionBoolean(options, 'help')) {
       console.log(initUsage);
       return;
@@ -197,43 +228,130 @@ const main = async (): Promise<void> => {
     const preset = optionString(options, 'preset', '');
     const shouldWrite = optionBoolean(options, 'write');
     const dryRun = optionBoolean(options, 'dry-run');
-    const teach = optionBoolean(options, 'teach');
+    const teach = teachCommandMode || optionBoolean(options, 'teach');
     const outDir = optionString(options, 'out-dir', '.');
     const force = optionBoolean(options, 'force');
+    const includePlaybook = optionBoolean(options, 'playbook');
 
-    if (preset === 'agent-quality') {
-      const files = buildAgentQualityScaffoldFiles();
+    const setup = optionString(options, 'setup', '');
+    const runner = optionString(options, 'runner', '');
+    const ci = optionString(options, 'ci', '');
+
+    const usingScaffoldOptions =
+      shouldWrite || dryRun || teach || Boolean(setup) || Boolean(runner) || Boolean(ci) || force;
+    const effectivePreset = preset || (usingScaffoldOptions ? 'agent-quality' : '');
+
+    if (effectivePreset === 'agent-quality') {
+      const profile = resolveAgentQualityInitProfile({
+        setup: setup || undefined,
+        runner: runner || undefined,
+        ci: ci || undefined,
+      });
+      const files = buildAgentQualityScaffoldFiles(profile);
+      const filesWithPlaybook = includePlaybook
+        ? [...files, buildAgentQualitySetupPlaybook(profile)]
+        : files;
 
       if (teach) {
-        console.log(renderAgentQualityTeachMode(outDir, files));
-        return;
-      }
-
-      if (!shouldWrite) {
-        console.log(renderAgentQualityInitConfig());
+        console.log(renderAgentQualityTeachMode(outDir, filesWithPlaybook));
         return;
       }
 
       if (dryRun) {
-        const planned = planScaffoldWrites(outDir, files);
-        console.log(`Would write ${planned.length} file(s):\n${planned.join('\n')}`);
+        console.log(renderAgentQualityDryRunMode(outDir, filesWithPlaybook));
         return;
       }
 
-      const written = await writeScaffoldFiles(outDir, files, force);
+      if (!shouldWrite) {
+        console.log(
+          `${renderAgentQualityInitConfig()}\n\nTip: add --write to scaffold files, or --dry-run to preview file writes.`,
+        );
+        return;
+      }
+
+      const written = await writeScaffoldFiles(outDir, filesWithPlaybook, force);
       console.log(`Wrote ${written.length} file(s):\n${written.join('\n')}`);
       return;
     }
 
-    if (preset) {
-      throw Object.assign(new Error(`Unknown init preset ${preset}.`), { exitCode: 2 });
+    if (effectivePreset) {
+      throw Object.assign(new Error(`Unknown init preset ${effectivePreset}.`), { exitCode: 2 });
     }
 
     console.log(renderDefaultInitConfig());
     return;
   }
 
+  if (command === 'completion') {
+    const completionAction = rawArgs[1] && !rawArgs[1].startsWith('--') ? rawArgs[1] : '';
+
+    if (completionAction && completionAction !== 'install') {
+      throw Object.assign(new Error(`Unknown completion action ${completionAction}.`), { exitCode: 2 });
+    }
+
+    if (optionBoolean(options, 'help')) {
+      console.log(completionUsage);
+      return;
+    }
+
+    const shell = resolveCompletionShell(optionString(options, 'shell', ''));
+
+    if (completionAction === 'install') {
+      const result = await installCompletion(shell);
+      const profileNote = result.profileFile
+        ? result.updatedProfile
+          ? `Updated shell profile: ${result.profileFile}`
+          : `Shell profile already configured: ${result.profileFile}`
+        : 'No shell profile update required for this shell.';
+
+      console.log(
+        [
+          `Installed ${result.shell} completion for eval-dashboards and evd.`,
+          `Completion file: ${result.completionFile}`,
+          profileNote,
+          'Open a new shell session (or source your profile) to enable completion.',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    console.log(renderCompletionScript(shell));
+    return;
+  }
+
+  if (command === 'import') {
+    if (optionBoolean(options, 'help')) {
+      console.log(importUsage);
+      return;
+    }
+
+    const rawSource = optionString(options, 'from', '');
+    const inputPath = optionString(options, 'input', '');
+
+    if (!rawSource) {
+      throw Object.assign(new Error('Missing required --from option.'), { exitCode: 2 });
+    }
+
+    if (!inputPath) {
+      throw Object.assign(new Error('Missing required --input option.'), { exitCode: 2 });
+    }
+
+    const source = resolveImportSource(rawSource);
+    const outPath = optionString(options, 'out', path.join('.evals_output', `import-${source}.json`));
+    const suiteName = optionString(options, 'suite', '');
+    const imported = await importFromSource({
+      source,
+      inputPath,
+      outPath,
+      suiteName: suiteName || undefined,
+    });
+
+    console.log(`Imported ${imported.rowCount} row(s) from ${source} to ${imported.outPath}`);
+    return;
+  }
+
   if (command === 'report') {
+    const profile = reportProfileFromOptions(options);
     const runId = optionString(options, 'run-id', '');
     const baselineRunId = optionString(options, 'baseline-run-id', '');
     const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
@@ -247,7 +365,7 @@ const main = async (): Promise<void> => {
     const reporters = (config.reporters ?? ['html', 'text']) as ReporterName[];
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
     const locale = optionString(options, 'locale', '') || config.locale;
-    const outputs = await renderReports({ ...context, theme, locale }, reporters);
+    const outputs = await renderReports({ ...context, theme, locale, profile }, reporters);
     console.log(outputs.join('\n'));
     return;
   }

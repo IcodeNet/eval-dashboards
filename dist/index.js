@@ -249,6 +249,17 @@ var validateEvalReport = (value) => {
           }
         }
       }
+      if (row["trace"] !== void 0) {
+        if (!isObject(row["trace"])) {
+          errors.push(`rows[${index}].trace must be an object when provided.`);
+        } else {
+          for (const field of ["traceId", "spanId", "traceUrl", "spanUrl"]) {
+            if (row["trace"][field] !== void 0 && !isString(row["trace"][field])) {
+              errors.push(`rows[${index}].trace.${field} must be a string when provided.`);
+            }
+          }
+        }
+      }
       if (row["metadata"] !== void 0) {
         if (!isObject(row["metadata"])) {
           errors.push(`rows[${index}].metadata must be an object when provided.`);

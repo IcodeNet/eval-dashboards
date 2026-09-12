@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="../styles.css" /><title>Getting Started · eval-dashboards docs v1</title></head>
+<body><div class="container">
+<header><h1>Getting Started <small>v1</small></h1><p>CLI-first onboarding centered on <code>eval-dashboards init</code>.</p></header>
+<nav><a href="./index.html">Home</a><a href="./cli.html">CLI</a><a href="./schema-taxonomy.html">Schema/Taxonomy</a><a href="./ci-gates.html">CI Gates</a><a href="./publishing.html">Publishing</a><a href="./integrations.html">Integrations</a></nav>
+<main>
+<section><h2>1) Install</h2>
+<pre><code>pnpm add -D @icodenet/eval-dashboards
+# or
+npm install -D @icodenet/eval-dashboards</code></pre>
+</section>
+<section><h2>2) Scaffold</h2>
+<pre><code># default profile: setup=all, runner=node, ci=github
+eval-dashboards init --preset=agent-quality --write --playbook
+
+# preview only
+eval-dashboards init --preset=agent-quality --dry-run</code></pre>
+<p class="muted">Writes starter config, dataset, rubric, template artifact, CI snippet, and optional playbook with local-agent prompts.</p>
+</section>
+<section><h2>3) Runner-specific flow</h2>
+<div class="card"><h3>Vitest</h3><pre><code>eval-dashboards init --preset=agent-quality --runner=vitest --write
+pnpm vitest run
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard</code></pre></div>
+<div class="card"><h3>Jest</h3><pre><code>eval-dashboards init --preset=agent-quality --runner=jest --write
+pnpm jest
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard</code></pre></div>
+<div class="card"><h3>Node</h3><pre><code>eval-dashboards init --preset=agent-quality --runner=node --write
+pnpm eval -- --offline --write-results
+pnpm eval:emit-artifact
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard</code></pre></div>
+<div class="card"><h3>Python / pytest</h3><pre><code>eval-dashboards init --preset=agent-quality --runner=python --write
+python -m pytest
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard</code></pre></div>
+</section>
+<section><h2>4) Local-agent prompt templates</h2>
+<pre><code>Prompt A (dataset):
+Update eval/datasets/agent-quality-cases.jsonl with stable ids and lifecycle values.
+Add one positive + one adversarial case per changed feature.
+
+Prompt B (rubric):
+Edit eval/rubrics/agent-quality-rubrics.json.
+If scoring criteria changes, bump rubricVersion and explain why.
+
+Prompt C (judge calibration):
+Run labelled sample and record judgeModel, rubricVersion, disagreement rate,
+and concrete disagreement examples.
+
+Prompt D (multiturn):
+Add multiturn-trajectory rows with turns + toolCalls evidence.
+Keep row ids stable for baseline comparisons.</code></pre>
+</section>
+</main></div></body></html>

@@ -48,6 +48,12 @@ You can also print a starter config for this setup:
 pnpm dev init --preset=agent-quality
 ```
 
+Start with the guided curriculum walkthrough:
+
+```sh
+pnpm dev teach
+```
+
 Or scaffold files into your project:
 
 ```sh

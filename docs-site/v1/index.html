@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <title>eval-dashboards docs v1</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>eval-dashboards docs <small>v1</small></h1>
+        <p>Static, repo-owned docs focused on CLI-first onboarding.</p>
+      </header>
+
+      <nav>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./schema-taxonomy.html">Schema/Taxonomy</a>
+        <a href="./ci-gates.html">CI Gates</a>
+        <a href="./publishing.html">Publishing</a>
+        <a href="./integrations.html">Integrations</a>
+      </nav>
+
+      <main>
+        <section class="card">
+          <h2>Onboarding path (recommended)</h2>
+          <ol>
+            <li>Install <code>@icodenet/eval-dashboards</code>.</li>
+            <li>Run <code>eval-dashboards init --preset=agent-quality --write --playbook</code>.</li>
+            <li>Emit <code>eval-report/v1</code> files into <code>.evals_output/</code>.</li>
+            <li>Run <code>lint</code>, <code>check</code>, and <code>report</code>.</li>
+            <li>Publish static output to GitHub Pages.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h2>Versioned docs sections</h2>
+          <ul>
+            <li><a href="./getting-started.html">Getting Started</a>: install + <code>init</code> journey for vitest/jest/node/python.</li>
+            <li><a href="./cli.html">CLI</a>: command reference and flags for daily workflows.</li>
+            <li><a href="./schema-taxonomy.html">Schema/Taxonomy</a>: contract fields and completeness targets.</li>
+            <li><a href="./ci-gates.html">CI Gates</a>: gate recipes and baseline strategy options.</li>
+            <li><a href="./publishing.html">Publishing</a>: static publish targets and Pages workflow shape.</li>
+            <li><a href="./integrations.html">Integrations</a>: links to runnable examples and adapters.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -18,6 +18,7 @@ export type {
   SuiteManifest,
   SuiteRubricContract,
   ToolCall,
+  TraceReference,
 } from './model/eval-report-v1.js';
 export { EVAL_REPORT_SCHEMA_VERSION, rowKey, rowMatchedExpectation, summarizeReport } from './model/eval-report-v1.js';
 export { validateEvalReport, type ValidationResult } from './model/validate.js';

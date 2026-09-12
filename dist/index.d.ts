@@ -124,6 +124,16 @@ type EvalSuiteSummary = {
     failed: number;
     passRate?: number;
 };
+type TraceReference = {
+    /** Optional portable trace identifier from an observability system. */
+    traceId?: string;
+    /** Optional portable span identifier associated with this row. */
+    spanId?: string;
+    /** Optional direct URL to trace evidence for this row. */
+    traceUrl?: string;
+    /** Optional direct URL to a span-level evidence view for this row. */
+    spanUrl?: string;
+};
 type EvalRow = {
     id: string;
     suite: string;
@@ -152,14 +162,8 @@ type EvalRow = {
     turns?: ConversationTurn[];
     toolCalls?: ToolCall[];
     axisScores?: Record<string, number>;
+    trace?: TraceReference;
     passed: boolean;
-    /**
-     * What outcome this row was expected to have, when that differs from
-     * "expected to pass" — e.g. an A/B harness's baseline row is expected to
-     * fail (proof the case tests something); a passing baseline is the actual
-     * anomaly. Omit for the common case where passing is always the goal.
-     */
-    expectedOutcome?: 'pass' | 'fail';
     score?: number;
     severity?: EvalSeverity;
     category?: string;
@@ -184,27 +188,10 @@ type EvalSummary = {
     passed: number;
     failed: number;
     passRate: number;
-    /**
-     * Rows whose outcome matched their `expectedOutcome` (or defaulted to
-     * "expected to pass" when unset). Use this, not `passRate`, as the
-     * headline signal for suites that intentionally mix rows expected to
-     * fail (e.g. an A/B harness's baseline) with rows expected to pass —
-     * a flat `passRate` blends the two and produces a misleading number.
-     */
-    matchedExpectation: number;
-    expectationMismatches: number;
-    matchedExpectationRate: number;
     severityCounts: Record<EvalSeverity, number>;
     suites: EvalSuiteSummary[];
 };
 declare const rowKey: (row: Pick<EvalRow, "suite" | "id">) => string;
-/**
- * Whether a row's actual pass/fail outcome matches what it was expected to
- * be. Rows without `expectedOutcome` default to "expected to pass", so this
- * agrees with `row.passed` for the common case and only diverges for rows
- * that explicitly declare `expectedOutcome: 'fail'`.
- */
-declare const rowMatchedExpectation: (row: Pick<EvalRow, "passed" | "expectedOutcome">) => boolean;
 declare const summarizeReport: (report: EvalReportV1) => EvalSummary;
 
 type ValidationResult = {
@@ -233,15 +220,6 @@ declare const compareRuns: (current: EvalReportV1, previous?: EvalReportV1) => R
 type NewFailureKeyMode = 'row' | 'scenario' | 'scenario-category' | 'id-category';
 type GateConfig = {
     minPassRate?: number;
-    /**
-     * Minimum rate of rows whose outcome matched their declared
-     * `expectedOutcome` (see `rowMatchedExpectation`). Prefer this over
-     * `minPassRate` for suites that intentionally mix rows expected to fail
-     * (e.g. an A/B harness's baseline) with rows expected to pass — a flat
-     * `minPassRate` gate on such a suite blends the two into a misleading
-     * number.
-     */
-    minMatchedExpectationRate?: number;
     maxNewFailures?: number;
     zeroCritical?: boolean;
     failOnBaselineBlocked?: boolean;
@@ -356,19 +334,8 @@ type RunnerEvalCaseResult = {
     id?: string;
     suite: string;
     passed: boolean;
-    kind?: EvalRow['kind'];
     name?: string;
     question?: string;
-    datasetId?: string;
-    scenarioId?: string;
-    rubricId?: string;
-    judgeModel?: string;
-    judgeVerdict?: boolean;
-    judgeCategory?: string;
-    judgeReasoning?: string;
-    promptVersion?: string;
-    agentChannel?: string;
-    agentVersion?: string;
     input?: string;
     output?: string;
     expected?: string;
@@ -398,4 +365,4 @@ type WriteEvalReportArtifactOptions<CaseResult extends RunnerEvalCaseResult = Ru
 declare const createEvalReportArtifact: <CaseResult extends RunnerEvalCaseResult>(result: RunnerEvalResult<CaseResult>, options?: CreateEvalReportArtifactOptions<CaseResult>) => EvalReportV1;
 declare const writeEvalReportArtifact: <CaseResult extends RunnerEvalCaseResult>(filePath: string, result: RunnerEvalResult<CaseResult>, options?: WriteEvalReportArtifactOptions<CaseResult>) => Promise<EvalReportV1>;
 
-export { BUILT_IN_THEMES, type BaselineCompatibilityIssue, type BaselineCompatibilityResult, type ConversationTurn, type CreateEvalReportArtifactOptions, type DatasetSource, EVAL_REPORT_SCHEMA_VERSION, type EvalReportV1, type EvalReportsConfig, type EvalReportsTheme, type EvalRow, type EvalRowKind, type EvalRun, type EvalSeverity, type EvalSuiteSummary, type EvalSummary, type EvalTarget, type GateConfig, type GatePolicy, type GateResult, type GraderKind, type PublishOptions, type PublishResult, type PublishTarget, type RegisteredRubric, type RiskArea, type RunComparison, type RunHistoryEntry, type RunnerEvalCaseResult, type RunnerEvalResult, type SuiteManifest, type SuiteRubricContract, type TaxonomyLintIssue, type TaxonomyLintLevel, type TaxonomyLintResult, type ToolCall, type ValidationResult, type WriteEvalReportArtifactOptions, assessBaselineCompatibility, buildHistory, checkGates, compareRuns, createEvalReportArtifact, formatCount, formatDate, formatDuration, formatPassRate, lintReportTaxonomy, lintReportsTaxonomy, loadConfig, mergeConfig, publishReport, renderGroupedIndexHtml, resolveTheme, rowKey, rowMatchedExpectation, summarizeReport, validateEvalReport, writeEvalReportArtifact };
+export { BUILT_IN_THEMES, type BaselineCompatibilityIssue, type BaselineCompatibilityResult, type ConversationTurn, type CreateEvalReportArtifactOptions, type DatasetSource, EVAL_REPORT_SCHEMA_VERSION, type EvalReportV1, type EvalReportsConfig, type EvalReportsTheme, type EvalRow, type EvalRowKind, type EvalRun, type EvalSeverity, type EvalSuiteSummary, type EvalSummary, type EvalTarget, type GateConfig, type GatePolicy, type GateResult, type GraderKind, type PublishOptions, type PublishResult, type PublishTarget, type RegisteredRubric, type RiskArea, type RunComparison, type RunHistoryEntry, type RunnerEvalCaseResult, type RunnerEvalResult, type SuiteManifest, type SuiteRubricContract, type TaxonomyLintIssue, type TaxonomyLintLevel, type TaxonomyLintResult, type ToolCall, type TraceReference, type ValidationResult, type WriteEvalReportArtifactOptions, assessBaselineCompatibility, buildHistory, checkGates, compareRuns, createEvalReportArtifact, formatCount, formatDate, formatDuration, formatPassRate, lintReportTaxonomy, lintReportsTaxonomy, loadConfig, mergeConfig, publishReport, renderGroupedIndexHtml, resolveTheme, rowKey, summarizeReport, validateEvalReport, writeEvalReportArtifact };

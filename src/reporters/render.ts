@@ -7,6 +7,7 @@ import {
   type EvalReportV1,
   type EvalRow,
   type EvalSuiteSummary,
+  type RiskArea,
 } from '../model/eval-report-v1.js';
 import { writeJsonFile, writeTextFile } from '../io/reports.js';
 import { formatDate, formatPassRate, formatDuration } from '../utils/format.js';
@@ -17,6 +18,7 @@ import {
 } from './themes.js';
 
 export type ReporterName = 'text' | 'json-summary' | 'markdown-summary' | 'html';
+export type ReportProfile = 'default' | 'guardrail';
 
 export type ReportContext = {
   current: EvalReportV1;
@@ -27,6 +29,7 @@ export type ReportContext = {
   reportDir: string;
   theme?: string | Partial<EvalReportsTheme>;
   locale?: string;
+  profile?: ReportProfile;
 };
 
 type GroupedIndexGroup = {
@@ -139,7 +142,8 @@ const renderMarkdown = (context: ReportContext): string => {
   if (newlyFailing.length > 0) {
     lines.push(`## Newly failing (${newlyFailing.length})`, '');
     for (const row of newlyFailing) {
-      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? 'uncategorized'}${row.reason ? ` — ${row.reason}` : ''}`);
+      const traceLinks = traceLinksMarkdown(row);
+      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? 'uncategorized'}${row.reason ? ` — ${row.reason}` : ''}${traceLinks ? ` (${traceLinks})` : ''}`);
     }
     lines.push('');
   }
@@ -147,7 +151,8 @@ const renderMarkdown = (context: ReportContext): string => {
   if (newlyPassing.length > 0) {
     lines.push(`## Newly passing (${newlyPassing.length})`, '');
     for (const row of newlyPassing) {
-      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? 'uncategorized'}`);
+      const traceLinks = traceLinksMarkdown(row);
+      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? 'uncategorized'}${traceLinks ? ` (${traceLinks})` : ''}`);
     }
     lines.push('');
   }
@@ -184,9 +189,38 @@ const toSourceHref = (sourcePath: string): string => {
   return `../${trimmed.replace(/^\.?\//, '')}`;
 };
 
+const isHttpUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 const sourceLink = (sourcePath: string): string => {
   const href = toSourceHref(sourcePath);
   return `<a href="${e(href)}" target="_blank" rel="noopener">${e(sourcePath)}</a>`;
+};
+
+const externalLink = (href: string, label = href): string =>
+  isHttpUrl(href)
+    ? `<a href="${e(href)}" target="_blank" rel="noopener">${e(label)}</a>`
+    : e(label);
+
+const traceLinksHtml = (row: EvalRow): string => {
+  const links: string[] = [];
+  if (row.trace?.traceUrl) links.push(externalLink(row.trace.traceUrl, 'trace'));
+  if (row.trace?.spanUrl) links.push(externalLink(row.trace.spanUrl, 'span'));
+  if (links.length === 0) return '<span class="muted">n/a</span>';
+  return links.join(' · ');
+};
+
+const traceLinksMarkdown = (row: EvalRow): string => {
+  const links: string[] = [];
+  if (row.trace?.traceUrl && isHttpUrl(row.trace.traceUrl)) links.push(`[trace](${row.trace.traceUrl})`);
+  if (row.trace?.spanUrl && isHttpUrl(row.trace.spanUrl)) links.push(`[span](${row.trace.spanUrl})`);
+  return links.join(' · ');
 };
 
 const gatePolicyTable = (report: EvalReportV1): string => {
@@ -595,6 +629,22 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
   field('Prompt version', r.promptVersion, false, false, 'The prompt or instruction version used for this row.');
   field('Rubric ID', r.rubricId, false, false, 'The rubric or scoring identifier used for this row.');
   field('Category', r.category, false, false, 'The machine-readable category assigned to this row.');
+  field('Trace ID', r.trace?.traceId, false, false, 'Portable trace identifier for this row when provided by the runner.');
+  field('Span ID', r.trace?.spanId, false, false, 'Portable span identifier for this row when provided by the runner.');
+
+  if (r.trace?.traceUrl) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Direct URL to trace evidence for this row.">Trace link</span>
+      <span class="detail-field-value mono">${externalLink(r.trace.traceUrl)}</span>
+    </div>`);
+  }
+
+  if (r.trace?.spanUrl) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Direct URL to span-level evidence for this row.">Span link</span>
+      <span class="detail-field-value mono">${externalLink(r.trace.spanUrl)}</span>
+    </div>`);
+  }
 
   if (!fields.length) return '';
   return `<tr class="detail-row"><td colspan="${colSpan}"><div class="detail-panel">${fields.join('')}</div></td></tr>`;
@@ -637,7 +687,7 @@ const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true): string => {
           ${showTaxonomy ? `<td class="col-tax taxonomy-score"><span class="score ${tax.score >= 0.8 ? 'complete' : tax.score >= 0.5 ? 'partial' : 'incomplete'}" data-tip="${tax.missing.length ? 'Missing fields:\n' + e(tax.missing.join('\n')) : 'All recommended fields present'}">${Math.round(tax.score * 100)}%</span></td>` : ''}
           <td class="col-kind"><span class="kind-badge kind-${e(r.kind || 'unknown')}">${e(r.kind ?? 'unknown')}</span></td>
           <td class="col-sev"><span class="severity sev-${e(r.severity ?? 'none')}">${e(r.severity ?? 'none')}</span></td>
-          <td class="col-reason reason">${e(r.reason ?? '')}</td>
+          <td class="col-reason reason">${e(r.reason ?? '')}${r.trace?.traceUrl || r.trace?.spanUrl ? `<div>${traceLinksHtml(r)}</div>` : ''}</td>
         </tr>${detail}`;
         })
         .join('')}</tbody>
@@ -671,7 +721,7 @@ const flatRowsTable = (rows: EvalRow[]): string => {
         <td class="col-kind"><span class="kind-badge kind-${e(r.kind || 'unknown')}">${e(r.kind ?? 'unknown')}</span></td>
         <td class="col-sev"><span class="severity sev-${e(r.severity ?? 'none')}">${e(r.severity ?? 'none')}</span></td>
         <td>${e(r.category ?? '')}</td>
-        <td class="col-reason reason">${e(r.reason ?? '')}</td>
+        <td class="col-reason reason">${e(r.reason ?? '')}${r.trace?.traceUrl || r.trace?.spanUrl ? `<div>${traceLinksHtml(r)}</div>` : ''}</td>
       </tr>`;
   }).join('')}</tbody>
   </table></div>`;
@@ -753,8 +803,9 @@ const suiteSummaryTable = (suites: EvalSuiteSummary[]): string =>
 
 const failingRowsTable = (rows: EvalRow[]): string => {
   if (!rows.length) return '<p class="empty">No failing rows.</p>';
+  const hasAnyTraceLinks = rows.some((row) => Boolean(row.trace?.traceUrl || row.trace?.spanUrl));
   return `<div class="table-wrap"><table>
-    <thead><tr><th>Suite</th><th>Row</th><th>Severity</th><th>Category</th><th>Reason</th></tr></thead>
+    <thead><tr><th>Suite</th><th>Row</th><th>Severity</th><th>Category</th><th>Reason</th>${hasAnyTraceLinks ? '<th>Trace</th>' : ''}</tr></thead>
     <tbody>${rows
       .map(
         (r) => `<tr class="fail-row">
@@ -763,6 +814,7 @@ const failingRowsTable = (rows: EvalRow[]): string => {
       <td><span class="severity sev-${e(r.severity ?? 'none')}">${e(r.severity ?? 'none')}</span></td>
       <td>${e(r.category ?? '')}</td>
       <td class="reason">${e(r.reason ?? '')}</td>
+      ${hasAnyTraceLinks ? `<td>${traceLinksHtml(r)}</td>` : ''}
     </tr>`,
       )
       .join('')}</tbody>
@@ -914,6 +966,110 @@ const judgeCalibrationTable = (summary: JudgeCalibrationSummary): string =>
     .join('')}</tbody>
   </table></div>`;
 
+type GuardrailSummary = {
+  rows: EvalRow[];
+  categoryCounts: Array<{ category: string; count: number }>;
+  severityCounts: Array<{ severity: string; count: number }>;
+  patternCounts: Array<{ pattern: string; count: number }>;
+  riskAreas: string[];
+};
+
+const guardrailRiskAreas = new Set<RiskArea>(['content-safety', 'prompt-safety', 'pii', 'compliance']);
+
+const inferFailurePattern = (row: EvalRow): string => {
+  const text = `${row.category ?? ''} ${row.reason ?? ''}`.toLowerCase();
+  if (/prompt\s*injection|jailbreak|system\s*prompt|instruction\s*override/.test(text)) return 'prompt-injection';
+  if (/pii|secret|credential|token|leak|disclosure|exfiltration/.test(text)) return 'sensitive-disclosure';
+  if (/refusal|unsafe|harmful|policy|abuse|violence|hate/.test(text)) return 'unsafe-request-handling';
+  if (/tool|function|permission|route|routing/.test(text)) return 'tool-or-routing';
+  return 'other';
+};
+
+const sortCountEntries = (counter: Map<string, number>): Array<{ key: string; count: number }> =>
+  [...counter.entries()]
+    .sort((left, right) => {
+      if (right[1] !== left[1]) return right[1] - left[1];
+      return left[0].localeCompare(right[0]);
+    })
+    .map(([key, count]) => ({ key, count }));
+
+const summarizeGuardrailRows = (report: EvalReportV1): GuardrailSummary | undefined => {
+  const manifestBySuite = new Map((report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
+  const guardrailRows = report.rows.filter((row) => {
+    const manifestRiskArea = manifestBySuite.get(row.suite)?.riskArea;
+    if (manifestRiskArea && guardrailRiskAreas.has(manifestRiskArea)) return true;
+    const category = String(row.category ?? '').toLowerCase();
+    return (
+      category.includes('content-safety') ||
+      category.includes('prompt-safety') ||
+      category.includes('sensitive-disclosure') ||
+      category.includes('agency-boundary') ||
+      category.includes('prompt-injection')
+    );
+  });
+
+  const failing = guardrailRows.filter((row) => !row.passed);
+  if (failing.length === 0) return undefined;
+
+  const categoryCounter = new Map<string, number>();
+  const severityCounter = new Map<string, number>();
+  const patternCounter = new Map<string, number>();
+  const riskAreaSet = new Set<string>();
+
+  for (const row of failing) {
+    const category = row.category?.trim() || 'uncategorized';
+    categoryCounter.set(category, (categoryCounter.get(category) ?? 0) + 1);
+
+    const severity = row.severity ?? 'none';
+    severityCounter.set(severity, (severityCounter.get(severity) ?? 0) + 1);
+
+    const pattern = inferFailurePattern(row);
+    patternCounter.set(pattern, (patternCounter.get(pattern) ?? 0) + 1);
+
+    const manifestRiskArea = manifestBySuite.get(row.suite)?.riskArea;
+    if (manifestRiskArea) riskAreaSet.add(manifestRiskArea);
+  }
+
+  return {
+    rows: failing,
+    categoryCounts: sortCountEntries(categoryCounter).map((entry) => ({ category: entry.key, count: entry.count })),
+    severityCounts: sortCountEntries(severityCounter).map((entry) => ({ severity: entry.key, count: entry.count })),
+    patternCounts: sortCountEntries(patternCounter).map((entry) => ({ pattern: entry.key, count: entry.count })),
+    riskAreas: [...riskAreaSet].sort((left, right) => left.localeCompare(right)),
+  };
+};
+
+const simpleCountTable = (
+  label: string,
+  rows: Array<{ value: string; count: number }>,
+): string => `<div class="table-wrap"><table>
+  <thead><tr><th>${e(label)}</th><th class="num">Count</th></tr></thead>
+  <tbody>${rows
+    .map((row) => `<tr><td>${e(row.value)}</td><td class="num">${row.count}</td></tr>`)
+    .join('')}</tbody>
+</table></div>`;
+
+const guardrailTriageSection = (summary: GuardrailSummary): string => {
+  const categoryRows = summary.categoryCounts.map((entry) => ({ value: entry.category, count: entry.count }));
+  const severityRows = summary.severityCounts.map((entry) => ({ value: entry.severity, count: entry.count }));
+  const patternRows = summary.patternCounts.map((entry) => ({ value: entry.pattern, count: entry.count }));
+  const riskAreaSummary = summary.riskAreas.length > 0 ? summary.riskAreas.join(', ') : 'none declared';
+
+  return renderCollapsibleSection({
+    id: 'guardrail-triage',
+    title: 'Guardrail triage',
+    summary: `${summary.rows.length} failing guardrail row(s) • risk areas: ${riskAreaSummary}`,
+    summaryTone: 'fail',
+    collapsed: false,
+    body: [
+      '<div style="padding:12px 16px 0" class="muted">Focused breakdown for attack-style suites: category, severity, and failure-pattern clustering.</div>',
+      simpleCountTable('Category', categoryRows),
+      simpleCountTable('Severity', severityRows),
+      simpleCountTable('Pattern', patternRows),
+    ].join(''),
+  });
+};
+
 const renderHtml = (context: ReportContext): string => {
   const { locale, current, comparison, baselineCompatibility: compat } = context;
   const { run, rows } = current;
@@ -924,6 +1080,8 @@ const renderHtml = (context: ReportContext): string => {
   const summary = summarizeReport(current);
   const judgeCalibration = summarizeJudgeCalibration(rows);
   const failingRows = rows.filter((r) => !r.passed);
+  const guardrailSummary = summarizeGuardrailRows(current);
+  const guardrailProfileEnabled = context.profile === 'guardrail';
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
   const passClass = summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
@@ -1269,6 +1427,8 @@ ${renderCssVariables(theme)}
       body: suiteSummaryTable(current.suites),
       summaryTone: suiteSummaryTone,
     })}
+
+    ${guardrailProfileEnabled && guardrailSummary ? guardrailTriageSection(guardrailSummary) : ''}
 
     ${judgeCalibration
       ? renderCollapsibleSection({

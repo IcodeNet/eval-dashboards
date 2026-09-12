@@ -31,6 +31,9 @@ Initial gates:
 - `zeroCritical`
 - `maxCriticalFailures`
 - `criticalFailureRate`
+- `minJudgeAgreementRate`
+- `maxJudgeDisagreementRate`
+- `maxAxisScoreDelta`
 - `maxWarnings`
 - `maxWarningsByCode`
 - `failOnWarningCodes`
@@ -91,6 +94,14 @@ Use `--strict` to fail on warnings as well as errors:
 ```sh
 eval-dashboards lint --input=.evals_output --strict
 ```
+
+Guardrail triage report (for attack-style suites using existing safety taxonomy categories):
+
+```sh
+eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report
+```
+
+The guardrail profile adds focused breakdowns for failing rows by category, severity, and failure pattern grouping.
 
 Exit codes:
 

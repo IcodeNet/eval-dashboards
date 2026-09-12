@@ -15,13 +15,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./schemas/eval-report-v1.schema.json": "./schemas/eval-report-v1.schema.json",
     "./package.json": "./package.json"
   },
   "bin": {
-    "eval-dashboards": "dist/cli/index.js"
+    "eval-dashboards": "dist/cli/index.js",
+    "evd": "dist/cli/index.js"
   },
   "files": [
     "dist",
+    "schemas",
     "README.md",
     "docs",
     "skills/eval-dashboards-adopt/SKILL.md",
@@ -38,13 +41,15 @@
     "assets:regenerate": "tsx scripts/regenerate-release-assets.ts",
     "assets:verify": "tsx scripts/verify-release-assets.ts",
     "build": "tsup",
+    "cli": "node dist/cli/index.js",
+    "cli:dev": "tsx src/cli/index.ts",
     "dev": "tsx src/cli/index.ts",
     "example:llm-agent-evals": "tsx examples/llm-agent-evals/run-local-agent-evals.ts",
     "example:llm-agent-report": "pnpm example:llm-agent-evals && pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
     "example:financial-domain-ollama-evals": "tsx examples/financial-domain-ollama-evals/run-financial-domain-evals.ts",
     "example:financial-domain-ollama-report": "pnpm example:financial-domain-ollama-evals && pnpm dev report --input=examples/financial-domain-ollama-evals/.evals_output --reporter=html --reporter=text --report-dir=eval-report",
     "metrics:adoption": "tsx scripts/collect-adoption-metrics.ts",
-    "prepare": "node -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', { stdio: 'inherit' }); } else { console.log('skip lefthook install (no .git)'); }\"",
+    "prepare": "node -e \"const fs=require('fs'); if (!fs.existsSync('.git')) { console.log('skip lefthook install (no .git)'); process.exit(0); } try { require('child_process').execSync('lefthook install', { stdio: 'inherit' }); } catch (error) { console.warn('skip lefthook install (optional binary unavailable):', error && error.message ? error.message : error); }\"",
     "prepack": "pnpm build",
     "release": "semantic-release",
     "release:dry": "semantic-release --dry-run --no-ci",

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="../styles.css" /><title>CLI · eval-dashboards docs v1</title></head>
+<body><div class="container"><header><h1>CLI <small>v1</small></h1><p>Commands used in onboarding and CI.</p></header>
+<nav><a href="./index.html">Home</a><a href="./getting-started.html">Getting Started</a><a href="./schema-taxonomy.html">Schema/Taxonomy</a><a href="./ci-gates.html">CI Gates</a><a href="./publishing.html">Publishing</a><a href="./integrations.html">Integrations</a></nav>
+<main>
+<section><h2>Core commands</h2>
+<pre><code>eval-dashboards init
+eval-dashboards teach
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary
+eval-dashboards report-index --input=.evals_output --out=eval-dashboard/overview.html
+eval-dashboards publish --target=dir --input=.evals_output --report-dir=eval-dashboard
+eval-dashboards completion install
+eval-dashboards import --from=promptfoo --input=./promptfoo-results.json --out=.evals_output/import-promptfoo.json
+eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report</code></pre>
+</section>
+<section><h2>init flags (agent-quality preset)</h2>
+<pre><code>--preset=agent-quality
+--setup=guardrails,evals,judges,multiturn
+--runner=vitest|jest|node|python
+--ci=github|azure|none
+--write
+--playbook
+--dry-run
+--teach
+--out-dir=&lt;path&gt;
+--force</code></pre>
+</section>
+<section><h2>Exit codes</h2><ul><li><code>0</code> pass</li><li><code>1</code> gates failed</li><li><code>2</code> invalid config/artifact/options</li><li><code>3</code> no reports found</li></ul></section>
+</main></div></body></html>

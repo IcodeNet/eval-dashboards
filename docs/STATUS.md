@@ -107,9 +107,32 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
+### Phase 4B setup automation checklist (in progress)
+
+- [x] 4B.1 Expand existing `init` with composable setup/runner/ci flags while preserving current behavior.
+- [x] 4B.2 Generate checked-in local-agent setup playbook output with verify-before-merge command block.
+- [x] 4B.3 Add `import` command adapters (Promptfoo, DeepEval, AgentEvals first) reusing adapter helper normalization.
+- [x] 4B.6 Add optional portable trace-reference fields and reporter links (additive schema extension).
+- [x] 4B.5 Add guardrail-focused report profile aligned to industry-audit safety taxonomy.
+- [ ] 4B.4 Add optional statistical gating mode after stable identity/sample-size prerequisites.
+- [ ] 4B.7 Add human adjudication export/import package flow.
+- [ ] 4B.8 Add cost-quality frontier and benchmark-pack templates.
+
+### Phase 4C docs-site adoption checklist (in progress)
+
+- [x] 4C.1 Stand up static product docs site on GitHub Pages.
+- [x] 4C.2 Publish CLI-first onboarding flow centered on `init` + local-agent setup prompts.
+- [x] 4C.3 Publish interoperability guides (Promptfoo, DeepEval, OpenEvals/AgentEvals, trace stacks).
+- [ ] 4C.4 Add assistant-ui reference integration case study with reproducible commands.
+- [ ] 4C.5 Add docs-adoption measurement loop and friction backlog.
+
 **Immediate next implementation slices**
 
 - Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
+- Start Phase 4B.4 optional statistical gating mode after identity/sample-size prerequisites.
+- Keep CI-native machine outputs as the 4B.6 follow-on slice after trace-link rollout.
+- Start Phase 4C.4 assistant-ui reference integration case study with reproducible commands.
+- Keep assistant-ui as the primary reference integration case study (4C.4) and keep documentation synced with branch/PR reality.
 
 **External Phase 4: Shipping & Adoption**
 

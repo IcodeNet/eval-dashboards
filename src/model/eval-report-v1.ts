@@ -169,6 +169,17 @@ export type EvalSuiteSummary = {
   passRate?: number;
 };
 
+export type TraceReference = {
+  /** Optional portable trace identifier from an observability system. */
+  traceId?: string;
+  /** Optional portable span identifier associated with this row. */
+  spanId?: string;
+  /** Optional direct URL to trace evidence for this row. */
+  traceUrl?: string;
+  /** Optional direct URL to a span-level evidence view for this row. */
+  spanUrl?: string;
+};
+
 export type EvalRow = {
   id: string;
   suite: string;
@@ -197,6 +208,7 @@ export type EvalRow = {
   turns?: ConversationTurn[];
   toolCalls?: ToolCall[];
   axisScores?: Record<string, number>;
+  trace?: TraceReference;
   passed: boolean;
   /**
    * What outcome this row was expected to have, when that differs from

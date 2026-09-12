@@ -458,6 +458,139 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Run metadata');
   });
 
+  it('renders trace reference links in HTML and markdown summaries when present', async () => {
+    const reportDir = await createTempDir();
+    const previous: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-prev-trace', generatedAt: '2026-08-03T11:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'trace-row', suite: 'quality', passed: true, category: 'routing' }],
+    };
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-trace', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 0, failed: 1 }],
+      rows: [
+        {
+          id: 'trace-row',
+          suite: 'quality',
+          passed: false,
+          category: 'routing',
+          reason: 'Used wrong tool',
+          trace: {
+            traceId: 'trace-123',
+            spanId: 'span-456',
+            traceUrl: 'https://traces.example/runs/trace-123',
+            spanUrl: 'https://traces.example/runs/trace-123/spans/span-456',
+          },
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous,
+        history: [],
+        comparison: compareRuns(current, previous),
+        reportDir,
+      },
+      ['html', 'markdown-summary'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('<a href="https://traces.example/runs/trace-123" target="_blank" rel="noopener">trace</a>');
+    expect(html).toContain('<a href="https://traces.example/runs/trace-123/spans/span-456" target="_blank" rel="noopener">span</a>');
+    expect(html).toContain('Trace ID');
+    expect(html).toContain('trace-123');
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).toContain('[trace](https://traces.example/runs/trace-123)');
+    expect(md).toContain('[span](https://traces.example/runs/trace-123/spans/span-456)');
+  });
+
+  it('omits Trace column from failing rows table when no trace links are present', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-no-trace-links', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 0, failed: 1 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: false, reason: 'failed assertion' }],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).not.toContain('<th>Trace</th>');
+    expect(html).not.toContain('<span class="muted">n/a</span>');
+  });
+
+  it('renders guardrail triage section for attack-style failing suites', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-guardrail', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'refusal-safety', total: 2, passed: 0, failed: 2 }],
+      suiteManifests: [
+        {
+          name: 'refusal-safety',
+          target: 'agent',
+          datasetSource: 'manual',
+          datasetVersion: 'v1',
+          rubricVersion: 'r1',
+          riskArea: 'content-safety',
+          graders: ['llm-judge'],
+          gate: { mode: 'blocking', thresholds: { passRate: 1 } },
+        },
+      ],
+      rows: [
+        {
+          id: 'gr-1',
+          suite: 'refusal-safety',
+          passed: false,
+          severity: 'high',
+          category: 'prompt-injection',
+          reason: 'Accepted jailbreak payload',
+        },
+        {
+          id: 'gr-2',
+          suite: 'refusal-safety',
+          passed: false,
+          severity: 'critical',
+          category: 'sensitive-disclosure',
+          reason: 'Leaked token-like secret',
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+        profile: 'guardrail',
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Guardrail triage');
+    expect(html).toContain('risk areas: content-safety');
+    expect(html).toContain('prompt-injection');
+    expect(html).toContain('sensitive-disclosure');
+  });
+
   it('renders grouped multi-report index by target', () => {
     const reports: EvalReportV1[] = [
       {

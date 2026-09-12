@@ -225,5 +225,6 @@ The local agent example now generates a separate `judge-calibration` suite with 
 - Full contract details: [Artifact format](artifact-format.md)
 - Config options: [Configuration](configuration.md)
 - Taxonomy depth: [Taxonomy guide](taxonomy.md)
+- Full novice learning path: [Teach curriculum](teach-curriculum.md)
 - Judge scoring guidance: [Judge axis rubric scales](judge-axis-rubric-scales.md)
 - Preset scaffolding and CLI usage: [README](../README.md)

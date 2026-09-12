@@ -1,4 +1,4 @@
-import { access, mkdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export type ScaffoldFile = {
@@ -6,14 +6,142 @@ export type ScaffoldFile = {
   content: string;
 };
 
+export type InitSetupModule = 'guardrails' | 'evals' | 'judges' | 'multiturn';
+export type InitRunner = 'vitest' | 'jest' | 'node' | 'python';
+export type InitCiTarget = 'github' | 'azure' | 'none';
+
+export type AgentQualityInitProfile = {
+  setupModules: InitSetupModule[];
+  runner: InitRunner;
+  ci: InitCiTarget;
+};
+
+const allSetupModules: InitSetupModule[] = ['guardrails', 'evals', 'judges', 'multiturn'];
+
+const setupModuleSuites: Record<InitSetupModule, string[]> = {
+  guardrails: ['refusal-safety', 'sensitive-disclosure', 'agency-boundary'],
+  evals: [
+    'retrieval-recall',
+    'answer-groundedness',
+    'answer-quality',
+    'mcp-routing',
+    'tool-call-accuracy',
+    'tool-argument-accuracy',
+    'tool-execution-reliability',
+    'goal-success',
+    'intent-resolution',
+    'task-adherence',
+  ],
+  judges: [
+    'answer-groundedness',
+    'answer-quality',
+    'goal-success',
+    'intent-resolution',
+    'multiturn-trajectory',
+    'judge-calibration',
+  ],
+  multiturn: ['multiturn-trajectory'],
+};
+
+const includesAllSetupModules = (modules: InitSetupModule[]): boolean =>
+  allSetupModules.every((module) => modules.includes(module));
+
+const parseSetupModules = (rawSetup?: string): InitSetupModule[] => {
+  if (!rawSetup) {
+    return [...allSetupModules];
+  }
+
+  const modules = rawSetup
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (modules.length === 0) {
+    throw Object.assign(
+      new Error('Invalid --setup value. Use a comma-separated list such as guardrails,evals.'),
+      { exitCode: 2 },
+    );
+  }
+
+  const invalid = modules.filter(
+    (module) => !allSetupModules.includes(module as InitSetupModule),
+  );
+
+  if (invalid.length > 0) {
+    throw Object.assign(
+      new Error(
+        `Unknown setup module(s): ${invalid.join(', ')}. Allowed values: ${allSetupModules.join(', ')}.`,
+      ),
+      { exitCode: 2 },
+    );
+  }
+
+  return Array.from(new Set(modules)) as InitSetupModule[];
+};
+
+const parseRunner = (rawRunner?: string): InitRunner => {
+  if (!rawRunner) {
+    return 'node';
+  }
+
+  const value = rawRunner.trim().toLowerCase();
+  const allowed: InitRunner[] = ['vitest', 'jest', 'node', 'python'];
+
+  if (!allowed.includes(value as InitRunner)) {
+    throw Object.assign(
+      new Error(`Unknown runner ${rawRunner}. Allowed values: ${allowed.join(', ')}.`),
+      { exitCode: 2 },
+    );
+  }
+
+  return value as InitRunner;
+};
+
+const parseCiTarget = (rawCi?: string): InitCiTarget => {
+  if (!rawCi) {
+    return 'github';
+  }
+
+  const value = rawCi.trim().toLowerCase();
+  const allowed: InitCiTarget[] = ['github', 'azure', 'none'];
+
+  if (!allowed.includes(value as InitCiTarget)) {
+    throw Object.assign(
+      new Error(`Unknown ci target ${rawCi}. Allowed values: ${allowed.join(', ')}.`),
+      { exitCode: 2 },
+    );
+  }
+
+  return value as InitCiTarget;
+};
+
+export const resolveAgentQualityInitProfile = (options: {
+  setup?: string;
+  runner?: string;
+  ci?: string;
+}): AgentQualityInitProfile => ({
+  setupModules: parseSetupModules(options.setup),
+  runner: parseRunner(options.runner),
+  ci: parseCiTarget(options.ci),
+});
+
 export const initUsage = `eval-dashboards init [options]
 
 Options:
   --preset=agent-quality   Selects the starter template for agent-quality eval programs.
                            Without --write, prints the preset config only.
+  --setup=<csv>            Setup modules to scaffold (comma-separated):
+                           guardrails,evals,judges,multiturn
+                           Default: all modules.
+  --runner=<name>          Runner-specific setup hints: vitest|jest|node|python.
+                           Default: node.
+  --ci=<target>            CI scaffold target: github|azure|none.
+                           Default: github.
   --write                  Writes scaffold files (config, dataset, rubric, template artifact,
                            CI snippet) to disk.
-  --dry-run                With --write, prints exactly which files would be written.
+  --playbook               Adds docs/evals-setup-playbook.md with local-agent wiring prompts
+                           and a verify-before-merge command block.
+  --dry-run                Prints exactly which files would be written.
                            No files are created or modified.
   --teach                  Guided no-write walkthrough of how eval-dashboards works,
                            what will be scaffolded, and which commands to run next.
@@ -42,7 +170,135 @@ export const renderAgentQualityInitConfig = (): string => `export default {
   },
 };`;
 
-export const buildAgentQualityScaffoldFiles = (): ScaffoldFile[] => [
+const renderRunnerEvaluationCommands = (runner: InitRunner): string[] => {
+  if (runner === 'vitest') return ['pnpm vitest run'];
+  if (runner === 'jest') return ['pnpm jest'];
+  if (runner === 'python') return ['python -m pytest'];
+  return ['pnpm eval -- --offline --write-results', 'pnpm eval:emit-artifact'];
+};
+
+const renderCiSnippet = (runner: InitRunner, ci: Exclude<InitCiTarget, 'none'>): ScaffoldFile => {
+  if (ci === 'azure') {
+    return {
+      relativePath: 'azure-pipelines/eval-quality.yml.snippet',
+      content: [
+        'trigger:',
+        '  branches:',
+        '    include:',
+        '      - main',
+        'pr:',
+        '  branches:',
+        '    include:',
+        '      - main',
+        'pool:',
+        '  vmImage: ubuntu-latest',
+        'steps:',
+        '  - task: NodeTool@0',
+        "    inputs: { versionSpec: '20.x' }",
+        '  - script: corepack enable',
+        '  - script: pnpm install --frozen-lockfile',
+        ...renderRunnerEvaluationCommands(runner).map((command) => `  - script: ${command}`),
+        '  - script: npx eval-dashboards lint --input=.evals_output',
+        '  - script: npx eval-dashboards check --input=.evals_output',
+        '  - script: npx eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --theme=dark',
+      ].join('\n'),
+    };
+  }
+
+  return {
+    relativePath: '.github/workflows/eval-quality.yml.snippet',
+    content: [
+      'name: Eval quality',
+      'on:',
+      '  pull_request:',
+      '  push:',
+      '    branches: [main]',
+      'jobs:',
+      '  eval:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - uses: pnpm/action-setup@v4',
+      '      - uses: actions/setup-node@v4',
+      '        with:',
+      '          node-version: 20',
+      '          cache: pnpm',
+      '      - run: pnpm install --frozen-lockfile',
+      ...renderRunnerEvaluationCommands(runner).map((command) => `      - run: ${command}`),
+      '      - run: npx eval-dashboards lint --input=.evals_output',
+      '      - run: npx eval-dashboards check --input=.evals_output',
+      '      - run: npx eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --theme=dark',
+      '      - run: echo "Copy eval-dashboard to your static site output and link /eval-dashboard/"',
+    ].join('\n'),
+  };
+};
+
+const runnerCommandByType: Record<InitRunner, string> = {
+  vitest: 'pnpm vitest run',
+  jest: 'pnpm jest',
+  node: 'pnpm eval -- --offline --write-results && pnpm eval:emit-artifact',
+  python: 'python -m pytest',
+};
+
+export const buildAgentQualitySetupPlaybook = (profile: AgentQualityInitProfile): ScaffoldFile => {
+  const setupList = profile.setupModules.join(', ');
+  const evalCommand = runnerCommandByType[profile.runner];
+  const ciPath =
+    profile.ci === 'none'
+      ? '(none selected)'
+      : profile.ci === 'azure'
+        ? 'azure-pipelines/eval-quality.yml.snippet'
+        : '.github/workflows/eval-quality.yml.snippet';
+
+  return {
+    relativePath: 'docs/evals-setup-playbook.md',
+    content: [
+      '# Evals setup playbook (agent-quality preset)',
+      '',
+      'Use this file when asking a coding agent to wire evals in this repo. Keep all changes auditable and artifact-first.',
+      '',
+      '## Active scaffold profile',
+      `- setup modules: ${setupList}`,
+      `- runner: ${profile.runner}`,
+      `- ci target: ${profile.ci}`,
+      `- ci snippet path: ${ciPath}`,
+      '',
+      '## Local-agent prompts (copy/paste)',
+      '',
+      'Prompt A: add or edit dataset cases',
+      '- Update eval/datasets/agent-quality-cases.jsonl with stable ids and lifecycle values.',
+      '- Keep suite names consistent with suite manifests and rows in eval artifacts.',
+      '- Add one new positive case and one adversarial case for each changed feature.',
+      '',
+      'Prompt B: update rubric contracts',
+      '- Edit eval/rubrics/agent-quality-rubrics.json.',
+      '- If scoring criteria change, bump rubricVersion and explain the reason in the PR notes.',
+      '- Keep axes specific enough that failed rows can cite exact rubric evidence.',
+      '',
+      'Prompt C: calibrate judge behavior',
+      '- Run a labelled sample and compare judge verdicts against expected labels.',
+      '- Record judgeModel, rubricVersion, disagreement rate, and examples of disagreements.',
+      '- Do not switch a suite to blocking until calibration drift is acceptable.',
+      '',
+      'Prompt D: wire multiturn suites',
+      '- Add multiturn-trajectory rows with turns + tool call evidence.',
+      '- Ensure final verdict reflects full trajectory, not only single-turn output.',
+      '- Keep row ids stable so baseline comparisons remain meaningful.',
+      '',
+      '## Verify-before-merge commands (must pass)',
+      '```sh',
+      evalCommand,
+      'eval-dashboards lint --input=.evals_output',
+      'eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical',
+      'eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --reporter=markdown-summary --reporter=text',
+      '```',
+      '',
+      'If a command fails, fix the underlying dataset/rubric/row evidence mismatch before merge.',
+    ].join('\n'),
+  };
+};
+
+const buildAgentQualityBaseScaffoldFiles = (): ScaffoldFile[] => [
   {
     relativePath: 'eval-dashboards.config.ts',
     content: renderAgentQualityInitConfig(),
@@ -164,19 +420,19 @@ export const buildAgentQualityScaffoldFiles = (): ScaffoldFile[] => [
           branch: 'main',
         },
         suites: [
-          { suite: 'retrieval-recall', passed: 1, failed: 0 },
-          { suite: 'answer-groundedness', passed: 1, failed: 0 },
-          { suite: 'refusal-safety', passed: 1, failed: 0 },
-          { suite: 'mcp-routing', passed: 1, failed: 0 },
-          { suite: 'tool-call-accuracy', passed: 1, failed: 0 },
-          { suite: 'tool-argument-accuracy', passed: 1, failed: 0 },
-          { suite: 'tool-execution-reliability', passed: 1, failed: 0 },
-          { suite: 'goal-success', passed: 1, failed: 0 },
-          { suite: 'intent-resolution', passed: 1, failed: 0 },
-          { suite: 'task-adherence', passed: 1, failed: 0 },
-          { suite: 'sensitive-disclosure', passed: 1, failed: 0 },
-          { suite: 'agency-boundary', passed: 1, failed: 0 },
-          { suite: 'multiturn-trajectory', passed: 1, failed: 0 },
+          { id: 'retrieval-recall', total: 1, passed: 1, failed: 0 },
+          { id: 'answer-groundedness', total: 1, passed: 1, failed: 0 },
+          { id: 'refusal-safety', total: 1, passed: 1, failed: 0 },
+          { id: 'mcp-routing', total: 1, passed: 1, failed: 0 },
+          { id: 'tool-call-accuracy', total: 1, passed: 1, failed: 0 },
+          { id: 'tool-argument-accuracy', total: 1, passed: 1, failed: 0 },
+          { id: 'tool-execution-reliability', total: 1, passed: 1, failed: 0 },
+          { id: 'goal-success', total: 1, passed: 1, failed: 0 },
+          { id: 'intent-resolution', total: 1, passed: 1, failed: 0 },
+          { id: 'task-adherence', total: 1, passed: 1, failed: 0 },
+          { id: 'sensitive-disclosure', total: 1, passed: 1, failed: 0 },
+          { id: 'agency-boundary', total: 1, passed: 1, failed: 0 },
+          { id: 'multiturn-trajectory', total: 1, passed: 1, failed: 0 },
         ],
         rows: [
           {
@@ -362,34 +618,112 @@ export const buildAgentQualityScaffoldFiles = (): ScaffoldFile[] => [
       2,
     ),
   },
-  {
-    relativePath: '.github/workflows/eval-quality.yml.snippet',
-    content: [
-      'name: Eval quality',
-      'on:',
-      '  pull_request:',
-      '  push:',
-      '    branches: [main]',
-      'jobs:',
-      '  eval:',
-      '    runs-on: ubuntu-latest',
-      '    steps:',
-      '      - uses: actions/checkout@v4',
-      '      - uses: pnpm/action-setup@v4',
-      '      - uses: actions/setup-node@v4',
-      '        with:',
-      '          node-version: 20',
-      '          cache: pnpm',
-      '      - run: pnpm install --frozen-lockfile',
-      '      - run: pnpm eval -- --offline --write-results',
-      '      - run: pnpm eval:emit-artifact',
-      '      - run: npx eval-dashboards lint --input=.evals_output',
-      '      - run: npx eval-dashboards check --input=.evals_output',
-      '      - run: npx eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --theme=dark',
-      '      - run: echo "Copy eval-dashboard to your static site output and link /eval-dashboard/"',
-    ].join('\n'),
-  },
+  renderCiSnippet('node', 'github'),
 ];
+
+const buildEnabledSuiteSet = (modules: InitSetupModule[]): Set<string> => {
+  const suites = modules.flatMap((module) => setupModuleSuites[module]);
+  return new Set(suites);
+};
+
+const filterDatasetContent = (content: string, enabledSuites: Set<string>): string =>
+  content
+    .split('\n')
+    .filter(Boolean)
+    .filter((line) => {
+      try {
+        const parsed = JSON.parse(line) as { suite?: string };
+        return Boolean(parsed.suite && enabledSuites.has(parsed.suite));
+      } catch {
+        return false;
+      }
+    })
+    .join('\n');
+
+const filterRubricContent = (content: string, enabledSuites: Set<string>): string => {
+  const parsed = JSON.parse(content) as {
+    rubricVersion: string;
+    suites: Record<string, unknown>;
+  };
+
+  parsed.suites = Object.fromEntries(
+    Object.entries(parsed.suites).filter(([suite]) => enabledSuites.has(suite)),
+  );
+
+  return JSON.stringify(parsed, null, 2);
+};
+
+const filterArtifactContent = (content: string, enabledSuites: Set<string>): string => {
+  const parsed = JSON.parse(content) as {
+    suites?: Array<{ id?: string; suite?: string }>;
+    rows?: Array<{ suite?: string }>;
+  };
+
+  parsed.suites = (parsed.suites ?? []).filter(
+    (suiteEntry) => {
+      const suiteId = suiteEntry.id ?? suiteEntry.suite;
+      return Boolean(suiteId) && enabledSuites.has(suiteId as string);
+    },
+  );
+  parsed.rows = (parsed.rows ?? []).filter(
+    (row) => Boolean(row.suite) && enabledSuites.has(row.suite as string),
+  );
+
+  return JSON.stringify(parsed, null, 2);
+};
+
+const applyProfileToScaffoldFiles = (
+  files: ScaffoldFile[],
+  profile: AgentQualityInitProfile,
+): ScaffoldFile[] => {
+  const enabledSuites = buildEnabledSuiteSet(profile.setupModules);
+  const includeAll = includesAllSetupModules(profile.setupModules);
+
+  const transformed = files
+    .map((file) => {
+      if (file.relativePath === '.github/workflows/eval-quality.yml.snippet') {
+        return null;
+      }
+
+      if (!includeAll && file.relativePath === 'eval/datasets/agent-quality-cases.jsonl') {
+        return {
+          ...file,
+          content: filterDatasetContent(file.content, enabledSuites),
+        };
+      }
+
+      if (!includeAll && file.relativePath === 'eval/rubrics/agent-quality-rubrics.json') {
+        return {
+          ...file,
+          content: filterRubricContent(file.content, enabledSuites),
+        };
+      }
+
+      if (!includeAll && file.relativePath === '.evals_output/run-agent-quality-template.json') {
+        return {
+          ...file,
+          content: filterArtifactContent(file.content, enabledSuites),
+        };
+      }
+
+      return file;
+    })
+    .filter((file): file is ScaffoldFile => file !== null);
+
+  if (profile.ci !== 'none') {
+    transformed.push(renderCiSnippet(profile.runner, profile.ci));
+  }
+
+  return transformed;
+};
+
+export const buildAgentQualityScaffoldFiles = (
+  profile: AgentQualityInitProfile = {
+    setupModules: [...allSetupModules],
+    runner: 'node',
+    ci: 'github',
+  },
+): ScaffoldFile[] => applyProfileToScaffoldFiles(buildAgentQualityBaseScaffoldFiles(), profile);
 
 const fileExists = async (filePath: string): Promise<boolean> => {
   try {
@@ -409,6 +743,29 @@ export const renderAgentQualityTeachMode = (outputDir: string, files: ScaffoldFi
   return [
     'Teach mode (dry-run): no files were written.',
     '',
+    'Beginner curriculum (what to learn first):',
+    '1. Eval foundations: evals are repeatable behavior checks, not one-off demos.',
+    '2. Eval stack: deterministic tests, offline dataset evals, human review, production metrics.',
+    '3. Artifact boundary: your runner must emit eval-report/v1 JSON into .evals_output/.',
+    '4. Synthetic dataset: start with 10-30 high-signal cases, stable ids, one behavior per row.',
+    '5. Live agent evals: capture turns, tool calls, tool args/results, and latency evidence.',
+    '6. Judges: use LLM judges for nuanced quality, then calibrate against reviewed labels.',
+    '7. Gates and reports: lint -> check -> report, then iterate on failure clusters.',
+    '8. History: keep one artifact per run so baseline comparisons stay meaningful.',
+    '',
+    'Schema and taxonomy essentials:',
+    '- Required artifact shape: schemaVersion, run, suites, rows.',
+    '- Required row fields: id, suite, passed.',
+    '- Taxonomy-complete rows should include kind, severity, category, reason, datasetId, scenarioId, rubricId.',
+    '- Agent evidence fields: turns, toolCalls, promptVersion, agentVersion.',
+    '- Judge evidence fields: judgeModel, judgeVerdict, judgeReasoning, axisScores.',
+    '- Suite governance fields: riskArea, datasetVersion, rubricVersion, graders, gate mode/thresholds.',
+    '',
+    'When to extend taxonomy/schema:',
+    '- Add optional fields first when multiple runners need the same evidence for gates/history/reports.',
+    '- Keep eval-report/v1 additive; only introduce a new schemaVersion for breaking changes.',
+    '- Keep vendor-specific details in metadata unless they are broadly portable.',
+    '',
     'How eval-dashboards works:',
     '1. Your runner emits eval-report/v1 JSON artifacts into .evals_output/.',
     '2. lint checks taxonomy/shape issues quickly before expensive checks.',
@@ -426,6 +783,47 @@ export const renderAgentQualityTeachMode = (outputDir: string, files: ScaffoldFi
     '4. Run: eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical',
     '5. Run: eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard',
     '6. Optional publish: eval-dashboards publish --input=.evals_output --report-dir=eval-dashboard --target=dir',
+    '',
+    'Deep-dive doc: docs/teach-curriculum.md',
+  ].join('\n');
+};
+
+export const renderAgentQualityDryRunMode = (outputDir: string, files: ScaffoldFile[]): string => {
+  const describeFile = (relativePath: string): string => {
+    if (relativePath === 'eval-dashboards.config.ts') {
+      return 'CLI config: artifact input, reporters, and gate defaults.';
+    }
+    if (relativePath === 'eval/datasets/agent-quality-cases.jsonl') {
+      return 'Starter dataset: eval cases to run through your agent/eval harness.';
+    }
+    if (relativePath === 'eval/rubrics/agent-quality-rubrics.json') {
+      return 'Starter rubric: pass/fail criteria and scoring axes per suite.';
+    }
+    if (relativePath === '.evals_output/run-agent-quality-template.json') {
+      return 'Template eval-report/v1 artifact: replace with real run output.';
+    }
+    if (relativePath === '.github/workflows/eval-quality.yml.snippet') {
+      return 'CI snippet (GitHub Actions): run lint/check/report on PRs.';
+    }
+    if (relativePath === 'azure-pipelines/eval-quality.yml.snippet') {
+      return 'CI snippet (Azure Pipelines): run lint/check/report on PRs.';
+    }
+    return 'Scaffold file.';
+  };
+
+  const plannedEntries = files.map((file) => ({
+    absolutePath: path.resolve(outputDir, file.relativePath),
+    description: describeFile(file.relativePath),
+  }));
+
+  return [
+    `Would write ${plannedEntries.length} file(s):`,
+    ...plannedEntries.map((entry) => `${entry.absolutePath}  # ${entry.description}`),
+    '',
+    'No files were created. Run again with --write to scaffold these files.',
+    'Examples:',
+    '  eval-dashboards init --preset=agent-quality --write',
+    '  eval-dashboards init --preset=agent-quality --setup=guardrails,multiturn --runner=vitest --ci=azure --write',
   ].join('\n');
 };
 
@@ -451,19 +849,6 @@ export const writeScaffoldFiles = async (
         { exitCode: 2 },
       );
     }
-  }
-
-  const generatedOutputDirs = Array.from(
-    new Set(
-      files
-        .map((file) => file.relativePath)
-        .filter((relativePath) => relativePath.startsWith('.evals_output/'))
-        .map((relativePath) => path.resolve(outputDir, path.dirname(relativePath))),
-    ),
-  );
-
-  for (const generatedOutputDir of generatedOutputDirs) {
-    await rm(generatedOutputDir, { recursive: true, force: true });
   }
 
   for (const file of files) {

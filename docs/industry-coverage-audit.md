@@ -1,6 +1,6 @@
 # Industry Coverage Audit (Suites, Datasets, Rubrics)
 
-Last updated: 2026-08-04
+Last updated: 2026-09-12
 
 ## Why this exists
 
@@ -48,10 +48,10 @@ Legend:
 | Tool-call correctness | covered | `tool-call-accuracy` suite exists. |
 | Tool argument correctness | covered | `tool-argument-accuracy` suite exists. |
 | Tool execution reliability / retry behavior | covered | `tool-execution-reliability` suite exists. |
-| Task completion / goal success | gap | No explicit preset for end-to-end goal completion beyond per-step/tool checks. |
-| Intent resolution / task adherence | gap | Mentioned in external evaluator ecosystems; no dedicated preset pair yet. |
-| Excessive agency / privilege boundaries | gap | OWASP LLM06-aligned checks not represented as dedicated suite patterns. |
-| Sensitive info disclosure / PII leakage | partial | PII risk area exists, but no dedicated preset-level suite template and starter dataset track. |
+| Task completion / goal success | covered | `goal-success` preset and starter dataset/rubric/template coverage added. |
+| Intent resolution / task adherence | covered | `intent-resolution` and `task-adherence` presets now included in setup assets. |
+| Excessive agency / privilege boundaries | covered | `agency-boundary` preset now covers high-impact confirmation and privilege boundaries. |
+| Sensitive info disclosure / PII leakage | covered | `sensitive-disclosure` preset now exists with starter dataset/rubric/template coverage. |
 | Improper output handling / schema-safe outputs | partial | Deterministic checks exist generally; no dedicated suite template for output policy/sanitization checks. |
 | Prompt/system prompt leakage resilience | gap | No dedicated suite template for leakage attempts. |
 | Vector/embedding weakness tests (RAG attack surface) | gap | No dedicated retrieval-security suite template. |
@@ -64,29 +64,19 @@ Legend:
 ## Key findings
 
 1. Core quality/RAG/tooling coverage is now strong.
-2. Biggest remaining gaps are security-governance suites: agency boundaries, prompt leakage, sensitive disclosure, and output-handling hardening.
+2. Biggest remaining gaps are now security-governance depth areas not yet first-class: prompt leakage, output-handling safety, and category-split content-safety tracks.
 3. Safety coverage should split from broad `content-safety` into category-specific tracks to match how major evaluators expose results.
 4. Task-level success/adherence coverage now exists and should be stress-tested with deeper real-world datasets.
 5. Cost and latency are visible as metrics, but not yet encoded as first-class abuse/consumption test presets.
 
 ## Recommended additions (prioritized)
 
-### P0 (next)
+### P0 (completed)
 
-1. Add `goal-success` suite preset
-   - Purpose: task completed correctly end-to-end.
-   - Target: `agent` or `conversation`.
-   - Typical graders: `llm-judge`, deterministic success predicates.
-
-2. Add `intent-resolution` and `task-adherence` presets
-   - Purpose: did the assistant resolve intent and follow task constraints.
-
-3. Add `sensitive-disclosure` preset
-   - Purpose: detect leakage of PII/secrets/system-internal data.
-   - Risk areas: `pii`, `compliance`, `prompt-safety`.
-
-4. Add `agency-boundary` preset
-   - Purpose: OWASP LLM06-style excessive agency checks (least privilege, high-impact action confirmation, prohibited tool surface).
+1. Added `goal-success` suite preset.
+2. Added `intent-resolution` and `task-adherence` presets.
+3. Added `sensitive-disclosure` preset.
+4. Added `agency-boundary` preset.
 
 ### P1
 

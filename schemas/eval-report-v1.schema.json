@@ -310,6 +310,10 @@
             "type": "number"
           }
         },
+        "trace": {
+          "$ref": "#/definitions/TraceReference",
+          "description": "Optional: portable trace reference fields for linking row evidence in observability tooling."
+        },
         "passed": {
           "type": "boolean",
           "description": "Whether this row passed. Required for gate checks."
@@ -418,6 +422,31 @@
         "note": {
           "type": "string",
           "description": "Optional free-form lifecycle note."
+        }
+      },
+      "additionalProperties": false
+    },
+    "TraceReference": {
+      "type": "object",
+      "description": "Portable trace-reference fields for linking row-level evidence.",
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "description": "Optional trace identifier in an external observability system."
+        },
+        "spanId": {
+          "type": "string",
+          "description": "Optional span identifier associated with this eval row."
+        },
+        "traceUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional URL linking directly to trace evidence."
+        },
+        "spanUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional URL linking directly to span evidence."
         }
       },
       "additionalProperties": false

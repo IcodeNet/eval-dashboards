@@ -257,11 +257,31 @@ describe('validateEvalReport', () => {
           ],
           toolCalls: [{ name: 'knowledge-base', args: { query: 'report command' }, durationMs: 120 }],
           axisScores: { clarity: 0.9, groundedness: 1.0 },
+          trace: {
+            traceId: 'trace-abc123',
+            spanId: 'span-def456',
+            traceUrl: 'https://observability.example/trace/trace-abc123',
+            spanUrl: 'https://observability.example/trace/trace-abc123/span/span-def456',
+          },
         },
       ],
     });
 
     expect(result.ok).toBe(true);
+  });
+
+  it('rejects non-string trace reference fields', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, trace: { traceId: 42 } }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].trace.traceId must be a string when provided.',
+    );
   });
 
   it('rejects a turn with an invalid role', () => {

@@ -20,7 +20,35 @@ export const findJsonReports = async (input: string): Promise<string[]> => {
     }
   };
 
-  await visit(input);
+  try {
+    await visit(input);
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as NodeJS.ErrnoException).code === 'ENOENT'
+    ) {
+      throw Object.assign(
+        new Error(
+          [
+            `No eval artifacts directory found at ${input}.`,
+            'What to do next:',
+            '  1) Bootstrap eval scaffolding: eval-dashboards init --write (alias: evd init --write)',
+            '  2) Or point to your existing artifacts: --input=<path-to-evals_output>',
+            '  3) Then run one of:',
+            '     eval-dashboards lint --input=.evals_output',
+            '     eval-dashboards check --input=.evals_output',
+            '     eval-dashboards report --input=.evals_output --reporter=html',
+          ].join('\n'),
+        ),
+        { exitCode: 3 },
+      );
+    }
+
+    throw error;
+  }
+
   return results.sort();
 };
 
@@ -38,6 +66,25 @@ export const readEvalReport = async (filePath: string): Promise<EvalReportV1> =>
 
 export const readEvalReports = async (input: string): Promise<EvalReportV1[]> => {
   const files = await findJsonReports(input);
+
+  if (files.length === 0) {
+    throw Object.assign(
+      new Error(
+        [
+          `No eval report JSON files found under ${input}.`,
+          'What to do next:',
+          '  1) Emit at least one eval-report/v1 artifact into that directory.',
+          '  2) If you need starter files, run: eval-dashboards init --write (alias: evd init --write)',
+          '  3) Then run one of:',
+          '     eval-dashboards lint --input=.evals_output',
+          '     eval-dashboards check --input=.evals_output',
+          '     eval-dashboards report --input=.evals_output --reporter=html',
+        ].join('\n'),
+      ),
+      { exitCode: 3 },
+    );
+  }
+
   const reports = await Promise.all(files.map((file) => readEvalReport(file)));
 
   return reports.sort(

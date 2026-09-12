@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-08-03
+**Last updated:** 2026-09-12
 
 ---
 
@@ -141,7 +141,7 @@ This phase ports proven reporting concepts from production eval workflows while 
 
 ---
 
-## ✅ Phase 4: Shipping & Adoption (ROADMAP IMPLEMENTATION COMPLETE)
+## ✅ Phase 4 (Core Shipping & Adoption Infrastructure): COMPLETE
 
 Per user directive: "adoption and shipping should be done last when we are ready."
 
@@ -306,39 +306,204 @@ These slices turn the reference integration proving-ground work into reusable se
 
 ---
 
-## 📋 Phase 4B: Agent-skill adoption channel (PROPOSED — not started)
+## 🚧 Phase 4B: CLI Setup Automation for Agent Evals (EXPANSION OF EXISTING INIT)
 
-**Problem this addresses:** adoption metrics show the schema-first bet has not converted into external usage (`docs/adoption-metrics/latest.json`: 27 weekly downloads, 1 star, 0 external runner adoptions, outreach not started as of 2026-08-31). The current onboarding path requires a human to discover the package, read multiple docs, and hand-wire an adapter before getting any payoff — a multi-hour investment with unproven return. That is the likely root cause of stalled adoption, not a tracking or messaging gap.
+This phase focuses on the adoption path where a team installs `@icodenet/eval-dashboards` and asks a local coding agent to bootstrap guardrails, evals, judges, and multi-turn test setup with minimal manual wiring.
 
-**Proposed fix:** stop asking teams to adopt the schema before they see value. Instead, ship an installable **agent skill** ("adopt eval-dashboards into an existing repo") that a coding agent (Claude Code, Copilot, Cursor, Hermes, etc.) runs directly against a target repo. The skill should:
+Primary product goal:
 
-1. Inspect the team's existing eval runner and output format (Vitest/Jest/pytest/custom script).
-2. Write a thin adapter using the existing public helpers (`writeEvalReportArtifact` / `createEvalReportArtifact`) — no hand-authored JSON shape.
-3. Wire `eval-dashboards report` / `check` into their existing CI file (GitHub Actions or Azure Pipelines, using `examples/github-actions/` and `examples/azure-devops/` as templates).
-4. Open a PR with the change, so the team reviews a working diff instead of following a tutorial.
+`eval-dashboards init` should become a practical setup assistant, not only a config generator.
 
-This turns onboarding from a multi-hour manual task into a ~10-minute agent-run task, and makes the skill itself the marketing asset (distribute via public skill registries / "Show HN: an agent skill that upgrades your eval output", not just README traffic).
+### 4B.1 Expand initializer profiles and setup flags (P0)
 
-### Why this belongs before further preset/rubric investment
+- [x] Expand existing `eval-dashboards init --preset=agent-quality` with explicit setup profiles and composable flags, for example:
+  - `--preset=agent-quality`
+  - `--setup=guardrails,evals,judges,multiturn`
+  - `--runner=vitest|jest|node|python`
+  - `--ci=github|azure|none`
+  - `--dry-run` for preview-only output
+- [x] Add CLI shell completion support with install/use examples (bash/zsh/fish), including preset/setup/runner/ci values and command flags.
+- [x] Generate profile-specific starter assets together:
+  - dataset files
+  - rubric contracts
+  - suite manifests
+  - reporter/check commands
+  - CI snippets aligned to selected runner
+- [x] Keep all generated outputs taxonomy-complete by default.
+- [x] Preserve backward compatibility for existing `init --preset=agent-quality` and `--write/--dry-run` flows.
 
-Real user friction (missing presets, awkward adapter ergonomics, schema gaps) is far more valuable once it comes from genuine external integrations than from internal guessing. This channel is the fastest way to get that first real external artifact and turn `community-partnership-log.md` from cold outreach into a self-serve funnel.
+Acceptance criteria:
 
-### Backlog
+- A new repo can run one `init --write` command and immediately run lint/check/report on the generated sample artifact.
+- `--dry-run` prints exactly what files and commands would be created without writing to disk.
 
-- [x] Author `SKILL.md` for "adopt eval-dashboards into an existing repo" (inspect runner → adapter → CI wiring → PR) — see `skills/eval-dashboards-adopt/SKILL.md`, linked from README
-- [x] Validate the skill end-to-end against a synthetic target repo (ad-hoc `run.mjs` with no `eval-report/v1` knowledge) — installed the package via npm from local tarball path, wrote a thin adapter with `writeEvalReportArtifact`, then ran `lint` (0 errors, correctly flagged missing `kind`/`severity` as warnings), `check` (gates passed), and `report` (HTML rendered real rows) — all exited 0. Confirms `skills/eval-dashboards-adopt/SKILL.md` ships via `npm install` (package.json `files` fix works) and the procedure holds up against a genuinely external, non-eval-dashboards-aware runner.
-- [x] Decide distribution channel(s) for the skill itself — verified `npx skills add IcodeNet/eval-dashboards -s eval-dashboards-adopt -y` works today against the pushed `main`: clones the repo, auto-discovers the skill, and installs it cross-agent (Claude Code, Codex, GitHub Copilot, OpenCode, Hermes Agent, +12 more) into a target repo's `.agents/skills/`. No public registry, npm companion package, or extra tooling needed — the skill's own repo is the distribution channel. README's "Adopt With An Agent Skill" section should link this exact command as the install path.
-- [x] Use each skill run as an adoption-funnel event: log outcome in `docs/community-partnership-log.md`, feed friction back into `docs/industry-coverage-audit.md` / this roadmap
-  - **Done (2026-09-03):** ran the real skill procedure against `assistant-ui/assistant-ui` (MIT, ~12k stars, active). Built the adapter, ran their real `evals/` harness end to end (real `claude` CLI agent + judge, 18 rows across 3 cases × 6 candidates), reproduced their own documented A/B finding exactly (14/18 passed, `pr-review-comments` fails at baseline and passes with `delete-stale`/`drop-tombstones` guidance). Full case study with real findings at `docs/case-studies/assistant-ui/README.md`, linked from README. No PR opened yet — kept local per an explicit decision to review before sending anything upstream. Real friction found: (1) `RunnerEvalCaseResult` silently drops `kind`/taxonomy fields unless `mapRow` is used — genuine product gap, not yet fixed; (2) lint correctly flagged real, still-open `missing-agent-evidence` warnings (harness doesn't capture tool-call trajectories).
-- [x] Add `expectedOutcome: 'pass' | 'fail'` to `EvalRow` — closes the baseline/pass-rate blending gap found in the assistant-ui case study. A/B-shaped harnesses have rows that are *supposed* to fail (e.g. a baseline, proving the case tests something) mixed with rows expected to pass (candidate guidance); a flat `passRate` treats both the same and produces a misleading headline number. Modeled on the `xfail`/expected-failure convention teams already know from pytest/JUnit. Shipped: `rowMatchedExpectation()` helper, `EvalSummary.matchedExpectation(Rate)`/`expectationMismatches` fields (additive, alongside the existing `passed`/`passRate`), a `expectation-mismatch` lint warning for rows whose actual outcome doesn't match their declared expectation, and a `minMatchedExpectationRate` gate config + `--min-matched-expectation-rate` CLI flag as the correct alternative to `minPassRate` for this suite shape. 97/97 tests pass, typecheck clean, build succeeds.
-- [x] Fix the `RunnerEvalCaseResult` taxonomy-field gap found in the assistant-ui case study — widened `RunnerEvalCaseResult` (`src/adapters/runner.ts`) to accept `kind`, `datasetId`, `scenarioId`, `rubricId`, `judgeModel`/`judgeVerdict`/`judgeCategory`/`judgeReasoning`, `promptVersion`, `agentChannel`, `agentVersion` directly, and made `createDefaultRow` copy them through. Added a regression test (`test/runner-adapter.test.ts`: "carries taxonomy fields through the default row mapper without requiring mapRow"). Re-verified against the real assistant-ui adapter: removed its `mapRow` workaround entirely, reinstalled the rebuilt package, re-ran the real harness — `kind`/`scenarioId`/`promptVersion` now reach the artifact from a plain case object. 94/94 tests pass, typecheck clean, build succeeds.
-- [x] Open question, raised while reviewing the assistant-ui case study: `eval-report/v1`'s suite-level `passRate` blends rows that are *supposed* to fail (this harness's `baseline` rows — a failing baseline is the correct/expected outcome, proof the case tests something) with rows that are supposed to pass (`candidate-guidance` rows — the real signal). A flat 77.8% pass rate is misleading for this shape of harness.
-  - **Resolved (2026-09-03):** chose option (b), generalized — `expectedOutcome: 'pass' | 'fail'` on `EvalRow` (see item above), rather than a special-cased `baseline-evidence` category string. Additive, backward-compatible, and matches an existing testing convention (`xfail`) instead of inventing a new one.
-- [ ] Only after real external friction is observed: prioritize the P0/P1 preset gaps in `docs/industry-coverage-audit.md` (`agency-boundary`, `sensitive-disclosure`, etc.) against actual reported gaps rather than guesswork
-- [ ] Add a three-state row status marker to the HTML reporter: red for failed, green for passed, **amber/orange for "needs investigation."** Today `render.ts` only has a binary `fail-row` class (`--pass`/`--fail` colors); there is no visual "uncertain" state even though the taxonomy already has one — `metadata.lifecycle.status: 'quarantined'` (`src/model/eval-report-v1.ts`) exists but isn't surfaced in the reporter at all. Design: map `quarantined` rows (and/or flaky rows already detected by `analyzeRowStability()` in history) to a third CSS class using the existing `--warn` variable, alongside the current `--pass`/`--fail`. Applies to row markers in both the failing-rows and all-rows tables, and ideally the suite pill/summary counts too (a suite with quarantined rows shouldn't silently count as "clean" just because nothing is `passed: false`).
-- [x] Published `@icodenet/eval-dashboards@0.7.0` to npm (`latest`), covering the `expectedOutcome`/`matchedExpectationRate` feature and the `RunnerEvalCaseResult` taxonomy fix. Along the way, root-caused a real (not local-machine-specific, contrary to an earlier assumption) publish-pipeline break: pnpm 11 replaced `onlyBuiltDependencies` with `allowBuilds: { pkg: true|false }` in `pnpm-workspace.yaml` — the old key is silently ignored, not an error, so a clean CI runner failed with `ERR_PNPM_IGNORED_BUILDS` on `Install dependencies`. Fixed, verified `rm -rf node_modules && pnpm install` exits 0 with no prompt, re-ran `publish.yml` successfully. GitHub Release: https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.7.0.
-- [ ] Reinstall `@icodenet/eval-dashboards@0.7.0` (published, not the local path-install) into `~/Projects/assistant-ui/evals`, add `expectedOutcome: 'fail'` to the adapter's baseline rows (change made locally in the adapter, not yet re-verified against a real full-sweep run — the run was in progress when the session ended), and regenerate the report to confirm `matchedExpectationRate` reads correctly end-to-end against a real external harness.
-- [ ] `~/Projects/assistant-ui` has a local, unpushed branch `feat/eval-dashboards-artifact` (commit `2e5b804`, correct `byronth@gmail.com` identity) with the adapter + a 4-line `cli.ts` diff — ready for a future PR upstream to `assistant-ui/assistant-ui`, but deliberately not pushed or opened per an earlier decision to review first. A local `PR_PREVIEW.md` (untracked, not committed) in that repo's root shows the rendered title/description/diff.
+### 4B.2 Local-agent setup instructions output (P0)
+
+- [x] Add optional generation of a checked-in setup playbook (for example `docs/evals-setup-playbook.md`) that a local coding agent can follow safely.
+- [x] Include copy-paste prompts for adding cases, updating rubrics, calibrating judges, and wiring multi-turn suites.
+- [x] Include a strict "verify before merge" command block with `lint`, `check`, and `report` commands.
+
+Acceptance criteria:
+
+- A user can hand the generated playbook to a coding agent and get reproducible eval wiring without undocumented repo knowledge.
+
+### 4B.3 First-class importer/adapters from common eval outputs (P0)
+
+- [x] Add import adapters so teams can convert existing outputs into `eval-report/v1` quickly:
+  - promptfoo
+  - deepeval
+  - openevals / agentevals
+- [x] Provide adapter CLI entrypoints (for example `eval-dashboards import --from=<tool> --input=<path> --out=.evals_output/...`).
+- [x] Preserve source-run metadata in row/run evidence fields.
+- [x] Implement importers as thin conversion frontends over existing adapter helpers (`createEvalReportArtifact(...)` / `writeEvalReportArtifact(...)`) to avoid duplicate normalization logic.
+
+Current slice status:
+- Promptfoo importer + `eval-dashboards import` command implemented.
+- DeepEval importer implemented.
+- AgentEvals importer implemented.
+
+Acceptance criteria:
+
+- Each supported importer has fixtures + tests proving valid `eval-report/v1` output and correct suite/row totals.
+
+### 4B.4 Statistical gating mode (P2)
+
+- [ ] Add optional confidence-aware regression gates (for example bootstrap confidence interval over pass-rate deltas).
+- [ ] Keep deterministic threshold gates as default; statistical mode remains opt-in.
+- [ ] Show confidence context in markdown/html summaries.
+
+Acceptance criteria:
+
+- Same artifact evaluated in deterministic mode vs statistical mode yields clearly explained gate decisions.
+
+### 4B.5 Red-team/guardrail reporting profile (P1)
+
+- [x] Add a guardrail-focused report layout for attack-style suites:
+  - category breakdown
+  - severity distribution
+  - failure pattern grouping
+- [x] Map to existing risk areas and avoid tool-specific lock-in.
+- [x] Reuse the industry-audit safety taxonomy and preset naming so guardrail reporting does not create a parallel classification layer.
+
+Acceptance criteria:
+
+- Teams running safety/guardrail suites can triage by attack class without custom dashboard code.
+
+### 4B.6 Trace-link fields first, CI-native outputs second (P1)
+
+- [x] Add optional trace reference fields (portable IDs/URLs) in artifacts and render as links where present.
+- [ ] Keep CI-native machine outputs as a follow-on slice after trace-link fields and import adapters are stable.
+
+Acceptance criteria:
+
+- A failing check can be consumed by standard CI tooling and traced back to row evidence in one hop.
+
+### 4B.7 Human adjudication package (P2)
+
+- [ ] Add export/import flow for reviewer adjudication bundles:
+  - unresolved rows export
+  - reviewer verdict merge-back
+  - provenance trail in artifact metadata
+
+Acceptance criteria:
+
+- Teams can run human review loops without adopting a hosted platform.
+
+### 4B.8 Cost-quality frontier and benchmark packs (P2)
+
+- [ ] Add optional cost/latency-quality frontier views when row metrics are present.
+- [ ] Add versioned benchmark pack templates (for example safety, tool-routing, groundedness bundles) with compatibility guidance.
+
+Acceptance criteria:
+
+- Users can compare quality vs cost trade-offs and bootstrap standardized packs with stable version metadata.
+
+### 4B execution order
+
+1. 4B.1 Initializer profiles and setup flags
+2. 4B.2 Local-agent setup instructions output
+3. 4B.3 Import adapters
+4. 4B.6 Trace-link fields (portable optional IDs/URLs)
+5. 4B.5 Red-team/guardrail reporting profile
+6. 4B.4 Statistical gating mode
+7. 4B.7 Human adjudication package
+8. 4B.8 Cost-quality frontier and benchmark packs
+
+---
+
+## 🚧 Phase 4C: Product Docs Website + Interoperability Guides (NEW)
+
+This phase creates a public product docs site (GitHub Pages) focused on adoption. It explains how to install and use `@icodenet/eval-dashboards`, and how to combine it with existing eval tooling instead of replacing everything.
+
+Primary product goal:
+
+Make onboarding and ecosystem fit obvious in one place: setup path, CI path, taxonomy path, and interoperability path.
+
+### 4C.1 Docs site foundation on GitHub Pages (P0)
+
+- [x] Create a docs-site structure under version control (for example `docs-site/` or equivalent static-docs layout) and publish via GitHub Pages workflow.
+- [x] Keep docs fully static and repo-owned (no hosted dependency required).
+- [x] Add versioned navigation sections for: Getting Started, CLI, Schema/Taxonomy, CI Gates, Publishing, Integrations.
+
+Acceptance criteria:
+
+- A stable public docs URL exists and is generated from this repository on merge to main.
+- Every core CLI command page includes runnable examples.
+
+### 4C.2 CLI-first onboarding path (P0)
+
+- [x] Add a dedicated onboarding journey centered on `eval-dashboards init` + setup flags.
+- [x] Document install-and-run flows by runner (`vitest`, `jest`, `node`, `python`) with copy-paste commands.
+- [x] Add a local-agent section: safe prompt templates for asking coding agents to wire guardrails, judges, and multi-turn suites.
+
+Acceptance criteria:
+
+- A new team can follow one docs path and reach first passing `lint` + `check` + `report` run without reading internal code.
+
+### 4C.3 Interoperability guides with existing eval ecosystems (P0)
+
+- [x] Add explicit "Works with" pages for major adjacent tools and workflows:
+  - promptfoo
+  - deepeval
+  - openevals / agentevals
+  - tracing/observability stacks (for optional trace-link fields)
+- [x] For each integration page, document:
+  - what that tool does well
+  - what eval-dashboards adds
+  - minimal conversion path into `eval-report/v1`
+  - example commands and expected artifact shape
+- [x] Keep positioning runner-agnostic and non-adversarial.
+
+Acceptance criteria:
+
+- Users can identify in under 5 minutes whether they should adopt eval-dashboards alongside their current tooling and exactly how.
+
+### 4C.4 Assistant-UI reference integration track (P1)
+
+- [ ] Use assistant-ui integration as the living reference example for agent-eval adoption docs.
+- [ ] Publish a case-study style walkthrough: baseline setup, emitted artifacts, lint/check/report wiring, dashboard publish flow, and key lessons.
+- [ ] Keep example aligned with current branch/PR state and update docs when integration steps change.
+
+Acceptance criteria:
+
+- The docs site contains an end-to-end reference integration page tied to real repo artifacts and reproducible commands.
+
+### 4C.5 Adoption measurement for docs effectiveness (P1)
+
+- [ ] Add lightweight docs adoption signals (page-to-action checks, integration example usage markers, docs update cadence).
+- [ ] Track friction points as documentation backlog items, not only product backlog items.
+
+Acceptance criteria:
+
+- Docs changes are prioritized using observed adoption friction instead of intuition only.
+
+### 4C execution order
+
+1. 4C.1 Docs site foundation
+2. 4C.2 CLI-first onboarding path
+3. 4C.3 Interoperability guides
+4. 4C.4 Assistant-UI reference integration
+5. 4C.5 Adoption measurement loop
 
 ---
 
@@ -353,28 +518,32 @@ Real user friction (missing presets, awkward adapter ergonomics, schema gaps) is
 
 ---
 
+## 📦 npm release policy note (ship gate)
+
+- npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.
+- When all remaining roadmap checklist items are complete, and verification passes (`pnpm test`, `pnpm typecheck`, `pnpm build`, plus CLI verifier scripts), publish the first stable milestone as `1.0.0`.
+- If a true first-ever release presentation is required, publish under a new package name/scope instead of attempting to reset existing npm history.
+
+---
+
 ## 🎯 Recommended next steps (prioritized by impact)
 
 **Immediate (next 1–2 weeks):**
-1. Add stricter dataset governance completeness checks to the fast preflight path
-   - Extend the current lifecycle/provenance enforcement into duplicate case ids, stronger provenance note coverage, and row evidence consistency checks
-   - This turns governance guidance into enforceable setup hygiene
-2. Expand judge calibration report drills only if more labelled fixtures are added
-   - Current agreement/disagreement and tolerance-band gates are runnable; next value comes from richer labelled sets and per-axis drill-downs
-   - Keep the surface small unless a real integration proves the extra fidelity is needed
-3. Continue external adoption prep
-   - Community seeding, integrations, and production CI templates remain the shipping-adoption workstream
-   - See Phase 4B: an agent-skill adoption channel is the proposed unblock for stalled external adoption — prioritize authoring that skill over further outreach-log entries
+1. Start Phase 4B.4 optional statistical gating mode
+   - Keep deterministic thresholds as default
+   - Add confidence context to markdown/html summaries when statistical mode is enabled
+2. Keep CI-native machine outputs as the 4B.6 follow-on slice
+   - ensure one-hop links from CI failures back to row-level evidence
 
-**Short term (Phase 4 preparation, next 2–3 weeks):**
-4. Community seeding: early runner partnerships and integration examples
-   - Validates adoption readiness
-   - Gathers feedback before public announcement
+**Short term (next 2–3 weeks):**
+3. Publish assistant-ui reference integration case study (4C.4)
+4. Add docs-adoption measurement loop (4C.5)
+5. Continue dataset-governance hardening in lint/check preflight
 
-**Medium term (Phase 4 execution, post-npm readiness):**
-5. External adoption push: announcement, citations, and real-world integrations
-6. Continue hardening production CI templates with approval-gate and publish-branch patterns
-7. Community building (issues, feedback, iterations)
+**Medium term:**
+6. Statistical gate mode after sample-size/stability prerequisites (4B.4)
+7. Human adjudication package (4B.7)
+8. External adoption push and community feedback loop
 
 ---
 

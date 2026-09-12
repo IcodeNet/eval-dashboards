@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // src/cli/index.ts
-import path6 from "path";
+import path9 from "path";
 
 // src/history/baseline-compatibility.ts
 var assessBaselineCompatibility = (candidateManifests, baselineManifests, hasComparison) => {
@@ -411,6 +411,17 @@ var validateEvalReport = (value) => {
           }
         }
       }
+      if (row["trace"] !== void 0) {
+        if (!isObject(row["trace"])) {
+          errors.push(`rows[${index}].trace must be an object when provided.`);
+        } else {
+          for (const field of ["traceId", "spanId", "traceUrl", "spanUrl"]) {
+            if (row["trace"][field] !== void 0 && !isString(row["trace"][field])) {
+              errors.push(`rows[${index}].trace.${field} must be a string when provided.`);
+            }
+          }
+        }
+      }
       if (row["metadata"] !== void 0) {
         if (!isObject(row["metadata"])) {
           errors.push(`rows[${index}].metadata must be an object when provided.`);
@@ -624,7 +635,28 @@ var findJsonReports = async (input) => {
       }
     }
   };
-  await visit(input);
+  try {
+    await visit(input);
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
+      throw Object.assign(
+        new Error(
+          [
+            `No eval artifacts directory found at ${input}.`,
+            "What to do next:",
+            "  1) Bootstrap eval scaffolding: eval-dashboards init --write (alias: evd init --write)",
+            "  2) Or point to your existing artifacts: --input=<path-to-evals_output>",
+            "  3) Then run one of:",
+            "     eval-dashboards lint --input=.evals_output",
+            "     eval-dashboards check --input=.evals_output",
+            "     eval-dashboards report --input=.evals_output --reporter=html"
+          ].join("\n")
+        ),
+        { exitCode: 3 }
+      );
+    }
+    throw error;
+  }
   return results.sort();
 };
 var readEvalReport = async (filePath) => {
@@ -638,6 +670,23 @@ var readEvalReport = async (filePath) => {
 };
 var readEvalReports = async (input) => {
   const files = await findJsonReports(input);
+  if (files.length === 0) {
+    throw Object.assign(
+      new Error(
+        [
+          `No eval report JSON files found under ${input}.`,
+          "What to do next:",
+          "  1) Emit at least one eval-report/v1 artifact into that directory.",
+          "  2) If you need starter files, run: eval-dashboards init --write (alias: evd init --write)",
+          "  3) Then run one of:",
+          "     eval-dashboards lint --input=.evals_output",
+          "     eval-dashboards check --input=.evals_output",
+          "     eval-dashboards report --input=.evals_output --reporter=html"
+        ].join("\n")
+      ),
+      { exitCode: 3 }
+    );
+  }
   const reports = await Promise.all(files.map((file) => readEvalReport(file)));
   return reports.sort(
     (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt)
@@ -1364,14 +1413,16 @@ var renderMarkdown = (context) => {
   if (newlyFailing.length > 0) {
     lines.push(`## Newly failing (${newlyFailing.length})`, "");
     for (const row of newlyFailing) {
-      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? "uncategorized"}${row.reason ? ` \u2014 ${row.reason}` : ""}`);
+      const traceLinks = traceLinksMarkdown(row);
+      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? "uncategorized"}${row.reason ? ` \u2014 ${row.reason}` : ""}${traceLinks ? ` (${traceLinks})` : ""}`);
     }
     lines.push("");
   }
   if (newlyPassing.length > 0) {
     lines.push(`## Newly passing (${newlyPassing.length})`, "");
     for (const row of newlyPassing) {
-      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? "uncategorized"}`);
+      const traceLinks = traceLinksMarkdown(row);
+      lines.push(`- ${row.suite}/${row.id}: ${row.category ?? "uncategorized"}${traceLinks ? ` (${traceLinks})` : ""}`);
     }
     lines.push("");
   }
@@ -1399,9 +1450,31 @@ var toSourceHref = (sourcePath) => {
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `../${trimmed.replace(/^\.?\//, "")}`;
 };
+var isHttpUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
 var sourceLink = (sourcePath) => {
   const href = toSourceHref(sourcePath);
   return `<a href="${e(href)}" target="_blank" rel="noopener">${e(sourcePath)}</a>`;
+};
+var externalLink = (href, label = href) => isHttpUrl(href) ? `<a href="${e(href)}" target="_blank" rel="noopener">${e(label)}</a>` : e(label);
+var traceLinksHtml = (row) => {
+  const links = [];
+  if (row.trace?.traceUrl) links.push(externalLink(row.trace.traceUrl, "trace"));
+  if (row.trace?.spanUrl) links.push(externalLink(row.trace.spanUrl, "span"));
+  if (links.length === 0) return '<span class="muted">n/a</span>';
+  return links.join(" \xB7 ");
+};
+var traceLinksMarkdown = (row) => {
+  const links = [];
+  if (row.trace?.traceUrl && isHttpUrl(row.trace.traceUrl)) links.push(`[trace](${row.trace.traceUrl})`);
+  if (row.trace?.spanUrl && isHttpUrl(row.trace.spanUrl)) links.push(`[span](${row.trace.spanUrl})`);
+  return links.join(" \xB7 ");
 };
 var gatePolicyTable = (report) => {
   const manifests = report.suiteManifests ?? [];
@@ -1707,6 +1780,20 @@ var renderRowDetail = (r, colSpan) => {
   field("Prompt version", r.promptVersion, false, false, "The prompt or instruction version used for this row.");
   field("Rubric ID", r.rubricId, false, false, "The rubric or scoring identifier used for this row.");
   field("Category", r.category, false, false, "The machine-readable category assigned to this row.");
+  field("Trace ID", r.trace?.traceId, false, false, "Portable trace identifier for this row when provided by the runner.");
+  field("Span ID", r.trace?.spanId, false, false, "Portable span identifier for this row when provided by the runner.");
+  if (r.trace?.traceUrl) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Direct URL to trace evidence for this row.">Trace link</span>
+      <span class="detail-field-value mono">${externalLink(r.trace.traceUrl)}</span>
+    </div>`);
+  }
+  if (r.trace?.spanUrl) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Direct URL to span-level evidence for this row.">Span link</span>
+      <span class="detail-field-value mono">${externalLink(r.trace.spanUrl)}</span>
+    </div>`);
+  }
   if (!fields.length) return "";
   return `<tr class="detail-row"><td colspan="${colSpan}"><div class="detail-panel">${fields.join("")}</div></td></tr>`;
 };
@@ -1741,7 +1828,7 @@ var groupedRowsTable = (rows, showTaxonomy = true) => {
           ${showTaxonomy ? `<td class="col-tax taxonomy-score"><span class="score ${tax.score >= 0.8 ? "complete" : tax.score >= 0.5 ? "partial" : "incomplete"}" data-tip="${tax.missing.length ? "Missing fields:\n" + e(tax.missing.join("\n")) : "All recommended fields present"}">${Math.round(tax.score * 100)}%</span></td>` : ""}
           <td class="col-kind"><span class="kind-badge kind-${e(r.kind || "unknown")}">${e(r.kind ?? "unknown")}</span></td>
           <td class="col-sev"><span class="severity sev-${e(r.severity ?? "none")}">${e(r.severity ?? "none")}</span></td>
-          <td class="col-reason reason">${e(r.reason ?? "")}</td>
+          <td class="col-reason reason">${e(r.reason ?? "")}${r.trace?.traceUrl || r.trace?.spanUrl ? `<div>${traceLinksHtml(r)}</div>` : ""}</td>
         </tr>${detail}`;
     }).join("")}</tbody>
       </table></div>
@@ -1772,7 +1859,7 @@ var flatRowsTable = (rows) => {
         <td class="col-kind"><span class="kind-badge kind-${e(r.kind || "unknown")}">${e(r.kind ?? "unknown")}</span></td>
         <td class="col-sev"><span class="severity sev-${e(r.severity ?? "none")}">${e(r.severity ?? "none")}</span></td>
         <td>${e(r.category ?? "")}</td>
-        <td class="col-reason reason">${e(r.reason ?? "")}</td>
+        <td class="col-reason reason">${e(r.reason ?? "")}${r.trace?.traceUrl || r.trace?.spanUrl ? `<div>${traceLinksHtml(r)}</div>` : ""}</td>
       </tr>`;
   }).join("")}</tbody>
   </table></div>`;
@@ -1933,6 +2020,74 @@ var judgeCalibrationTable = (summary) => `<div class="meta-grid">
         </tr>`
 ).join("")}</tbody>
   </table></div>`;
+var guardrailRiskAreas = /* @__PURE__ */ new Set(["content-safety", "prompt-safety", "pii", "compliance"]);
+var inferFailurePattern = (row) => {
+  const text = `${row.category ?? ""} ${row.reason ?? ""}`.toLowerCase();
+  if (/prompt\s*injection|jailbreak|system\s*prompt|instruction\s*override/.test(text)) return "prompt-injection";
+  if (/pii|secret|credential|token|leak|disclosure|exfiltration/.test(text)) return "sensitive-disclosure";
+  if (/refusal|unsafe|harmful|policy|abuse|violence|hate/.test(text)) return "unsafe-request-handling";
+  if (/tool|function|permission|route|routing/.test(text)) return "tool-or-routing";
+  return "other";
+};
+var sortCountEntries = (counter) => [...counter.entries()].sort((left, right) => {
+  if (right[1] !== left[1]) return right[1] - left[1];
+  return left[0].localeCompare(right[0]);
+}).map(([key, count]) => ({ key, count }));
+var summarizeGuardrailRows = (report) => {
+  const manifestBySuite = new Map((report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
+  const guardrailRows = report.rows.filter((row) => {
+    const manifestRiskArea = manifestBySuite.get(row.suite)?.riskArea;
+    if (manifestRiskArea && guardrailRiskAreas.has(manifestRiskArea)) return true;
+    const category = String(row.category ?? "").toLowerCase();
+    return category.includes("content-safety") || category.includes("prompt-safety") || category.includes("sensitive-disclosure") || category.includes("agency-boundary") || category.includes("prompt-injection");
+  });
+  const failing = guardrailRows.filter((row) => !row.passed);
+  if (failing.length === 0) return void 0;
+  const categoryCounter = /* @__PURE__ */ new Map();
+  const severityCounter = /* @__PURE__ */ new Map();
+  const patternCounter = /* @__PURE__ */ new Map();
+  const riskAreaSet = /* @__PURE__ */ new Set();
+  for (const row of failing) {
+    const category = row.category?.trim() || "uncategorized";
+    categoryCounter.set(category, (categoryCounter.get(category) ?? 0) + 1);
+    const severity = row.severity ?? "none";
+    severityCounter.set(severity, (severityCounter.get(severity) ?? 0) + 1);
+    const pattern = inferFailurePattern(row);
+    patternCounter.set(pattern, (patternCounter.get(pattern) ?? 0) + 1);
+    const manifestRiskArea = manifestBySuite.get(row.suite)?.riskArea;
+    if (manifestRiskArea) riskAreaSet.add(manifestRiskArea);
+  }
+  return {
+    rows: failing,
+    categoryCounts: sortCountEntries(categoryCounter).map((entry) => ({ category: entry.key, count: entry.count })),
+    severityCounts: sortCountEntries(severityCounter).map((entry) => ({ severity: entry.key, count: entry.count })),
+    patternCounts: sortCountEntries(patternCounter).map((entry) => ({ pattern: entry.key, count: entry.count })),
+    riskAreas: [...riskAreaSet].sort((left, right) => left.localeCompare(right))
+  };
+};
+var simpleCountTable = (label, rows) => `<div class="table-wrap"><table>
+  <thead><tr><th>${e(label)}</th><th class="num">Count</th></tr></thead>
+  <tbody>${rows.map((row) => `<tr><td>${e(row.value)}</td><td class="num">${row.count}</td></tr>`).join("")}</tbody>
+</table></div>`;
+var guardrailTriageSection = (summary) => {
+  const categoryRows = summary.categoryCounts.map((entry) => ({ value: entry.category, count: entry.count }));
+  const severityRows = summary.severityCounts.map((entry) => ({ value: entry.severity, count: entry.count }));
+  const patternRows = summary.patternCounts.map((entry) => ({ value: entry.pattern, count: entry.count }));
+  const riskAreaSummary = summary.riskAreas.length > 0 ? summary.riskAreas.join(", ") : "none declared";
+  return renderCollapsibleSection({
+    id: "guardrail-triage",
+    title: "Guardrail triage",
+    summary: `${summary.rows.length} failing guardrail row(s) \u2022 risk areas: ${riskAreaSummary}`,
+    summaryTone: "fail",
+    collapsed: false,
+    body: [
+      '<div style="padding:12px 16px 0" class="muted">Focused breakdown for attack-style suites: category, severity, and failure-pattern clustering.</div>',
+      simpleCountTable("Category", categoryRows),
+      simpleCountTable("Severity", severityRows),
+      simpleCountTable("Pattern", patternRows)
+    ].join("")
+  });
+};
 var renderHtml = (context) => {
   const { locale, current, comparison, baselineCompatibility: compat } = context;
   const { run, rows } = current;
@@ -1943,6 +2098,8 @@ var renderHtml = (context) => {
   const summary = summarizeReport(current);
   const judgeCalibration = summarizeJudgeCalibration(rows);
   const failingRows = rows.filter((r) => !r.passed);
+  const guardrailSummary = summarizeGuardrailRows(current);
+  const guardrailProfileEnabled = context.profile === "guardrail";
   const compatStatus = compat?.status ?? "not compared";
   const compatClass = compatStatus === "blocked" ? "fail" : compatStatus === "warning" ? "warn" : "pass";
   const passClass = summary.passRate >= 0.9 ? "pass" : summary.passRate >= 0.6 ? "warn" : "fail";
@@ -2286,6 +2443,8 @@ Failed: ${suite.failed}`;
     summaryTone: suiteSummaryTone
   })}
 
+    ${guardrailProfileEnabled && guardrailSummary ? guardrailTriageSection(guardrailSummary) : ""}
+
     ${judgeCalibration ? renderCollapsibleSection({
     id: "judge-calibration",
     title: "Judge calibration",
@@ -2526,16 +2685,108 @@ var optionNumber = (options, name) => {
 var optionBoolean = (options, name) => options[name] === true || options[name] === "true";
 
 // src/cli/init-scaffold.ts
-import { access, mkdir as mkdir3, rm, writeFile as writeFile2 } from "fs/promises";
+import { access, mkdir as mkdir3, writeFile as writeFile2 } from "fs/promises";
 import path5 from "path";
+var allSetupModules = ["guardrails", "evals", "judges", "multiturn"];
+var setupModuleSuites = {
+  guardrails: ["refusal-safety", "sensitive-disclosure", "agency-boundary"],
+  evals: [
+    "retrieval-recall",
+    "answer-groundedness",
+    "answer-quality",
+    "mcp-routing",
+    "tool-call-accuracy",
+    "tool-argument-accuracy",
+    "tool-execution-reliability",
+    "goal-success",
+    "intent-resolution",
+    "task-adherence"
+  ],
+  judges: [
+    "answer-groundedness",
+    "answer-quality",
+    "goal-success",
+    "intent-resolution",
+    "multiturn-trajectory",
+    "judge-calibration"
+  ],
+  multiturn: ["multiturn-trajectory"]
+};
+var includesAllSetupModules = (modules) => allSetupModules.every((module) => modules.includes(module));
+var parseSetupModules = (rawSetup) => {
+  if (!rawSetup) {
+    return [...allSetupModules];
+  }
+  const modules = rawSetup.split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
+  if (modules.length === 0) {
+    throw Object.assign(
+      new Error("Invalid --setup value. Use a comma-separated list such as guardrails,evals."),
+      { exitCode: 2 }
+    );
+  }
+  const invalid = modules.filter(
+    (module) => !allSetupModules.includes(module)
+  );
+  if (invalid.length > 0) {
+    throw Object.assign(
+      new Error(
+        `Unknown setup module(s): ${invalid.join(", ")}. Allowed values: ${allSetupModules.join(", ")}.`
+      ),
+      { exitCode: 2 }
+    );
+  }
+  return Array.from(new Set(modules));
+};
+var parseRunner = (rawRunner) => {
+  if (!rawRunner) {
+    return "node";
+  }
+  const value = rawRunner.trim().toLowerCase();
+  const allowed = ["vitest", "jest", "node", "python"];
+  if (!allowed.includes(value)) {
+    throw Object.assign(
+      new Error(`Unknown runner ${rawRunner}. Allowed values: ${allowed.join(", ")}.`),
+      { exitCode: 2 }
+    );
+  }
+  return value;
+};
+var parseCiTarget = (rawCi) => {
+  if (!rawCi) {
+    return "github";
+  }
+  const value = rawCi.trim().toLowerCase();
+  const allowed = ["github", "azure", "none"];
+  if (!allowed.includes(value)) {
+    throw Object.assign(
+      new Error(`Unknown ci target ${rawCi}. Allowed values: ${allowed.join(", ")}.`),
+      { exitCode: 2 }
+    );
+  }
+  return value;
+};
+var resolveAgentQualityInitProfile = (options) => ({
+  setupModules: parseSetupModules(options.setup),
+  runner: parseRunner(options.runner),
+  ci: parseCiTarget(options.ci)
+});
 var initUsage = `eval-dashboards init [options]
 
 Options:
   --preset=agent-quality   Selects the starter template for agent-quality eval programs.
                            Without --write, prints the preset config only.
+  --setup=<csv>            Setup modules to scaffold (comma-separated):
+                           guardrails,evals,judges,multiturn
+                           Default: all modules.
+  --runner=<name>          Runner-specific setup hints: vitest|jest|node|python.
+                           Default: node.
+  --ci=<target>            CI scaffold target: github|azure|none.
+                           Default: github.
   --write                  Writes scaffold files (config, dataset, rubric, template artifact,
                            CI snippet) to disk.
-  --dry-run                With --write, prints exactly which files would be written.
+  --playbook               Adds docs/evals-setup-playbook.md with local-agent wiring prompts
+                           and a verify-before-merge command block.
+  --dry-run                Prints exactly which files would be written.
                            No files are created or modified.
   --teach                  Guided no-write walkthrough of how eval-dashboards works,
                            what will be scaffolded, and which commands to run next.
@@ -2561,7 +2812,124 @@ var renderAgentQualityInitConfig = () => `export default {
     failOnBaselineBlocked: true,
   },
 };`;
-var buildAgentQualityScaffoldFiles = () => [
+var renderRunnerEvaluationCommands = (runner) => {
+  if (runner === "vitest") return ["pnpm vitest run"];
+  if (runner === "jest") return ["pnpm jest"];
+  if (runner === "python") return ["python -m pytest"];
+  return ["pnpm eval -- --offline --write-results", "pnpm eval:emit-artifact"];
+};
+var renderCiSnippet = (runner, ci) => {
+  if (ci === "azure") {
+    return {
+      relativePath: "azure-pipelines/eval-quality.yml.snippet",
+      content: [
+        "trigger:",
+        "  branches:",
+        "    include:",
+        "      - main",
+        "pr:",
+        "  branches:",
+        "    include:",
+        "      - main",
+        "pool:",
+        "  vmImage: ubuntu-latest",
+        "steps:",
+        "  - task: NodeTool@0",
+        "    inputs: { versionSpec: '20.x' }",
+        "  - script: corepack enable",
+        "  - script: pnpm install --frozen-lockfile",
+        ...renderRunnerEvaluationCommands(runner).map((command) => `  - script: ${command}`),
+        "  - script: npx eval-dashboards lint --input=.evals_output",
+        "  - script: npx eval-dashboards check --input=.evals_output",
+        "  - script: npx eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --theme=dark"
+      ].join("\n")
+    };
+  }
+  return {
+    relativePath: ".github/workflows/eval-quality.yml.snippet",
+    content: [
+      "name: Eval quality",
+      "on:",
+      "  pull_request:",
+      "  push:",
+      "    branches: [main]",
+      "jobs:",
+      "  eval:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - uses: actions/checkout@v4",
+      "      - uses: pnpm/action-setup@v4",
+      "      - uses: actions/setup-node@v4",
+      "        with:",
+      "          node-version: 20",
+      "          cache: pnpm",
+      "      - run: pnpm install --frozen-lockfile",
+      ...renderRunnerEvaluationCommands(runner).map((command) => `      - run: ${command}`),
+      "      - run: npx eval-dashboards lint --input=.evals_output",
+      "      - run: npx eval-dashboards check --input=.evals_output",
+      "      - run: npx eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --theme=dark",
+      '      - run: echo "Copy eval-dashboard to your static site output and link /eval-dashboard/"'
+    ].join("\n")
+  };
+};
+var runnerCommandByType = {
+  vitest: "pnpm vitest run",
+  jest: "pnpm jest",
+  node: "pnpm eval -- --offline --write-results && pnpm eval:emit-artifact",
+  python: "python -m pytest"
+};
+var buildAgentQualitySetupPlaybook = (profile) => {
+  const setupList = profile.setupModules.join(", ");
+  const evalCommand = runnerCommandByType[profile.runner];
+  const ciPath = profile.ci === "none" ? "(none selected)" : profile.ci === "azure" ? "azure-pipelines/eval-quality.yml.snippet" : ".github/workflows/eval-quality.yml.snippet";
+  return {
+    relativePath: "docs/evals-setup-playbook.md",
+    content: [
+      "# Evals setup playbook (agent-quality preset)",
+      "",
+      "Use this file when asking a coding agent to wire evals in this repo. Keep all changes auditable and artifact-first.",
+      "",
+      "## Active scaffold profile",
+      `- setup modules: ${setupList}`,
+      `- runner: ${profile.runner}`,
+      `- ci target: ${profile.ci}`,
+      `- ci snippet path: ${ciPath}`,
+      "",
+      "## Local-agent prompts (copy/paste)",
+      "",
+      "Prompt A: add or edit dataset cases",
+      "- Update eval/datasets/agent-quality-cases.jsonl with stable ids and lifecycle values.",
+      "- Keep suite names consistent with suite manifests and rows in eval artifacts.",
+      "- Add one new positive case and one adversarial case for each changed feature.",
+      "",
+      "Prompt B: update rubric contracts",
+      "- Edit eval/rubrics/agent-quality-rubrics.json.",
+      "- If scoring criteria change, bump rubricVersion and explain the reason in the PR notes.",
+      "- Keep axes specific enough that failed rows can cite exact rubric evidence.",
+      "",
+      "Prompt C: calibrate judge behavior",
+      "- Run a labelled sample and compare judge verdicts against expected labels.",
+      "- Record judgeModel, rubricVersion, disagreement rate, and examples of disagreements.",
+      "- Do not switch a suite to blocking until calibration drift is acceptable.",
+      "",
+      "Prompt D: wire multiturn suites",
+      "- Add multiturn-trajectory rows with turns + tool call evidence.",
+      "- Ensure final verdict reflects full trajectory, not only single-turn output.",
+      "- Keep row ids stable so baseline comparisons remain meaningful.",
+      "",
+      "## Verify-before-merge commands (must pass)",
+      "```sh",
+      evalCommand,
+      "eval-dashboards lint --input=.evals_output",
+      "eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical",
+      "eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --reporter=markdown-summary --reporter=text",
+      "```",
+      "",
+      "If a command fails, fix the underlying dataset/rubric/row evidence mismatch before merge."
+    ].join("\n")
+  };
+};
+var buildAgentQualityBaseScaffoldFiles = () => [
   {
     relativePath: "eval-dashboards.config.ts",
     content: renderAgentQualityInitConfig()
@@ -2683,19 +3051,19 @@ var buildAgentQualityScaffoldFiles = () => [
           branch: "main"
         },
         suites: [
-          { suite: "retrieval-recall", passed: 1, failed: 0 },
-          { suite: "answer-groundedness", passed: 1, failed: 0 },
-          { suite: "refusal-safety", passed: 1, failed: 0 },
-          { suite: "mcp-routing", passed: 1, failed: 0 },
-          { suite: "tool-call-accuracy", passed: 1, failed: 0 },
-          { suite: "tool-argument-accuracy", passed: 1, failed: 0 },
-          { suite: "tool-execution-reliability", passed: 1, failed: 0 },
-          { suite: "goal-success", passed: 1, failed: 0 },
-          { suite: "intent-resolution", passed: 1, failed: 0 },
-          { suite: "task-adherence", passed: 1, failed: 0 },
-          { suite: "sensitive-disclosure", passed: 1, failed: 0 },
-          { suite: "agency-boundary", passed: 1, failed: 0 },
-          { suite: "multiturn-trajectory", passed: 1, failed: 0 }
+          { id: "retrieval-recall", total: 1, passed: 1, failed: 0 },
+          { id: "answer-groundedness", total: 1, passed: 1, failed: 0 },
+          { id: "refusal-safety", total: 1, passed: 1, failed: 0 },
+          { id: "mcp-routing", total: 1, passed: 1, failed: 0 },
+          { id: "tool-call-accuracy", total: 1, passed: 1, failed: 0 },
+          { id: "tool-argument-accuracy", total: 1, passed: 1, failed: 0 },
+          { id: "tool-execution-reliability", total: 1, passed: 1, failed: 0 },
+          { id: "goal-success", total: 1, passed: 1, failed: 0 },
+          { id: "intent-resolution", total: 1, passed: 1, failed: 0 },
+          { id: "task-adherence", total: 1, passed: 1, failed: 0 },
+          { id: "sensitive-disclosure", total: 1, passed: 1, failed: 0 },
+          { id: "agency-boundary", total: 1, passed: 1, failed: 0 },
+          { id: "multiturn-trajectory", total: 1, passed: 1, failed: 0 }
         ],
         rows: [
           {
@@ -2881,34 +3249,77 @@ var buildAgentQualityScaffoldFiles = () => [
       2
     )
   },
-  {
-    relativePath: ".github/workflows/eval-quality.yml.snippet",
-    content: [
-      "name: Eval quality",
-      "on:",
-      "  pull_request:",
-      "  push:",
-      "    branches: [main]",
-      "jobs:",
-      "  eval:",
-      "    runs-on: ubuntu-latest",
-      "    steps:",
-      "      - uses: actions/checkout@v4",
-      "      - uses: pnpm/action-setup@v4",
-      "      - uses: actions/setup-node@v4",
-      "        with:",
-      "          node-version: 20",
-      "          cache: pnpm",
-      "      - run: pnpm install --frozen-lockfile",
-      "      - run: pnpm eval -- --offline --write-results",
-      "      - run: pnpm eval:emit-artifact",
-      "      - run: npx eval-dashboards lint --input=.evals_output",
-      "      - run: npx eval-dashboards check --input=.evals_output",
-      "      - run: npx eval-dashboards report --input=.evals_output --report-dir=eval-dashboard --reporter=html --reporter=json-summary --theme=dark",
-      '      - run: echo "Copy eval-dashboard to your static site output and link /eval-dashboard/"'
-    ].join("\n")
-  }
+  renderCiSnippet("node", "github")
 ];
+var buildEnabledSuiteSet = (modules) => {
+  const suites = modules.flatMap((module) => setupModuleSuites[module]);
+  return new Set(suites);
+};
+var filterDatasetContent = (content, enabledSuites) => content.split("\n").filter(Boolean).filter((line) => {
+  try {
+    const parsed = JSON.parse(line);
+    return Boolean(parsed.suite && enabledSuites.has(parsed.suite));
+  } catch {
+    return false;
+  }
+}).join("\n");
+var filterRubricContent = (content, enabledSuites) => {
+  const parsed = JSON.parse(content);
+  parsed.suites = Object.fromEntries(
+    Object.entries(parsed.suites).filter(([suite]) => enabledSuites.has(suite))
+  );
+  return JSON.stringify(parsed, null, 2);
+};
+var filterArtifactContent = (content, enabledSuites) => {
+  const parsed = JSON.parse(content);
+  parsed.suites = (parsed.suites ?? []).filter(
+    (suiteEntry) => {
+      const suiteId = suiteEntry.id ?? suiteEntry.suite;
+      return Boolean(suiteId) && enabledSuites.has(suiteId);
+    }
+  );
+  parsed.rows = (parsed.rows ?? []).filter(
+    (row) => Boolean(row.suite) && enabledSuites.has(row.suite)
+  );
+  return JSON.stringify(parsed, null, 2);
+};
+var applyProfileToScaffoldFiles = (files, profile) => {
+  const enabledSuites = buildEnabledSuiteSet(profile.setupModules);
+  const includeAll = includesAllSetupModules(profile.setupModules);
+  const transformed = files.map((file) => {
+    if (file.relativePath === ".github/workflows/eval-quality.yml.snippet") {
+      return null;
+    }
+    if (!includeAll && file.relativePath === "eval/datasets/agent-quality-cases.jsonl") {
+      return {
+        ...file,
+        content: filterDatasetContent(file.content, enabledSuites)
+      };
+    }
+    if (!includeAll && file.relativePath === "eval/rubrics/agent-quality-rubrics.json") {
+      return {
+        ...file,
+        content: filterRubricContent(file.content, enabledSuites)
+      };
+    }
+    if (!includeAll && file.relativePath === ".evals_output/run-agent-quality-template.json") {
+      return {
+        ...file,
+        content: filterArtifactContent(file.content, enabledSuites)
+      };
+    }
+    return file;
+  }).filter((file) => file !== null);
+  if (profile.ci !== "none") {
+    transformed.push(renderCiSnippet(profile.runner, profile.ci));
+  }
+  return transformed;
+};
+var buildAgentQualityScaffoldFiles = (profile = {
+  setupModules: [...allSetupModules],
+  runner: "node",
+  ci: "github"
+}) => applyProfileToScaffoldFiles(buildAgentQualityBaseScaffoldFiles(), profile);
 var fileExists = async (filePath) => {
   try {
     await access(filePath);
@@ -2922,6 +3333,29 @@ var renderAgentQualityTeachMode = (outputDir, files) => {
   const plannedPaths = planScaffoldWrites(outputDir, files);
   return [
     "Teach mode (dry-run): no files were written.",
+    "",
+    "Beginner curriculum (what to learn first):",
+    "1. Eval foundations: evals are repeatable behavior checks, not one-off demos.",
+    "2. Eval stack: deterministic tests, offline dataset evals, human review, production metrics.",
+    "3. Artifact boundary: your runner must emit eval-report/v1 JSON into .evals_output/.",
+    "4. Synthetic dataset: start with 10-30 high-signal cases, stable ids, one behavior per row.",
+    "5. Live agent evals: capture turns, tool calls, tool args/results, and latency evidence.",
+    "6. Judges: use LLM judges for nuanced quality, then calibrate against reviewed labels.",
+    "7. Gates and reports: lint -> check -> report, then iterate on failure clusters.",
+    "8. History: keep one artifact per run so baseline comparisons stay meaningful.",
+    "",
+    "Schema and taxonomy essentials:",
+    "- Required artifact shape: schemaVersion, run, suites, rows.",
+    "- Required row fields: id, suite, passed.",
+    "- Taxonomy-complete rows should include kind, severity, category, reason, datasetId, scenarioId, rubricId.",
+    "- Agent evidence fields: turns, toolCalls, promptVersion, agentVersion.",
+    "- Judge evidence fields: judgeModel, judgeVerdict, judgeReasoning, axisScores.",
+    "- Suite governance fields: riskArea, datasetVersion, rubricVersion, graders, gate mode/thresholds.",
+    "",
+    "When to extend taxonomy/schema:",
+    "- Add optional fields first when multiple runners need the same evidence for gates/history/reports.",
+    "- Keep eval-report/v1 additive; only introduce a new schemaVersion for breaking changes.",
+    "- Keep vendor-specific details in metadata unless they are broadly portable.",
     "",
     "How eval-dashboards works:",
     "1. Your runner emits eval-report/v1 JSON artifacts into .evals_output/.",
@@ -2939,7 +3373,45 @@ var renderAgentQualityTeachMode = (outputDir, files) => {
     "3. Run: eval-dashboards lint --input=.evals_output",
     "4. Run: eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical",
     "5. Run: eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard",
-    "6. Optional publish: eval-dashboards publish --input=.evals_output --report-dir=eval-dashboard --target=dir"
+    "6. Optional publish: eval-dashboards publish --input=.evals_output --report-dir=eval-dashboard --target=dir",
+    "",
+    "Deep-dive doc: docs/teach-curriculum.md"
+  ].join("\n");
+};
+var renderAgentQualityDryRunMode = (outputDir, files) => {
+  const describeFile = (relativePath) => {
+    if (relativePath === "eval-dashboards.config.ts") {
+      return "CLI config: artifact input, reporters, and gate defaults.";
+    }
+    if (relativePath === "eval/datasets/agent-quality-cases.jsonl") {
+      return "Starter dataset: eval cases to run through your agent/eval harness.";
+    }
+    if (relativePath === "eval/rubrics/agent-quality-rubrics.json") {
+      return "Starter rubric: pass/fail criteria and scoring axes per suite.";
+    }
+    if (relativePath === ".evals_output/run-agent-quality-template.json") {
+      return "Template eval-report/v1 artifact: replace with real run output.";
+    }
+    if (relativePath === ".github/workflows/eval-quality.yml.snippet") {
+      return "CI snippet (GitHub Actions): run lint/check/report on PRs.";
+    }
+    if (relativePath === "azure-pipelines/eval-quality.yml.snippet") {
+      return "CI snippet (Azure Pipelines): run lint/check/report on PRs.";
+    }
+    return "Scaffold file.";
+  };
+  const plannedEntries = files.map((file) => ({
+    absolutePath: path5.resolve(outputDir, file.relativePath),
+    description: describeFile(file.relativePath)
+  }));
+  return [
+    `Would write ${plannedEntries.length} file(s):`,
+    ...plannedEntries.map((entry) => `${entry.absolutePath}  # ${entry.description}`),
+    "",
+    "No files were created. Run again with --write to scaffold these files.",
+    "Examples:",
+    "  eval-dashboards init --preset=agent-quality --write",
+    "  eval-dashboards init --preset=agent-quality --setup=guardrails,multiturn --runner=vitest --ci=azure --write"
   ].join("\n");
 };
 var writeScaffoldFiles = async (outputDir, files, force = false) => {
@@ -2960,14 +3432,6 @@ Use --force to overwrite.`),
       );
     }
   }
-  const generatedOutputDirs = Array.from(
-    new Set(
-      files.map((file) => file.relativePath).filter((relativePath) => relativePath.startsWith(".evals_output/")).map((relativePath) => path5.resolve(outputDir, path5.dirname(relativePath)))
-    )
-  );
-  for (const generatedOutputDir of generatedOutputDirs) {
-    await rm(generatedOutputDir, { recursive: true, force: true });
-  }
   for (const file of files) {
     const absolutePath = path5.resolve(outputDir, file.relativePath);
     await mkdir3(path5.dirname(absolutePath), { recursive: true });
@@ -2976,18 +3440,739 @@ Use --force to overwrite.`),
   return absolutePaths;
 };
 
+// src/cli/completion.ts
+import os from "os";
+import path6 from "path";
+import { mkdir as mkdir4, readFile as readFile4, writeFile as writeFile3 } from "fs/promises";
+var cliNames = ["eval-dashboards", "evd"];
+var commands = [
+  "report",
+  "report-index",
+  "lint",
+  "check",
+  "merge",
+  "history",
+  "publish",
+  "teach",
+  "init",
+  "completion",
+  "import"
+];
+var rootFlags = ["--help"];
+var initFlags = [
+  "--help",
+  "--preset",
+  "--setup",
+  "--runner",
+  "--ci",
+  "--write",
+  "--dry-run",
+  "--teach",
+  "--out-dir",
+  "--force",
+  "--playbook"
+];
+var publishFlags = [
+  "--target",
+  "--report-dir",
+  "--input",
+  "--out-dir",
+  "--dry-run",
+  "--repo",
+  "--branch",
+  "--app-name",
+  "--account",
+  "--container"
+];
+var checkFlags = [
+  "--input",
+  "--report-dir",
+  "--min-pass-rate",
+  "--max-new-failures",
+  "--zero-critical",
+  "--max-warnings",
+  "--max-warning-code",
+  "--fail-on-warning-code",
+  "--new-failure-key",
+  "--require-suite-pass",
+  "--baseline-run-id",
+  "--baseline-strategy",
+  "--baseline-lookback",
+  "--allow-blocked-baseline"
+];
+var reportFlags = [
+  "--input",
+  "--report-dir",
+  "--reporter",
+  "--theme",
+  "--locale",
+  "--run-id",
+  "--baseline-run-id",
+  "--baseline-strategy",
+  "--baseline-lookback",
+  "--profile"
+];
+var importFlags = ["--from", "--input", "--out", "--suite", "--help"];
+var optionValues = {
+  preset: ["agent-quality"],
+  setup: ["guardrails", "evals", "judges", "multiturn"],
+  runner: ["vitest", "jest", "node", "python"],
+  ci: ["github", "azure", "none"],
+  shell: ["bash", "zsh", "fish"],
+  importSource: ["promptfoo", "deepeval", "agentevals", "openevals"],
+  reportProfile: ["default", "guardrail"]
+};
+var detectShell = (shellHint) => {
+  const source = shellHint ?? process.env.SHELL ?? "";
+  if (source.includes("zsh")) return "zsh";
+  if (source.includes("fish")) return "fish";
+  return "bash";
+};
+var resolveCompletionShell = (shellHint) => {
+  if (!shellHint) return detectShell();
+  const normalized = shellHint.trim().toLowerCase();
+  if (normalized === "bash" || normalized === "zsh" || normalized === "fish") {
+    return normalized;
+  }
+  throw Object.assign(new Error(`Unknown completion shell ${shellHint}. Allowed values: bash, zsh, fish.`), {
+    exitCode: 2
+  });
+};
+var renderBash = () => {
+  const commandWordList = commands.join(" ");
+  const rootFlagList = rootFlags.join(" ");
+  const initFlagList = initFlags.join(" ");
+  const publishFlagList = publishFlags.join(" ");
+  const checkFlagList = checkFlags.join(" ");
+  const reportFlagList = reportFlags.join(" ");
+  const importFlagList = importFlags.join(" ");
+  return [
+    "# eval-dashboards shell completion (bash)",
+    "_eval_dashboards_completions() {",
+    "  local cur prev words cword",
+    "  if declare -F _init_completion >/dev/null 2>&1; then",
+    "    _init_completion -n : || return",
+    "  else",
+    '    cur="${COMP_WORDS[COMP_CWORD]}"',
+    '    prev="${COMP_WORDS[COMP_CWORD-1]}"',
+    "  fi",
+    "",
+    '  case "${prev}" in',
+    `    --preset) COMPREPLY=( $(compgen -W "${optionValues.preset.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --setup) COMPREPLY=( $(compgen -W "${optionValues.setup.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --runner) COMPREPLY=( $(compgen -W "${optionValues.runner.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --ci) COMPREPLY=( $(compgen -W "${optionValues.ci.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --shell) COMPREPLY=( $(compgen -W "${optionValues.shell.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --from) COMPREPLY=( $(compgen -W "${optionValues.importSource.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --profile) COMPREPLY=( $(compgen -W "${optionValues.reportProfile.join(" ")}" -- "\${cur}") ); return ;;`,
+    "  esac",
+    "",
+    "  if [[ ${COMP_CWORD} -eq 1 ]]; then",
+    `    COMPREPLY=( $(compgen -W "${commandWordList} ${rootFlagList}" -- "\${cur}") )`,
+    "    return",
+    "  fi",
+    "",
+    '  case "${COMP_WORDS[1]}" in',
+    `    init|teach) COMPREPLY=( $(compgen -W "${initFlagList}" -- "\${cur}") ) ;;
+    report) COMPREPLY=( $(compgen -W "${reportFlagList}" -- "\${cur}") ) ;;
+    publish) COMPREPLY=( $(compgen -W "${publishFlagList}" -- "\${cur}") ) ;;
+    check) COMPREPLY=( $(compgen -W "${checkFlagList}" -- "\${cur}") ) ;;
+    completion) COMPREPLY=( $(compgen -W "install --help --shell" -- "\${cur}") ) ;;
+    import) COMPREPLY=( $(compgen -W "${importFlagList}" -- "\${cur}") ) ;;
+    *) COMPREPLY=( $(compgen -W "--help" -- "\${cur}") ) ;;
+  esac`,
+    "}",
+    "",
+    ...cliNames.map((name) => `complete -F _eval_dashboards_completions ${name}`)
+  ].join("\n");
+};
+var renderZsh = () => {
+  const commandWordList = commands.join(" ");
+  const rootFlagList = rootFlags.join(" ");
+  const initFlagList = initFlags.join(" ");
+  const publishFlagList = publishFlags.join(" ");
+  const checkFlagList = checkFlags.join(" ");
+  const reportFlagList = reportFlags.join(" ");
+  const importFlagList = importFlags.join(" ");
+  return [
+    "#compdef eval-dashboards evd",
+    "# eval-dashboards shell completion (zsh)",
+    "_eval_dashboards_completions() {",
+    '  local curcontext="$curcontext" state line',
+    "  typeset -A opt_args",
+    "",
+    "  if (( CURRENT == 2 )); then",
+    `    _values "command" ${commandWordList} ${rootFlagList}`,
+    "    return",
+    "  fi",
+    '  if [[ "$words[2]" == "completion" && $CURRENT -eq 3 ]]; then',
+    '    _values "completion actions" install --help --shell',
+    "    return",
+    "  fi",
+    "",
+    '  case "$words[2]" in',
+    `    init|teach) _values "init flags" ${initFlagList} ;;
+    report) _values "report flags" ${reportFlagList} ;;
+    publish) _values "publish flags" ${publishFlagList} ;;
+    check) _values "check flags" ${checkFlagList} ;;
+    completion) _values "completion options" install --help --shell ;;
+    import) _values "import flags" ${importFlagList} ;;
+    *) _values "root flags" ${rootFlagList} ;;
+  esac`,
+    "",
+    '  case "$words[CURRENT-1]" in',
+    `    --preset) _values "preset" ${optionValues.preset.join(" ")} ;;
+    --setup) _values "setup" ${optionValues.setup.join(" ")} ;;
+    --runner) _values "runner" ${optionValues.runner.join(" ")} ;;
+    --ci) _values "ci" ${optionValues.ci.join(" ")} ;;
+    --shell) _values "shell" ${optionValues.shell.join(" ")} ;;
+    --from) _values "import source" ${optionValues.importSource.join(" ")} ;;
+    --profile) _values "report profile" ${optionValues.reportProfile.join(" ")} ;;
+  esac`,
+    "}",
+    "",
+    ...cliNames.map((name) => `compdef _eval_dashboards_completions ${name}`)
+  ].join("\n");
+};
+var renderFish = () => {
+  const lines = ["# eval-dashboards shell completion (fish)"];
+  for (const cliName of cliNames) {
+    lines.push(`complete -c ${cliName} -f`);
+    lines.push(
+      ...commands.map(
+        (command) => `complete -c ${cliName} -n "__fish_use_subcommand" -a "${command}"`
+      )
+    );
+    lines.push(
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from completion" -a "install"`
+    );
+    lines.push(
+      ...initFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from init" -l ${flag.replace("--", "")}`
+      ),
+      ...initFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from teach" -l ${flag.replace("--", "")}`
+      )
+    );
+    lines.push(
+      ...publishFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from publish" -l ${flag.replace("--", "")}`
+      )
+    );
+    lines.push(
+      ...reportFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from report" -l ${flag.replace("--", "")}`
+      )
+    );
+    lines.push(
+      ...checkFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from check" -l ${flag.replace("--", "")}`
+      )
+    );
+    lines.push(
+      ...importFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from import" -l ${flag.replace("--", "")}`
+      )
+    );
+    lines.push(
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --preset" -a "${optionValues.preset.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --setup" -a "${optionValues.setup.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --runner" -a "${optionValues.runner.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --ci" -a "${optionValues.ci.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --preset" -a "${optionValues.preset.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --setup" -a "${optionValues.setup.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --runner" -a "${optionValues.runner.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --ci" -a "${optionValues.ci.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from completion; and __fish_prev_arg_in --shell" -a "${optionValues.shell.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from import; and __fish_prev_arg_in --from" -a "${optionValues.importSource.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from report; and __fish_prev_arg_in --profile" -a "${optionValues.reportProfile.join(" ")}"`
+    );
+  }
+  return lines.join("\n");
+};
+var completionUsage = `eval-dashboards completion [install] [options]
+
+Options:
+  --shell=<name>   Shell to render completion for: bash|zsh|fish.
+                   Default: inferred from $SHELL, falling back to bash.
+
+Examples:
+  eval-dashboards completion install
+
+  eval-dashboards completion --shell=bash > ~/.eval-dashboards-completion.bash
+  source ~/.eval-dashboards-completion.bash
+
+  mkdir -p ~/.zsh/completions
+  eval-dashboards completion --shell=zsh > ~/.zsh/completions/_evd
+  fpath=(~/.zsh/completions $fpath)
+  autoload -Uz compinit && compinit
+
+  eval-dashboards completion --shell=fish > ~/.config/fish/completions/eval-dashboards.fish
+`;
+var renderCompletionScript = (shell) => {
+  if (shell === "zsh") return renderZsh();
+  if (shell === "fish") return renderFish();
+  return renderBash();
+};
+var readFileIfExists = async (filePath) => {
+  try {
+    return await readFile4(filePath, "utf8");
+  } catch {
+    return "";
+  }
+};
+var ensureProfileLines = async (profileFile, lines) => {
+  const current = await readFileIfExists(profileFile);
+  const missing = lines.filter((line) => !current.includes(line));
+  if (missing.length === 0) {
+    return false;
+  }
+  const prefix = current.endsWith("\n") || current.length === 0 ? "" : "\n";
+  const addition = `${prefix}${missing.join("\n")}
+`;
+  await writeFile3(profileFile, `${current}${addition}`, "utf8");
+  return true;
+};
+var shellProfileFile = (shell) => {
+  const home = os.homedir();
+  if (shell === "zsh") return path6.join(home, ".zshrc");
+  if (shell === "bash") return path6.join(home, ".bashrc");
+  return void 0;
+};
+var completionFilePath = (shell) => {
+  const home = os.homedir();
+  if (shell === "zsh") return path6.join(home, ".zsh", "completions", "_evd");
+  if (shell === "fish") return path6.join(home, ".config", "fish", "completions", "eval-dashboards.fish");
+  return path6.join(home, ".eval-dashboards-completion.bash");
+};
+var installCompletion = async (shell) => {
+  const completionFile = completionFilePath(shell);
+  await mkdir4(path6.dirname(completionFile), { recursive: true });
+  await writeFile3(completionFile, `${renderCompletionScript(shell)}
+`, "utf8");
+  const profileFile = shellProfileFile(shell);
+  let updatedProfile = false;
+  if (shell === "zsh" && profileFile) {
+    updatedProfile = await ensureProfileLines(profileFile, [
+      "fpath=(~/.zsh/completions $fpath)",
+      "autoload -Uz compinit && compinit"
+    ]);
+  }
+  if (shell === "bash" && profileFile) {
+    updatedProfile = await ensureProfileLines(profileFile, [
+      "[ -f ~/.eval-dashboards-completion.bash ] && source ~/.eval-dashboards-completion.bash"
+    ]);
+  }
+  return {
+    shell,
+    completionFile,
+    profileFile,
+    updatedProfile
+  };
+};
+
+// src/cli/import-adapters.ts
+import { readFile as readFile5 } from "fs/promises";
+import path8 from "path";
+
+// src/adapters/runner.ts
+import { rm } from "fs/promises";
+import path7 from "path";
+var toIsoString = (value) => value instanceof Date ? value.toISOString() : value;
+var createDefaultRow = (caseResult, index, rowId) => ({
+  id: rowId(caseResult, index),
+  suite: caseResult.suite,
+  name: caseResult.name,
+  question: caseResult.question,
+  input: caseResult.input,
+  output: caseResult.output,
+  expected: caseResult.expected,
+  passed: caseResult.passed,
+  score: caseResult.score,
+  severity: caseResult.severity,
+  category: caseResult.category,
+  reason: caseResult.reason,
+  durationMs: caseResult.durationMs,
+  metadata: caseResult.metadata
+});
+var defaultRowMetadata = () => ({
+  provenance: { source: "synthetic" },
+  lifecycle: { status: "active" }
+});
+var mergeProvenance = (provenance) => {
+  const defaults = { source: "synthetic" };
+  if (!provenance) return defaults;
+  return {
+    ...defaults,
+    ...provenance,
+    source: provenance.source ?? defaults.source
+  };
+};
+var mergeLifecycle = (lifecycle) => {
+  const defaults = { status: "active" };
+  if (!lifecycle) return defaults;
+  return {
+    ...defaults,
+    ...lifecycle,
+    status: lifecycle.status ?? defaults.status
+  };
+};
+var mergeRowMetadata = (metadata) => ({
+  ...defaultRowMetadata(),
+  ...metadata,
+  provenance: mergeProvenance(metadata?.provenance),
+  lifecycle: mergeLifecycle(metadata?.lifecycle)
+});
+var summarizeSuites = (rows) => {
+  const suites = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const current = suites.get(row.suite) ?? { total: 0, passed: 0, failed: 0 };
+    current.total += 1;
+    if (row.passed) {
+      current.passed += 1;
+    } else {
+      current.failed += 1;
+    }
+    suites.set(row.suite, current);
+  }
+  return [...suites.entries()].map(([suiteName, summary]) => ({
+    id: suiteName,
+    name: suiteName,
+    total: summary.total,
+    passed: summary.passed,
+    failed: summary.failed,
+    passRate: summary.total === 0 ? 0 : summary.passed / summary.total
+  }));
+};
+var validateCreatedReport = (report) => {
+  const result = validateEvalReport(report);
+  if (!result.ok) {
+    throw new Error(`Invalid eval report artifact: ${result.errors.join(" ")}`);
+  }
+  return result.report;
+};
+var createEvalReportArtifact = (result, options = {}) => {
+  const generatedAt = toIsoString(options.generatedAt ?? result.run?.generatedAt ?? /* @__PURE__ */ new Date());
+  const runId = result.run?.id ?? `run-${generatedAt}`;
+  const rowId = options.rowId ?? ((caseResult, index) => caseResult.id ?? `${caseResult.suite}-${index + 1}`);
+  const rows = result.cases.map(
+    (caseResult, index) => {
+      const row = options.mapRow ? options.mapRow(caseResult, index) : createDefaultRow(caseResult, index, rowId);
+      return {
+        ...row,
+        metadata: mergeRowMetadata(row.metadata ?? caseResult.metadata)
+      };
+    }
+  );
+  const suites = summarizeSuites(rows);
+  const generatedSuiteManifests = options.createSuiteManifest ? suites.map((suite) => options.createSuiteManifest?.(suite.id, rows.filter((row) => row.suite === suite.id))).filter((manifest) => manifest !== void 0) : [];
+  const suiteManifests = result.suiteManifests ?? generatedSuiteManifests;
+  return validateCreatedReport({
+    schemaVersion: EVAL_REPORT_SCHEMA_VERSION,
+    run: {
+      ...result.run,
+      id: runId,
+      generatedAt
+    },
+    suites,
+    rows,
+    suiteManifests: suiteManifests.length > 0 ? suiteManifests : void 0,
+    rubricContracts: result.rubricContracts,
+    metadata: result.metadata
+  });
+};
+var writeEvalReportArtifact = async (filePath, result, options = {}) => {
+  const report = createEvalReportArtifact(result, options);
+  if (options.cleanOutputDir) {
+    await rm(path7.dirname(filePath), { recursive: true, force: true });
+  }
+  await writeJsonFile(filePath, report);
+  return report;
+};
+
+// src/cli/import-adapters.ts
+var importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
+
+Options:
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|openevals.
+                           openevals is accepted as an alias for agentevals.
+  --input=<path>           Source JSON path to convert.
+  --out=<path>             Output eval-report/v1 file path.
+                           Default: .evals_output/import-<source>.json
+  --suite=<name>           Fallback suite name when source data has no suite.
+                           Default: <source>-import
+`;
+var parseJsonFile = async (filePath) => {
+  const content = await readFile5(filePath, "utf8");
+  return JSON.parse(content);
+};
+var stringifyIfObject = (value) => {
+  if (value === void 0 || value === null) return void 0;
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+var inferPassFromSignals = (rowLabel, signals) => {
+  if (signals.length === 0) {
+    return void 0;
+  }
+  const hasTrue = signals.some((signal) => signal.value);
+  const hasFalse = signals.some((signal) => !signal.value);
+  if (hasTrue && hasFalse) {
+    const signalSummary = signals.map((signal) => `${signal.source}=${signal.value ? "pass" : "fail"}`).join(", ");
+    throw Object.assign(
+      new Error(`Conflicting pass/fail signals for imported row ${rowLabel}: ${signalSummary}`),
+      { exitCode: 2 }
+    );
+  }
+  return signals[0]?.value;
+};
+var resolveRowsContainer = (source, options) => {
+  if (Array.isArray(source)) {
+    return source;
+  }
+  if (typeof source === "object" && source !== null) {
+    for (const key of options.keys) {
+      const value = source[key];
+      if (Array.isArray(value)) {
+        return value;
+      }
+    }
+  }
+  throw Object.assign(
+    new Error(
+      `No ${options.objectLabel} rows found. Expected ${options.arrayLabel} or object with ${options.keys.join("|")}[].`
+    ),
+    { exitCode: 2 }
+  );
+};
+var promptfooRows = (source, fallbackSuite) => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: "a JSON array",
+    objectLabel: "promptfoo result",
+    keys: ["results"]
+  });
+  return list.map((entry, index) => {
+    const row = entry;
+    const rowLabel = row.id ?? row.testCase?.id ?? `index ${index}`;
+    const signals = [];
+    if (typeof row.pass === "boolean") signals.push({ source: "pass", value: row.pass });
+    if (typeof row.passed === "boolean") signals.push({ source: "passed", value: row.passed });
+    if (typeof row.success === "boolean") signals.push({ source: "success", value: row.success });
+    if (typeof row.gradingResult?.pass === "boolean") {
+      signals.push({ source: "gradingResult.pass", value: row.gradingResult.pass });
+    }
+    if (typeof row.gradingResult?.verdict === "string") {
+      const verdict = row.gradingResult.verdict.toLowerCase();
+      if (verdict === "pass") signals.push({ source: "gradingResult.verdict", value: true });
+      if (verdict === "fail") signals.push({ source: "gradingResult.verdict", value: false });
+    }
+    const passed = inferPassFromSignals(rowLabel, signals);
+    const suite = row.testCase?.metadata?.suite ?? row.metadata?.suite ?? fallbackSuite;
+    if (passed === void 0) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for promptfoo row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 }
+      );
+    }
+    const expectedFromAssert = row.testCase?.assert?.[0]?.value;
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      name: row.description,
+      question: row.description,
+      input: stringifyIfObject(row.vars ?? row.testCase?.vars ?? row.prompt),
+      output: row.output ?? row.response?.output ?? row.response?.text,
+      expected: stringifyIfObject(row.expected ?? expectedFromAssert),
+      score: typeof row.score === "number" ? row.score : row.gradingResult?.score,
+      severity: row.testCase?.metadata?.severity ?? row.metadata?.severity,
+      category: row.testCase?.metadata?.category ?? row.metadata?.category,
+      reason: row.gradingResult?.reason,
+      metadata: {
+        provenance: {
+          source: "custom",
+          reason: "Imported from promptfoo",
+          sourceRef: "promptfoo"
+        },
+        lifecycle: { status: "active" }
+      }
+    };
+  });
+};
+var deepEvalRows = (source, fallbackSuite) => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: "a JSON array",
+    objectLabel: "DeepEval result",
+    keys: ["test_results", "results"]
+  });
+  return list.map((entry, index) => {
+    const row = entry;
+    const rowLabel = row.id ?? row.name ?? `index ${index}`;
+    const signals = [];
+    if (typeof row.pass === "boolean") signals.push({ source: "pass", value: row.pass });
+    if (typeof row.passed === "boolean") signals.push({ source: "passed", value: row.passed });
+    if (typeof row.success === "boolean") signals.push({ source: "success", value: row.success });
+    if (typeof row.verdict === "string") {
+      const verdict = row.verdict.toLowerCase();
+      if (verdict === "pass") signals.push({ source: "verdict", value: true });
+      if (verdict === "fail") signals.push({ source: "verdict", value: false });
+    }
+    const passed = inferPassFromSignals(rowLabel, signals);
+    const suite = row.metadata?.suite ?? fallbackSuite;
+    if (passed === void 0) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for deepeval row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 }
+      );
+    }
+    return {
+      id: row.id ?? `${suite}-${index + 1}`,
+      suite,
+      passed,
+      name: row.name,
+      question: row.question ?? row.name,
+      input: stringifyIfObject(row.input ?? row.question),
+      output: row.actual_output ?? row.output,
+      expected: stringifyIfObject(row.expected_output ?? row.expected),
+      score: row.score,
+      severity: row.metadata?.severity,
+      category: row.metadata?.category,
+      reason: row.reason,
+      metadata: {
+        provenance: {
+          source: "custom",
+          reason: "Imported from deepeval",
+          sourceRef: "deepeval"
+        },
+        lifecycle: { status: "active" }
+      }
+    };
+  });
+};
+var agentEvalsRows = (source, fallbackSuite) => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: "a JSON array",
+    objectLabel: "AgentEvals result",
+    keys: ["rows", "results"]
+  });
+  return list.map((entry, index) => {
+    const row = entry;
+    const suite = row.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const rowLabel = row.id ?? `${suite}-${index + 1}`;
+    const signals = [];
+    if (typeof row.pass === "boolean") signals.push({ source: "pass", value: row.pass });
+    if (typeof row.passed === "boolean") signals.push({ source: "passed", value: row.passed });
+    if (typeof row.success === "boolean") signals.push({ source: "success", value: row.success });
+    if (typeof row.verdict === "string") {
+      const verdict = row.verdict.toLowerCase();
+      if (verdict === "pass") signals.push({ source: "verdict", value: true });
+      if (verdict === "fail") signals.push({ source: "verdict", value: false });
+    }
+    const passed = inferPassFromSignals(rowLabel, signals);
+    if (passed === void 0) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for agentevals row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 }
+      );
+    }
+    return {
+      id: row.id ?? rowLabel,
+      suite,
+      passed,
+      name: row.name,
+      question: row.question,
+      input: stringifyIfObject(row.input),
+      output: stringifyIfObject(row.output),
+      expected: stringifyIfObject(row.expected),
+      score: row.score,
+      severity: row.severity ?? row.metadata?.severity,
+      category: row.category ?? row.metadata?.category,
+      reason: row.reason,
+      metadata: {
+        provenance: {
+          source: "custom",
+          reason: "Imported from agentevals",
+          sourceRef: "agentevals"
+        },
+        lifecycle: { status: "active" }
+      }
+    };
+  });
+};
+var resolveImportSource = (rawSource) => {
+  const normalized = rawSource.trim().toLowerCase();
+  if (normalized === "openevals") {
+    return "agentevals";
+  }
+  if (normalized === "promptfoo" || normalized === "deepeval" || normalized === "agentevals") {
+    return normalized;
+  }
+  throw Object.assign(
+    new Error(`Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, openevals.`),
+    { exitCode: 2 }
+  );
+};
+var importFromSource = async (options) => {
+  const parsed = await parseJsonFile(options.inputPath);
+  const fallbackSuite = options.suiteName || `${options.source}-import`;
+  const cases = options.source === "promptfoo" ? promptfooRows(parsed, fallbackSuite) : options.source === "deepeval" ? deepEvalRows(parsed, fallbackSuite) : agentEvalsRows(parsed, fallbackSuite);
+  await writeEvalReportArtifact(
+    options.outPath,
+    {
+      run: {
+        id: `import-${options.source}-${(/* @__PURE__ */ new Date()).toISOString()}`,
+        project: path8.basename(process.cwd())
+      },
+      cases,
+      metadata: {
+        importSource: options.source,
+        importInputPath: options.inputPath
+      }
+    },
+    {
+      mapRow: (caseResult, index) => ({
+        id: caseResult.id ?? `${caseResult.suite}-${index + 1}`,
+        suite: caseResult.suite,
+        passed: caseResult.passed,
+        kind: "deterministic",
+        severity: caseResult.severity ?? "none",
+        name: caseResult.name,
+        question: caseResult.question,
+        input: caseResult.input,
+        output: caseResult.output,
+        expected: caseResult.expected,
+        score: caseResult.score,
+        category: caseResult.category,
+        reason: caseResult.reason,
+        metadata: caseResult.metadata
+      })
+    }
+  );
+  return {
+    outPath: options.outPath,
+    rowCount: cases.length
+  };
+};
+
 // src/cli/index.ts
 var usage = `eval-dashboards <command>
 
 Commands:
-  report   Generate HTML dashboards from eval-report/v1 artifacts.
+  report   Generate HTML dashboards from eval-report/v1 artifacts (use --profile=guardrail for attack-focused triage).
   report-index  Generate grouped multi-report HTML index from discovered artifacts.
   lint     Run fast semantic/taxonomy preflight checks on artifacts.
   check    Enforce eval quality gates.
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
   publish  Publish or dry-run publish for a static dashboard.
+  teach    Guided eval onboarding walkthrough (alias of init --preset=agent-quality --teach).
   init     Print starter config or scaffold preset files.
+  completion  Print shell completion script for bash/zsh/fish.
+  import   Convert third-party eval output JSON into eval-report/v1.
 `;
 var loadContext = async (input, reportDir, options) => {
   const reports = await readEvalReports(input);
@@ -3067,8 +4252,17 @@ var baselineStrategyFromOptions = (options) => {
     exitCode: 2
   });
 };
+var reportProfileFromOptions = (options) => {
+  const profile = optionString(options, "profile", "").trim().toLowerCase();
+  if (!profile || profile === "default") return void 0;
+  if (profile === "guardrail") return "guardrail";
+  throw Object.assign(new Error(`Unknown report profile ${profile}. Use default or guardrail.`), {
+    exitCode: 2
+  });
+};
 var main = async () => {
-  const { command, options } = parseArgs(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const { command, options } = parseArgs(rawArgs);
   const fileConfig = await loadConfig();
   const config = mergeConfig(fileConfig, {
     input: optionString(options, "input", void 0) || void 0,
@@ -3092,7 +4286,8 @@ var main = async () => {
     console.log(usage);
     return;
   }
-  if (command === "init") {
+  if (command === "init" || command === "teach") {
+    const teachCommandMode = command === "teach";
     if (optionBoolean(options, "help")) {
       console.log(initUsage);
       return;
@@ -3100,37 +4295,103 @@ var main = async () => {
     const preset = optionString(options, "preset", "");
     const shouldWrite = optionBoolean(options, "write");
     const dryRun = optionBoolean(options, "dry-run");
-    const teach = optionBoolean(options, "teach");
+    const teach = teachCommandMode || optionBoolean(options, "teach");
     const outDir = optionString(options, "out-dir", ".");
     const force = optionBoolean(options, "force");
-    if (preset === "agent-quality") {
-      const files = buildAgentQualityScaffoldFiles();
+    const includePlaybook = optionBoolean(options, "playbook");
+    const setup = optionString(options, "setup", "");
+    const runner = optionString(options, "runner", "");
+    const ci = optionString(options, "ci", "");
+    const usingScaffoldOptions = shouldWrite || dryRun || teach || Boolean(setup) || Boolean(runner) || Boolean(ci) || force;
+    const effectivePreset = preset || (usingScaffoldOptions ? "agent-quality" : "");
+    if (effectivePreset === "agent-quality") {
+      const profile = resolveAgentQualityInitProfile({
+        setup: setup || void 0,
+        runner: runner || void 0,
+        ci: ci || void 0
+      });
+      const files = buildAgentQualityScaffoldFiles(profile);
+      const filesWithPlaybook = includePlaybook ? [...files, buildAgentQualitySetupPlaybook(profile)] : files;
       if (teach) {
-        console.log(renderAgentQualityTeachMode(outDir, files));
-        return;
-      }
-      if (!shouldWrite) {
-        console.log(renderAgentQualityInitConfig());
+        console.log(renderAgentQualityTeachMode(outDir, filesWithPlaybook));
         return;
       }
       if (dryRun) {
-        const planned = planScaffoldWrites(outDir, files);
-        console.log(`Would write ${planned.length} file(s):
-${planned.join("\n")}`);
+        console.log(renderAgentQualityDryRunMode(outDir, filesWithPlaybook));
         return;
       }
-      const written = await writeScaffoldFiles(outDir, files, force);
+      if (!shouldWrite) {
+        console.log(
+          `${renderAgentQualityInitConfig()}
+
+Tip: add --write to scaffold files, or --dry-run to preview file writes.`
+        );
+        return;
+      }
+      const written = await writeScaffoldFiles(outDir, filesWithPlaybook, force);
       console.log(`Wrote ${written.length} file(s):
 ${written.join("\n")}`);
       return;
     }
-    if (preset) {
-      throw Object.assign(new Error(`Unknown init preset ${preset}.`), { exitCode: 2 });
+    if (effectivePreset) {
+      throw Object.assign(new Error(`Unknown init preset ${effectivePreset}.`), { exitCode: 2 });
     }
     console.log(renderDefaultInitConfig());
     return;
   }
+  if (command === "completion") {
+    const completionAction = rawArgs[1] && !rawArgs[1].startsWith("--") ? rawArgs[1] : "";
+    if (completionAction && completionAction !== "install") {
+      throw Object.assign(new Error(`Unknown completion action ${completionAction}.`), { exitCode: 2 });
+    }
+    if (optionBoolean(options, "help")) {
+      console.log(completionUsage);
+      return;
+    }
+    const shell = resolveCompletionShell(optionString(options, "shell", ""));
+    if (completionAction === "install") {
+      const result = await installCompletion(shell);
+      const profileNote = result.profileFile ? result.updatedProfile ? `Updated shell profile: ${result.profileFile}` : `Shell profile already configured: ${result.profileFile}` : "No shell profile update required for this shell.";
+      console.log(
+        [
+          `Installed ${result.shell} completion for eval-dashboards and evd.`,
+          `Completion file: ${result.completionFile}`,
+          profileNote,
+          "Open a new shell session (or source your profile) to enable completion."
+        ].join("\n")
+      );
+      return;
+    }
+    console.log(renderCompletionScript(shell));
+    return;
+  }
+  if (command === "import") {
+    if (optionBoolean(options, "help")) {
+      console.log(importUsage);
+      return;
+    }
+    const rawSource = optionString(options, "from", "");
+    const inputPath = optionString(options, "input", "");
+    if (!rawSource) {
+      throw Object.assign(new Error("Missing required --from option."), { exitCode: 2 });
+    }
+    if (!inputPath) {
+      throw Object.assign(new Error("Missing required --input option."), { exitCode: 2 });
+    }
+    const source = resolveImportSource(rawSource);
+    const outPath = optionString(options, "out", path9.join(".evals_output", `import-${source}.json`));
+    const suiteName = optionString(options, "suite", "");
+    const imported = await importFromSource({
+      source,
+      inputPath,
+      outPath,
+      suiteName: suiteName || void 0
+    });
+    console.log(`Imported ${imported.rowCount} row(s) from ${source} to ${imported.outPath}`);
+    return;
+  }
   if (command === "report") {
+    const profile = reportProfileFromOptions(options);
     const runId = optionString(options, "run-id", "");
     const baselineRunId = optionString(options, "baseline-run-id", "");
     const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
@@ -3144,14 +4405,14 @@ ${written.join("\n")}`);
     const reporters = config.reporters ?? ["html", "text"];
     const theme = optionString(options, "theme", "") || config.theme;
     const locale = optionString(options, "locale", "") || config.locale;
-    const outputs = await renderReports({ ...context, theme, locale }, reporters);
+    const outputs = await renderReports({ ...context, theme, locale, profile }, reporters);
     console.log(outputs.join("\n"));
     return;
   }
   if (command === "report-index") {
     const reports = await readEvalReports(input);
     const locale = optionString(options, "locale", "") || config.locale;
-    const out = optionString(options, "out", path6.join(reportDir, "overview.html"));
+    const out = optionString(options, "out", path9.join(reportDir, "overview.html"));
     await writeTextFile(out, renderGroupedIndexHtml(reports, locale));
     console.log(out);
     return;

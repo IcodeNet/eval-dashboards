@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="stylesheet" href="../styles.css" /><title>CI Gates · eval-dashboards docs v1</title></head>
+<body><div class="container"><header><h1>CI Gates <small>v1</small></h1><p>Fail fast, measure regressions honestly.</p></header>
+<nav><a href="./index.html">Home</a><a href="./getting-started.html">Getting Started</a><a href="./cli.html">CLI</a><a href="./schema-taxonomy.html">Schema/Taxonomy</a><a href="./publishing.html">Publishing</a><a href="./integrations.html">Integrations</a></nav>
+<main>
+<section><h2>Recommended order</h2><pre><code>eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --require-suite-pass=preflight --new-failure-key=scenario-category --max-new-failures=0 --zero-critical
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-dashboard</code></pre></section>
+<section><h2>Baseline strategies</h2><pre><code># PR lane
+eval-dashboards check --input=.evals_output --baseline-strategy=rolling --allow-blocked-baseline --max-new-failures=0 --zero-critical
+
+# Main lane
+eval-dashboards check --input=.evals_output --baseline-strategy=champion --baseline-lookback=20 --max-new-failures=0 --zero-critical</code></pre></section>
+<section><h2>Warning budgets</h2><pre><code>eval-dashboards check --input=.evals_output   --max-warnings=5   --max-warning-code=missing-kind:0   --fail-on-warning-code=missing-judge-model</code></pre></section>
+<section><p>More: <a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/gates.md">docs/gates.md</a>.</p></section>
+</main></div></body></html>

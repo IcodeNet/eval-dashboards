@@ -68,6 +68,12 @@ Use these presets across three tiers:
 
 Generate reports after artifacts are emitted. Deploy workflows should fail if the expected generated dashboard is missing instead of publishing a placeholder or stale report.
 
+For attack-style suites (for example `refusal-safety`, `content-safety`, `prompt-injection-resilience`, `sensitive-disclosure`, `agency-boundary`), use the guardrail-focused report profile to triage failures by category, severity, and pattern:
+
+```sh
+eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report
+```
+
 ## Artifact Boundary
 
 The preset is setup guidance. The artifact remains runner-agnostic:
@@ -79,6 +85,14 @@ The preset is setup guidance. The artifact remains runner-agnostic:
 See [../examples/agent-quality-preset/README.md](../examples/agent-quality-preset/README.md) for a runnable template artifact and starter dataset/rubric files.
 
 ## CLI Starter
+
+For guided onboarding, start with:
+
+```sh
+eval-dashboards teach
+```
+
+This is an alias for `eval-dashboards init --preset=agent-quality --teach`.
 
 Print a starter configuration for the template with:
 
@@ -100,7 +114,19 @@ This writes:
 - `.evals_output/run-agent-quality-template.json`
 - `.github/workflows/eval-quality.yml.snippet`
 
-Use `--dry-run --write` to preview paths without writing, `--out-dir <path>` to target another directory, and `--force` to overwrite existing files.
+Use `--dry-run` to preview the exact files and per-file purpose text without writing (defaults to the `agent-quality` scaffold when no preset is supplied), `--out-dir <path>` to target another directory, `--playbook` to add a checked-in local-agent setup guide, and `--force` to overwrite existing files when combined with `--write`.
+
+Optional profile flags:
+
+- `--setup=guardrails,evals,judges,multiturn` to select setup modules (default: all).
+- `--runner=vitest|jest|node|python` to tailor runner command hints (default: `node`).
+- `--ci=github|azure|none` to control CI snippet generation (default: `github`).
+
+Example:
+
+```sh
+eval-dashboards init --preset=agent-quality --setup=guardrails,multiturn --runner=vitest --ci=azure --write
+```
 
 For a guided dry-run walkthrough that explains the eval flow and setup steps:
 
