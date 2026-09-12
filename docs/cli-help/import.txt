@@ -1,0 +1,11 @@
+eval-dashboards import --from=<source> --input=<path> [options]
+
+Options:
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|openevals.
+                           openevals is accepted as an alias for agentevals.
+  --input=<path>           Source JSON path to convert.
+  --out=<path>             Output eval-report/v1 file path.
+                           Default: .evals_output/import-<source>.json
+  --suite=<name>           Fallback suite name when source data has no suite.
+                           Default: <source>-import
+

@@ -137,6 +137,32 @@ Agent and LLM judge reports should use the first-class optional judge fields ins
 
 When using judge-based groundedness/relevance suites, ensure rubric guidance does not penalize extra details that remain consistent with reference/context.
 
+### Trace-first evidence pattern
+
+For failure triage, prefer carrying both portable IDs and clickable links:
+
+```json
+{
+  "id": "agent/tool-timeout-001",
+  "suite": "agent",
+  "passed": false,
+  "severity": "high",
+  "category": "tool-timeout",
+  "trace": {
+    "traceId": "4f5c7c55f9da4b4a",
+    "spanId": "a1e243fbe90c9f5d",
+    "traceUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a",
+    "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d"
+  }
+}
+```
+
+End-to-end maintained example:
+
+- Artifact: `examples/basic-json/run-trace-links.json`
+- Generate report: `eval-dashboards report --input=examples/basic-json --run-id=run-trace-links --reporter=html --report-dir=eval-report`
+- Triage flow: open row `agent/tool-timeout-001` in `eval-report/index.html` and follow the rendered trace/span links.
+
 ## Suite Governance
 
 Suites can carry opinionated but portable governance metadata:
@@ -255,3 +281,55 @@ type RowMetadata = {
 ```
 
 These fields are optional and additive. Existing artifacts remain valid; runners can adopt them incrementally for auditability and dataset stewardship.
+
+## Human Adjudication Bundle Flow (Optional)
+
+For reviewer-loop workflows (Phase 4B.7), the CLI supports an optional export/import sidecar bundle:
+
+```sh
+eval-dashboards adjudicate export --input=.evals_output --out=eval-report/adjudication-bundle.json
+eval-dashboards adjudicate import --input=.evals_output --bundle=eval-report/adjudication-bundle-reviewed.json --out=eval-report/adjudicated-run.json
+```
+
+Use `--run-id=<id>` on either action when the input directory contains multiple runs.
+Keep adjudicated outputs outside the artifact input directory to avoid duplicate run ids in discovery.
+
+Bundle contract:
+
+```ts
+type AdjudicationBundleV1 = {
+  schemaVersion: 'eval-adjudication-bundle/v1';
+  bundleId: string;
+  generatedAt: string;
+  source: { runId: string; generatedAt: string };
+  rows: Array<{
+    id: string;
+    suite: string;
+    unresolvedReason: 'expectation-mismatch';
+    currentPassed: boolean;
+    expectedOutcome?: 'pass' | 'fail';
+    severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
+    category?: string;
+    reason?: string;
+    input?: string;
+    output?: string;
+    expected?: string;
+    judgeVerdict?: boolean;
+    judgeCategory?: string;
+    judgeReasoning?: string;
+    groundTruthVerdict?: boolean;
+    groundTruthCategory?: string;
+    groundTruthAnnotation?: string;
+    review?: {
+      verdict?: 'pass' | 'fail';
+      reviewer?: string;
+      category?: string;
+      note?: string;
+      decidedAt?: string;
+    };
+  }>;
+};
+```
+
+On import, reviewer decisions merge into `rows[]` (for example `passed`, `groundTruthVerdict`, `groundTruthCategory`, `groundTruthAnnotation`) and append a provenance trail under `report.metadata.adjudication.imports[]` and row-level `metadata.adjudicationTrail[]`.
+If a row already has `metadata.provenance`, import preserves it; otherwise import adds `metadata.provenance.source='production-review'` with bundle linkage.

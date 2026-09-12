@@ -12,7 +12,7 @@ describe('completion command', () => {
     expect(script).toContain('# eval-dashboards shell completion (bash)');
     expect(script).toContain('complete -F _eval_dashboards_completions eval-dashboards');
     expect(script).toContain('complete -F _eval_dashboards_completions evd');
-    expect(script).toContain('report report-index lint check merge history publish teach init completion import');
+    expect(script).toContain('report report-index lint check merge history publish teach init completion import adjudicate');
     expect(script).toContain('install --help --shell');
     expect(script).toContain('--setup');
     expect(script).toContain('--runner');
@@ -21,6 +21,7 @@ describe('completion command', () => {
     expect(script).toContain('--profile');
     expect(script).toContain('--statistical-mode');
     expect(script).toContain('--from');
+    expect(script).toContain('--bundle');
     expect(script).toContain('promptfoo deepeval agentevals openevals');
     expect(script).toContain('default guardrail');
     expect(script).toContain('off bootstrap');
@@ -36,8 +37,10 @@ describe('completion command', () => {
     expect(script).toContain('complete -c eval-dashboards -n "__fish_use_subcommand" -a "completion"');
     expect(script).toContain('complete -c eval-dashboards -n "__fish_use_subcommand" -a "import"');
     expect(script).toContain('complete -c eval-dashboards -n "__fish_use_subcommand" -a "report"');
+    expect(script).toContain('complete -c eval-dashboards -n "__fish_use_subcommand" -a "adjudicate"');
     expect(script).toContain('complete -c eval-dashboards -n "__fish_seen_subcommand_from report" -l profile');
     expect(script).toContain('complete -c eval-dashboards -n "__fish_seen_subcommand_from check" -l statistical-mode');
+    expect(script).toContain('complete -c eval-dashboards -n "__fish_seen_subcommand_from adjudicate" -l bundle');
     expect(script).toContain('complete -c evd -n "__fish_seen_subcommand_from completion" -a "install"');
     expect(script).toContain('__fish_prev_arg_in --profile" -a "default guardrail"');
     expect(script).toContain('__fish_prev_arg_in --statistical-mode" -a "off bootstrap"');

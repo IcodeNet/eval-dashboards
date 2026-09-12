@@ -1476,6 +1476,209 @@ function sanitizeForDashboardOutput(input) {
   );
 }
 
+// src/adjudication/bundles.ts
+import { randomUUID } from "crypto";
+var ADJUDICATION_BUNDLE_SCHEMA_VERSION = "eval-adjudication-bundle/v1";
+var cloneRow = (row) => ({
+  ...row,
+  metadata: row.metadata ? { ...row.metadata } : void 0
+});
+var normalizeVerdict = (value) => {
+  if (typeof value !== "string") return void 0;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "pass" || normalized === "fail") return normalized;
+  return void 0;
+};
+var recomputeSuites = (originalSuites, rows) => {
+  const tallies = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const tally = tallies.get(row.suite) ?? { total: 0, passed: 0, failed: 0 };
+    tally.total += 1;
+    if (row.passed) tally.passed += 1;
+    else tally.failed += 1;
+    tallies.set(row.suite, tally);
+  }
+  const originalById = new Map(originalSuites.map((suite) => [suite.id, suite]));
+  const orderedIds = [...originalSuites.map((suite) => suite.id)];
+  for (const suiteId of tallies.keys()) {
+    if (!originalById.has(suiteId)) orderedIds.push(suiteId);
+  }
+  return orderedIds.map((suiteId) => {
+    const base = originalById.get(suiteId);
+    const tally = tallies.get(suiteId) ?? { total: 0, passed: 0, failed: 0 };
+    const next = {
+      id: suiteId,
+      total: tally.total,
+      passed: tally.passed,
+      failed: tally.failed,
+      ...base?.name ? { name: base.name } : {}
+    };
+    if (base?.passRate !== void 0) {
+      next.passRate = tally.total === 0 ? 0 : tally.passed / tally.total;
+    }
+    return next;
+  });
+};
+var exportUnresolvedRowsBundle = (report, options) => {
+  const includePassedRows = options?.includePassedRows ?? false;
+  const unresolved = report.rows.filter((row) => !rowMatchedExpectation(row)).filter((row) => includePassedRows || !row.passed).map((row) => ({
+    id: row.id,
+    suite: row.suite,
+    unresolvedReason: "expectation-mismatch",
+    currentPassed: row.passed,
+    expectedOutcome: row.expectedOutcome,
+    severity: row.severity,
+    category: row.category,
+    reason: row.reason,
+    input: row.input,
+    output: row.output,
+    expected: row.expected,
+    judgeVerdict: row.judgeVerdict,
+    judgeCategory: row.judgeCategory,
+    judgeReasoning: row.judgeReasoning,
+    groundTruthVerdict: row.groundTruthVerdict,
+    groundTruthCategory: row.groundTruthCategory,
+    groundTruthAnnotation: row.groundTruthAnnotation,
+    review: {}
+  }));
+  return {
+    schemaVersion: ADJUDICATION_BUNDLE_SCHEMA_VERSION,
+    bundleId: options?.bundleId ?? randomUUID(),
+    generatedAt: options?.generatedAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+    source: {
+      runId: report.run.id,
+      generatedAt: report.run.generatedAt
+    },
+    rows: unresolved
+  };
+};
+var mergeAdjudicationBundle = (report, bundle, options) => {
+  const requireRunMatch = options?.requireRunMatch ?? true;
+  if (requireRunMatch && bundle.source?.runId && bundle.source.runId !== report.run.id) {
+    throw Object.assign(
+      new Error(
+        `Bundle run ${bundle.source.runId} does not match target run ${report.run.id}. Use --run-id to select the matching report.`
+      ),
+      { exitCode: 2 }
+    );
+  }
+  const importedAt = options?.importedAt ?? (/* @__PURE__ */ new Date()).toISOString();
+  const indexByKey = /* @__PURE__ */ new Map();
+  const nextRows = report.rows.map((row, index) => {
+    indexByKey.set(`${row.suite}:${row.id}`, index);
+    return cloneRow(row);
+  });
+  let applied = 0;
+  let skippedMissingReview = 0;
+  let skippedInvalidVerdict = 0;
+  const unmatchedRows = [];
+  for (const row of bundle.rows) {
+    const review = row.review;
+    if (!review) {
+      skippedMissingReview += 1;
+      continue;
+    }
+    if (review.verdict === void 0) {
+      skippedMissingReview += 1;
+      continue;
+    }
+    const verdict = normalizeVerdict(review.verdict);
+    if (!verdict) {
+      skippedInvalidVerdict += 1;
+      continue;
+    }
+    const key = `${row.suite}:${row.id}`;
+    const index = indexByKey.get(key);
+    if (index === void 0) {
+      unmatchedRows.push(key);
+      continue;
+    }
+    const targetRow = nextRows[index];
+    if (!targetRow) continue;
+    const passed = verdict === "pass";
+    targetRow.passed = passed;
+    targetRow.groundTruthVerdict = passed;
+    if (review.category !== void 0) {
+      targetRow.groundTruthCategory = review.category;
+    }
+    if (review.note !== void 0) {
+      targetRow.groundTruthAnnotation = review.note;
+    }
+    const metadata = targetRow.metadata ??= {};
+    const provenance = typeof metadata.provenance === "object" && metadata.provenance !== null ? metadata.provenance : void 0;
+    if (!provenance) {
+      metadata.provenance = {
+        source: "production-review",
+        addedBy: review.reviewer,
+        reason: "Merged reviewer verdict from adjudication bundle",
+        sourceRef: bundle.bundleId
+      };
+    }
+    const priorTrail = Array.isArray(metadata.adjudicationTrail) ? [...metadata.adjudicationTrail] : [];
+    priorTrail.push({
+      bundleId: bundle.bundleId,
+      importedAt,
+      reviewer: review.reviewer,
+      verdict,
+      category: review.category,
+      note: review.note,
+      decidedAt: review.decidedAt
+    });
+    metadata.adjudicationTrail = priorTrail;
+    applied += 1;
+  }
+  const reportMetadata = { ...report.metadata ?? {} };
+  const priorImports = reportMetadata.adjudication && typeof reportMetadata.adjudication === "object" && Array.isArray(reportMetadata.adjudication.imports) ? [...reportMetadata.adjudication.imports] : [];
+  priorImports.push({
+    bundleId: bundle.bundleId,
+    sourceRunId: bundle.source?.runId,
+    importedAt,
+    sourceBundlePath: options?.sourceBundlePath,
+    totals: {
+      rows: bundle.rows.length,
+      applied,
+      skippedMissingReview,
+      skippedInvalidVerdict,
+      unmatchedRows: unmatchedRows.length
+    }
+  });
+  reportMetadata.adjudication = {
+    imports: priorImports
+  };
+  return {
+    report: {
+      ...report,
+      suites: recomputeSuites(report.suites, nextRows),
+      rows: nextRows,
+      metadata: reportMetadata
+    },
+    applied,
+    skippedMissingReview,
+    skippedInvalidVerdict,
+    unmatchedRows
+  };
+};
+var validateAdjudicationBundle = (bundle) => {
+  const errors = [];
+  if (typeof bundle !== "object" || bundle === null) {
+    return ["Bundle must be a JSON object."];
+  }
+  const candidate = bundle;
+  if (candidate.schemaVersion !== ADJUDICATION_BUNDLE_SCHEMA_VERSION) {
+    errors.push(`schemaVersion must be ${ADJUDICATION_BUNDLE_SCHEMA_VERSION}.`);
+  }
+  if (typeof candidate.bundleId !== "string" || candidate.bundleId.length === 0) {
+    errors.push("bundleId must be a non-empty string.");
+  }
+  if (!candidate.source || typeof candidate.source !== "object" || typeof candidate.source.runId !== "string") {
+    errors.push("source.runId must be a non-empty string.");
+  }
+  if (!Array.isArray(candidate.rows)) {
+    errors.push("rows must be an array.");
+  }
+  return errors;
+};
+
 // src/adapters/runner.ts
 import { rm } from "fs/promises";
 import path5 from "path";
@@ -1602,6 +1805,7 @@ var writeEvalReportArtifact = async (filePath, result, options = {}) => {
   return report;
 };
 export {
+  ADJUDICATION_BUNDLE_SCHEMA_VERSION,
   BUILT_IN_THEMES,
   EVAL_REPORT_SCHEMA_VERSION,
   assessBaselineCompatibility,
@@ -1609,6 +1813,7 @@ export {
   checkGates,
   compareRuns,
   createEvalReportArtifact,
+  exportUnresolvedRowsBundle,
   formatCount,
   formatDate,
   formatDuration,
@@ -1616,6 +1821,7 @@ export {
   lintReportTaxonomy,
   lintReportsTaxonomy,
   loadConfig,
+  mergeAdjudicationBundle,
   mergeConfig,
   publishReport,
   renderGroupedIndexHtml,
@@ -1623,6 +1829,7 @@ export {
   rowKey,
   rowMatchedExpectation,
   summarizeReport,
+  validateAdjudicationBundle,
   validateEvalReport,
   writeEvalReportArtifact
 };

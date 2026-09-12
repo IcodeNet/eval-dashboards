@@ -1,0 +1,14 @@
+eval-dashboards report [options]
+
+Options:
+  --input=<path>                Artifact directory to read. Default: .evals_output
+  --reporter=<name>             Reporter(s): html|markdown|json-summary|text|none (repeatable)
+  --report-dir=<path>           Output directory. Default: eval-report
+  --run-id=<id>                 Run id to render. Default: latest run
+  --baseline-run-id=<id>        Fixed baseline run id for comparisons
+  --baseline-strategy=<mode>    rolling|champion baseline selection
+  --baseline-lookback=<number>  Candidate lookback depth for rolling/champion baseline
+  --profile=<name>              default|guardrail report profile
+  --theme=<name>                HTML theme override
+  --locale=<tag>                Locale override for date/number formatting
+

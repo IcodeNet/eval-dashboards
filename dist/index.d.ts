@@ -372,6 +372,65 @@ declare const formatPassRate: (passed: number, total: number) => string;
 declare const formatDuration: (ms: number) => string;
 declare const formatCount: (n: number, singular: string, plural?: string) => string;
 
+declare const ADJUDICATION_BUNDLE_SCHEMA_VERSION: "eval-adjudication-bundle/v1";
+type ReviewerVerdict = 'pass' | 'fail';
+type AdjudicationReview = {
+    verdict?: ReviewerVerdict;
+    reviewer?: string;
+    category?: string;
+    note?: string;
+    decidedAt?: string;
+};
+type AdjudicationBundleRow = {
+    id: string;
+    suite: string;
+    unresolvedReason: 'expectation-mismatch';
+    currentPassed: boolean;
+    expectedOutcome?: 'pass' | 'fail';
+    severity?: EvalRow['severity'];
+    category?: string;
+    reason?: string;
+    input?: string;
+    output?: string;
+    expected?: string;
+    judgeVerdict?: boolean;
+    judgeCategory?: string;
+    judgeReasoning?: string;
+    groundTruthVerdict?: boolean;
+    groundTruthCategory?: string;
+    groundTruthAnnotation?: string;
+    review?: AdjudicationReview;
+};
+type AdjudicationBundleV1 = {
+    schemaVersion: typeof ADJUDICATION_BUNDLE_SCHEMA_VERSION;
+    bundleId: string;
+    generatedAt: string;
+    source: {
+        runId: string;
+        generatedAt: string;
+    };
+    rows: AdjudicationBundleRow[];
+    metadata?: Record<string, unknown>;
+};
+type MergeAdjudicationResult = {
+    report: EvalReportV1;
+    applied: number;
+    skippedMissingReview: number;
+    skippedInvalidVerdict: number;
+    unmatchedRows: string[];
+};
+declare const exportUnresolvedRowsBundle: (report: EvalReportV1, options?: {
+    bundleId?: string;
+    generatedAt?: string;
+    includePassedRows?: boolean;
+}) => AdjudicationBundleV1;
+declare const mergeAdjudicationBundle: (report: EvalReportV1, bundle: AdjudicationBundleV1, options?: {
+    importedAt?: string;
+    sourceBundlePath?: string;
+    requireRunMatch?: boolean;
+}) => MergeAdjudicationResult;
+declare const validateAdjudicationBundle: (bundle: unknown) => string[];
+
 type RunnerEvalCaseResult = {
     id?: string;
     suite: string;
@@ -418,4 +477,4 @@ type WriteEvalReportArtifactOptions<CaseResult extends RunnerEvalCaseResult = Ru
 declare const createEvalReportArtifact: <CaseResult extends RunnerEvalCaseResult>(result: RunnerEvalResult<CaseResult>, options?: CreateEvalReportArtifactOptions<CaseResult>) => EvalReportV1;
 declare const writeEvalReportArtifact: <CaseResult extends RunnerEvalCaseResult>(filePath: string, result: RunnerEvalResult<CaseResult>, options?: WriteEvalReportArtifactOptions<CaseResult>) => Promise<EvalReportV1>;
 
-export { BUILT_IN_THEMES, type BaselineCompatibilityIssue, type BaselineCompatibilityResult, type ConversationTurn, type CreateEvalReportArtifactOptions, type DatasetSource, EVAL_REPORT_SCHEMA_VERSION, type EvalReportV1, type EvalReportsConfig, type EvalReportsTheme, type EvalRow, type EvalRowKind, type EvalRun, type EvalSeverity, type EvalSuiteSummary, type EvalSummary, type EvalTarget, type GateConfig, type GatePolicy, type GateResult, type GraderKind, type PublishOptions, type PublishResult, type PublishTarget, type RegisteredRubric, type RiskArea, type RunComparison, type RunHistoryEntry, type RunnerEvalCaseResult, type RunnerEvalResult, type SuiteManifest, type SuiteRubricContract, type TaxonomyLintIssue, type TaxonomyLintLevel, type TaxonomyLintResult, type ToolCall, type TraceReference, type ValidationResult, type WriteEvalReportArtifactOptions, assessBaselineCompatibility, buildHistory, checkGates, compareRuns, createEvalReportArtifact, formatCount, formatDate, formatDuration, formatPassRate, lintReportTaxonomy, lintReportsTaxonomy, loadConfig, mergeConfig, publishReport, renderGroupedIndexHtml, resolveTheme, rowKey, rowMatchedExpectation, summarizeReport, validateEvalReport, writeEvalReportArtifact };
+export { ADJUDICATION_BUNDLE_SCHEMA_VERSION, type AdjudicationBundleRow, type AdjudicationBundleV1, type AdjudicationReview, BUILT_IN_THEMES, type BaselineCompatibilityIssue, type BaselineCompatibilityResult, type ConversationTurn, type CreateEvalReportArtifactOptions, type DatasetSource, EVAL_REPORT_SCHEMA_VERSION, type EvalReportV1, type EvalReportsConfig, type EvalReportsTheme, type EvalRow, type EvalRowKind, type EvalRun, type EvalSeverity, type EvalSuiteSummary, type EvalSummary, type EvalTarget, type GateConfig, type GatePolicy, type GateResult, type GraderKind, type MergeAdjudicationResult, type PublishOptions, type PublishResult, type PublishTarget, type RegisteredRubric, type RiskArea, type RunComparison, type RunHistoryEntry, type RunnerEvalCaseResult, type RunnerEvalResult, type SuiteManifest, type SuiteRubricContract, type TaxonomyLintIssue, type TaxonomyLintLevel, type TaxonomyLintResult, type ToolCall, type TraceReference, type ValidationResult, type WriteEvalReportArtifactOptions, assessBaselineCompatibility, buildHistory, checkGates, compareRuns, createEvalReportArtifact, exportUnresolvedRowsBundle, formatCount, formatDate, formatDuration, formatPassRate, lintReportTaxonomy, lintReportsTaxonomy, loadConfig, mergeAdjudicationBundle, mergeConfig, publishReport, renderGroupedIndexHtml, resolveTheme, rowKey, rowMatchedExpectation, summarizeReport, validateAdjudicationBundle, validateEvalReport, writeEvalReportArtifact };

@@ -400,10 +400,10 @@ Acceptance criteria:
 
 ### 4B.7 Human adjudication package (P2)
 
-- [ ] Add export/import flow for reviewer adjudication bundles:
-  - unresolved rows export
-  - reviewer verdict merge-back
-  - provenance trail in artifact metadata
+- [x] Add export/import flow for reviewer adjudication bundles:
+  - [x] unresolved rows export
+  - [x] reviewer verdict merge-back
+  - [x] provenance trail in artifact metadata
 
 Acceptance criteria:
 
@@ -441,14 +441,28 @@ Make onboarding and ecosystem fit obvious in one place: setup path, CI path, tax
 
 ### 4C.1 Docs site foundation on GitHub Pages (P0)
 
-- [ ] Create a docs-site structure under version control (for example `docs-site/` or equivalent static-docs layout) and publish via GitHub Pages workflow (workflow is committed; deployment blocked until repo Pages permissions/settings are enabled).
+- [x] Create a docs-site structure under version control (for example `docs-site/` or equivalent static-docs layout) and publish via GitHub Pages workflow.
 - [x] Keep docs fully static and repo-owned (no hosted dependency required).
 - [x] Add versioned navigation sections for: Getting Started, CLI, Schema/Taxonomy, CI Gates, Publishing, Integrations.
 
 Acceptance criteria:
 
-- A stable public docs URL exists and is generated from this repository on merge to main (currently blocked by GitHub Pages permission/settings on this repo).
+- A stable public docs URL exists and is generated from this repository on merge to main.
 - Every core CLI command page includes runnable examples.
+
+Implementation recommendation (docs generation stack):
+
+- [ ] Standardize docs generation on a Node-first stack:
+  - **VitePress** for product docs pages (guides, onboarding, taxonomy, integrations)
+  - **TypeDoc** (optionally via `typedoc-plugin-markdown`) for API reference generation from exported TypeScript surfaces
+- [ ] Keep GitHub Pages as the publish target using the existing Actions-based deploy workflow.
+- [ ] Reserve Docusaurus for a future migration only if multi-version docs complexity materially exceeds VitePress limits.
+
+Rationale:
+
+- Fits current TypeScript + pnpm toolchain with minimal operational overhead.
+- Preserves static, offline-friendly output and repo-owned content.
+- Keeps API docs synchronized with source without hand-maintained reference drift.
 
 ### 4C.2 CLI-first onboarding path (P0)
 
@@ -497,13 +511,66 @@ Acceptance criteria:
 
 - Docs changes are prioritized using observed adoption friction instead of intuition only.
 
+### 4C.6 Documentation truth-sync sweep (P0)
+
+- [x] Run a cross-doc consistency pass so roadmap/status/docs/readme/help/examples reflect actual implementation and live site state.
+- [x] Remove stale claims about blocked GitHub Pages or cloud publish dry-run-only behavior where implementation is already live.
+- [x] Add a docs consistency checklist to release hygiene so stale state claims are caught before merge.
+
+Acceptance criteria:
+
+- No contradictory claims across `README.md`, `docs/STATUS.md`, `docs/ROADMAP.md`, `docs/publishing.md`, and `docs/examples.md` for the same capability.
+- CLI help text, docs examples, and implementation support matrix are aligned for publish/import/teach flows.
+
+### 4C.7 Supplementary eval tooling map + interoperability expansion (P1)
+
+- [x] Add/expand "Works with" guidance for major eval/observability ecosystems:
+  - promptfoo, DeepEval, OpenAI eval surfaces, Anthropic eval methodology,
+  - Langfuse, W&B Weave, Arize Phoenix, Braintrust, Ragas, TruLens, Patronus.
+- [x] For each guide, document: what the tool does well, tradeoffs, and minimal conversion path into `eval-report/v1`.
+- [x] Keep positioning runner-agnostic and non-adversarial (co-existence over replacement).
+
+Acceptance criteria:
+
+- Each integration page includes at least one concrete conversion/adapter pattern into `eval-report/v1`.
+- Teams can decide in under 10 minutes whether to pair `eval-dashboards` with their current stack.
+
+### 4C.8 Integration risk register and mitigations (P1)
+
+- [x] Track known integration risks and mitigations in docs:
+  - runtime version mismatches,
+  - Python-sidecar dependency for some toolchains,
+  - schema drift across external outputs,
+  - cloud coupling vs offline-first defaults,
+  - synthetic-dataset overfitting risk.
+- [x] Tie each risk to owner, trigger condition, and mitigation playbook.
+
+Acceptance criteria:
+
+- Risk register exists and is referenced from interoperability docs.
+- New integrations cannot be marked complete without explicit risk/mitigation entries.
+
+### 4C.9 Trace-first evidence hardening (P1)
+
+- [x] Strengthen trace-link guidance and examples using `rows[].trace` fields (`traceId`, `spanId`, `traceUrl`, `spanUrl`).
+- [x] Add at least one end-to-end example showing failure triage from dashboard row to trace deep link.
+
+Acceptance criteria:
+
+- Report output demonstrates clickable trace evidence on at least one maintained example.
+- Docs and maintained examples include trace capture as optional but first-class evidence for agent/tool failures.
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
 2. 4C.2 CLI-first onboarding path
 3. 4C.3 Interoperability guides
-4. 4C.4 Assistant-UI reference integration
-5. 4C.5 Adoption measurement loop
+4. 4C.6 Documentation truth-sync sweep
+5. 4C.4 Assistant-UI reference integration
+6. 4C.5 Adoption measurement loop
+7. 4C.7 Supplementary tooling map + interoperability expansion
+8. 4C.8 Integration risk register
+9. 4C.9 Trace-first evidence hardening
 
 ---
 
@@ -529,21 +596,20 @@ Acceptance criteria:
 ## 🎯 Recommended next steps (prioritized by impact)
 
 **Immediate (next 1–2 weeks):**
-1. Start Phase 4B.7 human adjudication package
-   - Export unresolved rows into adjudication bundles
-   - Merge reviewer verdicts back with provenance trail
+1. Start Phase 4B.8 cost-quality frontier and benchmark packs
+   - add optional cost/latency-quality frontier views when row metrics are present
+   - add versioned benchmark pack templates with compatibility guidance
 2. Keep CI-native machine outputs as the 4B.6 follow-on slice
    - ensure one-hop links from CI failures back to row-level evidence
 
 **Short term (next 2–3 weeks):**
 3. Publish assistant-ui reference integration case study (4C.4)
 4. Add docs-adoption measurement loop (4C.5)
-5. Continue dataset-governance hardening in lint/check preflight
+5. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
+6. Continue dataset-governance hardening in lint/check preflight
 
 **Medium term:**
-6. Human adjudication package hardening and UX polish (4B.7)
-7. Cost-quality frontier and benchmark packs (4B.8)
-8. External adoption push and community feedback loop
+7. External adoption push and community feedback loop
 
 ---
 

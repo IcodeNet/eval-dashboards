@@ -39,6 +39,16 @@ export { BUILT_IN_THEMES, resolveTheme, type EvalReportsTheme } from './reporter
 export { formatDate, formatPassRate, formatDuration, formatCount } from './utils/format.js';
 export { renderGroupedIndexHtml } from './reporters/render.js';
 export {
+  ADJUDICATION_BUNDLE_SCHEMA_VERSION,
+  exportUnresolvedRowsBundle,
+  mergeAdjudicationBundle,
+  validateAdjudicationBundle,
+  type AdjudicationBundleV1,
+  type AdjudicationBundleRow,
+  type AdjudicationReview,
+  type MergeAdjudicationResult,
+} from './adjudication/bundles.js';
+export {
   createEvalReportArtifact,
   writeEvalReportArtifact,
   type CreateEvalReportArtifactOptions,

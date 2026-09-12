@@ -6,6 +6,10 @@
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
+Docs site (start here):
+- Live: https://icodenet.github.io/eval-dashboards/v1/
+- In-repo source: [docs-site/v1/index.html](docs-site/v1/index.html)
+
 ## Completion Check Ledger
 
 Before marking work as finished, run the checklist in [CHECKS_LEDGER.md](./CHECKS_LEDGER.md).
@@ -266,6 +270,18 @@ Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot 
 | `eval-dashboards init` | Print a starter config, or scaffold preset files with `--preset=agent-quality --write` |
 | `eval-dashboards completion` | Print or install shell completion for bash, zsh, or fish |
 | `eval-dashboards import` | Convert third-party eval output JSON to `eval-report/v1` (Promptfoo, DeepEval, AgentEvals; `openevals` alias supported) |
+| `eval-dashboards adjudicate` | Export unresolved rows for reviewer adjudication bundles and merge reviewer verdicts back into artifacts |
+
+Help quick checks (truth-sync targets):
+
+```sh
+eval-dashboards report --help
+eval-dashboards check --help
+eval-dashboards publish --help
+eval-dashboards import --help
+eval-dashboards teach --help
+eval-dashboards init --help
+```
 
 Shell completion quick setup:
 
@@ -282,6 +298,12 @@ eval-dashboards import --from=promptfoo --input=./promptfoo-results.json --out=.
 
 # render guardrail-focused triage section for attack-style suites
 eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report
+
+# export unresolved rows for reviewer adjudication
+eval-dashboards adjudicate export --input=.evals_output --out=eval-report/adjudication-bundle.json
+
+# merge reviewer verdicts back into a run artifact
+eval-dashboards adjudicate import --input=.evals_output --bundle=eval-report/adjudication-bundle-reviewed.json --out=eval-report/adjudicated-run.json
 ```
 
 ---
@@ -361,6 +383,7 @@ for the full procedure.
 - [Jest reporter example](examples/jest-custom-reporter/README.md) — custom reporter emitting artifacts
 - [Plain Node example](examples/node-plain-eval/README.md) — run eval logic and emit artifacts
 - [Taxonomy-complete fixture](examples/taxonomy-complete-fixture/README.md) — template showing all recommended fields
+- [Basic JSON trace-link fixture](examples/basic-json/run-trace-links.json) — row-level trace/span deep links for dashboard triage
 
 **Python:**
 - [Pytest evals example](examples/python-pytest-evals/README.md) — `conftest.py` plugin that collects rows and writes `eval-report/v1` artifacts after your pytest session
@@ -408,8 +431,9 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - [Configuration](docs/configuration.md) — all config options
 - [Reporters](docs/reporters.md) — HTML, text, Markdown, JSON
 - [Gates](docs/gates.md) — quality gates and CI integration
+- [CLI help snapshots](docs/cli-help/) — exact `--help` outputs tracked for truth-sync
 - [Publishing](docs/publishing.md) — GitHub Pages, Azure, custom
-- [Integrations ("Works with" guides)](docs/integrations/README.md) — Promptfoo, DeepEval, OpenEvals/AgentEvals, trace stacks
+- [Integrations ("Works with" guides)](docs/integrations/README.md) — Promptfoo, DeepEval, OpenAI/AgentEvals, Anthropic methodology, Langfuse, Weave, Phoenix, Braintrust, Ragas, TruLens, Patronus, trace stacks
 - [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating with GitHub Pages data branch
 - [Roadmap](docs/ROADMAP.md) — phases and adoption plan
 - [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
@@ -422,5 +446,3 @@ See [examples/](examples/) for runnable demos.
 ## License
 
 MIT © [Byron Thanopoulos](mailto:byronth@gmail.com)
-
-- [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)

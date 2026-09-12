@@ -1,20 +1,36 @@
 # Integrations: "Works with" Guides
 
-These guides show how to use `@icodenet/eval-dashboards` alongside existing eval and observability tooling.
+`@icodenet/eval-dashboards` is runner-agnostic and artifact-first.
 
-`eval-dashboards` stays runner-agnostic: if you can emit or convert to `eval-report/v1`, you can use the same `lint`, `check`, `report`, `history`, and `publish` workflow.
+If you can export rows and map them into `eval-report/v1`, you can use the same `lint`, `check`, `report`, `history`, and `publish` flow.
 
-## Guides
-
-- [Works with Promptfoo](./promptfoo.md)
-- [Works with DeepEval](./deepeval.md)
-- [Works with OpenEvals / AgentEvals](./openevals-agentevals.md)
-- [Works with trace and observability stacks](./trace-stacks.md)
-
-## Shared import command pattern
+## Supported import adapters in CLI today
 
 ```sh
-eval-dashboards import --from=<promptfoo|deepeval|agentevals|openevals> --input=./source.json --out=.evals_output/import.json
+eval-dashboards import --from=promptfoo --input=./promptfoo.json --out=.evals_output/promptfoo.json
+eval-dashboards import --from=deepeval --input=./deepeval.json --out=.evals_output/deepeval.json
+eval-dashboards import --from=openevals --input=./agentevals-like.json --out=.evals_output/openevals.json
 ```
 
-`openevals` is accepted as an alias for `agentevals`.
+(`openevals` is an alias for the AgentEvals adapter.)
+
+## Works with pages
+
+- [Promptfoo](./promptfoo.md)
+- [DeepEval](./deepeval.md)
+- [OpenAI eval surfaces / AgentEvals](./openevals-agentevals.md)
+- [Anthropic eval methodology](./anthropic-eval-methodology.md)
+- [Langfuse](./langfuse.md)
+- [W&B Weave](./wandb-weave.md)
+- [Arize Phoenix](./arize-phoenix.md)
+- [Braintrust](./braintrust.md)
+- [Ragas](./ragas.md)
+- [TruLens](./trulens.md)
+- [Patronus](./patronus.md)
+- [Trace/observability stacks](./trace-stacks.md)
+
+## Integration risk register
+
+Before adding or changing an integration, check:
+
+- [Integration risk register](./risk-register.md)

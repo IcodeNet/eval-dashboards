@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "run-trace-links",
+    "generatedAt": "2026-07-29T12:00:00.000Z",
+    "project": "trace-example"
+  },
+  "suites": [
+    {
+      "id": "agent",
+      "total": 2,
+      "passed": 1,
+      "failed": 1
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "agent",
+      "target": "agent",
+      "datasetSource": "manual",
+      "datasetVersion": "v1",
+      "rubricVersion": "r1",
+      "riskArea": "tool-use",
+      "graders": ["tool-call-check"],
+      "gate": {
+        "mode": "report-only",
+        "thresholds": {
+          "passRate": 0.5
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "agent/tool-timeout-001",
+      "suite": "agent",
+      "passed": false,
+      "kind": "agent",
+      "severity": "high",
+      "category": "tool-timeout",
+      "reason": "Tool call exceeded timeout budget and produced no final answer.",
+      "promptVersion": "agent-v1-prompt",
+      "agentVersion": "agent-v1.2.0",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Summarize account balance trends for Q2."
+        },
+        {
+          "role": "assistant",
+          "content": "Calling portfolio-service for account rollup.",
+          "toolCall": {
+            "name": "portfolio-service",
+            "args": {
+              "period": "2026-Q2"
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "portfolio-service",
+          "args": {
+            "period": "2026-Q2"
+          },
+          "result": "timeout",
+          "resultIsError": true,
+          "durationMs": 30000
+        }
+      ],
+      "trace": {
+        "traceId": "4f5c7c55f9da4b4a",
+        "spanId": "a1e243fbe90c9f5d",
+        "traceUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a",
+        "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d"
+      }
+    },
+    {
+      "id": "agent/tool-timeout-002",
+      "suite": "agent",
+      "passed": true,
+      "kind": "agent",
+      "severity": "none",
+      "category": "tool-timeout",
+      "promptVersion": "agent-v1-prompt",
+      "agentVersion": "agent-v1.2.0",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Summarize account balance trends for Q2."
+        },
+        {
+          "role": "assistant",
+          "content": "Q2 balance trend summary delivered."
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 // src/cli/index.ts
 import path9 from "path";
+import { readFile as readFile6 } from "fs/promises";
 
 // src/history/baseline-compatibility.ts
 var assessBaselineCompatibility = (candidateManifests, baselineManifests, hasComparison) => {
@@ -3608,7 +3609,8 @@ var commands = [
   "teach",
   "init",
   "completion",
-  "import"
+  "import",
+  "adjudicate"
 ];
 var rootFlags = ["--help"];
 var initFlags = [
@@ -3632,6 +3634,7 @@ var publishFlags = [
   "--dry-run",
   "--repo",
   "--branch",
+  "--token",
   "--app-name",
   "--account",
   "--container"
@@ -3673,6 +3676,14 @@ var reportFlags = [
   "--min-pass-rate-delta"
 ];
 var importFlags = ["--from", "--input", "--out", "--suite", "--help"];
+var adjudicateFlags = [
+  "--help",
+  "--input",
+  "--run-id",
+  "--out",
+  "--bundle",
+  "--include-passed"
+];
 var optionValues = {
   preset: ["agent-quality"],
   setup: ["guardrails", "evals", "judges", "multiturn"],
@@ -3707,6 +3718,7 @@ var renderBash = () => {
   const checkFlagList = checkFlags.join(" ");
   const reportFlagList = reportFlags.join(" ");
   const importFlagList = importFlags.join(" ");
+  const adjudicateFlagList = adjudicateFlags.join(" ");
   return [
     "# eval-dashboards shell completion (bash)",
     "_eval_dashboards_completions() {",
@@ -3741,6 +3753,7 @@ var renderBash = () => {
     check) COMPREPLY=( $(compgen -W "${checkFlagList}" -- "\${cur}") ) ;;
     completion) COMPREPLY=( $(compgen -W "install --help --shell" -- "\${cur}") ) ;;
     import) COMPREPLY=( $(compgen -W "${importFlagList}" -- "\${cur}") ) ;;
+    adjudicate) COMPREPLY=( $(compgen -W "export import ${adjudicateFlagList}" -- "\${cur}") ) ;;
     *) COMPREPLY=( $(compgen -W "--help" -- "\${cur}") ) ;;
   esac`,
     "}",
@@ -3756,6 +3769,7 @@ var renderZsh = () => {
   const checkFlagList = checkFlags.join(" ");
   const reportFlagList = reportFlags.join(" ");
   const importFlagList = importFlags.join(" ");
+  const adjudicateFlagList = adjudicateFlags.join(" ");
   return [
     "#compdef eval-dashboards evd",
     "# eval-dashboards shell completion (zsh)",
@@ -3779,6 +3793,7 @@ var renderZsh = () => {
     check) _values "check flags" ${checkFlagList} ;;
     completion) _values "completion options" install --help --shell ;;
     import) _values "import flags" ${importFlagList} ;;
+    adjudicate) _values "adjudicate action/flags" export import ${adjudicateFlagList} ;;
     *) _values "root flags" ${rootFlagList} ;;
   esac`,
     "",
@@ -3837,6 +3852,12 @@ var renderFish = () => {
         (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from import" -l ${flag.replace("--", "")}`
       )
     );
+    lines.push(
+      ...adjudicateFlags.map(
+        (flag) => `complete -c ${cliName} -n "__fish_seen_subcommand_from adjudicate" -l ${flag.replace("--", "")}`
+      )
+    );
+    lines.push(`complete -c ${cliName} -n "__fish_seen_subcommand_from adjudicate" -a "export import"`);
     lines.push(
       `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --preset" -a "${optionValues.preset.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --setup" -a "${optionValues.setup.join(" ")}"`,
@@ -4333,6 +4354,209 @@ var importFromSource = async (options) => {
   };
 };
 
+// src/adjudication/bundles.ts
+import { randomUUID } from "crypto";
+var ADJUDICATION_BUNDLE_SCHEMA_VERSION = "eval-adjudication-bundle/v1";
+var cloneRow = (row) => ({
+  ...row,
+  metadata: row.metadata ? { ...row.metadata } : void 0
+});
+var normalizeVerdict = (value) => {
+  if (typeof value !== "string") return void 0;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "pass" || normalized === "fail") return normalized;
+  return void 0;
+};
+var recomputeSuites = (originalSuites, rows) => {
+  const tallies = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const tally = tallies.get(row.suite) ?? { total: 0, passed: 0, failed: 0 };
+    tally.total += 1;
+    if (row.passed) tally.passed += 1;
+    else tally.failed += 1;
+    tallies.set(row.suite, tally);
+  }
+  const originalById = new Map(originalSuites.map((suite) => [suite.id, suite]));
+  const orderedIds = [...originalSuites.map((suite) => suite.id)];
+  for (const suiteId of tallies.keys()) {
+    if (!originalById.has(suiteId)) orderedIds.push(suiteId);
+  }
+  return orderedIds.map((suiteId) => {
+    const base = originalById.get(suiteId);
+    const tally = tallies.get(suiteId) ?? { total: 0, passed: 0, failed: 0 };
+    const next = {
+      id: suiteId,
+      total: tally.total,
+      passed: tally.passed,
+      failed: tally.failed,
+      ...base?.name ? { name: base.name } : {}
+    };
+    if (base?.passRate !== void 0) {
+      next.passRate = tally.total === 0 ? 0 : tally.passed / tally.total;
+    }
+    return next;
+  });
+};
+var exportUnresolvedRowsBundle = (report, options) => {
+  const includePassedRows = options?.includePassedRows ?? false;
+  const unresolved = report.rows.filter((row) => !rowMatchedExpectation(row)).filter((row) => includePassedRows || !row.passed).map((row) => ({
+    id: row.id,
+    suite: row.suite,
+    unresolvedReason: "expectation-mismatch",
+    currentPassed: row.passed,
+    expectedOutcome: row.expectedOutcome,
+    severity: row.severity,
+    category: row.category,
+    reason: row.reason,
+    input: row.input,
+    output: row.output,
+    expected: row.expected,
+    judgeVerdict: row.judgeVerdict,
+    judgeCategory: row.judgeCategory,
+    judgeReasoning: row.judgeReasoning,
+    groundTruthVerdict: row.groundTruthVerdict,
+    groundTruthCategory: row.groundTruthCategory,
+    groundTruthAnnotation: row.groundTruthAnnotation,
+    review: {}
+  }));
+  return {
+    schemaVersion: ADJUDICATION_BUNDLE_SCHEMA_VERSION,
+    bundleId: options?.bundleId ?? randomUUID(),
+    generatedAt: options?.generatedAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+    source: {
+      runId: report.run.id,
+      generatedAt: report.run.generatedAt
+    },
+    rows: unresolved
+  };
+};
+var mergeAdjudicationBundle = (report, bundle, options) => {
+  const requireRunMatch = options?.requireRunMatch ?? true;
+  if (requireRunMatch && bundle.source?.runId && bundle.source.runId !== report.run.id) {
+    throw Object.assign(
+      new Error(
+        `Bundle run ${bundle.source.runId} does not match target run ${report.run.id}. Use --run-id to select the matching report.`
+      ),
+      { exitCode: 2 }
+    );
+  }
+  const importedAt = options?.importedAt ?? (/* @__PURE__ */ new Date()).toISOString();
+  const indexByKey = /* @__PURE__ */ new Map();
+  const nextRows = report.rows.map((row, index) => {
+    indexByKey.set(`${row.suite}:${row.id}`, index);
+    return cloneRow(row);
+  });
+  let applied = 0;
+  let skippedMissingReview = 0;
+  let skippedInvalidVerdict = 0;
+  const unmatchedRows = [];
+  for (const row of bundle.rows) {
+    const review = row.review;
+    if (!review) {
+      skippedMissingReview += 1;
+      continue;
+    }
+    if (review.verdict === void 0) {
+      skippedMissingReview += 1;
+      continue;
+    }
+    const verdict = normalizeVerdict(review.verdict);
+    if (!verdict) {
+      skippedInvalidVerdict += 1;
+      continue;
+    }
+    const key = `${row.suite}:${row.id}`;
+    const index = indexByKey.get(key);
+    if (index === void 0) {
+      unmatchedRows.push(key);
+      continue;
+    }
+    const targetRow = nextRows[index];
+    if (!targetRow) continue;
+    const passed = verdict === "pass";
+    targetRow.passed = passed;
+    targetRow.groundTruthVerdict = passed;
+    if (review.category !== void 0) {
+      targetRow.groundTruthCategory = review.category;
+    }
+    if (review.note !== void 0) {
+      targetRow.groundTruthAnnotation = review.note;
+    }
+    const metadata = targetRow.metadata ??= {};
+    const provenance = typeof metadata.provenance === "object" && metadata.provenance !== null ? metadata.provenance : void 0;
+    if (!provenance) {
+      metadata.provenance = {
+        source: "production-review",
+        addedBy: review.reviewer,
+        reason: "Merged reviewer verdict from adjudication bundle",
+        sourceRef: bundle.bundleId
+      };
+    }
+    const priorTrail = Array.isArray(metadata.adjudicationTrail) ? [...metadata.adjudicationTrail] : [];
+    priorTrail.push({
+      bundleId: bundle.bundleId,
+      importedAt,
+      reviewer: review.reviewer,
+      verdict,
+      category: review.category,
+      note: review.note,
+      decidedAt: review.decidedAt
+    });
+    metadata.adjudicationTrail = priorTrail;
+    applied += 1;
+  }
+  const reportMetadata = { ...report.metadata ?? {} };
+  const priorImports = reportMetadata.adjudication && typeof reportMetadata.adjudication === "object" && Array.isArray(reportMetadata.adjudication.imports) ? [...reportMetadata.adjudication.imports] : [];
+  priorImports.push({
+    bundleId: bundle.bundleId,
+    sourceRunId: bundle.source?.runId,
+    importedAt,
+    sourceBundlePath: options?.sourceBundlePath,
+    totals: {
+      rows: bundle.rows.length,
+      applied,
+      skippedMissingReview,
+      skippedInvalidVerdict,
+      unmatchedRows: unmatchedRows.length
+    }
+  });
+  reportMetadata.adjudication = {
+    imports: priorImports
+  };
+  return {
+    report: {
+      ...report,
+      suites: recomputeSuites(report.suites, nextRows),
+      rows: nextRows,
+      metadata: reportMetadata
+    },
+    applied,
+    skippedMissingReview,
+    skippedInvalidVerdict,
+    unmatchedRows
+  };
+};
+var validateAdjudicationBundle = (bundle) => {
+  const errors = [];
+  if (typeof bundle !== "object" || bundle === null) {
+    return ["Bundle must be a JSON object."];
+  }
+  const candidate = bundle;
+  if (candidate.schemaVersion !== ADJUDICATION_BUNDLE_SCHEMA_VERSION) {
+    errors.push(`schemaVersion must be ${ADJUDICATION_BUNDLE_SCHEMA_VERSION}.`);
+  }
+  if (typeof candidate.bundleId !== "string" || candidate.bundleId.length === 0) {
+    errors.push("bundleId must be a non-empty string.");
+  }
+  if (!candidate.source || typeof candidate.source !== "object" || typeof candidate.source.runId !== "string") {
+    errors.push("source.runId must be a non-empty string.");
+  }
+  if (!Array.isArray(candidate.rows)) {
+    errors.push("rows must be an array.");
+  }
+  return errors;
+};
+
 // src/cli/index.ts
 var usage = `eval-dashboards <command>
 
@@ -4348,6 +4572,82 @@ Commands:
   init     Print starter config or scaffold preset files.
   completion  Print shell completion script for bash/zsh/fish.
   import   Convert third-party eval output JSON into eval-report/v1.
+  adjudicate  Export unresolved rows for human review and merge reviewed verdicts back.
+`;
+var adjudicationUsage = `eval-dashboards adjudicate <action> [options]
+
+Actions:
+  export   Export unresolved rows from a run into an adjudication bundle.
+  import   Merge reviewer verdicts from an adjudication bundle into a run artifact.
+
+Options (export):
+  --input=<dir>         Artifact directory to read. Default: .evals_output
+  --run-id=<id>         Optional run id to export from (default: latest run)
+  --out=<path>          Output bundle path. Default: eval-report/adjudication-bundle.json
+  --include-passed      Include unresolved rows even when passed=true.
+
+Options (import):
+  --input=<dir>         Artifact directory to read. Default: .evals_output
+  --run-id=<id>         Optional run id to merge into (default: bundle source run)
+  --bundle=<path>       Path to adjudication bundle JSON (required)
+  --out=<path>          Output artifact path. Default: eval-report/adjudicated-<run-id>.json
+`;
+var reportUsage = `eval-dashboards report [options]
+
+Options:
+  --input=<path>                Artifact directory to read. Default: .evals_output
+  --reporter=<name>             Reporter(s): html|markdown|json-summary|text|none (repeatable)
+  --report-dir=<path>           Output directory. Default: eval-report
+  --run-id=<id>                 Run id to render. Default: latest run
+  --baseline-run-id=<id>        Fixed baseline run id for comparisons
+  --baseline-strategy=<mode>    rolling|champion baseline selection
+  --baseline-lookback=<number>  Candidate lookback depth for rolling/champion baseline
+  --profile=<name>              default|guardrail report profile
+  --theme=<name>                HTML theme override
+  --locale=<tag>                Locale override for date/number formatting
+`;
+var checkUsage = `eval-dashboards check [options]
+
+Options:
+  --input=<path>                   Artifact directory to read. Default: .evals_output
+  --baseline-run-id=<id>           Fixed baseline run id for new-failure checks
+  --baseline-strategy=<mode>       rolling|champion baseline selection
+  --baseline-lookback=<number>     Candidate lookback depth for rolling/champion baseline
+  --allow-blocked-baseline         Do not fail when baseline compatibility is blocked
+  --min-pass-rate=<number>         Minimum overall pass rate (0-1)
+  --min-matched-expectation-rate=<number>  Minimum expectation-match rate (0-1)
+  --max-new-failures=<number>      Maximum newly failing rows vs baseline
+  --new-failure-key=<mode>         row|scenario|scenario-category|id-category
+  --require-suite-pass=<suite>     Require suite-level pass for named suite(s) (repeatable)
+  --max-warnings=<number>          Maximum warning count from lint checks
+  --max-warning-code=<code:count>  Per-warning-code budget (repeatable)
+  --fail-on-warning-code=<code>    Fail immediately when warning code appears (repeatable)
+  --zero-critical                  Fail if any severity=critical row failed
+  --statistical-mode=<mode>        off|bootstrap statistical gate mode
+  --confidence-level=<number>      Bootstrap confidence level (0-1)
+  --bootstrap-samples=<number>     Bootstrap sample count
+  --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+`;
+var publishUsage = `eval-dashboards publish [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --report-dir=<path>      Generated report directory. Default: eval-report
+  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
+  --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
+  --dry-run                Preview target actions without writing remote state
+
+GitHub Pages target options:
+  --repo=<owner/repo>      Required for --target=github-pages
+  --branch=<name>          Target branch. Default: gh-pages
+  --token=<token>          Optional GitHub token override (else uses GITHUB_TOKEN)
+
+Azure Static Web App target options:
+  --app-name=<name>        Required for --target=azure-static-webapp
+
+Azure Storage target options:
+  --account=<name>         Required for --target=azure-storage
+  --container=<name>       Blob container. Default: $web
 `;
 var loadContext = async (input, reportDir, options) => {
   const reports = await readEvalReports(input);
@@ -4601,7 +4901,94 @@ ${written.join("\n")}`);
     console.log(`Imported ${imported.rowCount} row(s) from ${source} to ${imported.outPath}`);
     return;
   }
+  if (command === "adjudicate") {
+    const adjudicationAction = rawArgs[1] && !rawArgs[1].startsWith("--") ? rawArgs[1] : "";
+    if (optionBoolean(options, "help") || !adjudicationAction) {
+      console.log(adjudicationUsage);
+      return;
+    }
+    if (adjudicationAction !== "export" && adjudicationAction !== "import") {
+      throw Object.assign(new Error(`Unknown adjudicate action ${adjudicationAction}. Use export or import.`), {
+        exitCode: 2
+      });
+    }
+    if (adjudicationAction === "export") {
+      const runId2 = optionString(options, "run-id", "");
+      const context = await loadContext(input, reportDir, {
+        runId: runId2 || void 0
+      });
+      const out2 = optionString(options, "out", path9.join(reportDir, "adjudication-bundle.json"));
+      const includePassedRows = optionBoolean(options, "include-passed");
+      const bundle2 = exportUnresolvedRowsBundle(context.current, { includePassedRows });
+      await writeJsonFile(out2, bundle2);
+      console.log(`Exported ${bundle2.rows.length} unresolved row(s) from ${context.current.run.id} to ${out2}`);
+      return;
+    }
+    const bundlePath = optionString(options, "bundle", "");
+    if (!bundlePath) {
+      throw Object.assign(new Error("Missing required --bundle option for adjudicate import."), {
+        exitCode: 2
+      });
+    }
+    let bundleRaw = "";
+    try {
+      bundleRaw = await readFile6(bundlePath, "utf8");
+    } catch {
+      throw Object.assign(
+        new Error(
+          `Could not read adjudication bundle at ${bundlePath}. Confirm --bundle points to an existing JSON file.`
+        ),
+        { exitCode: 2 }
+      );
+    }
+    let parsedBundle;
+    try {
+      parsedBundle = JSON.parse(bundleRaw);
+    } catch {
+      throw Object.assign(
+        new Error(
+          `Invalid JSON in adjudication bundle ${bundlePath}. Fix the file or re-export with 'eval-dashboards adjudicate export'.`
+        ),
+        { exitCode: 2 }
+      );
+    }
+    const bundleErrors = validateAdjudicationBundle(parsedBundle);
+    if (bundleErrors.length > 0) {
+      throw Object.assign(new Error(`Invalid adjudication bundle: ${bundleErrors[0]}`), {
+        exitCode: 2
+      });
+    }
+    const bundle = parsedBundle;
+    const runId = optionString(options, "run-id", "") || bundle.source.runId;
+    if (!runId) {
+      throw Object.assign(
+        new Error("Could not determine target run for adjudicate import. Provide --run-id."),
+        { exitCode: 2 }
+      );
+    }
+    const reports = await readEvalReports(input);
+    const target = selectRun(reports, runId);
+    if (!target) {
+      throw Object.assign(new Error(`Run ID ${runId} was not found under ${input}.`), {
+        exitCode: 2
+      });
+    }
+    const merged = mergeAdjudicationBundle(target, bundle, {
+      sourceBundlePath: bundlePath
+    });
+    const out = optionString(options, "out", path9.join(reportDir, `adjudicated-${runId}.json`));
+    await writeJsonFile(out, merged.report);
+    const unmatchedNote = merged.unmatchedRows.length > 0 ? `; unmatched rows: ${merged.unmatchedRows.slice(0, 5).join(", ")}${merged.unmatchedRows.length > 5 ? "\u2026" : ""}` : "";
+    console.log(
+      `Merged adjudication bundle ${bundle.bundleId} into ${runId}: applied=${merged.applied}, skippedMissingReview=${merged.skippedMissingReview}, skippedInvalidVerdict=${merged.skippedInvalidVerdict}, unmatched=${merged.unmatchedRows.length}${unmatchedNote}. Wrote ${out}`
+    );
+    return;
+  }
   if (command === "report") {
+    if (optionBoolean(options, "help")) {
+      console.log(reportUsage);
+      return;
+    }
     const profile = reportProfileFromOptions(options);
     const runId = optionString(options, "run-id", "");
     const baselineRunId = optionString(options, "baseline-run-id", "");
@@ -4636,6 +5023,10 @@ ${written.join("\n")}`);
     return;
   }
   if (command === "check") {
+    if (optionBoolean(options, "help")) {
+      console.log(checkUsage);
+      return;
+    }
     const baselineRunId = optionString(options, "baseline-run-id", "");
     const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
     const baselineLookback = optionNumber(options, "baseline-lookback") ?? config.baseline?.lookback;
@@ -4724,6 +5115,10 @@ ${issueLines.join("\n")}`
     return;
   }
   if (command === "publish") {
+    if (optionBoolean(options, "help")) {
+      console.log(publishUsage);
+      return;
+    }
     const context = await loadContext(input, reportDir);
     await renderReports(context, ["html", "json-summary"]);
     const result = await publishReport({
@@ -4733,6 +5128,7 @@ ${issueLines.join("\n")}`
       dryRun: optionBoolean(options, "dry-run"),
       repo: typeof options.repo === "string" ? options.repo : void 0,
       branch: typeof options.branch === "string" ? options.branch : void 0,
+      token: typeof options.token === "string" ? options.token : void 0,
       appName: typeof options["app-name"] === "string" ? options["app-name"] : void 0,
       account: typeof options.account === "string" ? options.account : void 0,
       container: typeof options.container === "string" ? options.container : void 0

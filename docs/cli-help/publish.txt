@@ -1,0 +1,21 @@
+eval-dashboards publish [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --report-dir=<path>      Generated report directory. Default: eval-report
+  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
+  --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
+  --dry-run                Preview target actions without writing remote state
+
+GitHub Pages target options:
+  --repo=<owner/repo>      Required for --target=github-pages
+  --branch=<name>          Target branch. Default: gh-pages
+  --token=<token>          Optional GitHub token override (else uses GITHUB_TOKEN)
+
+Azure Static Web App target options:
+  --app-name=<name>        Required for --target=azure-static-webapp
+
+Azure Storage target options:
+  --account=<name>         Required for --target=azure-storage
+  --container=<name>       Blob container. Default: $web
+

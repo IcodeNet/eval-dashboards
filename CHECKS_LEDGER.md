@@ -7,6 +7,9 @@ Use this ledger before declaring any task finished.
 - Confirm requested scope is complete.
 - Confirm `eval-report/v1` compatibility is preserved unless a breaking change is explicitly intended.
 - Confirm schema/docs/examples are updated together when contract fields change.
+- Confirm docs truth-sync across `README.md`, `docs/ROADMAP.md`, `docs/STATUS.md`, `docs/publishing.md`, and `docs/examples.md`.
+- Confirm command-help snapshots in `docs/cli-help/*.txt` match live CLI output for: `report`, `check`, `publish`, `import`, `teach`, `init`.
+- Confirm each integration guide links `docs/integrations/risk-register.md` and uses it as a completion gate.
 
 ## 2) Verification Evidence
 

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
 import {
   buildHistory,
@@ -42,6 +43,12 @@ import {
   resolveCompletionShell,
 } from './completion.js';
 import { importFromSource, importUsage, resolveImportSource } from './import-adapters.js';
+import {
+  exportUnresolvedRowsBundle,
+  mergeAdjudicationBundle,
+  validateAdjudicationBundle,
+  type AdjudicationBundleV1,
+} from '../adjudication/bundles.js';
 import type { NewFailureKeyMode } from '../gates/check-gates.js';
 
 const usage = `eval-dashboards <command>
@@ -58,6 +65,86 @@ Commands:
   init     Print starter config or scaffold preset files.
   completion  Print shell completion script for bash/zsh/fish.
   import   Convert third-party eval output JSON into eval-report/v1.
+  adjudicate  Export unresolved rows for human review and merge reviewed verdicts back.
+`;
+
+const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
+
+Actions:
+  export   Export unresolved rows from a run into an adjudication bundle.
+  import   Merge reviewer verdicts from an adjudication bundle into a run artifact.
+
+Options (export):
+  --input=<dir>         Artifact directory to read. Default: .evals_output
+  --run-id=<id>         Optional run id to export from (default: latest run)
+  --out=<path>          Output bundle path. Default: eval-report/adjudication-bundle.json
+  --include-passed      Include unresolved rows even when passed=true.
+
+Options (import):
+  --input=<dir>         Artifact directory to read. Default: .evals_output
+  --run-id=<id>         Optional run id to merge into (default: bundle source run)
+  --bundle=<path>       Path to adjudication bundle JSON (required)
+  --out=<path>          Output artifact path. Default: eval-report/adjudicated-<run-id>.json
+`;
+
+const reportUsage = `eval-dashboards report [options]
+
+Options:
+  --input=<path>                Artifact directory to read. Default: .evals_output
+  --reporter=<name>             Reporter(s): html|markdown|json-summary|text|none (repeatable)
+  --report-dir=<path>           Output directory. Default: eval-report
+  --run-id=<id>                 Run id to render. Default: latest run
+  --baseline-run-id=<id>        Fixed baseline run id for comparisons
+  --baseline-strategy=<mode>    rolling|champion baseline selection
+  --baseline-lookback=<number>  Candidate lookback depth for rolling/champion baseline
+  --profile=<name>              default|guardrail report profile
+  --theme=<name>                HTML theme override
+  --locale=<tag>                Locale override for date/number formatting
+`;
+
+const checkUsage = `eval-dashboards check [options]
+
+Options:
+  --input=<path>                   Artifact directory to read. Default: .evals_output
+  --baseline-run-id=<id>           Fixed baseline run id for new-failure checks
+  --baseline-strategy=<mode>       rolling|champion baseline selection
+  --baseline-lookback=<number>     Candidate lookback depth for rolling/champion baseline
+  --allow-blocked-baseline         Do not fail when baseline compatibility is blocked
+  --min-pass-rate=<number>         Minimum overall pass rate (0-1)
+  --min-matched-expectation-rate=<number>  Minimum expectation-match rate (0-1)
+  --max-new-failures=<number>      Maximum newly failing rows vs baseline
+  --new-failure-key=<mode>         row|scenario|scenario-category|id-category
+  --require-suite-pass=<suite>     Require suite-level pass for named suite(s) (repeatable)
+  --max-warnings=<number>          Maximum warning count from lint checks
+  --max-warning-code=<code:count>  Per-warning-code budget (repeatable)
+  --fail-on-warning-code=<code>    Fail immediately when warning code appears (repeatable)
+  --zero-critical                  Fail if any severity=critical row failed
+  --statistical-mode=<mode>        off|bootstrap statistical gate mode
+  --confidence-level=<number>      Bootstrap confidence level (0-1)
+  --bootstrap-samples=<number>     Bootstrap sample count
+  --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+`;
+
+const publishUsage = `eval-dashboards publish [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --report-dir=<path>      Generated report directory. Default: eval-report
+  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
+  --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
+  --dry-run                Preview target actions without writing remote state
+
+GitHub Pages target options:
+  --repo=<owner/repo>      Required for --target=github-pages
+  --branch=<name>          Target branch. Default: gh-pages
+  --token=<token>          Optional GitHub token override (else uses GITHUB_TOKEN)
+
+Azure Static Web App target options:
+  --app-name=<name>        Required for --target=azure-static-webapp
+
+Azure Storage target options:
+  --account=<name>         Required for --target=azure-storage
+  --container=<name>       Blob container. Default: $web
 `;
 
 type LoadContextOptions = {
@@ -404,7 +491,111 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  if (command === 'adjudicate') {
+    const adjudicationAction = rawArgs[1] && !rawArgs[1].startsWith('--') ? rawArgs[1] : '';
+
+    if (optionBoolean(options, 'help') || !adjudicationAction) {
+      console.log(adjudicationUsage);
+      return;
+    }
+
+    if (adjudicationAction !== 'export' && adjudicationAction !== 'import') {
+      throw Object.assign(new Error(`Unknown adjudicate action ${adjudicationAction}. Use export or import.`), {
+        exitCode: 2,
+      });
+    }
+
+    if (adjudicationAction === 'export') {
+      const runId = optionString(options, 'run-id', '');
+      const context = await loadContext(input, reportDir, {
+        runId: runId || undefined,
+      });
+      const out = optionString(options, 'out', path.join(reportDir, 'adjudication-bundle.json'));
+      const includePassedRows = optionBoolean(options, 'include-passed');
+      const bundle = exportUnresolvedRowsBundle(context.current, { includePassedRows });
+      await writeJsonFile(out, bundle);
+      console.log(`Exported ${bundle.rows.length} unresolved row(s) from ${context.current.run.id} to ${out}`);
+      return;
+    }
+
+    const bundlePath = optionString(options, 'bundle', '');
+    if (!bundlePath) {
+      throw Object.assign(new Error('Missing required --bundle option for adjudicate import.'), {
+        exitCode: 2,
+      });
+    }
+
+    let bundleRaw = '';
+    try {
+      bundleRaw = await readFile(bundlePath, 'utf8');
+    } catch {
+      throw Object.assign(
+        new Error(
+          `Could not read adjudication bundle at ${bundlePath}. Confirm --bundle points to an existing JSON file.`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
+    let parsedBundle: unknown;
+    try {
+      parsedBundle = JSON.parse(bundleRaw) as unknown;
+    } catch {
+      throw Object.assign(
+        new Error(
+          `Invalid JSON in adjudication bundle ${bundlePath}. Fix the file or re-export with 'eval-dashboards adjudicate export'.`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
+    const bundleErrors = validateAdjudicationBundle(parsedBundle);
+    if (bundleErrors.length > 0) {
+      throw Object.assign(new Error(`Invalid adjudication bundle: ${bundleErrors[0]}`), {
+        exitCode: 2,
+      });
+    }
+
+    const bundle = parsedBundle as AdjudicationBundleV1;
+    const runId = optionString(options, 'run-id', '') || bundle.source.runId;
+    if (!runId) {
+      throw Object.assign(
+        new Error('Could not determine target run for adjudicate import. Provide --run-id.'),
+        { exitCode: 2 },
+      );
+    }
+
+    const reports = await readEvalReports(input);
+    const target = selectRun(reports, runId);
+    if (!target) {
+      throw Object.assign(new Error(`Run ID ${runId} was not found under ${input}.`), {
+        exitCode: 2,
+      });
+    }
+
+    const merged = mergeAdjudicationBundle(target, bundle, {
+      sourceBundlePath: bundlePath,
+    });
+    const out = optionString(options, 'out', path.join(reportDir, `adjudicated-${runId}.json`));
+    await writeJsonFile(out, merged.report);
+    const unmatchedNote =
+      merged.unmatchedRows.length > 0
+        ? `; unmatched rows: ${merged.unmatchedRows.slice(0, 5).join(', ')}${
+          merged.unmatchedRows.length > 5 ? '…' : ''
+        }`
+        : '';
+    console.log(
+      `Merged adjudication bundle ${bundle.bundleId} into ${runId}: applied=${merged.applied}, skippedMissingReview=${merged.skippedMissingReview}, skippedInvalidVerdict=${merged.skippedInvalidVerdict}, unmatched=${merged.unmatchedRows.length}${unmatchedNote}. Wrote ${out}`,
+    );
+    return;
+  }
+
   if (command === 'report') {
+    if (optionBoolean(options, 'help')) {
+      console.log(reportUsage);
+      return;
+    }
+
     const profile = reportProfileFromOptions(options);
     const runId = optionString(options, 'run-id', '');
     const baselineRunId = optionString(options, 'baseline-run-id', '');
@@ -441,6 +632,11 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'check') {
+    if (optionBoolean(options, 'help')) {
+      console.log(checkUsage);
+      return;
+    }
+
     const baselineRunId = optionString(options, 'baseline-run-id', '');
     const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
     const baselineLookback = optionNumber(options, 'baseline-lookback') ?? config.baseline?.lookback;
@@ -535,6 +731,11 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'publish') {
+    if (optionBoolean(options, 'help')) {
+      console.log(publishUsage);
+      return;
+    }
+
     const context = await loadContext(input, reportDir);
     await renderReports(context, ['html', 'json-summary']);
     const result = await publishReport({
@@ -544,6 +745,7 @@ const main = async (): Promise<void> => {
       dryRun: optionBoolean(options, 'dry-run'),
       repo: typeof options.repo === 'string' ? options.repo : undefined,
       branch: typeof options.branch === 'string' ? options.branch : undefined,
+      token: typeof options.token === 'string' ? options.token : undefined,
       appName: typeof options['app-name'] === 'string' ? options['app-name'] : undefined,
       account: typeof options.account === 'string' ? options.account : undefined,
       container: typeof options.container === 'string' ? options.container : undefined,

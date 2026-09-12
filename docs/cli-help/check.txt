@@ -1,0 +1,22 @@
+eval-dashboards check [options]
+
+Options:
+  --input=<path>                   Artifact directory to read. Default: .evals_output
+  --baseline-run-id=<id>           Fixed baseline run id for new-failure checks
+  --baseline-strategy=<mode>       rolling|champion baseline selection
+  --baseline-lookback=<number>     Candidate lookback depth for rolling/champion baseline
+  --allow-blocked-baseline         Do not fail when baseline compatibility is blocked
+  --min-pass-rate=<number>         Minimum overall pass rate (0-1)
+  --min-matched-expectation-rate=<number>  Minimum expectation-match rate (0-1)
+  --max-new-failures=<number>      Maximum newly failing rows vs baseline
+  --new-failure-key=<mode>         row|scenario|scenario-category|id-category
+  --require-suite-pass=<suite>     Require suite-level pass for named suite(s) (repeatable)
+  --max-warnings=<number>          Maximum warning count from lint checks
+  --max-warning-code=<code:count>  Per-warning-code budget (repeatable)
+  --fail-on-warning-code=<code>    Fail immediately when warning code appears (repeatable)
+  --zero-critical                  Fail if any severity=critical row failed
+  --statistical-mode=<mode>        off|bootstrap statistical gate mode
+  --confidence-level=<number>      Bootstrap confidence level (0-1)
+  --bootstrap-samples=<number>     Bootstrap sample count
+  --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+

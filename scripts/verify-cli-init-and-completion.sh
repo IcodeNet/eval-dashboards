@@ -60,6 +60,17 @@ not_contains_check() {
   fi
 }
 
+exact_match_check() {
+  local name="$1"
+  local actual="$2"
+  local expected="$3"
+  if [ "$actual" = "$expected" ]; then
+    pass "$name"
+  else
+    fail "$name"
+  fi
+}
+
 printf '== Build + tests ==\n'
 run_check "pnpm test" pnpm test
 run_check "pnpm typecheck" pnpm typecheck
@@ -67,10 +78,51 @@ run_check "pnpm build" pnpm build
 
 printf '\n== init help flags ==\n'
 INIT_HELP="$(run_cli init --help || true)"
+contains_check "init --help usage header" "$INIT_HELP" "eval-dashboards init [options]"
 contains_check "init --help includes --setup" "$INIT_HELP" "--setup=<csv>"
 contains_check "init --help includes --runner" "$INIT_HELP" "--runner=<name>"
 contains_check "init --help includes --ci" "$INIT_HELP" "--ci=<target>"
 contains_check "init --help includes --playbook" "$INIT_HELP" "--playbook"
+
+printf '\n== command help truth-sync ==\n'
+REPORT_HELP="$(run_cli report --help || true)"
+contains_check "report --help usage header" "$REPORT_HELP" "eval-dashboards report [options]"
+contains_check "report --help includes --profile" "$REPORT_HELP" "--profile=<name>"
+exact_match_check "report help snapshot matches docs/cli-help/report.txt" "$REPORT_HELP" "$(cat docs/cli-help/report.txt)"
+
+CHECK_HELP="$(run_cli check --help || true)"
+contains_check "check --help usage header" "$CHECK_HELP" "eval-dashboards check [options]"
+contains_check "check --help includes statistical mode" "$CHECK_HELP" "--statistical-mode=<mode>"
+exact_match_check "check help snapshot matches docs/cli-help/check.txt" "$CHECK_HELP" "$(cat docs/cli-help/check.txt)"
+
+PUBLISH_HELP="$(run_cli publish --help || true)"
+contains_check "publish --help usage header" "$PUBLISH_HELP" "eval-dashboards publish [options]"
+contains_check "publish --help includes target matrix" "$PUBLISH_HELP" "dir|github-pages|azure-static-webapp|azure-storage"
+contains_check "publish --help includes token override" "$PUBLISH_HELP" "--token=<token>"
+exact_match_check "publish help snapshot matches docs/cli-help/publish.txt" "$PUBLISH_HELP" "$(cat docs/cli-help/publish.txt)"
+
+DOC_PUBLISH_HELP="$(awk '
+  BEGIN { in_block=0 }
+  /^```sh$/ && in_block==0 { in_block=1; next }
+  in_block==1 && /^```$/ { exit }
+  in_block==1 { print }
+' docs/publishing.md)"
+
+if [ "$DOC_PUBLISH_HELP" = "$PUBLISH_HELP" ]; then
+  pass "docs/publishing command block matches publish --help"
+else
+  fail "docs/publishing command block matches publish --help"
+fi
+
+IMPORT_HELP="$(run_cli import --help || true)"
+contains_check "import --help usage header" "$IMPORT_HELP" "eval-dashboards import --from=<source> --input=<path> [options]"
+contains_check "import --help includes openevals alias" "$IMPORT_HELP" "openevals is accepted as an alias for agentevals."
+exact_match_check "import help snapshot matches docs/cli-help/import.txt" "$IMPORT_HELP" "$(cat docs/cli-help/import.txt)"
+
+TEACH_HELP="$(run_cli teach --help || true)"
+contains_check "teach --help mirrors init usage" "$TEACH_HELP" "eval-dashboards init [options]"
+exact_match_check "teach help snapshot matches docs/cli-help/teach.txt" "$TEACH_HELP" "$(cat docs/cli-help/teach.txt)"
+exact_match_check "init help snapshot matches docs/cli-help/init.txt" "$INIT_HELP" "$(cat docs/cli-help/init.txt)"
 
 printf '\n== default init dry-run ==\n'
 DEFAULT_DRY_RUN="$(run_cli init --preset=agent-quality --write --dry-run || true)"
@@ -143,6 +195,8 @@ contains_check "completion bash suggests --playbook" "$COMP_BASH" "--playbook"
 contains_check "completion bash suggests --profile" "$COMP_BASH" "--profile"
 contains_check "completion bash suggests --statistical-mode" "$COMP_BASH" "--statistical-mode"
 contains_check "completion bash suggests --from" "$COMP_BASH" "--from"
+contains_check "completion bash suggests adjudicate command" "$COMP_BASH" "adjudicate"
+contains_check "completion bash suggests --bundle" "$COMP_BASH" "--bundle"
 contains_check "completion bash binds evd alias" "$COMP_BASH" "complete -F _eval_dashboards_completions evd"
 
 COMP_ZSH="$(run_cli completion --shell=zsh || true)"
@@ -367,6 +421,82 @@ fi
 contains_check "conflicting import reports conflict" "$CONFLICT_OUTPUT" "Conflicting pass/fail signals"
 
 rm -rf "$TMP_IMPORT_DIR"
+
+printf '\n== adjudication bundle flow ==\n'
+TMP_ADJ_DIR="$(mktemp -d "${TMPDIR:-/tmp}/evd-adj-XXXXXX")"
+TMP_ADJ_INPUT_DIR="$TMP_ADJ_DIR/.evals_output"
+TMP_ADJ_OUT_DIR="$TMP_ADJ_DIR/eval-report"
+mkdir -p "$TMP_ADJ_INPUT_DIR" "$TMP_ADJ_OUT_DIR"
+cat > "$TMP_ADJ_INPUT_DIR/run.json" <<'JSON'
+{
+  "schemaVersion": "eval-report/v1",
+  "run": { "id": "run-adj", "generatedAt": "2026-09-12T10:00:00.000Z" },
+  "suites": [{ "id": "quality", "total": 2, "passed": 1, "failed": 1 }],
+  "rows": [
+    { "id": "ok-1", "suite": "quality", "passed": true },
+    { "id": "bad-1", "suite": "quality", "passed": false, "reason": "Unsupported claim" }
+  ]
+}
+JSON
+ADJ_BUNDLE_PATH="$TMP_ADJ_OUT_DIR/adjudication-bundle.json"
+ADJ_EXPORT_OUTPUT="$(run_cli adjudicate export --input="$TMP_ADJ_INPUT_DIR" --run-id=run-adj --out="$ADJ_BUNDLE_PATH" || true)"
+contains_check "adjudicate export reports unresolved rows" "$ADJ_EXPORT_OUTPUT" "Exported 1 unresolved row(s)"
+run_check "adjudicate export writes bundle" test -f "$ADJ_BUNDLE_PATH"
+contains_check "adjudicate bundle schema version" "$(cat "$ADJ_BUNDLE_PATH")" "eval-adjudication-bundle/v1"
+
+cat > "$TMP_ADJ_OUT_DIR/adjudication-reviewed.json" <<'JSON'
+{
+  "schemaVersion": "eval-adjudication-bundle/v1",
+  "bundleId": "bundle-review-1",
+  "generatedAt": "2026-09-12T10:10:00.000Z",
+  "source": { "runId": "run-adj", "generatedAt": "2026-09-12T10:00:00.000Z" },
+  "rows": [
+    {
+      "id": "bad-1",
+      "suite": "quality",
+      "unresolvedReason": "expectation-mismatch",
+      "currentPassed": false,
+      "review": {
+        "verdict": "pass",
+        "reviewer": "qa-reviewer",
+        "note": "Manual replay verified this should pass"
+      }
+    }
+  ]
+}
+JSON
+ADJ_IMPORT_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/adjudication-reviewed.json" --out="$TMP_ADJ_OUT_DIR/adjudicated.json" || true)"
+contains_check "adjudicate import reports applied row" "$ADJ_IMPORT_OUTPUT" "applied=1"
+run_check "adjudicate import writes merged artifact" test -f "$TMP_ADJ_OUT_DIR/adjudicated.json"
+contains_check "adjudicated row includes ground truth verdict" "$(cat "$TMP_ADJ_OUT_DIR/adjudicated.json")" "\"groundTruthVerdict\": true"
+contains_check "adjudicated artifact includes adjudication metadata trail" "$(cat "$TMP_ADJ_OUT_DIR/adjudicated.json")" "\"adjudication\""
+
+set +e
+ADJ_MISSING_BUNDLE_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/does-not-exist.json" 2>&1)"
+ADJ_MISSING_BUNDLE_EXIT=$?
+set -e
+if [ "$ADJ_MISSING_BUNDLE_EXIT" -eq 2 ]; then
+  pass "adjudicate import missing bundle exits 2"
+else
+  fail "adjudicate import missing bundle exits 2 (got $ADJ_MISSING_BUNDLE_EXIT)"
+fi
+contains_check "adjudicate import missing bundle guidance" "$ADJ_MISSING_BUNDLE_OUTPUT" "Could not read adjudication bundle"
+
+cat > "$TMP_ADJ_OUT_DIR/adjudication-malformed.json" <<'JSON'
+{not-json
+JSON
+set +e
+ADJ_MALFORMED_BUNDLE_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/adjudication-malformed.json" 2>&1)"
+ADJ_MALFORMED_BUNDLE_EXIT=$?
+set -e
+if [ "$ADJ_MALFORMED_BUNDLE_EXIT" -eq 2 ]; then
+  pass "adjudicate import malformed bundle exits 2"
+else
+  fail "adjudicate import malformed bundle exits 2 (got $ADJ_MALFORMED_BUNDLE_EXIT)"
+fi
+contains_check "adjudicate import malformed bundle guidance" "$ADJ_MALFORMED_BUNDLE_OUTPUT" "Invalid JSON in adjudication bundle"
+
+rm -rf "$TMP_ADJ_DIR"
 
 printf '\n== Summary ==\n'
 printf 'Passed: %d\n' "$PASS_COUNT"

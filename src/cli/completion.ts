@@ -18,6 +18,7 @@ const commands = [
   'init',
   'completion',
   'import',
+  'adjudicate',
 ] as const;
 
 const rootFlags = ['--help'] as const;
@@ -43,6 +44,7 @@ const publishFlags = [
   '--dry-run',
   '--repo',
   '--branch',
+  '--token',
   '--app-name',
   '--account',
   '--container',
@@ -88,6 +90,15 @@ const reportFlags = [
 
 const importFlags = ['--from', '--input', '--out', '--suite', '--help'] as const;
 
+const adjudicateFlags = [
+  '--help',
+  '--input',
+  '--run-id',
+  '--out',
+  '--bundle',
+  '--include-passed',
+] as const;
+
 const optionValues = {
   preset: ['agent-quality'],
   setup: ['guardrails', 'evals', 'judges', 'multiturn'],
@@ -127,6 +138,7 @@ const renderBash = (): string => {
   const checkFlagList = checkFlags.join(' ');
   const reportFlagList = reportFlags.join(' ');
   const importFlagList = importFlags.join(' ');
+  const adjudicateFlagList = adjudicateFlags.join(' ');
 
   return [
     '# eval-dashboards shell completion (bash)',
@@ -162,6 +174,7 @@ const renderBash = (): string => {
     check) COMPREPLY=( $(compgen -W "${checkFlagList}" -- "\${cur}") ) ;;
     completion) COMPREPLY=( $(compgen -W "install --help --shell" -- "\${cur}") ) ;;
     import) COMPREPLY=( $(compgen -W "${importFlagList}" -- "\${cur}") ) ;;
+    adjudicate) COMPREPLY=( $(compgen -W "export import ${adjudicateFlagList}" -- "\${cur}") ) ;;
     *) COMPREPLY=( $(compgen -W "--help" -- "\${cur}") ) ;;
   esac`,
     '}',
@@ -178,6 +191,7 @@ const renderZsh = (): string => {
   const checkFlagList = checkFlags.join(' ');
   const reportFlagList = reportFlags.join(' ');
   const importFlagList = importFlags.join(' ');
+  const adjudicateFlagList = adjudicateFlags.join(' ');
 
   return [
     '#compdef eval-dashboards evd',
@@ -203,6 +217,7 @@ const renderZsh = (): string => {
     check) _values "check flags" ${checkFlagList} ;;
     completion) _values "completion options" install --help --shell ;;
     import) _values "import flags" ${importFlagList} ;;
+    adjudicate) _values "adjudicate action/flags" export import ${adjudicateFlagList} ;;
     *) _values "root flags" ${rootFlagList} ;;
   esac`,
     '',
@@ -269,6 +284,13 @@ const renderFish = (): string => {
           `complete -c ${cliName} -n "__fish_seen_subcommand_from import" -l ${flag.replace('--', '')}`,
       ),
     );
+    lines.push(
+      ...adjudicateFlags.map(
+        (flag) =>
+          `complete -c ${cliName} -n "__fish_seen_subcommand_from adjudicate" -l ${flag.replace('--', '')}`,
+      ),
+    );
+    lines.push(`complete -c ${cliName} -n "__fish_seen_subcommand_from adjudicate" -a "export import"`);
     lines.push(
       `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --preset" -a "${optionValues.preset.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from init; and __fish_prev_arg_in --setup" -a "${optionValues.setup.join(' ')}"`,
