@@ -1492,6 +1492,10 @@ var renderReports = async (context, reporters) => {
         baselineCompatibility: context.baselineCompatibility
       });
       outputs.push(filePath);
+    } else {
+      throw new Error(
+        `Unknown reporter ${reporter}. Use html, markdown-summary, json-summary, or text.`
+      );
     }
   }
   return outputs;
@@ -4738,7 +4742,7 @@ var reportUsage = `eval-dashboards report [options]
 
 Options:
   --input=<path>                Artifact directory to read. Default: .evals_output
-  --reporter=<name>             Reporter(s): html|markdown|json-summary|text|none (repeatable)
+  --reporter=<name>             Reporter(s): html|markdown-summary|json-summary|text|none (repeatable; markdown alias supported)
   --report-dir=<path>           Output directory. Default: eval-report
   --run-id=<id>                 Run id to render. Default: latest run
   --baseline-run-id=<id>        Fixed baseline run id for comparisons
@@ -4890,6 +4894,23 @@ var reportProfileFromOptions = (options) => {
   throw Object.assign(new Error(`Unknown report profile ${profile}. Use default or guardrail.`), {
     exitCode: 2
   });
+};
+var normalizeReporters = (reporters) => {
+  const normalized = [];
+  for (const reporter of reporters) {
+    const value = reporter.trim().toLowerCase();
+    const mapped = value === "markdown" ? "markdown-summary" : value;
+    if (mapped === "html" || mapped === "markdown-summary" || mapped === "json-summary" || mapped === "text") {
+      normalized.push(mapped);
+      continue;
+    }
+    if (mapped === "none") continue;
+    throw Object.assign(
+      new Error(`Unknown reporter ${reporter}. Use html, markdown-summary, json-summary, text, or none.`),
+      { exitCode: 2 }
+    );
+  }
+  return normalized;
 };
 var statisticalModeFromOptions = (options) => {
   const mode = optionString(options, "statistical-mode", "").trim().toLowerCase();
@@ -5142,7 +5163,7 @@ ${written.join("\n")}`);
       baselineStrategy,
       baselineLookback
     });
-    const reporters = config.reporters ?? ["html", "text"];
+    const reporters = normalizeReporters(config.reporters ?? ["html", "text"]);
     const theme = optionString(options, "theme", "") || config.theme;
     const locale = optionString(options, "locale", "") || config.locale;
     assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });

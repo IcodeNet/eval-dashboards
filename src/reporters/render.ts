@@ -97,6 +97,10 @@ export const renderReports = async (
         baselineCompatibility: context.baselineCompatibility,
       });
       outputs.push(filePath);
+    } else {
+      throw new Error(
+        `Unknown reporter ${reporter}. Use html, markdown-summary, json-summary, or text.`,
+      );
     }
   }
 

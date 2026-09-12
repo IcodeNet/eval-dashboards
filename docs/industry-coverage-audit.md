@@ -20,11 +20,11 @@ This is not a schema change proposal by itself. It is a coverage map plus a prio
 
 Primary local signals reviewed:
 
-- [docs/suite-presets.md](docs/suite-presets.md)
-- [examples/agent-quality-preset/datasets/agent-quality-cases.jsonl](examples/agent-quality-preset/datasets/agent-quality-cases.jsonl)
-- [examples/agent-quality-preset/rubrics/agent-quality-rubrics.json](examples/agent-quality-preset/rubrics/agent-quality-rubrics.json)
-- [examples/agent-quality-preset/artifacts/run-agent-quality-template.json](examples/agent-quality-preset/artifacts/run-agent-quality-template.json)
-- [src/cli/init-scaffold.ts](src/cli/init-scaffold.ts)
+- [docs/suite-presets.md](./suite-presets.md)
+- [examples/agent-quality-preset/datasets/agent-quality-cases.jsonl](../examples/agent-quality-preset/datasets/agent-quality-cases.jsonl)
+- [examples/agent-quality-preset/rubrics/agent-quality-rubrics.json](../examples/agent-quality-preset/rubrics/agent-quality-rubrics.json)
+- [examples/agent-quality-preset/artifacts/run-agent-quality-template.json](../examples/agent-quality-preset/artifacts/run-agent-quality-template.json)
+- [src/cli/init-scaffold.ts](../src/cli/init-scaffold.ts)
 
 ## Coverage matrix
 
@@ -110,11 +110,11 @@ For each added preset, include:
 
 When adding new preset coverage, verify all 5:
 
-1. Preset documented in [docs/suite-presets.md](docs/suite-presets.md)
+1. Preset documented in [docs/suite-presets.md](./suite-presets.md)
 2. Starter dataset cases added
 3. Starter rubrics updated with contracts/axes
 4. Template artifact updated with manifest + rows
-5. Scaffold generator updated in [src/cli/init-scaffold.ts](src/cli/init-scaffold.ts)
+5. Scaffold generator updated in [src/cli/init-scaffold.ts](../src/cli/init-scaffold.ts)
 
 ## Bottom line
 

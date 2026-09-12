@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Benchmark pack fixtures now use valid `datasetSource` enum values and suite-manifest thresholds aligned with implemented gate semantics.
 - Pack compatibility test now validates templates through `validateEvalReport` using `suiteManifests`, not string-shape checks only.
 - Pack JSON templates are now included in npm package `files` for downstream consumers.
+- `report --reporter` now exits 2 on unknown reporter values instead of silently skipping output generation; `markdown` is accepted as an alias for `markdown-summary`.
 
 ### Fixed
 
@@ -278,7 +279,7 @@ We'll target 1.0.0 when:
 
 ## Contributing
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for how to report issues, request features, and submit pull requests.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to report issues, request features, and submit pull requests.
 
 ---
 

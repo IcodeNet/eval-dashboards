@@ -2,7 +2,7 @@ eval-dashboards report [options]
 
 Options:
   --input=<path>                Artifact directory to read. Default: .evals_output
-  --reporter=<name>             Reporter(s): html|markdown|json-summary|text|none (repeatable)
+  --reporter=<name>             Reporter(s): html|markdown-summary|json-summary|text|none (repeatable; markdown alias supported)
   --report-dir=<path>           Output directory. Default: eval-report
   --run-id=<id>                 Run id to render. Default: latest run
   --baseline-run-id=<id>        Fixed baseline run id for comparisons

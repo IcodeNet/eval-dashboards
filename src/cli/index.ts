@@ -91,7 +91,7 @@ const reportUsage = `eval-dashboards report [options]
 
 Options:
   --input=<path>                Artifact directory to read. Default: .evals_output
-  --reporter=<name>             Reporter(s): html|markdown|json-summary|text|none (repeatable)
+  --reporter=<name>             Reporter(s): html|markdown-summary|json-summary|text|none (repeatable; markdown alias supported)
   --report-dir=<path>           Output directory. Default: eval-report
   --run-id=<id>                 Run id to render. Default: latest run
   --baseline-run-id=<id>        Fixed baseline run id for comparisons
@@ -288,6 +288,34 @@ const reportProfileFromOptions = (
   throw Object.assign(new Error(`Unknown report profile ${profile}. Use default or guardrail.`), {
     exitCode: 2,
   });
+};
+
+const normalizeReporters = (reporters: string[]): ReporterName[] => {
+  const normalized: ReporterName[] = [];
+
+  for (const reporter of reporters) {
+    const value = reporter.trim().toLowerCase();
+    const mapped = value === 'markdown' ? 'markdown-summary' : value;
+
+    if (
+      mapped === 'html' ||
+      mapped === 'markdown-summary' ||
+      mapped === 'json-summary' ||
+      mapped === 'text'
+    ) {
+      normalized.push(mapped);
+      continue;
+    }
+
+    if (mapped === 'none') continue;
+
+    throw Object.assign(
+      new Error(`Unknown reporter ${reporter}. Use html, markdown-summary, json-summary, text, or none.`),
+      { exitCode: 2 },
+    );
+  }
+
+  return normalized;
 };
 
 const statisticalModeFromOptions = (
@@ -607,7 +635,7 @@ const main = async (): Promise<void> => {
       baselineStrategy,
       baselineLookback,
     });
-    const reporters = (config.reporters ?? ['html', 'text']) as ReporterName[];
+    const reporters = normalizeReporters((config.reporters as string[] | undefined) ?? ['html', 'text']);
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
     const locale = optionString(options, 'locale', '') || config.locale;
     assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });

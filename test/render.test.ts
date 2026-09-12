@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { compareRuns } from '../src/history/history.js';
 import type { EvalReportV1 } from '../src/model/eval-report-v1.js';
 import { renderGroupedIndexHtml, renderReports } from '../src/reporters/render.js';
+import type { ReporterName } from '../src/reporters/render.js';
 
 const tempDirs: string[] = [];
 
@@ -807,5 +808,28 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('judge (1 report)');
     expect(html).toContain('agent-run');
     expect(html).toContain('judge-run');
+  });
+
+  it('throws for unknown reporter names instead of silently skipping', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-unknown-reporter', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    };
+
+    await expect(
+      renderReports(
+        {
+          current,
+          previous: undefined,
+          history: [],
+          comparison: compareRuns(current, undefined),
+          reportDir,
+        },
+        ['bogus' as unknown as ReporterName],
+      ),
+    ).rejects.toThrow('Unknown reporter bogus');
   });
 });
