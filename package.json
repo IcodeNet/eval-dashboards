@@ -35,7 +35,8 @@
     "examples/vitest-evals/*.ts",
     "examples/jest-custom-reporter/*.ts",
     "examples/github-actions/*.yml",
-    "examples/azure-devops/*.yml"
+    "examples/azure-devops/*.yml",
+    "examples/benchmark-packs/*.json"
   ],
   "scripts": {
     "assets:regenerate": "tsx scripts/regenerate-release-assets.ts",

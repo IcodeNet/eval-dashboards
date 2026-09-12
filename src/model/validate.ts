@@ -168,6 +168,14 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         errors.push(`rows[${index}].passed must be a boolean.`);
       }
 
+      if (row.score !== undefined && row.score !== null && !isNumber(row.score)) {
+        errors.push(`rows[${index}].score must be a number when provided.`);
+      }
+
+      if (row.durationMs !== undefined && row.durationMs !== null && !isNumber(row.durationMs)) {
+        errors.push(`rows[${index}].durationMs must be a number when provided.`);
+      }
+
       if (row.severity !== undefined && !isSeverity(row.severity)) {
         errors.push(`rows[${index}].severity must be one of ${severityOrder.join(', ')}.`);
       }

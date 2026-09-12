@@ -116,14 +116,14 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] 4B.5 Add guardrail-focused report profile aligned to industry-audit safety taxonomy.
 - [x] 4B.4 Add optional statistical gating mode after stable identity/sample-size prerequisites.
 - [x] 4B.7 Add human adjudication export/import package flow.
-- [ ] 4B.8 Add cost-quality frontier and benchmark-pack templates.
+- [x] 4B.8 Add cost-quality frontier and benchmark-pack templates.
 
 ### Phase 4C docs-site adoption checklist (in progress)
 
 - [x] 4C.1 Stand up static product docs site on GitHub Pages.
 - [x] 4C.2 Publish CLI-first onboarding flow centered on `init` + local-agent setup prompts.
 - [x] 4C.3 Publish interoperability guides (Promptfoo, DeepEval, OpenEvals/AgentEvals, trace stacks).
-- [ ] 4C.4 Add assistant-ui reference integration case study with reproducible commands.
+- [x] 4C.4 Add assistant-ui reference integration case study with reproducible commands.
 - [x] 4C.5 Add docs-adoption measurement loop and friction backlog.
 - [x] 4C.6 Run docs truth-sync sweep across README/ROADMAP/STATUS/help/publishing/examples.
 - [x] 4C.7 Expand interoperability docs for supplementary eval toolchains and operations stack guidance.
@@ -134,7 +134,6 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 - Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
 - Keep CI-native machine outputs as the 4B.6 follow-on slice after trace-link rollout.
-- Start Phase 4B.8 cost-quality frontier and benchmark-pack templates.
 
 **External Phase 4: Shipping & Adoption**
 

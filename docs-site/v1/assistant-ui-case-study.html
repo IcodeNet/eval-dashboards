@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <title>assistant-ui case study · eval-dashboards docs v1</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>assistant-ui reference integration <small>v1</small></h1>
+        <p>End-to-end case study: real harness, real artifact, reproducible commands.</p>
+      </header>
+
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./schema-taxonomy.html">Schema/Taxonomy</a>
+        <a href="./ci-gates.html">CI Gates</a>
+        <a href="./publishing.html">Publishing</a>
+        <a href="./integrations.html">Integrations</a>
+        <a href="./assistant-ui-case-study.html">assistant-ui case study</a>
+      </nav>
+
+      <main>
+        <section>
+          <h2>Source material</h2>
+          <ul>
+            <li><a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/case-studies/assistant-ui/README.md">Full case study markdown</a></li>
+            <li><a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/case-studies/assistant-ui/run-artifact.json">Produced eval-report/v1 artifact</a></li>
+            <li><a href="https://github.com/assistant-ui/assistant-ui/tree/main/evals">assistant-ui eval harness</a></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Repro steps</h2>
+          <ol>
+            <li>Run the assistant-ui eval harness with explicit judge/agent models.</li>
+            <li>Emit <code>eval-report/v1</code> using the adapter in the case study.</li>
+            <li>Run <code>eval-dashboards lint/check/report</code> against that artifact.</li>
+          </ol>
+<pre><code>JUDGE_MODEL=claude-sonnet-5 AGENT_MODEL=claude-sonnet-5 TRIALS=1 node src/cli.ts
+
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --allow-blocked-baseline
+eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report</code></pre>
+<pre><code>eval-dashboards publish --target=github-pages --dry-run --repo=owner/repo --report-dir=eval-report</code></pre>
+        </section>
+
+        <section>
+          <h2>What this validates</h2>
+          <ul>
+            <li>Runner-agnostic adapter path into <code>eval-report/v1</code>.</li>
+            <li>Real lint/check/report outputs on external-repo evidence.</li>
+            <li>Roadmap feedback grounded in observed integration friction.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Key lessons from this integration</h2>
+          <ul>
+            <li>Map local runner rows into eval-report/v1 with stable row ids first; add taxonomy completeness incrementally.</li>
+            <li>Use lint output as actionable backlog, not noise suppression. Missing evidence warnings usually indicate real harness gaps.</li>
+            <li>Keep publish flow reproducible in CI from day one, even if you start with dry-run mode.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

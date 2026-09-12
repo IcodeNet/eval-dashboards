@@ -18,6 +18,7 @@ Current example directories:
 - `azure-devops`
 - `static-html-dashboard`
 - `custom-reporter-plugin`
+- `benchmark-packs`
 - `screenshot-fixture`
 
 Start with:
@@ -91,6 +92,19 @@ pnpm example:financial-domain-ollama-report
 
 If Ollama is unavailable, treat this suite as opt-in infrastructure-dependent coverage.
 
+## `benchmark-packs`
+
+Use this when you want versioned suite bundles for safety, tool-routing, and groundedness planning.
+Compatibility guidance: [`docs/benchmark-packs.md`](benchmark-packs.md).
+
+```sh
+cat examples/benchmark-packs/safety-pack.v1.json
+cat examples/benchmark-packs/tool-routing-pack.v1.json
+cat examples/benchmark-packs/groundedness-pack.v1.json
+```
+
+These are template inputs for suite/dataset/rubric planning. Emit normal `eval-report/v1` run artifacts after applying them.
+
 ## Implementation status
 
 Runnable local examples:
@@ -115,4 +129,5 @@ Reference/template examples:
 
 - `static-html-dashboard`
 - `custom-reporter-plugin`
+- `benchmark-packs`
 - `screenshot-fixture`

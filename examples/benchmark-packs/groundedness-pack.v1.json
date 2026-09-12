@@ -1,0 +1,43 @@
+{
+  "packVersion": "benchmark-pack/v1",
+  "name": "groundedness-core",
+  "description": "Groundedness and retrieval-quality benchmark suites.",
+  "evalReportCompatibility": {
+    "schemaVersion": "eval-report/v1",
+    "requiredReportFields": ["schemaVersion", "run", "suites", "rows"],
+    "requiredRowFields": ["id", "suite", "passed"],
+    "recommendedRowFields": ["kind", "category", "reason", "judgeModel", "judgeVerdict", "axisScores", "trace", "durationMs", "score"]
+  },
+  "suites": [
+    {
+      "name": "retrieval-recall",
+      "riskArea": "relevance",
+      "target": "agent",
+      "datasetVersion": "v1.0.0",
+      "datasetSource": "labelled-synthetic",
+      "rubricVersion": "v1.0.0",
+      "graders": ["deterministic-assertions", "tool-call-check"],
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "passRate": 0.9
+        }
+      }
+    },
+    {
+      "name": "answer-groundedness",
+      "riskArea": "groundedness",
+      "target": "conversation",
+      "datasetVersion": "v1.0.0",
+      "datasetSource": "labelled-synthetic",
+      "rubricVersion": "v1.0.0",
+      "graders": ["llm-judge", "human-labelled-calibration"],
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "passRate": 0.9
+        }
+      }
+    }
+  ]
+}

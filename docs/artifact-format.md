@@ -259,6 +259,10 @@ This field is optional and additive. When present, reports can show dataset/rubr
 
 ```ts
 type RowMetadata = {
+  // canonical optional cost field for cost-quality frontier reporting
+  costUsd?: number;
+  // tolerated aliases accepted by reporters/importers for compatibility:
+  // costUSD, usdCost, cost.usd, pricing.costUsd
   provenance?: {
     source:
       | 'synthetic'
@@ -281,6 +285,7 @@ type RowMetadata = {
 ```
 
 These fields are optional and additive. Existing artifacts remain valid; runners can adopt them incrementally for auditability and dataset stewardship.
+When emitting cost evidence, prefer `metadata.costUsd` as the canonical key.
 
 ## Human Adjudication Bundle Flow (Optional)
 

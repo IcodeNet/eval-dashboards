@@ -4,8 +4,8 @@ Built-in reporters:
 
 - `text`: terminal summary.
 - `json-summary`: machine-readable summary.
-- `markdown-summary`: PR and build summary (includes latency p50/p95/avg/max when rows include `durationMs`).
-- `html`: static dashboard (includes run-level latency cards when rows include `durationMs`).
+- `markdown-summary`: PR and build summary (includes latency p50/p95/avg/max when rows include `durationMs`, plus cost/latency-quality frontier tables when row metrics are present).
+- `html`: static dashboard (includes run-level latency cards when rows include `durationMs`, plus a cost/latency-quality frontier section when row metrics are present).
 
 Multiple reporters can be requested in one command:
 

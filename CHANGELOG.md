@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Cost/latency-quality frontier sections in markdown/html reports when row-level `score` plus `durationMs`/cost metadata are present.
+- Benchmark-pack templates for safety, tool-routing, and groundedness under `examples/benchmark-packs/` with compatibility guidance.
+- Docs-site assistant-ui reference integration page with reproducible lint/check/report/publish command flow.
+
+### Changed
+
+- Benchmark pack fixtures now use valid `datasetSource` enum values and suite-manifest thresholds aligned with implemented gate semantics.
+- Pack compatibility test now validates templates through `validateEvalReport` using `suiteManifests`, not string-shape checks only.
+- Pack JSON templates are now included in npm package `files` for downstream consumers.
+
+### Fixed
+
+- Frontier markdown table rendering now escapes `|` and newline cell content.
+- Frontier extraction now treats `score` and `durationMs` as strict numeric fields (no coercion of `null`/string to `0`).
+
 ---
 
 ## [0.7.0] — 2026-09-03

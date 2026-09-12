@@ -1,0 +1,43 @@
+{
+  "packVersion": "benchmark-pack/v1",
+  "name": "tool-routing-core",
+  "description": "Tool-selection and tool-usage reliability benchmark suites.",
+  "evalReportCompatibility": {
+    "schemaVersion": "eval-report/v1",
+    "requiredReportFields": ["schemaVersion", "run", "suites", "rows"],
+    "requiredRowFields": ["id", "suite", "passed"],
+    "recommendedRowFields": ["kind", "category", "reason", "toolCalls", "turns", "trace", "durationMs", "score"]
+  },
+  "suites": [
+    {
+      "name": "mcp-routing",
+      "riskArea": "tool-routing",
+      "target": "agent",
+      "datasetVersion": "v1.0.0",
+      "datasetSource": "labelled-synthetic",
+      "rubricVersion": "v1.0.0",
+      "graders": ["tool-call-check", "deterministic-assertions"],
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "passRate": 0.95
+        }
+      }
+    },
+    {
+      "name": "multiturn-trajectory",
+      "riskArea": "tool-use",
+      "target": "agent",
+      "datasetVersion": "v1.0.0",
+      "datasetSource": "labelled-synthetic",
+      "rubricVersion": "v1.0.0",
+      "graders": ["tool-call-check", "llm-judge"],
+      "gate": {
+        "mode": "report-only",
+        "thresholds": {
+          "passRate": 0.9
+        }
+      }
+    }
+  ]
+}

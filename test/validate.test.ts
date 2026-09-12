@@ -318,6 +318,23 @@ describe('validateEvalReport', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('rejects non-numeric score and durationMs values on rows', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, score: 'bad', durationMs: 'bad' }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].score must be a number when provided.',
+    );
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].durationMs must be a number when provided.',
+    );
+  });
+
   it('accepts portable row provenance and lifecycle metadata conventions', () => {
     const result = validateEvalReport({
       schemaVersion: 'eval-report/v1',

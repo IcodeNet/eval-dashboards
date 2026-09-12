@@ -401,6 +401,146 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Latency p95');
   });
 
+  it('renders cost/latency-quality frontier sections when row metrics are present', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-frontier',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+        branch: 'main',
+        commit: 'abc123',
+      },
+      suites: [{ id: 'quality', total: 5, passed: 5, failed: 0 }],
+      rows: [
+        { id: 'r1', name: 'fast-good', suite: 'quality', passed: true, score: 0.88, durationMs: 120, metadata: { costUsd: 0.032 } },
+        { id: 'r2', name: 'slower-better', suite: 'quality', passed: true, score: 0.93, durationMs: 240, metadata: { costUsd: 0.061 } },
+        { id: 'r3', name: 'slow-mid', suite: 'quality', passed: true, score: 0.87, durationMs: 320, metadata: { costUsd: 0.07 } },
+        { id: 'r4', name: 'fast-low-cost', suite: 'quality', passed: true, score: 0.84, durationMs: 100, metadata: { cost: { usd: 0.028 } } },
+        { id: 'r5', name: 'unscored-pass', suite: 'quality', passed: true, durationMs: 80, metadata: { costUsd: 0.01 } },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary', 'html'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).toContain('| Branch | main |');
+    expect(md).toContain('| Commit | abc123 |');
+    expect(md).toContain('## Cost/latency-quality frontier');
+    expect(md).toContain('### Latency-quality frontier');
+    expect(md).toContain('### Cost-quality frontier');
+    expect(md).toContain('| fast-low-cost | quality | 0.840 | 100ms |');
+    expect(md).toContain('| fast-low-cost | quality | 0.840 | 0.0280 |');
+    expect(md).not.toContain('slow-mid');
+    expect(md).not.toContain('unscored-pass');
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Cost/latency-quality frontier');
+    expect(html).toContain('Latency-quality Pareto frontier');
+    expect(html).toContain('Cost-quality Pareto frontier');
+    expect(html).toContain('fast-low-cost');
+  });
+
+  it('omits frontier sections when rows do not include frontier metrics', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-no-frontier', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 2, passed: 1, failed: 1 }],
+      rows: [
+        { id: 'r1', suite: 'quality', passed: true },
+        { id: 'r2', suite: 'quality', passed: false },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary', 'html'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).not.toContain('Cost/latency-quality frontier');
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).not.toContain('cost-latency-frontier');
+  });
+
+  it('escapes markdown frontier table cells and falls back when primary cost alias is negative', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-frontier-escaped', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 2, passed: 2, failed: 0 }],
+      rows: [
+        { id: 'r1', name: 'a|b', suite: 'suite|name', passed: true, score: 0.95, durationMs: 100, metadata: { costUsd: 0.02 } },
+        { id: 'r2', name: 'negative-primary-cost', suite: 'quality', passed: true, score: 0.9, durationMs: 110, metadata: { costUsd: -0.2, cost: { usd: 0.01 } } },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).toContain('| a\\|b | suite\\|name | 0.950 | 100ms |');
+    expect(md).toContain('| negative-primary-cost | quality | 0.900 | 0.0100 |');
+  });
+
+  it('excludes rows with null score or null duration from frontier calculations', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-frontier-null-filter', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'q', total: 3, passed: 3, failed: 0 }],
+      rows: [
+        { id: 'good', name: 'good-row', suite: 'q', passed: true, score: 0.9, durationMs: 200, metadata: { costUsd: 0.03 } },
+        { id: 'null-score', name: 'null-score', suite: 'q', passed: true, score: null as unknown as number, durationMs: 50, metadata: { costUsd: 0.01 } },
+        { id: 'null-duration', name: 'null-duration', suite: 'q', passed: true, score: 0.99, durationMs: null as unknown as number, metadata: { costUsd: 0.05 } },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).toContain('## Cost/latency-quality frontier');
+    expect(md).toContain('| good-row | q | 0.900 | 200ms |');
+    expect(md).not.toContain('null-score');
+    expect(md).toContain('| null-duration | q | 0.990 | 0.0500 |');
+    expect(md).not.toContain('| null-duration | q | 0.990 | 0ms |');
+    expect(md).not.toContain('| 0ms |');
+  });
+
   it('renders statistical confidence context in markdown and html when bootstrap mode is enabled', async () => {
     const reportDir = await createTempDir();
     const previous: EvalReportV1 = {

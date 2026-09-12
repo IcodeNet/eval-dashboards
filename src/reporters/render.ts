@@ -52,6 +52,20 @@ type DurationStats = {
   maxMs: number;
 };
 
+type QualityFrontierPoint = {
+  suite: string;
+  id: string;
+  name: string;
+  quality: number;
+  latencyMs?: number;
+  costUsd?: number;
+};
+
+type QualityFrontierSummary = {
+  latencyFrontier: QualityFrontierPoint[];
+  costFrontier: QualityFrontierPoint[];
+};
+
 export const renderReports = async (
   context: ReportContext,
   reporters: ReporterName[],
@@ -124,10 +138,13 @@ const statisticalContextSummary = (context: ReportContext): string | undefined =
   return `bootstrap CI (${(stats.confidenceLevel * 100).toFixed(0)}%, n=${stats.bootstrapSamples}) ΔpassRate=${stats.observedDelta.toFixed(3)} CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min Δ=${minPassRateDelta.toFixed(3)}`;
 };
 
+const mdTableCell = (value: string): string => value.replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
+
 const renderMarkdown = (context: ReportContext): string => {
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
   const durationStats = calculateDurationStats(context.current.rows);
+  const frontierSummary = summarizeQualityFrontiers(context.current.rows);
   const provenance = reportProvenance(context.current);
   const statisticalSummary = statisticalContextSummary(context);
   const lines = [
@@ -159,6 +176,34 @@ const renderMarkdown = (context: ReportContext): string => {
   if (summary.run.buildId) lines.push(`| Build | ${summary.run.buildId} |`);
 
   lines.push('');
+
+  if (frontierSummary) {
+    lines.push('## Cost/latency-quality frontier', '');
+
+    if (frontierSummary.latencyFrontier.length > 0) {
+      lines.push('### Latency-quality frontier', '');
+      lines.push('| Row | Suite | Quality | Latency |');
+      lines.push('| --- | --- | ---: | ---: |');
+      for (const point of frontierSummary.latencyFrontier) {
+        lines.push(
+          `| ${mdTableCell(point.name)} | ${mdTableCell(point.suite)} | ${point.quality.toFixed(3)} | ${formatDuration(point.latencyMs ?? 0)} |`,
+        );
+      }
+      lines.push('');
+    }
+
+    if (frontierSummary.costFrontier.length > 0) {
+      lines.push('### Cost-quality frontier', '');
+      lines.push('| Row | Suite | Quality | Cost (USD) |');
+      lines.push('| --- | --- | ---: | ---: |');
+      for (const point of frontierSummary.costFrontier) {
+        lines.push(
+          `| ${mdTableCell(point.name)} | ${mdTableCell(point.suite)} | ${point.quality.toFixed(3)} | ${(point.costUsd ?? 0).toFixed(4)} |`,
+        );
+      }
+      lines.push('');
+    }
+  }
 
   const newlyFailing = context.comparison.newlyFailing;
   const newlyPassing = context.comparison.newlyPassing;
@@ -318,6 +363,89 @@ const calculateDurationStats = (rows: EvalRow[]): DurationStats | undefined => {
     p50Ms: percentileNearestRank(durations, 50),
     p95Ms: percentileNearestRank(durations, 95),
     maxMs: durations[count - 1] ?? 0,
+  };
+};
+
+const getNestedNumber = (value: unknown, path: string[]): number | undefined => {
+  let current: unknown = value;
+  for (const segment of path) {
+    if (!current || typeof current !== 'object' || !(segment in current)) return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return typeof current === 'number' && Number.isFinite(current) ? current : undefined;
+};
+
+const extractCostUsd = (row: EvalRow): number | undefined => {
+  const candidates = [
+    getNestedNumber(row, ['metadata', 'costUsd']),
+    getNestedNumber(row, ['metadata', 'costUSD']),
+    getNestedNumber(row, ['metadata', 'usdCost']),
+    getNestedNumber(row, ['metadata', 'cost', 'usd']),
+    getNestedNumber(row, ['metadata', 'pricing', 'costUsd']),
+  ];
+
+  for (const candidate of candidates) {
+    if (!Number.isFinite(candidate as number)) continue;
+    if ((candidate as number) >= 0) return candidate as number;
+  }
+
+  return undefined;
+};
+
+const paretoFrontier = (
+  points: QualityFrontierPoint[],
+  metric: 'latencyMs' | 'costUsd',
+): QualityFrontierPoint[] => {
+  const sorted = [...points]
+    .filter((point) => Number.isFinite(point[metric] as number))
+    .sort((left, right) => {
+      const leftMetric = left[metric] as number;
+      const rightMetric = right[metric] as number;
+      if (leftMetric !== rightMetric) return leftMetric - rightMetric;
+      return right.quality - left.quality;
+    });
+
+  let bestQualitySeen = Number.NEGATIVE_INFINITY;
+  const frontier: QualityFrontierPoint[] = [];
+  for (const point of sorted) {
+    if (point.quality > bestQualitySeen) {
+      frontier.push(point);
+      bestQualitySeen = point.quality;
+    }
+  }
+  return frontier;
+};
+
+const summarizeQualityFrontiers = (rows: EvalRow[]): QualityFrontierSummary | undefined => {
+  const hasScoredRows = rows.some((row) => typeof row.score === 'number' && Number.isFinite(row.score));
+
+  const points: QualityFrontierPoint[] = rows.flatMap((row) => {
+    const score = typeof row.score === 'number' && Number.isFinite(row.score) ? row.score : undefined;
+    if (hasScoredRows && score === undefined) return [];
+
+    const quality = score ?? (row.passed ? 1 : 0);
+    const latencyMs =
+      typeof row.durationMs === 'number' && Number.isFinite(row.durationMs) && row.durationMs >= 0
+        ? row.durationMs
+        : undefined;
+    const costUsd = extractCostUsd(row);
+    return [{
+      suite: row.suite,
+      id: row.id,
+      name: row.name ?? row.id,
+      quality,
+      latencyMs,
+      costUsd,
+    }];
+  });
+
+  const latencyPoints = points.filter((point) => point.latencyMs !== undefined);
+  const costPoints = points.filter((point) => point.costUsd !== undefined);
+  if (latencyPoints.length === 0 && costPoints.length === 0) return undefined;
+
+  return {
+    latencyFrontier: paretoFrontier(latencyPoints, 'latencyMs'),
+    costFrontier: paretoFrontier(costPoints, 'costUsd'),
   };
 };
 
@@ -990,6 +1118,60 @@ const judgeCalibrationTable = (summary: JudgeCalibrationSummary): string =>
     .join('')}</tbody>
   </table></div>`;
 
+const frontierRowsTable = (
+  points: QualityFrontierPoint[],
+  metricLabel: string,
+  metricFormatter: (point: QualityFrontierPoint) => string,
+): string => `<div class="table-wrap"><table>
+  <thead><tr><th>Row</th><th>Suite</th><th class="num">Quality</th><th class="num">${e(metricLabel)}</th></tr></thead>
+  <tbody>${points
+    .map(
+      (point) => `<tr>
+        <td>${e(point.name)}</td>
+        <td>${e(point.suite)}</td>
+        <td class="num">${point.quality.toFixed(3)}</td>
+        <td class="num">${e(metricFormatter(point))}</td>
+      </tr>`,
+    )
+    .join('')}</tbody>
+</table></div>`;
+
+const costLatencyFrontierSection = (summary: QualityFrontierSummary): string => {
+  const sections: string[] = [];
+
+  if (summary.latencyFrontier.length > 0) {
+    sections.push('<div style="padding:12px 16px 0" class="muted">Latency-quality Pareto frontier (maximize quality, minimize latency).</div>');
+    sections.push(
+      frontierRowsTable(
+        summary.latencyFrontier,
+        'Latency',
+        (point) => formatDuration(point.latencyMs ?? 0),
+      ),
+    );
+  }
+
+  if (summary.costFrontier.length > 0) {
+    sections.push('<div style="padding:12px 16px 0" class="muted">Cost-quality Pareto frontier (maximize quality, minimize cost).</div>');
+    sections.push(
+      frontierRowsTable(
+        summary.costFrontier,
+        'Cost (USD)',
+        (point) => (point.costUsd ?? 0).toFixed(4),
+      ),
+    );
+  }
+
+  const summaryText = `${pluralize(summary.latencyFrontier.length, 'latency frontier row')} • ${pluralize(summary.costFrontier.length, 'cost frontier row')}`;
+
+  return renderCollapsibleSection({
+    id: 'cost-latency-frontier',
+    title: 'Cost/latency-quality frontier',
+    summary: summaryText,
+    summaryTone: 'muted',
+    body: sections.join(''),
+  });
+};
+
 type GuardrailSummary = {
   rows: EvalRow[];
   categoryCounts: Array<{ category: string; count: number }>;
@@ -1111,6 +1293,7 @@ const renderHtml = (context: ReportContext): string => {
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
   const passClass = summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
   const durationStats = calculateDurationStats(rows);
+  const frontierSummary = summarizeQualityFrontiers(rows);
   const totalDurationMs = durationStats?.totalMs ?? 0;
   const datasetChangelogTotals = datasetChangelog.reduce(
     (totals, entry) => {
@@ -1463,6 +1646,8 @@ ${renderCssVariables(theme)}
       body: suiteSummaryTable(current.suites),
       summaryTone: suiteSummaryTone,
     })}
+
+    ${frontierSummary ? costLatencyFrontierSection(frontierSummary) : ''}
 
     ${guardrailProfileEnabled && guardrailSummary ? guardrailTriageSection(guardrailSummary) : ''}
 

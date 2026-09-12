@@ -160,6 +160,12 @@ var validateEvalReport = (value) => {
       if (typeof row.passed !== "boolean") {
         errors.push(`rows[${index}].passed must be a boolean.`);
       }
+      if (row.score !== void 0 && row.score !== null && !isNumber(row.score)) {
+        errors.push(`rows[${index}].score must be a number when provided.`);
+      }
+      if (row.durationMs !== void 0 && row.durationMs !== null && !isNumber(row.durationMs)) {
+        errors.push(`rows[${index}].durationMs must be a number when provided.`);
+      }
       if (row.severity !== void 0 && !isSeverity(row.severity)) {
         errors.push(`rows[${index}].severity must be one of ${severityOrder.join(", ")}.`);
       }

@@ -411,8 +411,8 @@ Acceptance criteria:
 
 ### 4B.8 Cost-quality frontier and benchmark packs (P2)
 
-- [ ] Add optional cost/latency-quality frontier views when row metrics are present.
-- [ ] Add versioned benchmark pack templates (for example safety, tool-routing, groundedness bundles) with compatibility guidance.
+- [x] Add optional cost/latency-quality frontier views when row metrics are present.
+- [x] Add versioned benchmark pack templates (for example safety, tool-routing, groundedness bundles) with compatibility guidance.
 
 Acceptance criteria:
 
@@ -494,9 +494,9 @@ Acceptance criteria:
 
 ### 4C.4 Assistant-UI reference integration track (P1)
 
-- [ ] Use assistant-ui integration as the living reference example for agent-eval adoption docs.
-- [ ] Publish a case-study style walkthrough: baseline setup, emitted artifacts, lint/check/report wiring, dashboard publish flow, and key lessons.
-- [ ] Keep example aligned with current branch/PR state and update docs when integration steps change.
+- [x] Use assistant-ui integration as the living reference example for agent-eval adoption docs.
+- [x] Publish a case-study style walkthrough: baseline setup, emitted artifacts, lint/check/report wiring, dashboard publish flow, and key lessons.
+- [x] Keep example aligned with current branch/PR state and update docs when integration steps change.
 
 Acceptance criteria:
 
@@ -596,19 +596,15 @@ Acceptance criteria:
 ## 🎯 Recommended next steps (prioritized by impact)
 
 **Immediate (next 1–2 weeks):**
-1. Start Phase 4B.8 cost-quality frontier and benchmark packs
-   - add optional cost/latency-quality frontier views when row metrics are present
-   - add versioned benchmark pack templates with compatibility guidance
-2. Keep CI-native machine outputs as the 4B.6 follow-on slice
+1. Keep CI-native machine outputs as the 4B.6 follow-on slice
    - ensure one-hop links from CI failures back to row-level evidence
 
 **Short term (next 2–3 weeks):**
-3. Publish assistant-ui reference integration case study (4C.4)
-4. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
-5. Continue dataset-governance hardening in lint/check preflight
+2. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
+3. Continue dataset-governance hardening in lint/check preflight
 
 **Medium term:**
-6. External adoption push and community feedback loop
+4. External adoption push and community feedback loop
 
 ---
 
