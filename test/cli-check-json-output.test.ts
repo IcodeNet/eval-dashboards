@@ -28,7 +28,7 @@ describe('check --json-out', () => {
       [
         'cli:dev',
         'check',
-        '--input=examples/screenshot-fixture/.evals_output',
+        '--input=examples/agent-quality-preset/artifacts',
         '--min-pass-rate=0.1',
         `--json-out=${outPath}`,
       ],
@@ -45,7 +45,7 @@ describe('check --json-out', () => {
 
     expect(parsed.schemaVersion).toBe('eval-check-result/v1');
     expect(parsed.passed).toBe(true);
-    expect(parsed.runId).toBe('agent-v4-2026-07-31');
+    expect(parsed.runId).toBe('agent-quality-template-001');
     expect(Array.isArray(parsed.failures)).toBe(true);
     expect(Array.isArray(parsed.newlyFailingRows)).toBe(true);
   });
