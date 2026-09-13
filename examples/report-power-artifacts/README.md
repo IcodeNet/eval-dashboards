@@ -8,7 +8,7 @@ Concrete, repository-tracked artifacts that demonstrate report power end-to-end 
 ./scripts/generate-report-power-artifacts.sh
 ```
 
-This command copies fixture runs from `examples/screenshot-fixture/.evals_output` and regenerates all tracked outputs below.
+This command first regenerates `examples/screenshot-fixture/.evals_output` from source fixture code, then copies those run files into `examples/report-power-artifacts/.evals_output` and regenerates all tracked outputs below.
 
 ## Open these artifacts locally
 
