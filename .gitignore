@@ -6,6 +6,8 @@ published-eval-report/
 examples/screenshot-fixture/
 examples/**/.evals_output/
 examples/**/report*/
+!examples/report-power-artifacts/
+!examples/report-power-artifacts/**
 examples/**/dist/
 node_modules/
 dist/
@@ -13,6 +15,8 @@ coverage/
 eval-report/
 published-eval-report/
 .evals_output/
+!examples/report-power-artifacts/.evals_output/
+!examples/report-power-artifacts/.evals_output/**
 *.log
 eval-reports.code-workspace
 .tmp/

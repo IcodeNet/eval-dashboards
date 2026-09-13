@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "eval-check-result/v1",
+  "runId": "agent-v4-2026-07-31",
+  "baselineRunId": "agent-v3-2026-07-30",
+  "passed": true,
+  "failures": [],
+  "diagnostics": [
+    "Top failing categories: conciseness=1, groundedness=1",
+    "Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20"
+  ],
+  "baselineCompatibility": {
+    "status": "warning",
+    "issues": [
+      {
+        "suite": "response-quality",
+        "severity": "warning",
+        "reason": "baseline report does not include suite manifest metadata",
+        "candidateDatasetVersion": "2.1.0",
+        "candidateRubricVersion": "response-quality-rubric-v1"
+      },
+      {
+        "suite": "tool-use",
+        "severity": "warning",
+        "reason": "baseline report does not include suite manifest metadata",
+        "candidateDatasetVersion": "1.0.0",
+        "candidateRubricVersion": "tool-use-rubric-v1"
+      },
+      {
+        "suite": "safety",
+        "severity": "warning",
+        "reason": "baseline report does not include suite manifest metadata",
+        "candidateDatasetVersion": "1.0.0",
+        "candidateRubricVersion": "safety-rubric-v1"
+      }
+    ]
+  },
+  "newlyFailingRows": []
+}

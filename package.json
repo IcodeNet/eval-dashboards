@@ -36,11 +36,14 @@
     "examples/jest-custom-reporter/*.ts",
     "examples/github-actions/*.yml",
     "examples/azure-devops/*.yml",
-    "examples/benchmark-packs/*.json"
+    "examples/benchmark-packs/*.json",
+    "examples/report-power-artifacts/**",
+    "scripts/generate-report-power-artifacts.sh"
   ],
   "scripts": {
     "assets:regenerate": "tsx scripts/regenerate-release-assets.ts",
     "assets:verify": "tsx scripts/verify-release-assets.ts",
+    "artifacts:report-power": "./scripts/generate-report-power-artifacts.sh",
     "build": "tsup",
     "cli": "node dist/cli/index.js",
     "cli:dev": "tsx src/cli/index.ts",
@@ -55,6 +58,8 @@
     "release": "semantic-release",
     "release:dry": "semantic-release --dry-run --no-ci",
     "release:prepare": "pnpm check && pnpm assets:verify",
+    "schema:generate": "tsx scripts/sync-eval-report-v1-schema.ts",
+    "schema:check": "pnpm schema:generate && git diff --exit-code -- schemas/eval-report-v1.schema.json",
     "verify:cli": "./scripts/verify-cli-init-and-completion.sh",
     "test": "vitest run",
     "test:watch": "vitest",
