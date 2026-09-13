@@ -111,6 +111,7 @@ See working examples:
 - **Python / Pytest**: [examples/python-pytest-evals/README.md](examples/python-pytest-evals/README.md)
 - **LangChain Evaluators**: [examples/langchain-evals/README.md](examples/langchain-evals/README.md)
 - **Agent quality preset**: [examples/agent-quality-preset/README.md](examples/agent-quality-preset/README.md)
+- **Concrete report-power artifacts**: [examples/report-power-artifacts/README.md](examples/report-power-artifacts/README.md)
 
 ---
 
@@ -156,6 +157,27 @@ The HTML dashboard is fully responsive and works in both light and dark themes. 
 - Section collapsed by default to keep first view focused on summary signals
 - Includes both passing and failing results
 - Full context for auditing and learning
+
+### Concrete report-power artifacts (tracked in git)
+
+Use `examples/report-power-artifacts/README.md` as the entrypoint for locally openable proof artifacts:
+
+- **History trends:** `examples/report-power-artifacts/report/history.json`
+- **Progress over runs:** `examples/report-power-artifacts/report/summary.json`
+- **Gate outcomes (pass + fail):**
+  - `examples/report-power-artifacts/gates/check-pass.json`
+  - `examples/report-power-artifacts/gates/check-fail.json`
+- **Row-level/detail analysis:**
+  - `examples/report-power-artifacts/report/summary.json` (`comparison.persistentFailures`, `comparison.disappeared`)
+  - `examples/report-power-artifacts/report/index.html`
+
+Regenerate deterministically from fixture input with:
+
+```sh
+./scripts/generate-report-power-artifacts.sh
+```
+
+Teach labs by delivery stage (local loop -> pre-PR -> triage -> release -> post-release) and an FDE workflow are in `docs/teach-labs/`.
 
 ---
 

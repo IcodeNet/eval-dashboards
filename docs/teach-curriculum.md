@@ -30,6 +30,15 @@ Exercise workbook files
 - [09 Reports and history](teach-exercises/09-reports-history.md)
 - [10 Iteration loop](teach-exercises/10-iteration-loop.md)
 
+Delivery-stage labs (artifact-first operations)
+- [Teach labs index](teach-labs/README.md)
+- [Lab 01: Local dev loop](teach-labs/01-local-dev-loop.md)
+- [Lab 02: Pre-PR gating](teach-labs/02-pre-pr-gating.md)
+- [Lab 03: PR review triage](teach-labs/03-pr-review-triage.md)
+- [Lab 04: Release readiness](teach-labs/04-release-readiness.md)
+- [Lab 05: Post-release monitoring](teach-labs/05-post-release-monitoring.md)
+- [FDE role workflow lab](teach-labs/fde-role-workflow.md)
+
 ---
 
 ## 0) Learning outcomes

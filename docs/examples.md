@@ -20,6 +20,7 @@ Current example directories:
 - `custom-reporter-plugin`
 - `benchmark-packs`
 - `screenshot-fixture`
+- `report-power-artifacts`
 
 Start with:
 
@@ -51,6 +52,22 @@ eval-dashboards report --input=examples/basic-json --run-id=run-trace-links --re
 ```
 
 Open `eval-report/index.html`, find row `agent/tool-timeout-001`, then follow the row-level trace/span links from the details panel. This demonstrates dashboard row -> trace deep link triage.
+
+## `report-power-artifacts`
+
+Use this for concrete, local-openable artifacts demonstrating history, progress, gate outcomes, and row-level detail analysis.
+
+```sh
+./scripts/generate-report-power-artifacts.sh
+```
+
+Artifacts produced under `examples/report-power-artifacts/`:
+
+- `report/history.json` (history trends)
+- `report/summary.json` (progress + detailed comparison)
+- `gates/check-pass.json` (passing gate result)
+- `gates/check-fail.json` (failing gate result)
+- `report/index.html` and `report/summary.md` (human-readable detail views)
 
 ## `agent-quality-preset`
 
@@ -131,3 +148,15 @@ Reference/template examples:
 - `custom-reporter-plugin`
 - `benchmark-packs`
 - `screenshot-fixture`
+- `report-power-artifacts`
+
+## Teach labs and FDE workflow
+
+Use `docs/teach-labs/README.md` for delivery-stage labs and the FDE role workflow.
+
+- Local dev loop: `docs/teach-labs/01-local-dev-loop.md`
+- Pre-PR gating: `docs/teach-labs/02-pre-pr-gating.md`
+- PR review triage: `docs/teach-labs/03-pr-review-triage.md`
+- Release readiness: `docs/teach-labs/04-release-readiness.md`
+- Post-release monitoring: `docs/teach-labs/05-post-release-monitoring.md`
+- FDE role analysis + workflow: `docs/teach-labs/fde-role-workflow.md`
