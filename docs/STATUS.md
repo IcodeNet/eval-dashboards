@@ -147,6 +147,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 - Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
 - CI-native machine output slice is complete: `check --json-out`, `--junit-out`, `--sarif-out`, `--github-annotations-out`, and `--heartbeat-out` emit machine-readable gate outputs, row anchors, and run-status heartbeats for CI monitoring.
+- 4E.1 alerting adapters are complete: `check --notify` supports Slack webhook, Teams webhook (adaptive-card payload), and email/SMTP adapters with CLI/env/config precedence plus machine-readable notification diagnostics in `check-result.json`.
 
 **External Phase 4: Shipping & Adoption**
 

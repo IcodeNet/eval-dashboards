@@ -600,8 +600,8 @@ Review inputs
 
 ### 4E.1 Alerting adapters (P0, S)
 
-- [ ] Add notification adapters for gate failure / trend regression: Slack webhook, Teams webhook, generic email/SMTP.
-- [ ] Ship as opt-in CLI flags/config (for example `check --notify=slack --notify-webhook=<url>`), independent of hosting decisions.
+- [x] Add notification adapters for gate failure / trend regression: Slack webhook, Teams webhook, generic email/SMTP.
+- [x] Ship as opt-in CLI flags/config (for example `check --notify=slack --notify-webhook=<url>`), independent of hosting decisions.
 
 Acceptance criteria:
 

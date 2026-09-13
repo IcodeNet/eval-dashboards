@@ -10,6 +10,28 @@ export type BaselineConfig = {
   lookback?: number;
 };
 
+export type NotificationChannel = 'slack' | 'teams' | 'email';
+
+export type WebhookNotificationConfig = {
+  webhookUrl?: string;
+};
+
+export type EmailNotificationConfig = {
+  smtpUrl?: string;
+  from?: string;
+  to?: string | string[];
+};
+
+export type NotificationsConfig = {
+  /** Channels to notify when check gates fail or baseline compatibility is blocked. */
+  channels?: NotificationChannel[];
+  /** Optional report URL/path included in notification payloads. */
+  reportUrl?: string;
+  slack?: WebhookNotificationConfig;
+  teams?: WebhookNotificationConfig;
+  email?: EmailNotificationConfig;
+};
+
 export type EvalReportsConfig = {
   /** Glob patterns or directory for artifact discovery. Default: ['.evals_output/**\/*.json'] */
   input?: string | string[];
@@ -25,4 +47,6 @@ export type EvalReportsConfig = {
   locale?: string;
   /** Baseline comparison selection rules. */
   baseline?: BaselineConfig;
+  /** Optional gate alerting adapters (Slack/Teams webhook, email via SMTP). */
+  notifications?: NotificationsConfig;
 };

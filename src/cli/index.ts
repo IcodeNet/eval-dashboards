@@ -24,6 +24,7 @@ import {
   type ReporterName,
 } from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
+import type { NotificationChannel, NotificationsConfig } from '../config/config.js';
 import { optionBoolean, optionNumber, optionString, optionStrings, parseArgs } from './args.js';
 import {
   buildAgentQualitySetupPlaybook,
@@ -50,6 +51,11 @@ import {
   type AdjudicationBundleV1,
 } from '../adjudication/bundles.js';
 import type { NewFailureKeyMode } from '../gates/check-gates.js';
+import {
+  defaultReportLink,
+  sendGateNotifications,
+  type NotificationDispatchResult,
+} from '../notifications/notify.js';
 
 const usage = `eval-dashboards <command>
 
@@ -128,6 +134,14 @@ Options:
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
+  --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
+  --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
+  --notify-slack-webhook=<url>     Slack webhook URL override
+  --notify-teams-webhook=<url>     Teams webhook URL override
+  --notify-email-smtp=<url>        SMTP connection URL for email notifications
+  --notify-email-from=<address>    Sender address for email notifications
+  --notify-email-to=<address>      Recipient address (repeatable/csv)
+  --notify-report-link=<url/path>  Report URL/path included in notification payloads
 `;
 
 const publishUsage = `eval-dashboards publish [options]
@@ -199,6 +213,7 @@ type CheckOutputPayload = {
   diagnostics: string[];
   baselineCompatibility?: unknown;
   newlyFailingRows: CheckOutputRow[];
+  notifications?: NotificationDispatchResult[];
 };
 
 type CheckHeartbeatPayload = {
@@ -219,6 +234,81 @@ const gateRunStatusFromExitCode = (exitCode: number): CheckHeartbeatPayload['gat
     return 'skipped';
   }
   return 'errored';
+};
+
+const NOTIFICATION_CHANNELS: NotificationChannel[] = ['slack', 'teams', 'email'];
+
+const normalizeChannels = (values: string[]): NotificationChannel[] => {
+  const tokens = values
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+  const invalid = tokens.filter((token) => !NOTIFICATION_CHANNELS.includes(token as NotificationChannel));
+  if (invalid.length > 0) {
+    throw Object.assign(
+      new Error(
+        `Unknown --notify channel ${invalid[0]}. Allowed values: ${NOTIFICATION_CHANNELS.join(', ')}.`,
+      ),
+      { exitCode: 2 },
+    );
+  }
+
+  return [...new Set(tokens)] as NotificationChannel[];
+};
+
+const notificationChannelsFromOptions = (
+  options: Record<string, string | boolean | string[]>,
+  config?: NotificationsConfig,
+): NotificationChannel[] => {
+  if (options.notify === true) {
+    throw Object.assign(
+      new Error(`--notify requires a value. Allowed values: ${NOTIFICATION_CHANNELS.join(', ')}.`),
+      { exitCode: 2 },
+    );
+  }
+
+  const cliChannels = normalizeChannels(optionStrings(options, 'notify', []));
+  if (cliChannels.length > 0) {
+    return cliChannels;
+  }
+
+  const envChannels = process.env.EVAL_NOTIFY_CHANNELS;
+  if (envChannels) {
+    return normalizeChannels([envChannels]);
+  }
+
+  const configChannels = (config?.channels ?? []).map((channel) => channel.toLowerCase());
+  return normalizeChannels(configChannels);
+};
+
+const normalizeEmailTargets = (values: string[]): string[] =>
+  values
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+const emailTargetsFromOptions = (
+  options: Record<string, string | boolean | string[]>,
+  config?: NotificationsConfig,
+): string[] => {
+  const cliTargets = normalizeEmailTargets(optionStrings(options, 'notify-email-to', []));
+  if (cliTargets.length > 0) {
+    return cliTargets;
+  }
+
+  const envTargets = process.env.EVAL_NOTIFY_EMAIL_TO;
+  if (envTargets) {
+    return normalizeEmailTargets([envTargets]);
+  }
+
+  const configured = config?.email?.to;
+  if (typeof configured === 'string') {
+    return normalizeEmailTargets([configured]);
+  }
+  if (Array.isArray(configured)) {
+    return normalizeEmailTargets(configured);
+  }
+  return [];
 };
 
 const xmlEscape = (value: string): string =>
@@ -407,6 +497,7 @@ const loadContext = async (
   }
 
   return {
+    reports,
     current,
     previous,
     history: buildHistory(reports),
@@ -885,6 +976,45 @@ const main = async (): Promise<void> => {
     const sarifOut = optionString(options, 'sarif-out', '');
     const githubAnnotationsOut = optionString(options, 'github-annotations-out', '');
     const heartbeatOut = optionString(options, 'heartbeat-out', '');
+    const notificationChannels = notificationChannelsFromOptions(options, config.notifications);
+    const sharedWebhookUrl = optionString(options, 'notify-webhook', '') || process.env.EVAL_NOTIFY_WEBHOOK || '';
+    const hasSlackChannel = notificationChannels.includes('slack');
+    const hasTeamsChannel = notificationChannels.includes('teams');
+    const sharedSlackWebhookUrl = hasSlackChannel && !hasTeamsChannel ? sharedWebhookUrl : '';
+    const sharedTeamsWebhookUrl = hasTeamsChannel && !hasSlackChannel ? sharedWebhookUrl : '';
+    const slackWebhookUrl =
+      optionString(options, 'notify-slack-webhook', '') ||
+      process.env.EVAL_NOTIFY_SLACK_WEBHOOK ||
+      config.notifications?.slack?.webhookUrl ||
+      sharedSlackWebhookUrl;
+    const teamsWebhookUrl =
+      optionString(options, 'notify-teams-webhook', '') ||
+      process.env.EVAL_NOTIFY_TEAMS_WEBHOOK ||
+      config.notifications?.teams?.webhookUrl ||
+      sharedTeamsWebhookUrl;
+    const emailSmtpUrl =
+      optionString(options, 'notify-email-smtp', '') ||
+      process.env.EVAL_NOTIFY_SMTP_URL ||
+      config.notifications?.email?.smtpUrl;
+    const emailFrom =
+      optionString(options, 'notify-email-from', '') ||
+      process.env.EVAL_NOTIFY_EMAIL_FROM ||
+      config.notifications?.email?.from;
+    const emailTo = emailTargetsFromOptions(options, config.notifications);
+    const notifyReportLink =
+      optionString(options, 'notify-report-link', '') ||
+      process.env.EVAL_NOTIFY_REPORT_LINK ||
+      config.notifications?.reportUrl ||
+      defaultReportLink(reportDir);
+
+    if (hasSlackChannel && hasTeamsChannel && sharedWebhookUrl) {
+      throw Object.assign(
+        new Error(
+          '--notify-webhook cannot be shared when both slack and teams channels are enabled; set --notify-slack-webhook and --notify-teams-webhook separately.',
+        ),
+        { exitCode: 2 },
+      );
+    }
 
     let heartbeatRunId: string | undefined;
     let heartbeatBaselineRunId: string | undefined;
@@ -953,6 +1083,65 @@ const main = async (): Promise<void> => {
           reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
         })),
       };
+
+      const baselineBlocked = context.baselineCompatibility?.status === 'blocked';
+      const previousBaselineCompatibility = (() => {
+        if (!context.previous) {
+          return undefined;
+        }
+        const previousBaseline = selectBaselineByStrategy(context.reports, context.previous.run.id, {
+          strategy: baselineStrategy ?? 'rolling',
+          lookback: baselineLookback,
+        });
+        return assessBaselineCompatibility(
+          context.previous.suiteManifests,
+          previousBaseline?.suiteManifests,
+          previousBaseline !== undefined,
+        );
+      })();
+      const newlyBlockedBaseline =
+        baselineBlocked && !baselineRunId && previousBaselineCompatibility?.status !== 'blocked';
+
+      const shouldNotify = notificationChannels.length > 0 && (!result.passed || newlyBlockedBaseline);
+      if (shouldNotify) {
+        const failingSuites = [
+          ...new Set(context.current.rows.filter((row) => !row.passed).map((row) => row.suite)),
+        ].sort();
+        const eventFailures =
+          result.failures.length > 0
+            ? result.failures
+            : baselineBlocked
+              ? ['Baseline compatibility is blocked due to dataset/rubric version drift.']
+              : [];
+
+        const notificationResults = await sendGateNotifications(
+          notificationChannels,
+          {
+            slackWebhookUrl,
+            teamsWebhookUrl,
+            emailSmtpUrl,
+            emailFrom,
+            emailTo,
+          },
+          {
+            runId: context.current.run.id,
+            baselineRunId: context.previous?.run.id,
+            reportLink: notifyReportLink,
+            failingSuites,
+            failures: eventFailures,
+            baselineCompatibility: context.baselineCompatibility,
+          },
+        );
+
+        checkPayload.notifications = notificationResults;
+        for (const status of notificationResults) {
+          if (status.status === 'sent') {
+            continue;
+          }
+          const reason = status.reason ? ` (${status.reason})` : '';
+          checkPayload.diagnostics.push(`Notification ${status.channel} ${status.status}${reason}.`);
+        }
+      }
 
       if (jsonOut) {
         await writeJsonFile(jsonOut, checkPayload);

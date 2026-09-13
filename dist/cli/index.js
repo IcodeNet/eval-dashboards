@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // src/cli/index.ts
-import path9 from "path";
+import path10 from "path";
 import { readFile as readFile6 } from "fs/promises";
 
 // src/history/baseline-compatibility.ts
@@ -1804,9 +1804,9 @@ var calculateDurationStats = (rows) => {
     maxMs: durations[count - 1] ?? 0
   };
 };
-var getNestedNumber = (value, path10) => {
+var getNestedNumber = (value, path11) => {
   let current = value;
-  for (const segment of path10) {
+  for (const segment of path11) {
     if (!current || typeof current !== "object" || !(segment in current)) return void 0;
     current = current[segment];
   }
@@ -3927,7 +3927,15 @@ var checkFlags = [
   "--junit-out",
   "--sarif-out",
   "--github-annotations-out",
-  "--heartbeat-out"
+  "--heartbeat-out",
+  "--notify",
+  "--notify-webhook",
+  "--notify-slack-webhook",
+  "--notify-teams-webhook",
+  "--notify-email-smtp",
+  "--notify-email-from",
+  "--notify-email-to",
+  "--notify-report-link"
 ];
 var reportFlags = [
   "--input",
@@ -3962,7 +3970,8 @@ var optionValues = {
   shell: ["bash", "zsh", "fish"],
   importSource: ["promptfoo", "deepeval", "agentevals", "openevals"],
   reportProfile: ["default", "guardrail"],
-  statisticalMode: ["off", "bootstrap"]
+  statisticalMode: ["off", "bootstrap"],
+  notifyChannel: ["slack", "teams", "email"]
 };
 var detectShell = (shellHint) => {
   const source = shellHint ?? process.env.SHELL ?? "";
@@ -4007,6 +4016,7 @@ var renderBash = () => {
     `    --ci) COMPREPLY=( $(compgen -W "${optionValues.ci.join(" ")}" -- "\${cur}") ); return ;;`,
     `    --shell) COMPREPLY=( $(compgen -W "${optionValues.shell.join(" ")}" -- "\${cur}") ); return ;;`,
     `    --from) COMPREPLY=( $(compgen -W "${optionValues.importSource.join(" ")}" -- "\${cur}") ); return ;;`,
+    `    --notify) COMPREPLY=( $(compgen -W "${optionValues.notifyChannel.join(" ")}" -- "\${cur}") ); return ;;`,
     `    --profile) COMPREPLY=( $(compgen -W "${optionValues.reportProfile.join(" ")}" -- "\${cur}") ); return ;;`,
     `    --statistical-mode) COMPREPLY=( $(compgen -W "${optionValues.statisticalMode.join(" ")}" -- "\${cur}") ); return ;;`,
     "  esac",
@@ -4074,6 +4084,7 @@ var renderZsh = () => {
     --ci) _values "ci" ${optionValues.ci.join(" ")} ;;
     --shell) _values "shell" ${optionValues.shell.join(" ")} ;;
     --from) _values "import source" ${optionValues.importSource.join(" ")} ;;
+    --notify) _values "notify channel" ${optionValues.notifyChannel.join(" ")} ;;
     --profile) _values "report profile" ${optionValues.reportProfile.join(" ")} ;;
     --statistical-mode) _values "statistical mode" ${optionValues.statisticalMode.join(" ")} ;;
   esac`,
@@ -4139,6 +4150,7 @@ var renderFish = () => {
       `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --ci" -a "${optionValues.ci.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from completion; and __fish_prev_arg_in --shell" -a "${optionValues.shell.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from import; and __fish_prev_arg_in --from" -a "${optionValues.importSource.join(" ")}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from check; and __fish_prev_arg_in --notify" -a "${optionValues.notifyChannel.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from report; and __fish_prev_arg_in --profile" -a "${optionValues.reportProfile.join(" ")}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from report check; and __fish_prev_arg_in --statistical-mode" -a "${optionValues.statisticalMode.join(" ")}"`
     );
@@ -4829,6 +4841,144 @@ var validateAdjudicationBundle = (bundle) => {
   return errors;
 };
 
+// src/notifications/notify.ts
+import path9 from "path";
+var FAILURE_PREVIEW_LIMIT = 8;
+var eventSubject = (event) => `[eval-dashboards] Gate alert for run ${event.runId}`;
+var eventMessage = (event) => {
+  const lines = [
+    `Run: ${event.runId}`,
+    `Baseline: ${event.baselineRunId ?? "none"}`,
+    `Failing suites: ${event.failingSuites.length > 0 ? event.failingSuites.join(", ") : "none"}`,
+    `Baseline compatibility: ${event.baselineCompatibility?.status ?? "unknown"}`,
+    `Report: ${event.reportLink}`,
+    "Failures:",
+    ...event.failures.slice(0, FAILURE_PREVIEW_LIMIT).map((failure, idx) => `  ${idx + 1}. ${failure}`)
+  ];
+  if (event.failures.length > FAILURE_PREVIEW_LIMIT) {
+    lines.push(`  ... ${event.failures.length - FAILURE_PREVIEW_LIMIT} more`);
+  }
+  return lines.join("\n");
+};
+var sendWebhook = async (url, payload) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(1e4)
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`webhook responded ${response.status}: ${body.slice(0, 200)}`);
+  }
+};
+var normalizeEmailTargets = (targets) => (targets ?? []).map((target) => target.trim()).filter((target) => target.length > 0);
+var redactSecrets = (value) => value.replace(/(smtp(?:s)?:\/\/)([^\s:@/]+):([^\s@/]+)@/gi, "$1[REDACTED]:[REDACTED]@").replace(/(https?:\/\/)([^\s:@/]+):([^\s@/]+)@/gi, "$1[REDACTED]:[REDACTED]@").replace(/https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+/gi, "https://hooks.slack.com/services/[REDACTED]").replace(/https:\/\/[A-Za-z0-9.-]*office\.com\/[A-Za-z0-9/_-]+/gi, "https://[REDACTED].office.com/[REDACTED]");
+var notificationFailure = (error) => redactSecrets(error instanceof Error ? error.message : String(error));
+var sendWebhookByChannel = async (channel, webhookUrl, event) => {
+  if (channel === "teams") {
+    await sendWebhook(webhookUrl, {
+      type: "message",
+      attachments: [
+        {
+          contentType: "application/vnd.microsoft.card.adaptive",
+          content: {
+            $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+            type: "AdaptiveCard",
+            version: "1.4",
+            body: [
+              {
+                type: "TextBlock",
+                weight: "Bolder",
+                text: eventSubject(event),
+                wrap: true
+              },
+              {
+                type: "TextBlock",
+                text: eventMessage(event),
+                wrap: true
+              }
+            ]
+          }
+        }
+      ]
+    });
+    return;
+  }
+  await sendWebhook(webhookUrl, {
+    text: `${eventSubject(event)}
+${eventMessage(event)}`
+  });
+};
+var sendEmail = async (config, event) => {
+  const recipients = normalizeEmailTargets(config.emailTo);
+  if (!config.emailSmtpUrl || !config.emailFrom) {
+    throw new Error("missing email SMTP URL or sender address");
+  }
+  if (recipients.length === 0) {
+    throw new Error("missing email recipients");
+  }
+  const nodemailer = await import("nodemailer");
+  const transporter = nodemailer.default.createTransport({
+    url: config.emailSmtpUrl,
+    connectionTimeout: 1e4,
+    greetingTimeout: 1e4,
+    socketTimeout: 1e4
+  });
+  await transporter.sendMail({
+    from: config.emailFrom,
+    to: recipients,
+    subject: eventSubject(event),
+    text: eventMessage(event)
+  });
+};
+var defaultReportLink = (reportDir) => path9.resolve(reportDir, "index.html");
+var sendGateNotifications = async (channels, config, event) => {
+  const results = [];
+  for (const channel of channels) {
+    if (channel === "slack") {
+      if (!config.slackWebhookUrl) {
+        results.push({ channel, status: "skipped", reason: "missing Slack webhook URL" });
+        continue;
+      }
+      try {
+        await sendWebhookByChannel("slack", config.slackWebhookUrl, event);
+        results.push({ channel, status: "sent" });
+      } catch (error) {
+        results.push({ channel, status: "failed", reason: notificationFailure(error) });
+      }
+      continue;
+    }
+    if (channel === "teams") {
+      if (!config.teamsWebhookUrl) {
+        results.push({ channel, status: "skipped", reason: "missing Teams webhook URL" });
+        continue;
+      }
+      try {
+        await sendWebhookByChannel("teams", config.teamsWebhookUrl, event);
+        results.push({ channel, status: "sent" });
+      } catch (error) {
+        results.push({ channel, status: "failed", reason: notificationFailure(error) });
+      }
+      continue;
+    }
+    try {
+      await sendEmail(config, event);
+      results.push({ channel, status: "sent" });
+    } catch (error) {
+      const reason = notificationFailure(error) ?? "unknown notification error";
+      if (reason.includes("missing email")) {
+        results.push({ channel, status: "skipped", reason });
+      } else {
+        results.push({ channel, status: "failed", reason });
+      }
+    }
+  }
+  return results;
+};
+
 // src/cli/index.ts
 var usage = `eval-dashboards <command>
 
@@ -4904,6 +5054,14 @@ Options:
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
+  --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
+  --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
+  --notify-slack-webhook=<url>     Slack webhook URL override
+  --notify-teams-webhook=<url>     Teams webhook URL override
+  --notify-email-smtp=<url>        SMTP connection URL for email notifications
+  --notify-email-from=<address>    Sender address for email notifications
+  --notify-email-to=<address>      Recipient address (repeatable/csv)
+  --notify-report-link=<url/path>  Report URL/path included in notification payloads
 `;
 var publishUsage = `eval-dashboards publish [options]
 
@@ -4960,9 +5118,60 @@ var gateRunStatusFromExitCode = (exitCode) => {
   }
   return "errored";
 };
+var NOTIFICATION_CHANNELS = ["slack", "teams", "email"];
+var normalizeChannels = (values) => {
+  const tokens = values.flatMap((value) => value.split(",")).map((value) => value.trim().toLowerCase()).filter((value) => value.length > 0);
+  const invalid = tokens.filter((token) => !NOTIFICATION_CHANNELS.includes(token));
+  if (invalid.length > 0) {
+    throw Object.assign(
+      new Error(
+        `Unknown --notify channel ${invalid[0]}. Allowed values: ${NOTIFICATION_CHANNELS.join(", ")}.`
+      ),
+      { exitCode: 2 }
+    );
+  }
+  return [...new Set(tokens)];
+};
+var notificationChannelsFromOptions = (options, config) => {
+  if (options.notify === true) {
+    throw Object.assign(
+      new Error(`--notify requires a value. Allowed values: ${NOTIFICATION_CHANNELS.join(", ")}.`),
+      { exitCode: 2 }
+    );
+  }
+  const cliChannels = normalizeChannels(optionStrings(options, "notify", []));
+  if (cliChannels.length > 0) {
+    return cliChannels;
+  }
+  const envChannels = process.env.EVAL_NOTIFY_CHANNELS;
+  if (envChannels) {
+    return normalizeChannels([envChannels]);
+  }
+  const configChannels = (config?.channels ?? []).map((channel) => channel.toLowerCase());
+  return normalizeChannels(configChannels);
+};
+var normalizeEmailTargets2 = (values) => values.flatMap((value) => value.split(",")).map((value) => value.trim()).filter((value) => value.length > 0);
+var emailTargetsFromOptions = (options, config) => {
+  const cliTargets = normalizeEmailTargets2(optionStrings(options, "notify-email-to", []));
+  if (cliTargets.length > 0) {
+    return cliTargets;
+  }
+  const envTargets = process.env.EVAL_NOTIFY_EMAIL_TO;
+  if (envTargets) {
+    return normalizeEmailTargets2([envTargets]);
+  }
+  const configured = config?.email?.to;
+  if (typeof configured === "string") {
+    return normalizeEmailTargets2([configured]);
+  }
+  if (Array.isArray(configured)) {
+    return normalizeEmailTargets2(configured);
+  }
+  return [];
+};
 var xmlEscape = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
 var rowAnchorId = (suite, id) => `row-${encodeURIComponent(`${suite}:${id}`)}`;
-var reportIndexUri = (reportDir) => path9.posix.join(reportDir.replaceAll("\\", "/"), "index.html");
+var reportIndexUri = (reportDir) => path10.posix.join(reportDir.replaceAll("\\", "/"), "index.html");
 var toJunitXml = (payload) => {
   const failures = payload.failures;
   const diagnostics = payload.diagnostics;
@@ -5108,6 +5317,7 @@ var loadContext = async (input, reportDir, options) => {
     });
   }
   return {
+    reports,
     current,
     previous,
     history: buildHistory(reports),
@@ -5337,7 +5547,7 @@ ${written.join("\n")}`);
       throw Object.assign(new Error("Missing required --input option."), { exitCode: 2 });
     }
     const source = resolveImportSource(rawSource);
-    const outPath = optionString(options, "out", path9.join(".evals_output", `import-${source}.json`));
+    const outPath = optionString(options, "out", path10.join(".evals_output", `import-${source}.json`));
     const suiteName = optionString(options, "suite", "");
     const imported = await importFromSource({
       source,
@@ -5364,7 +5574,7 @@ ${written.join("\n")}`);
       const context = await loadContext(input, reportDir, {
         runId: runId2 || void 0
       });
-      const out2 = optionString(options, "out", path9.join(reportDir, "adjudication-bundle.json"));
+      const out2 = optionString(options, "out", path10.join(reportDir, "adjudication-bundle.json"));
       const includePassedRows = optionBoolean(options, "include-passed");
       const bundle2 = exportUnresolvedRowsBundle(context.current, { includePassedRows });
       await writeJsonFile(out2, bundle2);
@@ -5423,7 +5633,7 @@ ${written.join("\n")}`);
     const merged = mergeAdjudicationBundle(target, bundle, {
       sourceBundlePath: bundlePath
     });
-    const out = optionString(options, "out", path9.join(reportDir, `adjudicated-${runId}.json`));
+    const out = optionString(options, "out", path10.join(reportDir, `adjudicated-${runId}.json`));
     await writeJsonFile(out, merged.report);
     const unmatchedNote = merged.unmatchedRows.length > 0 ? `; unmatched rows: ${merged.unmatchedRows.slice(0, 5).join(", ")}${merged.unmatchedRows.length > 5 ? "\u2026" : ""}` : "";
     console.log(
@@ -5468,7 +5678,7 @@ ${written.join("\n")}`);
     }
     const reports = await readEvalReports(input);
     const locale = optionString(options, "locale", "") || config.locale;
-    const out = optionString(options, "out", path9.join(reportDir, "overview.html"));
+    const out = optionString(options, "out", path10.join(reportDir, "overview.html"));
     await writeTextFile(out, renderGroupedIndexHtml(reports, locale));
     console.log(out);
     return;
@@ -5483,6 +5693,26 @@ ${written.join("\n")}`);
     const sarifOut = optionString(options, "sarif-out", "");
     const githubAnnotationsOut = optionString(options, "github-annotations-out", "");
     const heartbeatOut = optionString(options, "heartbeat-out", "");
+    const notificationChannels = notificationChannelsFromOptions(options, config.notifications);
+    const sharedWebhookUrl = optionString(options, "notify-webhook", "") || process.env.EVAL_NOTIFY_WEBHOOK || "";
+    const hasSlackChannel = notificationChannels.includes("slack");
+    const hasTeamsChannel = notificationChannels.includes("teams");
+    const sharedSlackWebhookUrl = hasSlackChannel && !hasTeamsChannel ? sharedWebhookUrl : "";
+    const sharedTeamsWebhookUrl = hasTeamsChannel && !hasSlackChannel ? sharedWebhookUrl : "";
+    const slackWebhookUrl = optionString(options, "notify-slack-webhook", "") || process.env.EVAL_NOTIFY_SLACK_WEBHOOK || config.notifications?.slack?.webhookUrl || sharedSlackWebhookUrl;
+    const teamsWebhookUrl = optionString(options, "notify-teams-webhook", "") || process.env.EVAL_NOTIFY_TEAMS_WEBHOOK || config.notifications?.teams?.webhookUrl || sharedTeamsWebhookUrl;
+    const emailSmtpUrl = optionString(options, "notify-email-smtp", "") || process.env.EVAL_NOTIFY_SMTP_URL || config.notifications?.email?.smtpUrl;
+    const emailFrom = optionString(options, "notify-email-from", "") || process.env.EVAL_NOTIFY_EMAIL_FROM || config.notifications?.email?.from;
+    const emailTo = emailTargetsFromOptions(options, config.notifications);
+    const notifyReportLink = optionString(options, "notify-report-link", "") || process.env.EVAL_NOTIFY_REPORT_LINK || config.notifications?.reportUrl || defaultReportLink(reportDir);
+    if (hasSlackChannel && hasTeamsChannel && sharedWebhookUrl) {
+      throw Object.assign(
+        new Error(
+          "--notify-webhook cannot be shared when both slack and teams channels are enabled; set --notify-slack-webhook and --notify-teams-webhook separately."
+        ),
+        { exitCode: 2 }
+      );
+    }
     let heartbeatRunId;
     let heartbeatBaselineRunId;
     const writeHeartbeat = async (payload) => {
@@ -5545,6 +5775,55 @@ ${written.join("\n")}`);
           reportAnchor: `#${rowAnchorId(row.suite, row.id)}`
         }))
       };
+      const baselineBlocked = context.baselineCompatibility?.status === "blocked";
+      const previousBaselineCompatibility = (() => {
+        if (!context.previous) {
+          return void 0;
+        }
+        const previousBaseline = selectBaselineByStrategy(context.reports, context.previous.run.id, {
+          strategy: baselineStrategy ?? "rolling",
+          lookback: baselineLookback
+        });
+        return assessBaselineCompatibility(
+          context.previous.suiteManifests,
+          previousBaseline?.suiteManifests,
+          previousBaseline !== void 0
+        );
+      })();
+      const newlyBlockedBaseline = baselineBlocked && !baselineRunId && previousBaselineCompatibility?.status !== "blocked";
+      const shouldNotify = notificationChannels.length > 0 && (!result.passed || newlyBlockedBaseline);
+      if (shouldNotify) {
+        const failingSuites = [
+          ...new Set(context.current.rows.filter((row) => !row.passed).map((row) => row.suite))
+        ].sort();
+        const eventFailures = result.failures.length > 0 ? result.failures : baselineBlocked ? ["Baseline compatibility is blocked due to dataset/rubric version drift."] : [];
+        const notificationResults = await sendGateNotifications(
+          notificationChannels,
+          {
+            slackWebhookUrl,
+            teamsWebhookUrl,
+            emailSmtpUrl,
+            emailFrom,
+            emailTo
+          },
+          {
+            runId: context.current.run.id,
+            baselineRunId: context.previous?.run.id,
+            reportLink: notifyReportLink,
+            failingSuites,
+            failures: eventFailures,
+            baselineCompatibility: context.baselineCompatibility
+          }
+        );
+        checkPayload.notifications = notificationResults;
+        for (const status of notificationResults) {
+          if (status.status === "sent") {
+            continue;
+          }
+          const reason = status.reason ? ` (${status.reason})` : "";
+          checkPayload.diagnostics.push(`Notification ${status.channel} ${status.status}${reason}.`);
+        }
+      }
       if (jsonOut) {
         await writeJsonFile(jsonOut, checkPayload);
       }

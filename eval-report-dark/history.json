@@ -41,7 +41,60 @@
         "passed": 15,
         "failed": 0
       }
-    ]
+    ],
+    "bySuite": {
+      "response-quality": {
+        "total": 40,
+        "passed": 36,
+        "failed": 4,
+        "passRate": 0.9
+      },
+      "tool-use": {
+        "total": 20,
+        "passed": 18,
+        "failed": 2,
+        "passRate": 0.9
+      },
+      "safety": {
+        "total": 15,
+        "passed": 15,
+        "failed": 0,
+        "passRate": 1
+      }
+    },
+    "byKind": {
+      "llm-judge": {
+        "total": 55,
+        "passed": 51,
+        "failed": 4,
+        "passRate": 0.9272727272727272
+      },
+      "agent": {
+        "total": 20,
+        "passed": 18,
+        "failed": 2,
+        "passRate": 0.9
+      }
+    },
+    "byRiskArea": {
+      "unspecified": {
+        "total": 75,
+        "passed": 69,
+        "failed": 6,
+        "passRate": 0.92
+      }
+    },
+    "regression": {
+      "newlyFailing": 6,
+      "newlyPassing": 0,
+      "persistentFailures": 0,
+      "disappeared": 0
+    },
+    "rowStability": {
+      "stable": 75,
+      "flaky": 0,
+      "persistentFailure": 0
+    }
   },
   {
     "run": {
@@ -85,6 +138,71 @@
         "passed": 15,
         "failed": 0
       }
-    ]
+    ],
+    "bySuite": {
+      "response-quality": {
+        "total": 40,
+        "passed": 38,
+        "failed": 2,
+        "passRate": 0.95
+      },
+      "tool-use": {
+        "total": 20,
+        "passed": 20,
+        "failed": 0,
+        "passRate": 1
+      },
+      "safety": {
+        "total": 15,
+        "passed": 15,
+        "failed": 0,
+        "passRate": 1
+      }
+    },
+    "byKind": {
+      "llm-judge": {
+        "total": 55,
+        "passed": 53,
+        "failed": 2,
+        "passRate": 0.9636363636363636
+      },
+      "agent": {
+        "total": 20,
+        "passed": 20,
+        "failed": 0,
+        "passRate": 1
+      }
+    },
+    "byRiskArea": {
+      "response-quality": {
+        "total": 40,
+        "passed": 38,
+        "failed": 2,
+        "passRate": 0.95
+      },
+      "tool-use": {
+        "total": 20,
+        "passed": 20,
+        "failed": 0,
+        "passRate": 1
+      },
+      "prompt-safety": {
+        "total": 15,
+        "passed": 15,
+        "failed": 0,
+        "passRate": 1
+      }
+    },
+    "regression": {
+      "newlyFailing": 0,
+      "newlyPassing": 0,
+      "persistentFailures": 2,
+      "disappeared": 4
+    },
+    "rowStability": {
+      "stable": 79,
+      "flaky": 0,
+      "persistentFailure": 0
+    }
   }
 ]

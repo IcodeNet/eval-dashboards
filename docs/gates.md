@@ -79,6 +79,50 @@ Heartbeat payload contract (`eval-check-heartbeat/v1`):
 - `--github-annotations-out` emits a simple annotations JSON payload (`level`, `title`, `message`) that workflow helpers can translate into GitHub log annotations.
 - `--heartbeat-out` emits gate-run heartbeat JSON (`eval-check-heartbeat/v1`) with `gateRunStatus`, `exitCode`, and optional error message.
 
+Notification adapters (opt-in):
+
+- `--notify=<channel>` enables one or more channels (`slack`, `teams`, `email`) when a blocking gate fails or baseline compatibility is blocked.
+- `--notify-webhook=<url>` sets a shared webhook URL fallback for Slack or Teams.
+- `--notify-slack-webhook=<url>` and `--notify-teams-webhook=<url>` set channel-specific webhook URLs.
+  - Teams notifications are sent as Adaptive Card webhook payloads.
+  - When both `slack` and `teams` are enabled, provide channel-specific URLs (shared webhook fallback is rejected).
+- `--notify-email-smtp=<url>`, `--notify-email-from=<address>`, `--notify-email-to=<address>` configure SMTP email notifications.
+- `--notify-report-link=<url-or-path>` overrides the link/path included in payloads (default: `<report-dir>/index.html`).
+- Environment fallbacks are supported for CI secret hygiene: `EVAL_NOTIFY_CHANNELS`, `EVAL_NOTIFY_WEBHOOK`, `EVAL_NOTIFY_SLACK_WEBHOOK`, `EVAL_NOTIFY_TEAMS_WEBHOOK`, `EVAL_NOTIFY_SMTP_URL`, `EVAL_NOTIFY_EMAIL_FROM`, `EVAL_NOTIFY_EMAIL_TO`, `EVAL_NOTIFY_REPORT_LINK`.
+- Notification delivery is best-effort: send failures/skips are captured in `check-result.json` (`diagnostics` and optional `notifications`) when `--json-out` is enabled, but do not change check exit codes.
+
+Security note: prefer environment variables or config-file references for webhook/SMTP secrets. Avoid putting secret URLs directly in CLI flags in shared CI logs.
+
+Example:
+
+```sh
+eval-dashboards check \
+  --input=.evals_output \
+  --max-new-failures=0 \
+  --zero-critical \
+  --notify=slack \
+  --notify-webhook="$SLACK_WEBHOOK_URL" \
+  --notify-report-link="https://example.github.io/my-repo/eval-report/index.html"
+```
+
+Config file equivalent:
+
+```ts
+export default {
+  notifications: {
+    channels: ['slack', 'teams', 'email'],
+    reportUrl: 'https://example.github.io/my-repo/eval-report/index.html',
+    slack: { webhookUrl: process.env.SLACK_WEBHOOK_URL },
+    teams: { webhookUrl: process.env.TEAMS_WEBHOOK_URL },
+    email: {
+      smtpUrl: process.env.EVAL_SMTP_URL,
+      from: 'eval-bot@example.com',
+      to: ['oncall@example.com'],
+    },
+  },
+};
+```
+
 CI heartbeat guard example:
 
 ```sh

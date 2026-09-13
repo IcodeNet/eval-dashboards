@@ -39,8 +39,19 @@ jobs:
       - name: Check eval gates
         id: check
         continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           # --json-out is required for follow-up gate-result checks.
+          notify_flags=()
+          if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+            notify_flags+=(
+              --notify=slack
+              --notify-webhook="$SLACK_WEBHOOK_URL"
+              --notify-report-link="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/eval-report/index.html"
+            )
+          fi
+
           npx @icodenet/eval-dashboards check \
             --min-pass-rate=0.9 \
             --max-new-failures=0 \
@@ -49,7 +60,8 @@ jobs:
             --heartbeat-out=eval-report/check-heartbeat.json \
             --junit-out=eval-report/check-result.junit.xml \
             --sarif-out=eval-report/check-result.sarif.json \
-            --github-annotations-out=eval-report/check-annotations.json
+            --github-annotations-out=eval-report/check-annotations.json \
+            "${notify_flags[@]}"
 
       # 3b — Emit GitHub log annotations from adapter JSON
       - name: Emit GitHub annotations

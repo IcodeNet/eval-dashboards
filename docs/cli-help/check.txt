@@ -24,4 +24,12 @@ Options:
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
+  --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
+  --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
+  --notify-slack-webhook=<url>     Slack webhook URL override
+  --notify-teams-webhook=<url>     Teams webhook URL override
+  --notify-email-smtp=<url>        SMTP connection URL for email notifications
+  --notify-email-from=<address>    Sender address for email notifications
+  --notify-email-to=<address>      Recipient address (repeatable/csv)
+  --notify-report-link=<url/path>  Report URL/path included in notification payloads
 

@@ -1,7 +1,9 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { AddressInfo } from 'node:net';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -303,5 +305,230 @@ describe('check machine outputs', () => {
     expect(heartbeat.runId).toBe('run-002');
     expect(heartbeat.baselineRunId).toBe('run-001');
     expect(heartbeat.message).toContain('EISDIR');
+  });
+
+  it('sends Slack webhook notification on gate failure when notify flags are set', async () => {
+    const webhookPayloads: string[] = [];
+    const server = createServer((request, response) => {
+      let body = '';
+      request.setEncoding('utf8');
+      request.on('data', (chunk) => {
+        body += chunk;
+      });
+      request.on('end', () => {
+        webhookPayloads.push(body);
+        response.statusCode = 200;
+        response.end('ok');
+      });
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    const webhookUrl = `http://127.0.0.1:${port}/slack`;
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/basic-json',
+          '--min-pass-rate=0.9',
+          '--notify=slack',
+          `--notify-webhook=${webhookUrl}`,
+          '--notify-report-link=https://ci.example.test/eval-report/index.html',
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected gate failure');
+    } catch (error) {
+      const failure = error as { code?: number };
+      expect(failure.code).toBe(1);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((closeError) => {
+          if (closeError) {
+            reject(closeError);
+            return;
+          }
+          resolve();
+        });
+      });
+    }
+
+    expect(webhookPayloads.length).toBe(1);
+    const payload = JSON.parse(webhookPayloads[0] ?? '{}') as { text?: string };
+    expect(payload.text).toContain('run-002');
+    expect(payload.text).toContain('answer-quality');
+    expect(payload.text).toContain('https://ci.example.test/eval-report/index.html');
+  });
+
+  it('captures skipped notification delivery in json-out diagnostics', async () => {
+    const dir = await createTempDir();
+    const outPath = path.join(dir, 'check-result.json');
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/basic-json',
+          '--min-pass-rate=0.9',
+          '--notify=slack',
+          `--json-out=${outPath}`,
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected gate failure');
+    } catch (error) {
+      const failure = error as { code?: number };
+      expect(failure.code).toBe(1);
+    }
+
+    const payload = JSON.parse(await readFile(outPath, 'utf8')) as {
+      notifications?: Array<{ channel: string; status: string; reason?: string }>;
+      diagnostics: string[];
+    };
+
+    expect(payload.notifications).toEqual([
+      {
+        channel: 'slack',
+        status: 'skipped',
+        reason: 'missing Slack webhook URL',
+      },
+    ]);
+    expect(payload.diagnostics.some((item) => item.includes('Notification slack skipped'))).toBe(true);
+  });
+
+  it('fails fast when --notify is provided without a value', async () => {
+    try {
+      await execFileAsync(
+        'pnpm',
+        ['cli:dev', 'check', '--input=examples/basic-json', '--notify'],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected invalid notify option');
+    } catch (error) {
+      const failure = error as { code?: number; stderr?: string };
+      expect(failure.code).toBe(2);
+      expect(failure.stderr).toContain('--notify requires a value');
+    }
+  });
+
+  it('rejects shared --notify-webhook when both slack and teams channels are selected', async () => {
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/basic-json',
+          '--notify=slack',
+          '--notify=teams',
+          '--notify-webhook=https://hooks.slack.com/services/test/test/test',
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected invalid shared webhook configuration');
+    } catch (error) {
+      const failure = error as { code?: number; stderr?: string };
+      expect(failure.code).toBe(2);
+      expect(failure.stderr).toContain('--notify-webhook cannot be shared when both slack and teams channels are enabled');
+    }
+  });
+
+  it('sends notification when baseline becomes newly blocked even if gate is allowed to pass', async () => {
+    const dir = await createTempDir();
+    const artifactDir = path.join(dir, 'artifacts');
+    await mkdir(artifactDir, { recursive: true });
+
+    const [baseRaw, currentRaw] = await Promise.all([
+      readFile(path.join(process.cwd(), 'examples/basic-json/run-001.json'), 'utf8'),
+      readFile(path.join(process.cwd(), 'examples/basic-json/run-002.json'), 'utf8'),
+    ]);
+
+    const baselineRun = JSON.parse(baseRaw) as any;
+    const previousRun = JSON.parse(baseRaw) as any;
+    const currentRun = JSON.parse(currentRaw) as any;
+
+    const normalizePassing = (report: any, id: string, generatedAt: string) => {
+      report.run.id = id;
+      report.run.generatedAt = generatedAt;
+      report.rows = report.rows.map((row: any) => ({ ...row, passed: true }));
+      report.suites = report.suites.map((suite: any) => ({
+        ...suite,
+        passed: suite.total,
+        failed: 0,
+        passRate: 1,
+      }));
+      report.suiteManifests = (report.suiteManifests ?? []).map((manifest: any) => ({
+        ...manifest,
+        gate: { ...manifest.gate, mode: 'blocking' },
+      }));
+      return report;
+    };
+
+    normalizePassing(baselineRun, 'run-000', '2026-01-01T00:00:00.000Z');
+    normalizePassing(previousRun, 'run-001', '2026-01-02T00:00:00.000Z');
+    normalizePassing(currentRun, 'run-002', '2026-01-03T00:00:00.000Z');
+    currentRun.suiteManifests = (currentRun.suiteManifests ?? []).map((manifest: any) => ({
+      ...manifest,
+      datasetVersion: '2.0.0',
+    }));
+
+    await Promise.all([
+      writeFile(path.join(artifactDir, 'run-000.json'), JSON.stringify(baselineRun, null, 2)),
+      writeFile(path.join(artifactDir, 'run-001.json'), JSON.stringify(previousRun, null, 2)),
+      writeFile(path.join(artifactDir, 'run-002.json'), JSON.stringify(currentRun, null, 2)),
+    ]);
+
+    const webhookPayloads: string[] = [];
+    const server = createServer((request, response) => {
+      let body = '';
+      request.setEncoding('utf8');
+      request.on('data', (chunk) => {
+        body += chunk;
+      });
+      request.on('end', () => {
+        webhookPayloads.push(body);
+        response.statusCode = 200;
+        response.end('ok');
+      });
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    const webhookUrl = `http://127.0.0.1:${port}/slack`;
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          `--input=${artifactDir}`,
+          '--allow-blocked-baseline',
+          '--notify=slack',
+          `--notify-webhook=${webhookUrl}`,
+        ],
+        { cwd: process.cwd() },
+      );
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((closeError) => {
+          if (closeError) {
+            reject(closeError);
+            return;
+          }
+          resolve();
+        });
+      });
+    }
+
+    expect(webhookPayloads.length).toBe(1);
+    const payload = JSON.parse(webhookPayloads[0] ?? '{}') as { text?: string };
+    expect(payload.text).toContain('run-002');
+    expect(payload.text).toContain('Baseline compatibility: blocked');
   });
 });

@@ -75,6 +75,14 @@ const checkFlags = [
   '--sarif-out',
   '--github-annotations-out',
   '--heartbeat-out',
+  '--notify',
+  '--notify-webhook',
+  '--notify-slack-webhook',
+  '--notify-teams-webhook',
+  '--notify-email-smtp',
+  '--notify-email-from',
+  '--notify-email-to',
+  '--notify-report-link',
 ] as const;
 
 const reportFlags = [
@@ -114,6 +122,7 @@ const optionValues = {
   importSource: ['promptfoo', 'deepeval', 'agentevals', 'openevals'],
   reportProfile: ['default', 'guardrail'],
   statisticalMode: ['off', 'bootstrap'],
+  notifyChannel: ['slack', 'teams', 'email'],
 } as const;
 
 const detectShell = (shellHint?: string): CompletionShell => {
@@ -164,6 +173,7 @@ const renderBash = (): string => {
     `    --ci) COMPREPLY=( $(compgen -W "${optionValues.ci.join(' ')}" -- "\${cur}") ); return ;;`,
     `    --shell) COMPREPLY=( $(compgen -W "${optionValues.shell.join(' ')}" -- "\${cur}") ); return ;;`,
     `    --from) COMPREPLY=( $(compgen -W "${optionValues.importSource.join(' ')}" -- "\${cur}") ); return ;;`,
+    `    --notify) COMPREPLY=( $(compgen -W "${optionValues.notifyChannel.join(' ')}" -- "\${cur}") ); return ;;`,
     `    --profile) COMPREPLY=( $(compgen -W "${optionValues.reportProfile.join(' ')}" -- "\${cur}") ); return ;;`,
     `    --statistical-mode) COMPREPLY=( $(compgen -W "${optionValues.statisticalMode.join(' ')}" -- "\${cur}") ); return ;;`,
     '  esac',
@@ -234,6 +244,7 @@ const renderZsh = (): string => {
     --ci) _values "ci" ${optionValues.ci.join(' ')} ;;
     --shell) _values "shell" ${optionValues.shell.join(' ')} ;;
     --from) _values "import source" ${optionValues.importSource.join(' ')} ;;
+    --notify) _values "notify channel" ${optionValues.notifyChannel.join(' ')} ;;
     --profile) _values "report profile" ${optionValues.reportProfile.join(' ')} ;;
     --statistical-mode) _values "statistical mode" ${optionValues.statisticalMode.join(' ')} ;;
   esac`,
@@ -308,6 +319,7 @@ const renderFish = (): string => {
       `complete -c ${cliName} -n "__fish_seen_subcommand_from teach; and __fish_prev_arg_in --ci" -a "${optionValues.ci.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from completion; and __fish_prev_arg_in --shell" -a "${optionValues.shell.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from import; and __fish_prev_arg_in --from" -a "${optionValues.importSource.join(' ')}"`,
+      `complete -c ${cliName} -n "__fish_seen_subcommand_from check; and __fish_prev_arg_in --notify" -a "${optionValues.notifyChannel.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from report; and __fish_prev_arg_in --profile" -a "${optionValues.reportProfile.join(' ')}"`,
       `complete -c ${cliName} -n "__fish_seen_subcommand_from report check; and __fish_prev_arg_in --statistical-mode" -a "${optionValues.statisticalMode.join(' ')}"`,
     );
