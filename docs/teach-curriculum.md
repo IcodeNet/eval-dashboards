@@ -3,6 +3,11 @@
 This page is the map.
 The step-by-step practical work is in separate exercise files under docs/teach-exercises/.
 
+How to use this curriculum (concept-first)
+- Read each stage in this order: Concept -> Why this matters -> Practice.
+- Do not jump to commands first.
+- After each stage, explain the concept in your own words before moving on.
+
 Use this with:
 - [artifact-format.md](artifact-format.md)
 - [taxonomy.md](taxonomy.md)
@@ -55,10 +60,14 @@ By the end, a beginner should be able to:
 
 ## 1) Foundations: what evals are
 
-Concepts
+Concept
 - Evals are repeatable tests for behavior quality.
 - One good-looking output is not enough evidence.
 - Private, task-specific eval suites matter more than public leaderboard scores for release decisions.
+
+Why this matters
+- Teams often confuse model demos with production quality.
+- This stage sets the mindset that release decisions need repeatable evidence.
 
 Practice
 - Do [Exercise 01 Foundations](teach-exercises/01-foundations.md).
@@ -67,10 +76,14 @@ Practice
 
 ## 2) Artifact-first model in this repo
 
-Concepts
+Concept
 - The handoff contract is `schemaVersion: "eval-report/v1"`.
 - Any runner can emit this shape (Node, Python, custom harness).
 - Reports and gates consume artifacts, not a specific vendor runtime.
+
+Why this matters
+- If the team depends on one runtime/vendor shape, adoption and migration become brittle.
+- Artifact-first design keeps eval workflows portable.
 
 Practice
 - Do [Exercise 02 Minimal artifact](teach-exercises/02-artifact-first.md).
@@ -79,10 +92,14 @@ Practice
 
 ## 3) First synthetic dataset (small, high-signal)
 
-Concepts
+Concept
 - Start with 10 to 30 rows.
 - Include happy path, edge cases, safety/adversarial cases, and tool-use cases.
 - Keep row IDs stable from day one.
+
+Why this matters
+- Large weak datasets waste time and hide failure patterns.
+- Small high-signal sets teach fast iteration and cleaner triage.
 
 Practice
 - Do [Exercise 03 First synthetic dataset](teach-exercises/03-first-synthetic-dataset.md).
@@ -91,7 +108,7 @@ Practice
 
 ## 4) Taxonomy essentials (row level)
 
-Concepts
+Concept
 - Minimal valid means "the file loads".
 - Taxonomy-complete means "a teammate can debug this row quickly".
 - A strong row should answer five fast questions:
@@ -100,6 +117,10 @@ Concepts
   3) which dataset/scenario/rubric it belongs to,
   4) what input/output/expected evidence says,
   5) why it passed or failed.
+
+Why this matters
+- Missing row metadata slows triage and causes weak postmortems.
+- Complete row evidence turns failures into actionable fixes.
 
 Recommended row fields
 - classification: `kind`, `severity`, `category`
@@ -117,10 +138,14 @@ Practice
 
 ## 5) Taxonomy essentials (suite level)
 
-Concepts
+Concept
 - Use `suiteManifests[]` and `rubricContracts[]`.
 - Make gate intent explicit (`blocking` vs `report-only`).
 - Keep dataset and rubric versions explicit.
+
+Why this matters
+- Suite-level governance prevents accidental gate drift.
+- Explicit versions protect comparison integrity across runs.
 
 Practice
 - Do [Exercise 05 Suite taxonomy](teach-exercises/05-suite-taxonomy.md).
@@ -129,9 +154,13 @@ Practice
 
 ## 6) Live agent evals and evidence capture
 
-Concepts
+Concept
 - Evaluate trajectory, not only final text.
 - Capture turns, tool calls, tool args/results/errors, and latency.
+
+Why this matters
+- Final answers can look correct while the internal path is unsafe or expensive.
+- Trajectory evidence is required for real agent debugging.
 
 Practice
 - Do [Exercise 06 Live agent evidence](teach-exercises/06-live-agent-evidence.md).
@@ -140,9 +169,13 @@ Practice
 
 ## 7) Judges, calibration, and reviewer loops
 
-Concepts
+Concept
 - Use the cheapest reliable evaluator for each failure mode.
 - Keep judge rows explicit and calibrate against reviewed labels.
+
+Why this matters
+- Uncalibrated judges produce noisy scores and false confidence.
+- Calibration keeps automated grading aligned with human standards.
 
 Practice
 - Do [Exercise 07 Judge calibration](teach-exercises/07-judge-calibration.md).
@@ -151,9 +184,13 @@ Practice
 
 ## 8) Gates and release decisions
 
-Concepts
+Concept
 - Typical starter gates: pass rate, zero critical, max new failures.
 - Run in this order: lint -> check -> report.
+
+Why this matters
+- Teams need deterministic release criteria, not ad-hoc approvals.
+- Ordered execution reduces hidden failures and inconsistent outcomes.
 
 Practice
 - Do [Exercise 08 Gates and release](teach-exercises/08-gates-release.md).
@@ -162,10 +199,14 @@ Practice
 
 ## 9) Reports and history
 
-Concepts
+Concept
 - Keep one artifact file per run.
 - Stable IDs are required for useful history.
 - Compare runs to find new failures and persistent failures.
+
+Why this matters
+- Without historical continuity, teams cannot separate regressions from known debt.
+- History transforms one-off results into trend-based decisions.
 
 Practice
 - Do [Exercise 09 Reports and history](teach-exercises/09-reports-history.md).
@@ -174,13 +215,17 @@ Practice
 
 ## 10) Iteration loop (operating cadence)
 
-Concepts
+Concept
 - Find top failing cluster.
 - Classify root cause.
 - Change one thing.
 - Re-run targeted suites.
 - Re-run full gate path.
 - Compare with baseline/history.
+
+Why this matters
+- Unstructured iteration creates churn and unclear progress.
+- A fixed cadence makes improvement measurable and repeatable.
 
 Practice
 - Do [Exercise 10 Iteration loop](teach-exercises/10-iteration-loop.md).
