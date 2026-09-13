@@ -640,11 +640,11 @@ Acceptance criteria:
 - [x] Schema generation from TS + CI drift guard.
 - [x] Ajv/runtime validation hardening with stable error shape.
 - [ ] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
-- [ ] First-class usage metrics path (tokens/cost/latency).
-- [ ] Python emitter/adoption path.
-- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs).
-- [ ] Judge calibration workflow and measurable agreement reporting.
-- [ ] Trace/OTel evidence hardening guidance.
+- [x] First-class usage metrics path (tokens/cost/latency).
+- [x] Python emitter/adoption path.
+- [x] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs).
+- [x] Judge calibration workflow and measurable agreement reporting.
+- [x] Trace/OTel evidence hardening guidance.
 
 Acceptance criteria:
 
