@@ -14,6 +14,11 @@ Use this with:
 - [onboarding-runbook.md](onboarding-runbook.md)
 - `eval-dashboards init --preset=agent-quality --teach`
 
+Recommended conceptual pre-read (before section 0):
+- [Langfuse 101: Evals Feedback Loop](https://icodenet.github.io/langfuse-101/)
+  - Read this first if you are new to eval operating models.
+  - Then continue with this curriculum for `eval-report/v1` implementation details.
+
 Exercise rules
 - Every exercise uses simple English.
 - Every exercise has copy-paste commands.

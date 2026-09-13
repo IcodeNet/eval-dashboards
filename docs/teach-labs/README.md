@@ -7,6 +7,14 @@ They start with the concept, why it matters, and what question each lab answers.
 
 Use these labs after reading [docs/teach-curriculum.md](../teach-curriculum.md).
 
+Recommended pre-read (read before Lab 01):
+- [Langfuse 101: Evals Feedback Loop](https://icodenet.github.io/langfuse-101/)
+
+Why read it first:
+- It introduces evals as a continuous operating model.
+- It frames live vs offline evidence and people-in-the-loop decisions.
+- It gives the conceptual context for the delivery-stage labs below.
+
 Repo-clone requirement: these labs assume you are running from this repository checkout (not only from an installed npm tarball), because they execute local scripts under `scripts/` and read tracked fixture artifacts under `examples/`.
 
 ## Learning progression

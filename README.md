@@ -190,6 +190,9 @@ pnpm exec tsx scripts/generate-report-power-images.ts
 
 Teach labs by delivery stage (local loop -> pre-PR -> triage -> release -> post-release) and an FDE workflow are in `docs/teach-labs/`.
 
+Recommended pre-read before Teach Curriculum or Lab 01:
+- [Langfuse 101: Evals Feedback Loop](https://icodenet.github.io/langfuse-101/) — read this first to understand the operating model (live evidence -> review -> dataset/versioning -> experiments -> release gates) and why evals are continuous, not one-off.
+
 ---
 
 ## Schema & Taxonomy
@@ -459,6 +462,7 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - [Static docs site (v1)](docs-site/v1/index.html) — versioned quickstart + CLI-first onboarding
 - [Taxonomy teaching guide](docs/taxonomy.md) — what makes a "complete" eval report
 - [Teach curriculum](docs/teach-curriculum.md) — detailed novice path from synthetic dataset to gates/history
+- [Langfuse 101: Evals Feedback Loop](https://icodenet.github.io/langfuse-101/) — conceptual pre-read before curriculum/labs
 - [Artifact format](docs/artifact-format.md) — field-by-field reference
 - [JSON Schema](schemas/eval-report-v1.schema.json) — for validation and SDK generation
 - [Configuration](docs/configuration.md) — all config options
