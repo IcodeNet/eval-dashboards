@@ -1,4 +1,6 @@
-# Product Requirement Prompt: @icodenet/eval-reports
+# Product Requirement Prompt (historical archive): @icodenet/eval-reports
+
+Note: this file preserves the original planning prompt and historical naming. Current package/CLI naming is `@icodenet/eval-dashboards` / `eval-dashboards`.
 
 Build a standalone npm package and repository named `@icodenet/eval-reports`. The package is the eval-reporting equivalent of NYC/Istanbul: runner-agnostic, artifact-first, configurable, report-generating, gate-enforcing, history-aware, and able to publish dashboards for stakeholders.
 

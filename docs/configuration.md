@@ -4,7 +4,7 @@ Config locations:
 
 - `eval-dashboards.config.ts`
 - `eval-dashboards.config.js`
-- `evalDashboards` in `package.json`
+- `eval-dashboards` in `package.json`
 
 Example:
 
@@ -28,13 +28,6 @@ export default {
   baseline: {
     strategy: 'champion', // 'rolling' | 'champion'
     lookback: 30, // optional number of prior runs considered
-  },
-  publish: {
-    target: 'github-pages',
-    githubPages: {
-      repo: 'icodenet/eval-dashboard',
-      branch: 'gh-pages',
-    },
   },
 };
 ```

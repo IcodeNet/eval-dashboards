@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <title>API Reference · eval-dashboards docs v1</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>API Reference <small>v1</small></h1>
+        <p>Public TypeScript surface exported by <code>@icodenet/eval-dashboards</code>.</p>
+      </header>
+
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./adopt-now.html">Adopt now</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./schema-taxonomy.html">Schema/Taxonomy</a>
+        <a href="./ci-gates.html">CI Gates</a>
+        <a href="./publishing.html">Publishing</a>
+        <a href="./integrations.html">Integrations</a>
+        <a href="./assistant-ui-case-study.html">assistant-ui case study</a>
+        <a href="./api-reference.html">API Reference</a>
+        <a href="./search.html">Search</a>
+      </nav>
+
+      <main>
+        <section class="card">
+          <h2>Install and import</h2>
+<pre><code>pnpm add @icodenet/eval-dashboards
+
+import {
+  validateEvalReport,
+  summarizeReport,
+  checkGates,
+  createEvalReportArtifact,
+  writeEvalReportArtifact,
+} from '@icodenet/eval-dashboards';</code></pre>
+        </section>
+
+        <section>
+          <h2>Core model exports</h2>
+          <ul>
+            <li><code>EvalReportV1</code>, <code>EvalRow</code>, <code>EvalRun</code>, <code>EvalSuiteSummary</code></li>
+            <li><code>SuiteManifest</code>, <code>GatePolicy</code>, <code>RiskArea</code>, <code>DatasetSource</code>, <code>GraderKind</code></li>
+            <li><code>TraceReference</code>, <code>ConversationTurn</code>, <code>ToolCall</code></li>
+            <li><code>EVAL_REPORT_SCHEMA_VERSION</code>, <code>rowKey</code>, <code>rowMatchedExpectation</code>, <code>summarizeReport</code></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Validation, history, and gating</h2>
+          <ul>
+            <li><code>validateEvalReport</code> (<code>ValidationResult</code>)</li>
+            <li><code>assessBaselineCompatibility</code></li>
+            <li><code>buildHistory</code>, <code>compareRuns</code> (<code>RunHistoryEntry</code>, <code>RunComparison</code>)</li>
+            <li><code>checkGates</code> (<code>GateConfig</code>, <code>GateResult</code>)</li>
+            <li><code>lintReportTaxonomy</code>, <code>lintReportsTaxonomy</code> (<code>TaxonomyLintResult</code>)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Reporting, publishing, and config</h2>
+          <ul>
+            <li><code>renderGroupedIndexHtml</code></li>
+            <li><code>publishReport</code> (<code>PublishOptions</code>, <code>PublishResult</code>, <code>PublishTarget</code>)</li>
+            <li><code>loadConfig</code>, <code>mergeConfig</code> (<code>EvalReportsConfig</code>)</li>
+            <li><code>BUILT_IN_THEMES</code>, <code>resolveTheme</code> (<code>EvalReportsTheme</code>)</li>
+            <li><code>formatDate</code>, <code>formatPassRate</code>, <code>formatDuration</code>, <code>formatCount</code></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Adapters and adjudication</h2>
+          <ul>
+            <li><code>createEvalReportArtifact</code>, <code>writeEvalReportArtifact</code></li>
+            <li><code>RunnerEvalResult</code>, <code>RunnerEvalCaseResult</code></li>
+            <li><code>exportUnresolvedRowsBundle</code>, <code>mergeAdjudicationBundle</code>, <code>validateAdjudicationBundle</code></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Canonical references</h2>
+          <ul>
+            <li><a href="https://github.com/IcodeNet/eval-dashboards/blob/main/src/index.ts">Public exports (source): src/index.ts</a></li>
+            <li><a href="https://github.com/IcodeNet/eval-dashboards/blob/main/src/model/eval-report-v1.ts">Model types: src/model/eval-report-v1.ts</a></li>
+            <li><a href="https://github.com/IcodeNet/eval-dashboards/blob/main/schemas/eval-report-v1.schema.json">JSON Schema: schemas/eval-report-v1.schema.json</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -50,6 +50,14 @@ Example:
 eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
 ```
 
+Machine-readable CI output:
+
+```sh
+eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --json-out=eval-report/check-result.json
+```
+
+`check-result.json` includes `newlyFailingRows[]` with `reportAnchor` values (`#row-<suite:id>`) so CI annotations can deep-link directly to row evidence in the generated HTML report.
+
 Warning-aware gate options:
 
 - `--max-warnings=<n>`: fail if taxonomy warnings exceed budget.

@@ -4773,6 +4773,7 @@ Options:
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+  --json-out=<path>                Write machine-readable gate result JSON
 `;
 var publishUsage = `eval-dashboards publish [options]
 
@@ -5219,6 +5220,25 @@ ${written.join("\n")}`);
       context.baselineCompatibility,
       context.previous
     );
+    const jsonOut = optionString(options, "json-out", "");
+    if (jsonOut) {
+      await writeJsonFile(jsonOut, {
+        schemaVersion: "eval-check-result/v1",
+        runId: context.current.run.id,
+        baselineRunId: context.previous?.run.id,
+        passed: result.passed,
+        failures: result.failures,
+        diagnostics: result.diagnostics,
+        baselineCompatibility: context.baselineCompatibility,
+        newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
+          id: row.id,
+          suite: row.suite,
+          category: row.category,
+          severity: row.severity,
+          reportAnchor: `#row-${encodeURIComponent(`${row.suite}:${row.id}`)}`
+        }))
+      });
+    }
     if (result.passed) {
       if (result.diagnostics.length > 0) {
         console.log(`Gate diagnostics:

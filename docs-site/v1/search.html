@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <title>Search · eval-dashboards docs v1</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Search <small>v1</small></h1>
+        <p>Search docs sections, commands, and integration guides.</p>
+      </header>
+
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./adopt-now.html">Adopt now</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./schema-taxonomy.html">Schema/Taxonomy</a>
+        <a href="./ci-gates.html">CI Gates</a>
+        <a href="./publishing.html">Publishing</a>
+        <a href="./integrations.html">Integrations</a>
+        <a href="./assistant-ui-case-study.html">assistant-ui case study</a>
+        <a href="./api-reference.html">API Reference</a>
+        <a href="./search.html">Search</a>
+      </nav>
+
+      <main>
+        <section class="card">
+          <label for="q"><strong>Search query</strong></label>
+          <input id="q" type="search" placeholder="e.g. import adapters, baseline strategy, api" style="width:100%;margin-top:.5rem;padding:.65rem;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg);" />
+          <p class="muted">Matches title, summary, and keywords. Client-side only.</p>
+        </section>
+
+        <section>
+          <h2>Results</h2>
+          <ul id="results"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const pages = [
+        { url: './index.html', title: 'Home', summary: 'Onboarding path and docs map', keywords: 'onboarding install init lint check report publish docs map' },
+        { url: './adopt-now.html', title: 'Adopt now', summary: 'Simple adoption path using your existing runner and CI', keywords: 'adopt now existing runner ci integration simple english' },
+        { url: './getting-started.html', title: 'Getting Started', summary: 'CLI-first setup by runner and copy-paste commands', keywords: 'init preset runner vitest jest node python playbook teach' },
+        { url: './cli.html', title: 'CLI', summary: 'Command reference and flags', keywords: 'report check lint publish import adjudicate completion teach init' },
+        { url: './schema-taxonomy.html', title: 'Schema/Taxonomy', summary: 'eval-report/v1 contract and taxonomy completeness', keywords: 'schema taxonomy eval-report suite row manifest riskArea graders trace' },
+        { url: './ci-gates.html', title: 'CI Gates', summary: 'Gate order, baseline strategy, warning budgets', keywords: 'gates baseline rolling champion max-new-failures zero-critical statistical' },
+        { url: './publishing.html', title: 'Publishing', summary: 'Static publish targets and pages deployment', keywords: 'publish github-pages azure storage report-dir static' },
+        { url: './integrations.html', title: 'Integrations', summary: 'Works with promptfoo, deepeval, agentevals and observability tools', keywords: 'promptfoo deepeval agentevals openevals langfuse weave phoenix braintrust ragas trulens patronus' },
+        { url: './assistant-ui-case-study.html', title: 'assistant-ui case study', summary: 'Reference integration with reproducible commands', keywords: 'assistant-ui case study external harness artifact lint check report' },
+        { url: './api-reference.html', title: 'API Reference', summary: 'Public TypeScript exports for package consumers', keywords: 'api typescript exports validateEvalReport summarizeReport checkGates adapters' },
+      ];
+
+      const q = document.getElementById('q');
+      const results = document.getElementById('results');
+
+      const render = (items) => {
+        results.innerHTML = '';
+        if (items.length === 0) {
+          results.innerHTML = '<li class="muted">No matches. Try shorter terms or different keywords.</li>';
+          return;
+        }
+        for (const item of items) {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="${item.url}"><strong>${item.title}</strong></a><br/><span class="muted">${item.summary}</span>`;
+          results.appendChild(li);
+        }
+      };
+
+      const search = () => {
+        const terms = q.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        if (terms.length === 0) {
+          render(pages);
+          return;
+        }
+        const filtered = pages.filter((p) => {
+          const hay = `${p.title} ${p.summary} ${p.keywords}`.toLowerCase();
+          return terms.every((t) => hay.includes(t));
+        });
+        render(filtered);
+      };
+
+      q.addEventListener('input', search);
+      render(pages);
+    </script>
+  </body>
+</html>

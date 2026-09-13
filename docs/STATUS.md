@@ -20,7 +20,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Add initial gate checking.
 - [x] Add starter `text`, `json-summary`, `markdown-summary`, and `html` reporters.
 - [x] Add local directory publish target.
-- [x] Add production publishing targets for GitHub Pages, Azure Static Web Apps, and Azure Storage (with dry-run preview mode).
+- [x] Implement publishing adapters for GitHub Pages, Azure Static Web Apps, and Azure Storage (with dry-run preview mode).
 - [x] Add required example directories and starter artifacts.
 - [x] Add runnable provider-free agent/chat eval example that generates artifacts and reports.
 - [x] Add focused starter tests.
@@ -29,8 +29,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Implement full config loading from `eval-dashboards.config.ts`, `eval-dashboards.config.js`, and `package.json`.
 - [x] Align documentation: sweep and replace old `@icodenet/eval-reports` / `eval-reports` naming with `@icodenet/eval-dashboards` / `eval-dashboards`.
 - [x] Add GitHub Actions CI workflow (typecheck, test, build, example smoke tests).
-- [x] Export JSON Schema for `eval-report/v1` to `schemas/eval-report-v1.schema.json` (5800+ lines, all type definitions and descriptions).
-- [x] Create comprehensive taxonomy teaching documentation at `docs/taxonomy.md` (4200+ lines, definitions, examples, checklist, FAQ).
+- [x] Export JSON Schema for `eval-report/v1` to `schemas/eval-report-v1.schema.json` (published and maintained in-repo).
+- [x] Create comprehensive taxonomy teaching documentation at `docs/taxonomy.md` (definitions, examples, checklist, FAQ).
 - [x] Create taxonomy-complete init fixture at `examples/taxonomy-complete-fixture/run-complete.json` with README demonstrating best practices.
 - [x] Create runner cookbook: Vitest example with README and patterns.
 - [x] Create runner cookbook: Jest custom reporter example with README and patterns.
@@ -40,8 +40,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Add taxonomy completeness score (0–100%) to row display with visual indicators.
 - [x] Add kind badges (deterministic, agent, llm-judge, human-review) to row display.
 - [x] Add "All rows (by dataset & scenario)" section with full grouping.
-- [x] Implement production Azure Static Web Apps publishing (real, not dry-run).
-- [x] Implement production Azure Storage static website publishing (real, not dry-run).
+- [x] Implement Azure Static Web Apps publishing adapter (including dry-run validation path).
+- [x] Implement Azure Storage static website publishing adapter (including dry-run validation path).
 - [x] Add persistent failure detection with `analyzeRowStability()` function.
 - [x] Add flaky row classification based on pass/fail history across runs.
 - [x] Create CONTRIBUTING.md with development workflow, project structure, and commit guidelines.
@@ -60,7 +60,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - Only the latest post-rewrite release should be treated as the valid reference for the current implementation.
 - Earlier release artifacts are superseded and should not be used to evaluate the present code state.
 
-## Remaining / Deferred
+## Ongoing (live KPIs)
 
 - [x] Create community feedback loop infrastructure and early-runner outreach tracker (Phase 4 readiness).
 	- Added weekly metrics loop via `pnpm metrics:adoption` and snapshot output in `docs/adoption-metrics/latest.json`.
@@ -107,7 +107,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
-### Phase 4B setup automation checklist (in progress)
+### Phase 4B setup automation checklist (complete)
 
 - [x] 4B.1 Expand existing `init` with composable setup/runner/ci flags while preserving current behavior.
 - [x] 4B.2 Generate checked-in local-agent setup playbook output with verify-before-merge command block.
@@ -118,7 +118,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] 4B.7 Add human adjudication export/import package flow.
 - [x] 4B.8 Add cost-quality frontier and benchmark-pack templates.
 
-### Phase 4C docs-site adoption checklist (in progress)
+### Phase 4C docs-site adoption checklist (slices complete; docs-generation stack decision open)
 
 - [x] 4C.1 Stand up static product docs site on GitHub Pages.
 - [x] 4C.2 Publish CLI-first onboarding flow centered on `init` + local-agent setup prompts.
@@ -129,11 +129,21 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] 4C.7 Expand interoperability docs for supplementary eval toolchains and operations stack guidance.
 - [x] 4C.8 Add integration risk register (runtime/version drift, sidecar dependencies, schema drift, cloud coupling, synthetic overfitting).
 - [x] 4C.9 Add trace-first evidence hardening guidance and end-to-end example.
+- [x] 4C.10 Add adopt-now docs path and candidate existing-runner adoption map (`docs-site/v1/adopt-now.html`, `docs/adoption-map.md`).
+
+### Phase 4D trusted confidence + adoption execution checklist (planned)
+
+- [ ] 4D.1 Add schema generation + schema-drift CI guard and remove stale count/completion claims.
+- [ ] 4D.2 Add prioritized execution backlog for validation hardening, CI-native outputs, metrics path, Python adoption, interop expansion, calibration, and OTel guidance.
+- [ ] 4D.3 Deliver the 14-day window (exactly 6 items) with owner/dependency/acceptance criteria tracking.
+- [ ] 4D.4 Deliver the 45-day window (exactly 8 items) with owner/dependency/acceptance criteria tracking.
+- [ ] 4D.5 Add critical/high risk register entries with trigger signals and mitigations.
+- [ ] 4D.6 Keep README/ROADMAP/STATUS/help/publishing/examples discoverability and claim consistency synchronized.
 
 **Immediate next implementation slices**
 
 - Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
-- Keep CI-native machine outputs as the 4B.6 follow-on slice after trace-link rollout.
+- CI-native machine output slice is complete: `check --json-out` now emits machine-readable gate results with one-hop row evidence anchors.
 
 **External Phase 4: Shipping & Adoption**
 

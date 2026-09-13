@@ -19,4 +19,5 @@ Options:
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+  --json-out=<path>                Write machine-readable gate result JSON
 

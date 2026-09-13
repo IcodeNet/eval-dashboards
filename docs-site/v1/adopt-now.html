@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <title>Adopt now · eval-dashboards docs v1</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Adopt now <small>v1</small></h1>
+        <p>Use your existing runner. Add eval-dashboards as a reporting and gating layer.</p>
+      </header>
+
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./adopt-now.html">Adopt now</a>
+        <a href="./getting-started.html">Getting Started</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./schema-taxonomy.html">Schema/Taxonomy</a>
+        <a href="./ci-gates.html">CI Gates</a>
+        <a href="./publishing.html">Publishing</a>
+        <a href="./integrations.html">Integrations</a>
+        <a href="./assistant-ui-case-study.html">assistant-ui case study</a>
+        <a href="./api-reference.html">API Reference</a>
+        <a href="./search.html">Search</a>
+      </nav>
+
+      <main>
+        <section class="card">
+          <h2>What to keep</h2>
+          <ul>
+            <li>Keep your current test or eval runner.</li>
+            <li>Keep your current CI workflow.</li>
+            <li>Keep your existing datasets and assertions.</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>What to add</h2>
+          <ol>
+            <li>Install <code>@icodenet/eval-dashboards</code>.</li>
+            <li>Write eval results into <code>.evals_output/*.json</code> as <code>eval-report/v1</code>.</li>
+            <li>Run <code>eval-dashboards lint</code>, <code>check</code>, and <code>report</code>.</li>
+            <li>Publish the static report directory in CI.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h2>Copy-paste path (simple)</h2>
+<pre><code>pnpm add -D @icodenet/eval-dashboards
+
+# optional starter scaffolding
+eval-dashboards init --preset=agent-quality --write --playbook
+
+# keep your existing runner command here
+pnpm test
+
+# eval-dashboards layer
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --json-out=eval-report/check-result.json
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-report</code></pre>
+        </section>
+
+        <section>
+          <h2>If your runner is Promptfoo, DeepEval, or AgentEvals</h2>
+<pre><code>eval-dashboards import --from=promptfoo --input=./promptfoo-results.json --out=.evals_output/import-promptfoo.json
+# or
+eval-dashboards import --from=deepeval --input=./deepeval-results.json --out=.evals_output/import-deepeval.json
+# or
+eval-dashboards import --from=agentevals --input=./agentevals-results.json --out=.evals_output/import-agentevals.json
+
+# then run the same lint/check/report flow
+eval-dashboards lint --input=.evals_output
+eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical
+eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report</code></pre>
+        </section>
+
+        <section>
+          <h2>Definition of done for adoption</h2>
+          <ul>
+            <li>Your CI job fails on real regressions (not just test command failures).</li>
+            <li>Your team can open one static report URL and see row-level evidence.</li>
+            <li>You can compare current run vs baseline with stable row ids.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Adoption map (candidate repo targets)</h2>
+          <p>See <a href="https://github.com/IcodeNet/eval-dashboards/blob/main/docs/adoption-map.md">docs/adoption-map.md</a> for three candidate existing-runner adoption targets and PR-style change sets. Not endorsed or accepted by those projects.</p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

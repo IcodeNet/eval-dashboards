@@ -3,19 +3,19 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-09-12
+**Last updated:** 2026-09-13
 
 ---
 
 ## ✅ Phase 1: Fix consistency & polish the foundation (COMPLETE)
 
-- [x] Naming alignment → Swept 54 references across 21 files
+- [x] Naming alignment across legacy `eval-reports` references
 - [x] Implement `eval-dashboards init` config generation
 - [x] Full config loading from `eval-dashboards.config.ts`, `.js`, and `package.json`
 - [x] Enforce suite-manifest gate policy thresholds in `check`
 - [x] Add GitHub Actions CI workflow (typecheck + test + build + example smoke tests)
 
-**Outcome:** Foundation is solid. All 33 tests passing, TypeScript clean, CI workflow active.
+**Outcome:** Foundation is solid. Test suite, TypeScript, and CI workflow are green.
 
 ---
 
@@ -24,8 +24,8 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 The schema is only useful if runners emit it. Phase 2A made taxonomy first-class through docs + examples.
 
 ### What's done:
-- [x] Export JSON Schema for `eval-report/v1` → `schemas/eval-report-v1.schema.json` (5800+ lines, all definitions)
-- [x] Create `docs/taxonomy.md` → Complete teaching guide with definitions, examples, and checklist (4200+ lines)
+- [x] Export JSON Schema for `eval-report/v1` → `schemas/eval-report-v1.schema.json` (published and maintained in-repo)
+- [x] Create `docs/taxonomy.md` → Complete teaching guide with definitions, examples, and checklist
 - [x] Taxonomy-complete init fixture → `examples/taxonomy-complete-fixture/run-complete.json` + README
 - [x] Runner cookbook for Vitest, Jest, and plain Node (with examples and step-by-step guides)
 - [x] README updated to lead with schema + taxonomy + adoption messaging + Visual Gallery with live dashboards
@@ -392,7 +392,7 @@ Acceptance criteria:
 ### 4B.6 Trace-link fields first, CI-native outputs second (P1)
 
 - [x] Add optional trace reference fields (portable IDs/URLs) in artifacts and render as links where present.
-- [ ] Keep CI-native machine outputs as a follow-on slice after trace-link fields and import adapters are stable.
+- [x] Keep CI-native machine outputs as a follow-on slice after trace-link fields and import adapters are stable.
 
 Acceptance criteria:
 
@@ -560,6 +560,18 @@ Acceptance criteria:
 - Report output demonstrates clickable trace evidence on at least one maintained example.
 - Docs and maintained examples include trace capture as optional but first-class evidence for agent/tool failures.
 
+### 4C.10 Adopt-now path + existing-runner adoption map (P1)
+
+- [x] Publish `docs-site/v1/adopt-now.html` with a simple copy-paste adoption path that preserves existing runners.
+- [x] Publish `docs/adoption-map.md` with candidate PR-style change sets for three known external repos.
+- [x] Add non-endorsement disclaimers where external repo candidates are referenced in public docs-site pages.
+
+Acceptance criteria:
+
+- Adopt-now page is linked from the docs-site index and includes a copy-paste flow.
+- Adoption map documents candidate-only positioning, evidence anchors, and risk notes.
+- Public docs surfaces include non-endorsement language for external candidate repos.
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
@@ -571,6 +583,7 @@ Acceptance criteria:
 7. 4C.7 Supplementary tooling map + interoperability expansion
 8. 4C.8 Integration risk register
 9. 4C.9 Trace-first evidence hardening
+10. 4C.10 Adopt-now path + existing-runner adoption map
 
 ---
 
@@ -593,18 +606,146 @@ Acceptance criteria:
 
 ---
 
-## 🎯 Recommended next steps (prioritized by impact)
+## 🚧 Phase 4D: Trusted confidence reports and adoption execution (NEW)
+
+Mission
+
+Make eval-dashboards the de facto place to learn evals and produce trusted confidence reports and benchmarks for agents.
+
+Ground-truth inputs for this slice
+
+- Current repository files are the source of truth for all roadmap/docs claims.
+
+Non-negotiables
+
+- Preserve runner-agnostic, artifact-first design.
+- Do not break `eval-report/v1` compatibility (additive-only unless explicitly approved).
+- No marketing wording; use concrete, testable acceptance criteria.
+
+### 4D.1 Single-truth drift closure (P0)
+
+- [ ] Add schema-generation + schema-drift CI guard slice to roadmap and status.
+- [ ] Remove stale line-count, test-count, and completion-state claims across roadmap/status/docs.
+
+Acceptance criteria:
+
+- A generated-schema source path is defined and documented.
+- CI fails when generated schema drifts from source model.
+- No stale count claims remain in maintained docs surfaces.
+
+### 4D.2 Prioritized execution backlog from review findings (P0)
+
+- [ ] Schema generation from TS + CI drift guard.
+- [ ] Ajv/runtime validation hardening with stable error shape.
+- [ ] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
+- [ ] First-class usage metrics path (tokens/cost/latency).
+- [ ] Python emitter/adoption path.
+- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs).
+- [ ] Judge calibration workflow and measurable agreement reporting.
+- [ ] Trace/OTel evidence hardening guidance.
+
+Acceptance criteria:
+
+- Each item has a named owner recommendation, dependency chain, and objective pass/fail checks.
+
+### 4D.3 14-day execution window (exactly 6 items)
+
+1. Schema generation source of truth + CI drift check
+   - Suggested owner: core maintainer
+   - Dependency: none
+   - Acceptance: schema generation command exists; CI fails on drift
+2. Stable validation error contract (Ajv/runtime)
+   - Suggested owner: model/validation maintainer
+   - Dependency: item 1
+   - Acceptance: deterministic error shape documented + tested
+3. CI machine output v1 (`--json-out` baseline + annotation mapping)
+   - Suggested owner: CLI/gates maintainer
+   - Dependency: item 2
+   - Acceptance: one-hop row anchors emitted for newly failing rows
+4. Docs truth-sync sweep for stale claims
+   - Suggested owner: docs maintainer
+   - Dependency: items 1-3
+   - Acceptance: roadmap/status/help/examples consistent by grep evidence
+5. Extend adopt-now path with per-runner walkthroughs and richer validation examples (base path delivered in 4C.10)
+   - Suggested owner: docs/adoption maintainer
+   - Dependency: item 4
+   - Acceptance: at least three runner-specific walkthroughs and validation examples published on top of the base adopt-now path
+6. Proofreader + full verification gate for this window
+   - Suggested owner: release gatekeeper
+   - Dependency: items 1-5
+   - Acceptance: stronger-model proofreader verdict + test/typecheck/build green
+
+### 4D.4 45-day execution window (exactly 8 items)
+
+1. JUnit output for check/lint CI consumers
+   - Suggested owner: CLI maintainer
+   - Dependency: 14-day item 3
+   - Acceptance: deterministic JUnit file with failing row linkage
+2. SARIF output for code-scanning style surfaces
+   - Suggested owner: CLI maintainer
+   - Dependency: 45-day item 1
+   - Acceptance: SARIF artifact validates and links to row anchors
+3. GitHub annotation helper path
+   - Suggested owner: CI integrations maintainer
+   - Dependency: 45-day items 1-2
+   - Acceptance: workflow example emits actionable annotations
+4. Usage metrics contract (tokens/cost/latency) and docs
+   - Suggested owner: schema/model maintainer
+   - Dependency: 14-day items 1-2
+   - Acceptance: additive fields documented; reporters surface metrics when present
+5. Python emitter path (first-class adoption)
+   - Suggested owner: adapters maintainer
+   - Dependency: 14-day item 5
+   - Acceptance: python example emits valid `eval-report/v1` without manual JSON editing
+6. Interop adapter expansion pack
+   - Suggested owner: integrations maintainer
+   - Dependency: 14-day item 3
+   - Acceptance: each adapter has fixture + conversion docs + verification tests
+7. Judge calibration workflow hardening
+   - Suggested owner: eval methodology maintainer
+   - Dependency: 14-day item 2
+   - Acceptance: measurable agreement/disagreement and threshold examples in docs/tests
+8. Trace/OTel evidence hardening
+   - Suggested owner: observability maintainer
+   - Dependency: 14-day items 3 and 5
+   - Acceptance: maintained end-to-end example from failing row to trace deep link
+
+### 4D.5 Risk register entries (critical/high)
+
+1. Schema drift risk (critical)
+   - Risk if ignored: contract divergence between model and published schema
+   - Trigger signals: validator/schema mismatch, docs disagree with runtime
+   - Mitigation: generated-schema source + CI drift gate
+2. Unstable validation surface (high)
+   - Risk if ignored: non-deterministic CI behavior and hard-to-debug failures
+   - Trigger signals: same bad input yields different error text/shape
+   - Mitigation: stable structured error contract + tests
+3. Missing CI-native outputs (high)
+   - Risk if ignored: gates fail without actionable pointers in CI systems
+   - Trigger signals: CI failures with no row-level mapping
+   - Mitigation: json/junit/sarif outputs with row anchor links
+4. Weak usage-metrics path (high)
+   - Risk if ignored: teams cannot evaluate quality/cost/latency trade-offs
+   - Trigger signals: decision docs omit cost/latency evidence
+   - Mitigation: additive metrics fields + reporter/docs coverage
+5. Interop stagnation risk (high)
+   - Risk if ignored: adoption stalls in teams with established toolchains
+   - Trigger signals: repeated manual conversion workarounds
+   - Mitigation: adapter expansion with tested fixtures and docs
+
+### 4D.6 Discoverability constraints
+
+- Keep top-level README docs-site entry prominent.
+- Keep roadmap/status/publishing/examples/help surfaces synchronized per release gate.
 
 **Immediate (next 1–2 weeks):**
-1. Keep CI-native machine outputs as the 4B.6 follow-on slice
-   - ensure one-hop links from CI failures back to row-level evidence
+1. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
 
 **Short term (next 2–3 weeks):**
-2. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
-3. Continue dataset-governance hardening in lint/check preflight
+2. Continue dataset-governance hardening in lint/check preflight
 
 **Medium term:**
-4. External adoption push and community feedback loop
+3. External adoption push and community feedback loop
 
 ---
 
