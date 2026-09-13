@@ -808,7 +808,7 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
 
 // ── Grouped rows table with taxonomy completeness ──
 
-const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true): string => {
+const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true, anchorPrefix = 'row'): string => {
   if (!rows.length) return '<p class="empty">No rows.</p>';
 
   const groups = groupRows(rows);
@@ -838,7 +838,8 @@ const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true): string => {
           const colSpan = showTaxonomy ? 5 : 4;
           const detail = renderRowDetail(r, colSpan);
           const hasDetail = detail.length > 0;
-          return `<tr class="data-row${r.passed ? '' : ' fail-row'}"${hasDetail ? ` onclick="toggleRow(this)"` : ''}>
+          const rowDomId = `${anchorPrefix}-${encodeURIComponent(`${r.suite}:${r.id}`)}`;
+          return `<tr id="${rowDomId}" class="data-row${r.passed ? '' : ' fail-row'}"${hasDetail ? ` onclick="toggleRow(this)"` : ''}>
           <td class="col-row">${hasDetail ? '<span class="expand-toggle">▶</span>' : ''}<div class="row-name"><span class="row-name-label">${e(r.name ?? r.id)}</span>${r.name ? `<span class="row-name-id">${e(r.id)}</span>` : ''}</div></td>
           ${showTaxonomy ? `<td class="col-tax taxonomy-score"><span class="score ${tax.score >= 0.8 ? 'complete' : tax.score >= 0.5 ? 'partial' : 'incomplete'}" data-tip="${tax.missing.length ? 'Missing fields:\n' + e(tax.missing.join('\n')) : 'All recommended fields present'}">${Math.round(tax.score * 100)}%</span></td>` : ''}
           <td class="col-kind"><span class="kind-badge kind-${e(r.kind || 'unknown')}">${e(r.kind ?? 'unknown')}</span></td>
@@ -1690,7 +1691,7 @@ ${renderCssVariables(theme)}
           </div>` : ''}
         </div>`,
       body: `${failingRows.length > 0
-        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true)}</div>
+        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true, 'failrow')}</div>
              <div id="failrows-table" class="view-pane">${flatRowsTable(failingRows)}</div>
              <div id="failrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(failingRows, null, 2))}</pre></div>`
         : '<p class="empty">No failing rows.</p>'
@@ -1709,7 +1710,7 @@ ${renderCssVariables(theme)}
             <button class="view-btn" onclick="switchView('allrows','json',this)">JSON</button>
           </div>
         </div>`,
-      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true)}</div>
+      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true, 'row')}</div>
         <div id="allrows-table" class="view-pane">${flatRowsTable(current.rows)}</div>
         <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>`,
     })}
@@ -1777,6 +1778,30 @@ ${renderCssVariables(theme)}
       btns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
     }
+    function revealAnchorTarget() {
+      var hash = window.location.hash || '';
+      if (!hash || (hash.indexOf('#row-') !== 0 && hash.indexOf('#failrow-') !== 0)) return;
+      var id = hash.slice(1);
+      var target = document.getElementById(id);
+      if (!target) return;
+      var section = target.closest('.section.collapsible.collapsed');
+      if (section) {
+        section.classList.remove('collapsed');
+        var toggle = section.querySelector('.section-toggle');
+        if (toggle) {
+          toggle.setAttribute('aria-expanded', 'true');
+          var icon = toggle.querySelector('.section-toggle-icon');
+          if (icon) icon.textContent = '▾';
+        }
+      }
+      var detail = target.nextElementSibling;
+      if (detail && detail.classList.contains('detail-row') && !target.classList.contains('open')) {
+        toggleRow(target);
+      }
+      target.scrollIntoView({ block: 'center' });
+    }
+    window.addEventListener('hashchange', revealAnchorTarget);
+    window.addEventListener('DOMContentLoaded', revealAnchorTarget);
     (function () {
       var tip = document.getElementById('eval-tooltip');
       var hide = function () { tip.classList.remove('visible'); };

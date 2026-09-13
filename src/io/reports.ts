@@ -58,7 +58,9 @@ export const readEvalReport = async (filePath: string): Promise<EvalReportV1> =>
   const result = validateEvalReport(parsed);
 
   if (!result.ok) {
-    throw new Error(`Invalid eval report ${filePath}: ${result.errors.join(' ')}`);
+    const firstIssue = result.issues[0];
+    const issuePrefix = firstIssue ? `[${firstIssue.path}] ` : '';
+    throw new Error(`Invalid eval report ${filePath}: ${issuePrefix}${result.errors.join(' ')}`);
   }
 
   return result.report;

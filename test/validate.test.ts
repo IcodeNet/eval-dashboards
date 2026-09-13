@@ -434,4 +434,52 @@ describe('validateEvalReport', () => {
       'datasetChangelog[0].changeType must be one of initial-baseline, patch, minor, major.',
     );
   });
+
+  it('returns stable structured validation issues', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, trace: { traceId: 42 } }],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as {
+      ok: false;
+      errors: string[];
+      issues: Array<{ code: string; path: string; message: string }>;
+    };
+    expect(failed.issues[0]).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      path: 'rows[0].trace.traceId',
+      message: 'rows[0].trace.traceId must be a string when provided.',
+    });
+  });
+
+  it('returns specific issue path for blocking suite rubricVersion requirement', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'quality',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: '1.0.0',
+          riskArea: 'response-quality',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'blocking', thresholds: { passRate: 0.9 } },
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as {
+      ok: false;
+      issues: Array<{ code: string; path: string; message: string }>;
+    };
+    expect(failed.issues.some((issue) => issue.path === 'suiteManifests[0].rubricVersion')).toBe(true);
+  });
 });

@@ -1,18 +1,33 @@
 import {
+  DATASET_CHANGE_TYPES,
+  DATASET_SOURCES,
   EVAL_REPORT_SCHEMA_VERSION,
+  EVAL_ROW_KINDS,
+  EVAL_TARGETS,
+  GATE_MODES,
+  GRADER_KINDS,
+  RISK_AREAS,
+  ROW_LIFECYCLE_STATUSES,
+  ROW_PROVENANCE_SOURCES,
   type DatasetSource,
-  type EvalReportV1,
   type EvalRowKind,
   type EvalTarget,
   type GraderKind,
   type RiskArea,
+  type EvalReportV1,
   type EvalSeverity,
   severityOrder,
 } from './eval-report-v1.js';
 
 export type ValidationResult =
   | { ok: true; report: EvalReportV1 }
-  | { ok: false; errors: string[] };
+  | { ok: false; errors: string[]; issues: ValidationIssue[] };
+
+export type ValidationIssue = {
+  code: 'VALIDATION_ERROR';
+  path: string;
+  message: string;
+};
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -28,58 +43,46 @@ const isRunConfigSnapshotValue = (value: unknown): boolean =>
 const isSeverity = (value: unknown): value is EvalSeverity =>
   isString(value) && severityOrder.includes(value as EvalSeverity);
 
-const rowKinds: EvalRowKind[] = ['deterministic', 'agent', 'llm-judge', 'human-review'];
+const parseValidationPath = (message: string): string => {
+  if (message.startsWith('Report must be')) return '$';
+  const markers = [' must', ' is required', ' is '];
+  const marker = markers
+    .map((token) => message.indexOf(token))
+    .filter((index) => index > 0)
+    .sort((a, b) => a - b)[0] ?? -1;
+  if (marker <= 0) return '$';
+  const candidate = message.slice(0, marker).trim();
+  return candidate.length > 0 ? candidate : '$';
+};
+
+export const toValidationIssues = (errors: string[]): ValidationIssue[] =>
+  errors.map((message) => ({
+    code: 'VALIDATION_ERROR',
+    path: parseValidationPath(message),
+    message,
+  }));
+
+const rowKinds = [...EVAL_ROW_KINDS];
 
 const isRowKind = (value: unknown): value is EvalRowKind =>
   isString(value) && rowKinds.includes(value as EvalRowKind);
 
-const evalTargets: EvalTarget[] = ['agent', 'conversation', 'judge', 'custom'];
-const datasetSources: DatasetSource[] = [
-  'synthetic',
-  'labelled-synthetic',
-  'production-sample',
-  'manual',
-  'custom',
-];
-const riskAreas: RiskArea[] = [
-  'compliance',
-  'pii',
-  'content-safety',
-  'prompt-safety',
-  'tone-of-voice',
-  'factuality',
-  'response-quality',
-  'tool-use',
-  'tool-routing',
-  'groundedness',
-  'relevance',
-  'custom',
-];
-const graderKinds: GraderKind[] = [
-  'deterministic-assertions',
-  'human-labelled-calibration',
-  'llm-judge',
-  'tool-call-check',
-  'custom',
-];
+const evalTargets = [...EVAL_TARGETS];
+const datasetSources = [...DATASET_SOURCES];
+const riskAreas = [...RISK_AREAS];
+const graderKinds = [...GRADER_KINDS];
 
-const provenanceSources = [
-  'synthetic',
-  'labelled-synthetic',
-  'production-review',
-  'incident',
-  'regression',
-  'custom',
-];
+const provenanceSources = [...ROW_PROVENANCE_SOURCES] as string[];
 
-const lifecycleStatuses = ['proposed', 'active', 'deprecated', 'quarantined', 'custom'];
-const datasetChangeTypes = ['initial-baseline', 'patch', 'minor', 'major'];
+const lifecycleStatuses = [...ROW_LIFECYCLE_STATUSES] as string[];
+const datasetChangeTypes = [...DATASET_CHANGE_TYPES] as string[];
 
 export const validateEvalReport = (value: unknown): ValidationResult => {
   const errors: string[] = [];
 
   if (!isObject(value)) {
-    return { ok: false, errors: ['Report must be a JSON object.'] };
+    const topLevelErrors = ['Report must be a JSON object.'];
+    return { ok: false, errors: topLevelErrors, issues: toValidationIssues(topLevelErrors) };
   }
 
   if (value.schemaVersion !== EVAL_REPORT_SCHEMA_VERSION) {
@@ -401,8 +404,8 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         if (!isObject(manifest.gate)) {
           errors.push(`suiteManifests[${index}].gate must be an object.`);
         } else {
-          if (manifest.gate.mode !== 'blocking' && manifest.gate.mode !== 'report-only') {
-            errors.push(`suiteManifests[${index}].gate.mode must be blocking or report-only.`);
+          if (!isString(manifest.gate.mode) || !(GATE_MODES as readonly string[]).includes(manifest.gate.mode)) {
+            errors.push(`suiteManifests[${index}].gate.mode must be ${GATE_MODES.join(' or ')}.`);
           }
 
           if (!isObject(manifest.gate.thresholds)) {
@@ -519,7 +522,7 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
   }
 
   if (errors.length > 0) {
-    return { ok: false, errors };
+    return { ok: false, errors, issues: toValidationIssues(errors) };
   }
 
   return { ok: true, report: value as EvalReportV1 };

@@ -1,12 +1,22 @@
 declare const EVAL_REPORT_SCHEMA_VERSION: "eval-report/v1";
-type EvalSeverity = 'none' | 'low' | 'medium' | 'high' | 'critical';
-type EvalRowKind = 'deterministic' | 'agent' | 'llm-judge' | 'human-review';
-type EvalTarget = 'agent' | 'conversation' | 'judge' | 'custom';
-type DatasetSource = 'synthetic' | 'labelled-synthetic' | 'production-sample' | 'manual' | 'custom';
-type GraderKind = 'deterministic-assertions' | 'human-labelled-calibration' | 'llm-judge' | 'tool-call-check' | 'custom';
-type RiskArea = 'compliance' | 'pii' | 'content-safety' | 'prompt-safety' | 'tone-of-voice' | 'factuality' | 'response-quality' | 'tool-use' | 'tool-routing' | 'groundedness' | 'relevance' | 'custom';
+declare const EVAL_SEVERITIES: readonly ["none", "low", "medium", "high", "critical"];
+declare const EVAL_ROW_KINDS: readonly ["deterministic", "agent", "llm-judge", "human-review"];
+declare const EVAL_TARGETS: readonly ["agent", "conversation", "judge", "custom"];
+declare const DATASET_SOURCES: readonly ["synthetic", "labelled-synthetic", "production-sample", "manual", "custom"];
+declare const GRADER_KINDS: readonly ["deterministic-assertions", "human-labelled-calibration", "llm-judge", "tool-call-check", "custom"];
+declare const RISK_AREAS: readonly ["compliance", "pii", "content-safety", "prompt-safety", "tone-of-voice", "factuality", "response-quality", "tool-use", "tool-routing", "groundedness", "relevance", "custom"];
+declare const ROW_PROVENANCE_SOURCES: readonly ["synthetic", "labelled-synthetic", "production-review", "incident", "regression", "custom"];
+declare const ROW_LIFECYCLE_STATUSES: readonly ["proposed", "active", "deprecated", "quarantined", "custom"];
+declare const DATASET_CHANGE_TYPES: readonly ["initial-baseline", "patch", "minor", "major"];
+declare const GATE_MODES: readonly ["blocking", "report-only"];
+type EvalSeverity = (typeof EVAL_SEVERITIES)[number];
+type EvalRowKind = (typeof EVAL_ROW_KINDS)[number];
+type EvalTarget = (typeof EVAL_TARGETS)[number];
+type DatasetSource = (typeof DATASET_SOURCES)[number];
+type GraderKind = (typeof GRADER_KINDS)[number];
+type RiskArea = (typeof RISK_AREAS)[number];
 type GatePolicy = {
-    mode: 'blocking' | 'report-only';
+    mode: (typeof GATE_MODES)[number];
     thresholds: Record<string, number>;
 };
 type ConversationTurn = {
@@ -28,13 +38,13 @@ type ToolCall = {
     durationMs?: number;
 };
 type RowProvenance = {
-    source: 'synthetic' | 'labelled-synthetic' | 'production-review' | 'incident' | 'regression' | 'custom';
+    source: (typeof ROW_PROVENANCE_SOURCES)[number];
     addedBy?: string;
     reason?: string;
     sourceRef?: string;
 };
 type RowLifecycle = {
-    status: 'proposed' | 'active' | 'deprecated' | 'quarantined' | 'custom';
+    status: (typeof ROW_LIFECYCLE_STATUSES)[number];
     since?: string;
     note?: string;
 };
@@ -79,7 +89,7 @@ type BaselineCompatibilityResult = {
     status: 'compatible' | 'warning' | 'blocked';
     issues: BaselineCompatibilityIssue[];
 };
-type DatasetChangeType = 'initial-baseline' | 'patch' | 'minor' | 'major';
+type DatasetChangeType = (typeof DATASET_CHANGE_TYPES)[number];
 type DatasetRowChanges = {
     added: number;
     updated: number;
@@ -224,6 +234,12 @@ type ValidationResult = {
 } | {
     ok: false;
     errors: string[];
+    issues: ValidationIssue[];
+};
+type ValidationIssue = {
+    code: 'VALIDATION_ERROR';
+    path: string;
+    message: string;
 };
 declare const validateEvalReport: (value: unknown) => ValidationResult;
 
@@ -505,4 +521,4 @@ type WriteEvalReportArtifactOptions<CaseResult extends RunnerEvalCaseResult = Ru
 declare const createEvalReportArtifact: <CaseResult extends RunnerEvalCaseResult>(result: RunnerEvalResult<CaseResult>, options?: CreateEvalReportArtifactOptions<CaseResult>) => EvalReportV1;
 declare const writeEvalReportArtifact: <CaseResult extends RunnerEvalCaseResult>(filePath: string, result: RunnerEvalResult<CaseResult>, options?: WriteEvalReportArtifactOptions<CaseResult>) => Promise<EvalReportV1>;
 
-export { ADJUDICATION_BUNDLE_SCHEMA_VERSION, type AdjudicationBundleRow, type AdjudicationBundleV1, type AdjudicationReview, BUILT_IN_THEMES, type BaselineCompatibilityIssue, type BaselineCompatibilityResult, type ConversationTurn, type CreateEvalReportArtifactOptions, type DatasetSource, EVAL_REPORT_SCHEMA_VERSION, type EvalReportV1, type EvalReportsConfig, type EvalReportsTheme, type EvalRow, type EvalRowKind, type EvalRun, type EvalSeverity, type EvalSuiteSummary, type EvalSummary, type EvalTarget, type GateConfig, type GatePolicy, type GateResult, type GraderKind, type MergeAdjudicationResult, type PublishOptions, type PublishResult, type PublishTarget, type RegisteredRubric, type RiskArea, type RunComparison, type RunHistoryEntry, type RunnerEvalCaseResult, type RunnerEvalResult, type SuiteManifest, type SuiteRubricContract, type TaxonomyLintIssue, type TaxonomyLintLevel, type TaxonomyLintResult, type ToolCall, type TraceReference, type ValidationResult, type WriteEvalReportArtifactOptions, assessBaselineCompatibility, buildHistory, checkGates, compareRuns, createEvalReportArtifact, exportUnresolvedRowsBundle, formatCount, formatDate, formatDuration, formatPassRate, lintReportTaxonomy, lintReportsTaxonomy, loadConfig, mergeAdjudicationBundle, mergeConfig, publishReport, renderGroupedIndexHtml, resolveTheme, rowKey, rowMatchedExpectation, summarizeReport, validateAdjudicationBundle, validateEvalReport, writeEvalReportArtifact };
+export { ADJUDICATION_BUNDLE_SCHEMA_VERSION, type AdjudicationBundleRow, type AdjudicationBundleV1, type AdjudicationReview, BUILT_IN_THEMES, type BaselineCompatibilityIssue, type BaselineCompatibilityResult, type ConversationTurn, type CreateEvalReportArtifactOptions, type DatasetSource, EVAL_REPORT_SCHEMA_VERSION, type EvalReportV1, type EvalReportsConfig, type EvalReportsTheme, type EvalRow, type EvalRowKind, type EvalRun, type EvalSeverity, type EvalSuiteSummary, type EvalSummary, type EvalTarget, type GateConfig, type GatePolicy, type GateResult, type GraderKind, type MergeAdjudicationResult, type PublishOptions, type PublishResult, type PublishTarget, type RegisteredRubric, type RiskArea, type RunComparison, type RunHistoryEntry, type RunnerEvalCaseResult, type RunnerEvalResult, type SuiteManifest, type SuiteRubricContract, type TaxonomyLintIssue, type TaxonomyLintLevel, type TaxonomyLintResult, type ToolCall, type TraceReference, type ValidationIssue, type ValidationResult, type WriteEvalReportArtifactOptions, assessBaselineCompatibility, buildHistory, checkGates, compareRuns, createEvalReportArtifact, exportUnresolvedRowsBundle, formatCount, formatDate, formatDuration, formatPassRate, lintReportTaxonomy, lintReportsTaxonomy, loadConfig, mergeAdjudicationBundle, mergeConfig, publishReport, renderGroupedIndexHtml, resolveTheme, rowKey, rowMatchedExpectation, summarizeReport, validateAdjudicationBundle, validateEvalReport, writeEvalReportArtifact };

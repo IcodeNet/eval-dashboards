@@ -26,9 +26,56 @@ jobs:
       - name: Generate eval dashboard
         run: npx @icodenet/eval-dashboards report --reporter=html --reporter=json-summary
 
-      # 3 — Enforce gates (non-zero exit blocks the PR)
+      # 3 — Enforce gates and produce CI-native machine outputs
       - name: Check eval gates
-        run: npx @icodenet/eval-dashboards check --min-pass-rate=0.9 --max-new-failures=0 --zero-critical
+        id: check
+        continue-on-error: true
+        run: |
+          # --json-out is required for steps 3c/3d to enforce failures reliably.
+          npx @icodenet/eval-dashboards check \
+            --min-pass-rate=0.9 \
+            --max-new-failures=0 \
+            --zero-critical \
+            --json-out=eval-report/check-result.json \
+            --junit-out=eval-report/check-result.junit.xml \
+            --sarif-out=eval-report/check-result.sarif.json \
+            --github-annotations-out=eval-report/check-annotations.json
+
+      # 3b — Emit GitHub log annotations from adapter JSON
+      - name: Emit GitHub annotations
+        if: always() && hashFiles('eval-report/check-annotations.json') != ''
+        run: |
+          jq -r '.[] | @base64' eval-report/check-annotations.json | while read -r item; do
+            json=$(echo "$item" | base64 --decode)
+            level=$(echo "$json" | jq -r '.level')
+            title=$(echo "$json" | jq -r '.title')
+            message=$(echo "$json" | jq -r '.message')
+            message=${message//'%'/'%25'}
+            message=${message//$'\r'/'%0D'}
+            message=${message//$'\n'/'%0A'}
+            if [ "$level" = "error" ]; then
+              echo "::error title=$title::$message"
+            else
+              echo "::warning title=$title::$message"
+            fi
+          done
+
+      # 3c — Preserve non-gate failures (invalid config, missing artifacts)
+      - name: Fail on check execution errors
+        if: steps.check.outcome == 'failure' && hashFiles('eval-report/check-result.json') == ''
+        run: |
+          echo "Eval check command failed before producing check-result.json"
+          exit 1
+
+      # 3d — Fail job explicitly when gates failed
+      - name: Fail on gate result
+        if: always() && hashFiles('eval-report/check-result.json') != ''
+        run: |
+          passed=$(jq -r '.passed' eval-report/check-result.json)
+          if [ "$passed" != "true" ]; then
+            echo "Eval gates failed. See eval-report/check-result.json"
+            exit 1
+          fi
 
       # 4 — Publish dashboard to GitHub Pages (main branch only)
       - name: Publish to GitHub Pages

@@ -162,7 +162,9 @@ const validateCreatedReport = (report: EvalReportV1): EvalReportV1 => {
   const result = validateEvalReport(report);
 
   if (!result.ok) {
-    throw new Error(`Invalid eval report artifact: ${result.errors.join(' ')}`);
+    const firstIssue = result.issues[0];
+    const issuePrefix = firstIssue ? `[${firstIssue.path}] ` : '';
+    throw new Error(`Invalid eval report artifact: ${issuePrefix}${result.errors.join(' ')}`);
   }
 
   return result.report;

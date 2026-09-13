@@ -587,6 +587,116 @@ Acceptance criteria:
 
 ---
 
+## 🚧 Phase 4E: Trust hardening for CI gating and eval methodology (NEW)
+
+Mission
+
+Close the gaps identified by an external architect + methodology review before recommending eval-dashboards as the standard evals layer for agent teams building on shared CI/CD infrastructure. Stay a runner-agnostic, offline-first reporting/gating toolkit — do not expand into a hosted observability platform (that is a separate, explicitly out-of-scope decision; see "Non-goals for this phase" below).
+
+Review inputs
+
+- Staff Platform/DevOps Architect review (2026-09-13): CI-native outputs and gate primitives are strong; missing alerting, gate-reliability telemetry, and adjudication/dataset rigor before broad rollout.
+- Senior AI/ML Evaluation Methodologist review (2026-09-13): taxonomy/gating primitives are strong; calibration enforcement, multi-reviewer adjudication defaults, and dataset governance are the top trust gaps; curriculum teaches mechanics more than judgment.
+
+### 4E.1 Alerting adapters (P0, S)
+
+- [ ] Add notification adapters for gate failure / trend regression: Slack webhook, Teams webhook, generic email/SMTP.
+- [ ] Ship as opt-in CLI flags/config (for example `check --notify=slack --notify-webhook=<url>`), independent of hosting decisions.
+
+Acceptance criteria:
+
+- A blocking gate failure or a newly-blocked baseline can trigger at least one notification channel without custom scripting.
+- Notification payload includes run id, failing suite(s), and a link back to the published report or artifact path.
+
+### 4E.2 Gate reliability heartbeat (P0, S)
+
+- [ ] Emit a machine-readable gate-run status (`ran` | `skipped` | `errored`) alongside existing `check` outputs.
+- [ ] Document how to wire this heartbeat into existing CI monitoring so a silently skipped/errored gate is itself an alertable signal.
+
+Acceptance criteria:
+
+- A CI job where `check` errors non-fatally or is skipped produces a distinguishable status from a clean pass, and this is documented with an example.
+
+### 4E.3 Mandatory pre-gate calibration check (P0, M)
+
+- [ ] `check` refuses to run a `blocking` gate against a suite with judge-calibration configured unless a calibration run exists within a configurable recency window and matches the current `judgeModel` + `rubricVersion`.
+- [ ] Default behavior on missing/stale calibration: warn loudly in report-only mode, fail in blocking mode (configurable escape hatch documented).
+
+Acceptance criteria:
+
+- A blocking judge-scored suite with no matching recent calibration run fails `check` with an actionable message naming the missing calibration evidence.
+
+### 4E.4 Multi-reviewer adjudication as the default (P0, M)
+
+- [ ] Require ≥2 independent reviewers for calibration ground truth by default; single-reviewer mode becomes an explicit opt-down flag, not the default path.
+- [ ] Report inter-rater disagreement rate alongside judge agreement/disagreement in artifacts and reporters.
+
+Acceptance criteria:
+
+- Default `init --setup=judges` scaffolding and docs demonstrate two-reviewer adjudication; single-reviewer mode is documented as an explicit reduced-rigor opt-out.
+
+### 4E.5 Dataset governance hardening (P1, M)
+
+- [ ] Add `lint` checks for duplicate dataset case ids, orphaned `scenarioId` references, and minimum coverage-per-category warnings.
+- [ ] Document these checks in the dataset governance section of the taxonomy docs.
+
+Acceptance criteria:
+
+- `lint` fails or warns (configurable strictness) on a fixture containing duplicate case ids or orphaned scenario references.
+
+### 4E.6 Ship scoped P1 security presets (P1, M)
+
+- [ ] Implement `output-handling-safety` and `prompt-leakage-resilience` presets already scoped in `docs/industry-coverage-audit.md`.
+- [ ] Split `content-safety`-style guidance into category-specific suites (violence, self-harm, hate/harassment) rather than one undifferentiated bucket.
+
+Acceptance criteria:
+
+- Each new preset has dataset/rubric templates, gate defaults, and scaffold output parity with existing presets.
+
+### 4E.7 "Diagnose a red run" exercise (P1, S)
+
+- [ ] Add an 11th teach-exercise workbook (`docs/teach-exercises/11-diagnose-a-red-run.md`) built around a pre-authored failing artifact combining a blocked baseline, a statistical gate failure, and flaky rows.
+- [ ] Walk the learner through root-causing each failure type distinctly, not just re-running until green.
+
+Acceptance criteria:
+
+- The exercise ships its own fixture artifact and expected diagnostic conclusions the learner can check their answer against.
+
+### 4E.8 Product-owner / non-engineer reading track (P1, S)
+
+- [ ] Add a 2-exercise mini-track for reading the HTML dashboard: interpreting severity, taxonomy-completeness score, and a baseline-blocked banner — no CLI/JSON authoring required.
+- [ ] Link this track from `docs/teach-curriculum.md` as an alternate on-ramp for product managers and reviewers.
+
+Acceptance criteria:
+
+- A non-engineer can complete the track using only a browser and a provided sample report, reaching correct conclusions about pass/fail and drift status.
+
+### 4E.9 Complete coded import adapters (P2, M)
+
+- [ ] Convert Ragas, Langfuse, Phoenix, and Braintrust interoperability guidance from docs-only conversion notes into real coded `import` adapters with fixtures and tests, matching the existing promptfoo/deepeval/openevals pattern.
+
+Acceptance criteria:
+
+- Each converted adapter has a fixture, a passing test proving valid `eval-report/v1` output, and correct suite/row totals, matching 4B.3 acceptance criteria.
+
+### Non-goals for this phase
+
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase.
+
+### 4E execution order
+
+1. 4E.1 Alerting adapters
+2. 4E.2 Gate reliability heartbeat
+3. 4E.3 Mandatory pre-gate calibration check
+4. 4E.4 Multi-reviewer adjudication default
+5. 4E.5 Dataset governance hardening
+6. 4E.7 Diagnose-a-red-run exercise
+7. 4E.8 Product-owner reading track
+8. 4E.6 Scoped P1 security presets
+9. 4E.9 Complete coded import adapters
+
+---
+
 ## 🔮 Longer-term ideas (post-v1.0)
 
 - Plugin system for custom reporters (existing custom-reporter-plugin example is a starting point)
@@ -639,7 +749,7 @@ Acceptance criteria:
 
 - [x] Schema generation from TS + CI drift guard.
 - [x] Ajv/runtime validation hardening with stable error shape.
-- [ ] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
+- [x] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
 - [x] First-class usage metrics path (tokens/cost/latency).
 - [x] Python emitter/adoption path.
 - [x] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs).
@@ -686,7 +796,7 @@ Acceptance criteria:
 2. SARIF output for code-scanning style surfaces
    - Suggested owner: CLI maintainer
    - Dependency: 45-day item 1
-   - Acceptance: SARIF artifact validates and links to row anchors
+   - Acceptance: SARIF artifact includes stable report location plus row-anchor metadata
 3. GitHub annotation helper path
    - Suggested owner: CI integrations maintainer
    - Dependency: 45-day items 1-2

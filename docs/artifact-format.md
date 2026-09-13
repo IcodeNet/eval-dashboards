@@ -16,6 +16,33 @@ Think of it as the shared handoff file between eval execution and reporting:
 - Config drift is a common root cause for live-eval instability; snapshots improve reproducibility.
 - Judge/rubric drift can appear as regressions without product changes; governance metadata prevents false narratives.
 
+## Schema source-of-truth and drift guard
+
+- Source model: `src/model/eval-report-v1.ts`
+- Published schema: `schemas/eval-report-v1.schema.json`
+- Generate/sync command: `pnpm schema:generate`
+- CI drift guard command: `pnpm schema:check`
+
+`schema:check` regenerates the schema and fails if `schemas/eval-report-v1.schema.json` differs from the committed file.
+
+## Validation error contract (stable)
+
+When artifact validation fails, runtime consumers expose a stable structured issue shape:
+
+```ts
+type ValidationIssue = {
+  code: 'VALIDATION_ERROR';
+  path: string;    // e.g. 'rows[0].trace.traceId'
+  message: string; // human-readable validation message
+};
+```
+
+Notes:
+
+- `path` is deterministic when the validator can infer a specific field path.
+- Top-level shape failures use `path: '$'`.
+- Callers can use the first issue path for concise error prefixes while keeping full messages for debugging.
+
 ## What To Emit
 
 - A dedicated `preflight` suite with deterministic probe rows.

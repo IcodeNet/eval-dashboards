@@ -1,36 +1,62 @@
 export const EVAL_REPORT_SCHEMA_VERSION = 'eval-report/v1' as const;
 
-export type EvalSeverity = 'none' | 'low' | 'medium' | 'high' | 'critical';
+export const EVAL_SEVERITIES = ['none', 'low', 'medium', 'high', 'critical'] as const;
+export const EVAL_ROW_KINDS = ['deterministic', 'agent', 'llm-judge', 'human-review'] as const;
+export const EVAL_TARGETS = ['agent', 'conversation', 'judge', 'custom'] as const;
+export const DATASET_SOURCES = [
+  'synthetic',
+  'labelled-synthetic',
+  'production-sample',
+  'manual',
+  'custom',
+] as const;
+export const GRADER_KINDS = [
+  'deterministic-assertions',
+  'human-labelled-calibration',
+  'llm-judge',
+  'tool-call-check',
+  'custom',
+] as const;
+export const RISK_AREAS = [
+  'compliance',
+  'pii',
+  'content-safety',
+  'prompt-safety',
+  'tone-of-voice',
+  'factuality',
+  'response-quality',
+  'tool-use',
+  'tool-routing',
+  'groundedness',
+  'relevance',
+  'custom',
+] as const;
+export const ROW_PROVENANCE_SOURCES = [
+  'synthetic',
+  'labelled-synthetic',
+  'production-review',
+  'incident',
+  'regression',
+  'custom',
+] as const;
+export const ROW_LIFECYCLE_STATUSES = ['proposed', 'active', 'deprecated', 'quarantined', 'custom'] as const;
+export const DATASET_CHANGE_TYPES = ['initial-baseline', 'patch', 'minor', 'major'] as const;
+export const GATE_MODES = ['blocking', 'report-only'] as const;
 
-export type EvalRowKind = 'deterministic' | 'agent' | 'llm-judge' | 'human-review';
+export type EvalSeverity = (typeof EVAL_SEVERITIES)[number];
 
-export type EvalTarget = 'agent' | 'conversation' | 'judge' | 'custom';
+export type EvalRowKind = (typeof EVAL_ROW_KINDS)[number];
 
-export type DatasetSource = 'synthetic' | 'labelled-synthetic' | 'production-sample' | 'manual' | 'custom';
+export type EvalTarget = (typeof EVAL_TARGETS)[number];
 
-export type GraderKind =
-  | 'deterministic-assertions'
-  | 'human-labelled-calibration'
-  | 'llm-judge'
-  | 'tool-call-check'
-  | 'custom';
+export type DatasetSource = (typeof DATASET_SOURCES)[number];
 
-export type RiskArea =
-  | 'compliance'
-  | 'pii'
-  | 'content-safety'
-  | 'prompt-safety'
-  | 'tone-of-voice'
-  | 'factuality'
-  | 'response-quality'
-  | 'tool-use'
-  | 'tool-routing'
-  | 'groundedness'
-  | 'relevance'
-  | 'custom';
+export type GraderKind = (typeof GRADER_KINDS)[number];
+
+export type RiskArea = (typeof RISK_AREAS)[number];
 
 export type GatePolicy = {
-  mode: 'blocking' | 'report-only';
+  mode: (typeof GATE_MODES)[number];
   thresholds: Record<string, number>;
 };
 
@@ -52,20 +78,14 @@ export type ToolCall = {
 };
 
 export type RowProvenance = {
-  source:
-  | 'synthetic'
-  | 'labelled-synthetic'
-  | 'production-review'
-  | 'incident'
-  | 'regression'
-  | 'custom';
+  source: (typeof ROW_PROVENANCE_SOURCES)[number];
   addedBy?: string;
   reason?: string;
   sourceRef?: string;
 };
 
 export type RowLifecycle = {
-  status: 'proposed' | 'active' | 'deprecated' | 'quarantined' | 'custom';
+  status: (typeof ROW_LIFECYCLE_STATUSES)[number];
   since?: string;
   note?: string;
 };
@@ -117,7 +137,7 @@ export type BaselineCompatibilityResult = {
   issues: BaselineCompatibilityIssue[];
 };
 
-export type DatasetChangeType = 'initial-baseline' | 'patch' | 'minor' | 'major';
+export type DatasetChangeType = (typeof DATASET_CHANGE_TYPES)[number];
 
 export type DatasetRowChanges = {
   added: number;
@@ -257,13 +277,7 @@ export type EvalSummary = {
   suites: EvalSuiteSummary[];
 };
 
-export const severityOrder: EvalSeverity[] = [
-  'none',
-  'low',
-  'medium',
-  'high',
-  'critical',
-];
+export const severityOrder: EvalSeverity[] = [...EVAL_SEVERITIES];
 
 export const rowKey = (row: Pick<EvalRow, 'suite' | 'id'>): string => `${row.suite}:${row.id}`;
 

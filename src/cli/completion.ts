@@ -69,6 +69,11 @@ const checkFlags = [
   '--confidence-level',
   '--bootstrap-samples',
   '--min-pass-rate-delta',
+  '--min-matched-expectation-rate',
+  '--json-out',
+  '--junit-out',
+  '--sarif-out',
+  '--github-annotations-out',
 ] as const;
 
 const reportFlags = [

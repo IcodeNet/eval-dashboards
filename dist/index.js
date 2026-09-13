@@ -1,12 +1,48 @@
 // src/model/eval-report-v1.ts
 var EVAL_REPORT_SCHEMA_VERSION = "eval-report/v1";
-var severityOrder = [
-  "none",
-  "low",
-  "medium",
-  "high",
-  "critical"
+var EVAL_SEVERITIES = ["none", "low", "medium", "high", "critical"];
+var EVAL_ROW_KINDS = ["deterministic", "agent", "llm-judge", "human-review"];
+var EVAL_TARGETS = ["agent", "conversation", "judge", "custom"];
+var DATASET_SOURCES = [
+  "synthetic",
+  "labelled-synthetic",
+  "production-sample",
+  "manual",
+  "custom"
 ];
+var GRADER_KINDS = [
+  "deterministic-assertions",
+  "human-labelled-calibration",
+  "llm-judge",
+  "tool-call-check",
+  "custom"
+];
+var RISK_AREAS = [
+  "compliance",
+  "pii",
+  "content-safety",
+  "prompt-safety",
+  "tone-of-voice",
+  "factuality",
+  "response-quality",
+  "tool-use",
+  "tool-routing",
+  "groundedness",
+  "relevance",
+  "custom"
+];
+var ROW_PROVENANCE_SOURCES = [
+  "synthetic",
+  "labelled-synthetic",
+  "production-review",
+  "incident",
+  "regression",
+  "custom"
+];
+var ROW_LIFECYCLE_STATUSES = ["proposed", "active", "deprecated", "quarantined", "custom"];
+var DATASET_CHANGE_TYPES = ["initial-baseline", "patch", "minor", "major"];
+var GATE_MODES = ["blocking", "report-only"];
+var severityOrder = [...EVAL_SEVERITIES];
 var rowKey = (row) => `${row.suite}:${row.id}`;
 var rowMatchedExpectation = (row) => row.expectedOutcome === "fail" ? !row.passed : row.passed;
 var summarizeReport = (report) => {
@@ -42,51 +78,33 @@ var isString = (value) => typeof value === "string";
 var isNumber = (value) => typeof value === "number" && Number.isFinite(value);
 var isRunConfigSnapshotValue = (value) => value === null || isString(value) || isNumber(value) || typeof value === "boolean";
 var isSeverity = (value) => isString(value) && severityOrder.includes(value);
-var rowKinds = ["deterministic", "agent", "llm-judge", "human-review"];
+var parseValidationPath = (message) => {
+  if (message.startsWith("Report must be")) return "$";
+  const markers = [" must", " is required", " is "];
+  const marker = markers.map((token) => message.indexOf(token)).filter((index) => index > 0).sort((a, b) => a - b)[0] ?? -1;
+  if (marker <= 0) return "$";
+  const candidate = message.slice(0, marker).trim();
+  return candidate.length > 0 ? candidate : "$";
+};
+var toValidationIssues = (errors) => errors.map((message) => ({
+  code: "VALIDATION_ERROR",
+  path: parseValidationPath(message),
+  message
+}));
+var rowKinds = [...EVAL_ROW_KINDS];
 var isRowKind = (value) => isString(value) && rowKinds.includes(value);
-var evalTargets = ["agent", "conversation", "judge", "custom"];
-var datasetSources = [
-  "synthetic",
-  "labelled-synthetic",
-  "production-sample",
-  "manual",
-  "custom"
-];
-var riskAreas = [
-  "compliance",
-  "pii",
-  "content-safety",
-  "prompt-safety",
-  "tone-of-voice",
-  "factuality",
-  "response-quality",
-  "tool-use",
-  "tool-routing",
-  "groundedness",
-  "relevance",
-  "custom"
-];
-var graderKinds = [
-  "deterministic-assertions",
-  "human-labelled-calibration",
-  "llm-judge",
-  "tool-call-check",
-  "custom"
-];
-var provenanceSources = [
-  "synthetic",
-  "labelled-synthetic",
-  "production-review",
-  "incident",
-  "regression",
-  "custom"
-];
-var lifecycleStatuses = ["proposed", "active", "deprecated", "quarantined", "custom"];
-var datasetChangeTypes = ["initial-baseline", "patch", "minor", "major"];
+var evalTargets = [...EVAL_TARGETS];
+var datasetSources = [...DATASET_SOURCES];
+var riskAreas = [...RISK_AREAS];
+var graderKinds = [...GRADER_KINDS];
+var provenanceSources = [...ROW_PROVENANCE_SOURCES];
+var lifecycleStatuses = [...ROW_LIFECYCLE_STATUSES];
+var datasetChangeTypes = [...DATASET_CHANGE_TYPES];
 var validateEvalReport = (value) => {
   const errors = [];
   if (!isObject(value)) {
-    return { ok: false, errors: ["Report must be a JSON object."] };
+    const topLevelErrors = ["Report must be a JSON object."];
+    return { ok: false, errors: topLevelErrors, issues: toValidationIssues(topLevelErrors) };
   }
   if (value.schemaVersion !== EVAL_REPORT_SCHEMA_VERSION) {
     errors.push(`schemaVersion must be ${EVAL_REPORT_SCHEMA_VERSION}.`);
@@ -359,8 +377,8 @@ var validateEvalReport = (value) => {
         if (!isObject(manifest.gate)) {
           errors.push(`suiteManifests[${index}].gate must be an object.`);
         } else {
-          if (manifest.gate.mode !== "blocking" && manifest.gate.mode !== "report-only") {
-            errors.push(`suiteManifests[${index}].gate.mode must be blocking or report-only.`);
+          if (!isString(manifest.gate.mode) || !GATE_MODES.includes(manifest.gate.mode)) {
+            errors.push(`suiteManifests[${index}].gate.mode must be ${GATE_MODES.join(" or ")}.`);
           }
           if (!isObject(manifest.gate.thresholds)) {
             errors.push(`suiteManifests[${index}].gate.thresholds must be an object.`);
@@ -460,7 +478,7 @@ var validateEvalReport = (value) => {
     }
   }
   if (errors.length > 0) {
-    return { ok: false, errors };
+    return { ok: false, errors, issues: toValidationIssues(errors) };
   }
   return { ok: true, report: value };
 };
@@ -1841,7 +1859,9 @@ var summarizeSuites = (rows) => {
 var validateCreatedReport = (report) => {
   const result = validateEvalReport(report);
   if (!result.ok) {
-    throw new Error(`Invalid eval report artifact: ${result.errors.join(" ")}`);
+    const firstIssue = result.issues[0];
+    const issuePrefix = firstIssue ? `[${firstIssue.path}] ` : "";
+    throw new Error(`Invalid eval report artifact: ${issuePrefix}${result.errors.join(" ")}`);
   }
   return result.report;
 };

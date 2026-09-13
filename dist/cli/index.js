@@ -68,13 +68,49 @@ var baselineCompatibilityStatus = (issues) => {
 
 // src/model/eval-report-v1.ts
 var EVAL_REPORT_SCHEMA_VERSION = "eval-report/v1";
-var severityOrder = [
-  "none",
-  "low",
-  "medium",
-  "high",
-  "critical"
+var EVAL_SEVERITIES = ["none", "low", "medium", "high", "critical"];
+var EVAL_ROW_KINDS = ["deterministic", "agent", "llm-judge", "human-review"];
+var EVAL_TARGETS = ["agent", "conversation", "judge", "custom"];
+var DATASET_SOURCES = [
+  "synthetic",
+  "labelled-synthetic",
+  "production-sample",
+  "manual",
+  "custom"
 ];
+var GRADER_KINDS = [
+  "deterministic-assertions",
+  "human-labelled-calibration",
+  "llm-judge",
+  "tool-call-check",
+  "custom"
+];
+var RISK_AREAS = [
+  "compliance",
+  "pii",
+  "content-safety",
+  "prompt-safety",
+  "tone-of-voice",
+  "factuality",
+  "response-quality",
+  "tool-use",
+  "tool-routing",
+  "groundedness",
+  "relevance",
+  "custom"
+];
+var ROW_PROVENANCE_SOURCES = [
+  "synthetic",
+  "labelled-synthetic",
+  "production-review",
+  "incident",
+  "regression",
+  "custom"
+];
+var ROW_LIFECYCLE_STATUSES = ["proposed", "active", "deprecated", "quarantined", "custom"];
+var DATASET_CHANGE_TYPES = ["initial-baseline", "patch", "minor", "major"];
+var GATE_MODES = ["blocking", "report-only"];
+var severityOrder = [...EVAL_SEVERITIES];
 var rowKey = (row) => `${row.suite}:${row.id}`;
 var rowMatchedExpectation = (row) => row.expectedOutcome === "fail" ? !row.passed : row.passed;
 var summarizeReport = (report) => {
@@ -308,51 +344,33 @@ var isString = (value) => typeof value === "string";
 var isNumber = (value) => typeof value === "number" && Number.isFinite(value);
 var isRunConfigSnapshotValue = (value) => value === null || isString(value) || isNumber(value) || typeof value === "boolean";
 var isSeverity = (value) => isString(value) && severityOrder.includes(value);
-var rowKinds = ["deterministic", "agent", "llm-judge", "human-review"];
+var parseValidationPath = (message) => {
+  if (message.startsWith("Report must be")) return "$";
+  const markers = [" must", " is required", " is "];
+  const marker = markers.map((token) => message.indexOf(token)).filter((index) => index > 0).sort((a, b) => a - b)[0] ?? -1;
+  if (marker <= 0) return "$";
+  const candidate = message.slice(0, marker).trim();
+  return candidate.length > 0 ? candidate : "$";
+};
+var toValidationIssues = (errors) => errors.map((message) => ({
+  code: "VALIDATION_ERROR",
+  path: parseValidationPath(message),
+  message
+}));
+var rowKinds = [...EVAL_ROW_KINDS];
 var isRowKind = (value) => isString(value) && rowKinds.includes(value);
-var evalTargets = ["agent", "conversation", "judge", "custom"];
-var datasetSources = [
-  "synthetic",
-  "labelled-synthetic",
-  "production-sample",
-  "manual",
-  "custom"
-];
-var riskAreas = [
-  "compliance",
-  "pii",
-  "content-safety",
-  "prompt-safety",
-  "tone-of-voice",
-  "factuality",
-  "response-quality",
-  "tool-use",
-  "tool-routing",
-  "groundedness",
-  "relevance",
-  "custom"
-];
-var graderKinds = [
-  "deterministic-assertions",
-  "human-labelled-calibration",
-  "llm-judge",
-  "tool-call-check",
-  "custom"
-];
-var provenanceSources = [
-  "synthetic",
-  "labelled-synthetic",
-  "production-review",
-  "incident",
-  "regression",
-  "custom"
-];
-var lifecycleStatuses = ["proposed", "active", "deprecated", "quarantined", "custom"];
-var datasetChangeTypes = ["initial-baseline", "patch", "minor", "major"];
+var evalTargets = [...EVAL_TARGETS];
+var datasetSources = [...DATASET_SOURCES];
+var riskAreas = [...RISK_AREAS];
+var graderKinds = [...GRADER_KINDS];
+var provenanceSources = [...ROW_PROVENANCE_SOURCES];
+var lifecycleStatuses = [...ROW_LIFECYCLE_STATUSES];
+var datasetChangeTypes = [...DATASET_CHANGE_TYPES];
 var validateEvalReport = (value) => {
   const errors = [];
   if (!isObject(value)) {
-    return { ok: false, errors: ["Report must be a JSON object."] };
+    const topLevelErrors = ["Report must be a JSON object."];
+    return { ok: false, errors: topLevelErrors, issues: toValidationIssues(topLevelErrors) };
   }
   if (value.schemaVersion !== EVAL_REPORT_SCHEMA_VERSION) {
     errors.push(`schemaVersion must be ${EVAL_REPORT_SCHEMA_VERSION}.`);
@@ -625,8 +643,8 @@ var validateEvalReport = (value) => {
         if (!isObject(manifest.gate)) {
           errors.push(`suiteManifests[${index}].gate must be an object.`);
         } else {
-          if (manifest.gate.mode !== "blocking" && manifest.gate.mode !== "report-only") {
-            errors.push(`suiteManifests[${index}].gate.mode must be blocking or report-only.`);
+          if (!isString(manifest.gate.mode) || !GATE_MODES.includes(manifest.gate.mode)) {
+            errors.push(`suiteManifests[${index}].gate.mode must be ${GATE_MODES.join(" or ")}.`);
           }
           if (!isObject(manifest.gate.thresholds)) {
             errors.push(`suiteManifests[${index}].gate.thresholds must be an object.`);
@@ -726,7 +744,7 @@ var validateEvalReport = (value) => {
     }
   }
   if (errors.length > 0) {
-    return { ok: false, errors };
+    return { ok: false, errors, issues: toValidationIssues(errors) };
   }
   return { ok: true, report: value };
 };
@@ -774,7 +792,9 @@ var readEvalReport = async (filePath) => {
   const parsed = JSON.parse(raw);
   const result = validateEvalReport(parsed);
   if (!result.ok) {
-    throw new Error(`Invalid eval report ${filePath}: ${result.errors.join(" ")}`);
+    const firstIssue = result.issues[0];
+    const issuePrefix = firstIssue ? `[${firstIssue.path}] ` : "";
+    throw new Error(`Invalid eval report ${filePath}: ${issuePrefix}${result.errors.join(" ")}`);
   }
   return result.report;
 };
@@ -2115,7 +2135,7 @@ var renderRowDetail = (r, colSpan) => {
   if (!fields.length) return "";
   return `<tr class="detail-row"><td colspan="${colSpan}"><div class="detail-panel">${fields.join("")}</div></td></tr>`;
 };
-var groupedRowsTable = (rows, showTaxonomy = true) => {
+var groupedRowsTable = (rows, showTaxonomy = true, anchorPrefix = "row") => {
   if (!rows.length) return '<p class="empty">No rows.</p>';
   const groups = groupRows2(rows);
   let html = "";
@@ -2141,7 +2161,8 @@ var groupedRowsTable = (rows, showTaxonomy = true) => {
       const colSpan = showTaxonomy ? 5 : 4;
       const detail = renderRowDetail(r, colSpan);
       const hasDetail = detail.length > 0;
-      return `<tr class="data-row${r.passed ? "" : " fail-row"}"${hasDetail ? ` onclick="toggleRow(this)"` : ""}>
+      const rowDomId = `${anchorPrefix}-${encodeURIComponent(`${r.suite}:${r.id}`)}`;
+      return `<tr id="${rowDomId}" class="data-row${r.passed ? "" : " fail-row"}"${hasDetail ? ` onclick="toggleRow(this)"` : ""}>
           <td class="col-row">${hasDetail ? '<span class="expand-toggle">\u25B6</span>' : ""}<div class="row-name"><span class="row-name-label">${e(r.name ?? r.id)}</span>${r.name ? `<span class="row-name-id">${e(r.id)}</span>` : ""}</div></td>
           ${showTaxonomy ? `<td class="col-tax taxonomy-score"><span class="score ${tax.score >= 0.8 ? "complete" : tax.score >= 0.5 ? "partial" : "incomplete"}" data-tip="${tax.missing.length ? "Missing fields:\n" + e(tax.missing.join("\n")) : "All recommended fields present"}">${Math.round(tax.score * 100)}%</span></td>` : ""}
           <td class="col-kind"><span class="kind-badge kind-${e(r.kind || "unknown")}">${e(r.kind ?? "unknown")}</span></td>
@@ -2845,7 +2866,7 @@ Failed: ${suite.failed}`;
             <button class="view-btn" onclick="switchView('failrows','json',this)">JSON</button>
           </div>` : ""}
         </div>`,
-    body: `${failingRows.length > 0 ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true)}</div>
+    body: `${failingRows.length > 0 ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true, "failrow")}</div>
              <div id="failrows-table" class="view-pane">${flatRowsTable(failingRows)}</div>
              <div id="failrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(failingRows, null, 2))}</pre></div>` : '<p class="empty">No failing rows.</p>'}`
   })}
@@ -2862,7 +2883,7 @@ Failed: ${suite.failed}`;
             <button class="view-btn" onclick="switchView('allrows','json',this)">JSON</button>
           </div>
         </div>`,
-    body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true)}</div>
+    body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true, "row")}</div>
         <div id="allrows-table" class="view-pane">${flatRowsTable(current.rows)}</div>
         <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>`
   })}
@@ -2925,6 +2946,30 @@ Failed: ${suite.failed}`;
       btns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
     }
+    function revealAnchorTarget() {
+      var hash = window.location.hash || '';
+      if (!hash || (hash.indexOf('#row-') !== 0 && hash.indexOf('#failrow-') !== 0)) return;
+      var id = hash.slice(1);
+      var target = document.getElementById(id);
+      if (!target) return;
+      var section = target.closest('.section.collapsible.collapsed');
+      if (section) {
+        section.classList.remove('collapsed');
+        var toggle = section.querySelector('.section-toggle');
+        if (toggle) {
+          toggle.setAttribute('aria-expanded', 'true');
+          var icon = toggle.querySelector('.section-toggle-icon');
+          if (icon) icon.textContent = '\u25BE';
+        }
+      }
+      var detail = target.nextElementSibling;
+      if (detail && detail.classList.contains('detail-row') && !target.classList.contains('open')) {
+        toggleRow(target);
+      }
+      target.scrollIntoView({ block: 'center' });
+    }
+    window.addEventListener('hashchange', revealAnchorTarget);
+    window.addEventListener('DOMContentLoaded', revealAnchorTarget);
     (function () {
       var tip = document.getElementById('eval-tooltip');
       var hide = function () { tip.classList.remove('visible'); };
@@ -3876,7 +3921,12 @@ var checkFlags = [
   "--statistical-mode",
   "--confidence-level",
   "--bootstrap-samples",
-  "--min-pass-rate-delta"
+  "--min-pass-rate-delta",
+  "--min-matched-expectation-rate",
+  "--json-out",
+  "--junit-out",
+  "--sarif-out",
+  "--github-annotations-out"
 ];
 var reportFlags = [
   "--input",
@@ -4262,7 +4312,9 @@ var summarizeSuites = (rows) => {
 var validateCreatedReport = (report) => {
   const result = validateEvalReport(report);
   if (!result.ok) {
-    throw new Error(`Invalid eval report artifact: ${result.errors.join(" ")}`);
+    const firstIssue = result.issues[0];
+    const issuePrefix = firstIssue ? `[${firstIssue.path}] ` : "";
+    throw new Error(`Invalid eval report artifact: ${issuePrefix}${result.errors.join(" ")}`);
   }
   return result.report;
 };
@@ -4847,6 +4899,9 @@ Options:
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
   --json-out=<path>                Write machine-readable gate result JSON
+  --junit-out=<path>               Write JUnit XML for CI test-report ingestion
+  --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
+  --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
 `;
 var publishUsage = `eval-dashboards publish [options]
 
@@ -4894,6 +4949,125 @@ Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --out=<path>             Output history JSON path. Default: eval-report/history.json
 `;
+var xmlEscape = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+var rowAnchorId = (suite, id) => `row-${encodeURIComponent(`${suite}:${id}`)}`;
+var reportIndexUri = (reportDir) => path9.posix.join(reportDir.replaceAll("\\", "/"), "index.html");
+var toJunitXml = (payload) => {
+  const failures = payload.failures;
+  const diagnostics = payload.diagnostics;
+  const newlyFailingRows = payload.newlyFailingRows;
+  const testCases = [];
+  if (failures.length === 0) {
+    testCases.push('    <testcase classname="eval-dashboards.check" name="gates"/>');
+  } else {
+    failures.forEach((failure, index) => {
+      testCases.push(
+        `    <testcase classname="eval-dashboards.check" name="gate-failure-${index + 1}">
+      <failure message="${xmlEscape(failure)}">${xmlEscape(failure)}</failure>
+    </testcase>`
+      );
+    });
+  }
+  diagnostics.forEach((diagnostic, index) => {
+    testCases.push(
+      `    <testcase classname="eval-dashboards.check" name="diagnostic-${index + 1}">
+      <skipped message="${xmlEscape(diagnostic)}"/>
+    </testcase>`
+    );
+  });
+  newlyFailingRows.forEach((row) => {
+    const rowLabel = `${row.suite}:${row.id}${row.category ? ` (${row.category})` : ""} -> ${row.reportAnchor}`;
+    testCases.push(
+      `    <testcase classname="eval-dashboards.rows" name="${xmlEscape(`${row.suite}:${row.id}`)}">
+      <failure message="${xmlEscape(rowLabel)}">${xmlEscape(rowLabel)}</failure>
+    </testcase>`
+    );
+  });
+  const tests = testCases.length;
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<testsuite name="eval-dashboards-check" tests="${tests}" failures="${failures.length + newlyFailingRows.length}" errors="0" skipped="${diagnostics.length}">`,
+    ...testCases,
+    "</testsuite>",
+    ""
+  ].join("\n");
+};
+var toSarif = (payload, reportDir = "eval-report") => ({
+  $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+  version: "2.1.0",
+  runs: [
+    {
+      tool: {
+        driver: {
+          name: "eval-dashboards",
+          informationUri: "https://github.com/IcodeNet/eval-dashboards",
+          rules: [
+            {
+              id: "eval-gate-failure",
+              name: "Eval gate failure",
+              shortDescription: { text: "Eval gate failure" },
+              defaultConfiguration: { level: "error" }
+            },
+            {
+              id: "eval-newly-failing-row",
+              name: "Newly failing eval row",
+              shortDescription: { text: "Newly failing eval row" },
+              defaultConfiguration: { level: "warning" }
+            }
+          ]
+        }
+      },
+      results: [
+        ...payload.failures.map((failure) => ({
+          ruleId: "eval-gate-failure",
+          level: "error",
+          message: { text: failure },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: {
+                  uri: reportIndexUri(reportDir)
+                }
+              }
+            }
+          ]
+        })),
+        ...payload.newlyFailingRows.map((row) => ({
+          ruleId: "eval-newly-failing-row",
+          level: "warning",
+          message: { text: `${row.suite}:${row.id}${row.category ? ` (${row.category})` : ""}` },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: {
+                  uri: reportIndexUri(reportDir)
+                }
+              }
+            }
+          ],
+          properties: {
+            reportAnchor: row.reportAnchor,
+            suite: row.suite,
+            rowId: row.id,
+            severity: row.severity ?? null
+          }
+        }))
+      ]
+    }
+  ]
+});
+var toGithubAnnotations = (payload) => [
+  ...payload.failures.map((failure) => ({
+    level: "error",
+    title: "eval-dashboards gate failure",
+    message: failure
+  })),
+  ...payload.newlyFailingRows.map((row) => ({
+    level: "warning",
+    title: "eval-dashboards newly failing row",
+    message: `${row.suite}:${row.id}${row.category ? ` (${row.category})` : ""} -> ${row.reportAnchor}`
+  }))
+];
 var loadContext = async (input, reportDir, options) => {
   const reports = await readEvalReports(input);
   if (reports.length === 0) {
@@ -5323,23 +5497,36 @@ ${written.join("\n")}`);
       context.previous
     );
     const jsonOut = optionString(options, "json-out", "");
+    const junitOut = optionString(options, "junit-out", "");
+    const sarifOut = optionString(options, "sarif-out", "");
+    const githubAnnotationsOut = optionString(options, "github-annotations-out", "");
+    const checkPayload = {
+      schemaVersion: "eval-check-result/v1",
+      runId: context.current.run.id,
+      baselineRunId: context.previous?.run.id,
+      passed: result.passed,
+      failures: result.failures,
+      diagnostics: result.diagnostics,
+      baselineCompatibility: context.baselineCompatibility,
+      newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
+        id: row.id,
+        suite: row.suite,
+        category: row.category,
+        severity: row.severity,
+        reportAnchor: `#${rowAnchorId(row.suite, row.id)}`
+      }))
+    };
     if (jsonOut) {
-      await writeJsonFile(jsonOut, {
-        schemaVersion: "eval-check-result/v1",
-        runId: context.current.run.id,
-        baselineRunId: context.previous?.run.id,
-        passed: result.passed,
-        failures: result.failures,
-        diagnostics: result.diagnostics,
-        baselineCompatibility: context.baselineCompatibility,
-        newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
-          id: row.id,
-          suite: row.suite,
-          category: row.category,
-          severity: row.severity,
-          reportAnchor: `#row-${encodeURIComponent(`${row.suite}:${row.id}`)}`
-        }))
-      });
+      await writeJsonFile(jsonOut, checkPayload);
+    }
+    if (junitOut) {
+      await writeTextFile(junitOut, toJunitXml(checkPayload));
+    }
+    if (sarifOut) {
+      await writeJsonFile(sarifOut, toSarif(checkPayload, reportDir));
+    }
+    if (githubAnnotationsOut) {
+      await writeJsonFile(githubAnnotationsOut, toGithubAnnotations(checkPayload));
     }
     if (result.passed) {
       if (result.diagnostics.length > 0) {

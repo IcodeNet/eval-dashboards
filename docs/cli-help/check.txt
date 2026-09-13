@@ -20,4 +20,7 @@ Options:
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
   --json-out=<path>                Write machine-readable gate result JSON
+  --junit-out=<path>               Write JUnit XML for CI test-report ingestion
+  --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
+  --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
 

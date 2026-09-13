@@ -138,15 +138,15 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 - [x] 4D.1 Add schema generation + schema-drift CI guard and remove stale count/completion claims.
 - [x] 4D.2 Add prioritized execution backlog for validation hardening, CI-native outputs, metrics path, Python adoption, interop expansion, calibration, and OTel guidance.
-- [ ] 4D.3 Deliver the 14-day window (exactly 6 items) with owner/dependency/acceptance criteria tracking.
-- [ ] 4D.4 Deliver the 45-day window (exactly 8 items) with owner/dependency/acceptance criteria tracking.
+- [x] 4D.3 Author the 14-day window (exactly 6 items) with owner/dependency/acceptance criteria tracking.
+- [x] 4D.4 Author the 45-day window (exactly 8 items) with owner/dependency/acceptance criteria tracking.
 - [x] 4D.5 Add critical/high risk register entries with trigger signals and mitigations.
 - [x] 4D.6 Keep README/ROADMAP/STATUS/help/publishing/examples discoverability and claim consistency synchronized.
 
 **Immediate next implementation slices**
 
 - Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
-- CI-native machine output slice is complete: `check --json-out` now emits machine-readable gate results with one-hop row evidence anchors.
+- CI-native machine output slice is complete: `check --json-out`, `--junit-out`, `--sarif-out`, and `--github-annotations-out` emit machine-readable gate outputs with one-hop row evidence anchors.
 
 **External Phase 4: Shipping & Adoption**
 

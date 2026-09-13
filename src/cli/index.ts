@@ -124,6 +124,9 @@ Options:
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
   --json-out=<path>                Write machine-readable gate result JSON
+  --junit-out=<path>               Write JUnit XML for CI test-report ingestion
+  --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
+  --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
 `;
 
 const publishUsage = `eval-dashboards publish [options]
@@ -176,6 +179,161 @@ Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --out=<path>             Output history JSON path. Default: eval-report/history.json
 `;
+
+type CheckOutputRow = {
+  id: string;
+  suite: string;
+  category?: string;
+  severity?: string;
+  reportAnchor: string;
+};
+
+type CheckOutputPayload = {
+  schemaVersion: 'eval-check-result/v1';
+  runId: string;
+  baselineRunId?: string;
+  passed: boolean;
+  failures: string[];
+  diagnostics: string[];
+  baselineCompatibility?: unknown;
+  newlyFailingRows: CheckOutputRow[];
+};
+
+const xmlEscape = (value: string): string =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+
+const rowAnchorId = (suite: string, id: string): string => `row-${encodeURIComponent(`${suite}:${id}`)}`;
+
+const reportIndexUri = (reportDir: string): string => path.posix.join(reportDir.replaceAll('\\', '/'), 'index.html');
+
+const toJunitXml = (payload: CheckOutputPayload): string => {
+  const failures = payload.failures;
+  const diagnostics = payload.diagnostics;
+  const newlyFailingRows = payload.newlyFailingRows;
+
+  const testCases: string[] = [];
+  if (failures.length === 0) {
+    testCases.push('    <testcase classname="eval-dashboards.check" name="gates"/>');
+  } else {
+    failures.forEach((failure, index) => {
+      testCases.push(
+        `    <testcase classname="eval-dashboards.check" name="gate-failure-${index + 1}">\n` +
+          `      <failure message="${xmlEscape(failure)}">${xmlEscape(failure)}</failure>\n` +
+          '    </testcase>',
+      );
+    });
+  }
+
+  diagnostics.forEach((diagnostic, index) => {
+    testCases.push(
+      `    <testcase classname="eval-dashboards.check" name="diagnostic-${index + 1}">\n` +
+        `      <skipped message="${xmlEscape(diagnostic)}"/>\n` +
+        '    </testcase>',
+    );
+  });
+
+  newlyFailingRows.forEach((row) => {
+    const rowLabel = `${row.suite}:${row.id}${row.category ? ` (${row.category})` : ''} -> ${row.reportAnchor}`;
+    testCases.push(
+      `    <testcase classname="eval-dashboards.rows" name="${xmlEscape(`${row.suite}:${row.id}`)}">\n` +
+        `      <failure message="${xmlEscape(rowLabel)}">${xmlEscape(rowLabel)}</failure>\n` +
+        '    </testcase>',
+    );
+  });
+
+  const tests = testCases.length;
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<testsuite name="eval-dashboards-check" tests="${tests}" failures="${failures.length + newlyFailingRows.length}" errors="0" skipped="${diagnostics.length}">`,
+    ...testCases,
+    '</testsuite>',
+    '',
+  ].join('\n');
+};
+
+const toSarif = (payload: CheckOutputPayload, reportDir = 'eval-report'): Record<string, unknown> => ({
+  $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+  version: '2.1.0',
+  runs: [
+    {
+      tool: {
+        driver: {
+          name: 'eval-dashboards',
+          informationUri: 'https://github.com/IcodeNet/eval-dashboards',
+          rules: [
+            {
+              id: 'eval-gate-failure',
+              name: 'Eval gate failure',
+              shortDescription: { text: 'Eval gate failure' },
+              defaultConfiguration: { level: 'error' },
+            },
+            {
+              id: 'eval-newly-failing-row',
+              name: 'Newly failing eval row',
+              shortDescription: { text: 'Newly failing eval row' },
+              defaultConfiguration: { level: 'warning' },
+            },
+          ],
+        },
+      },
+      results: [
+        ...payload.failures.map((failure) => ({
+          ruleId: 'eval-gate-failure',
+          level: 'error',
+          message: { text: failure },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: {
+                  uri: reportIndexUri(reportDir),
+                },
+              },
+            },
+          ],
+        })),
+        ...payload.newlyFailingRows.map((row) => ({
+          ruleId: 'eval-newly-failing-row',
+          level: 'warning',
+          message: { text: `${row.suite}:${row.id}${row.category ? ` (${row.category})` : ''}` },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: {
+                  uri: reportIndexUri(reportDir),
+                },
+              },
+            },
+          ],
+          properties: {
+            reportAnchor: row.reportAnchor,
+            suite: row.suite,
+            rowId: row.id,
+            severity: row.severity ?? null,
+          },
+        })),
+      ],
+    },
+  ],
+});
+
+const toGithubAnnotations = (payload: CheckOutputPayload): Array<Record<string, string>> => [
+  ...payload.failures.map((failure) => ({
+    level: 'error',
+    title: 'eval-dashboards gate failure',
+    message: failure,
+  })),
+  ...payload.newlyFailingRows.map((row) => ({
+    level: 'warning',
+    title: 'eval-dashboards newly failing row',
+    message: `${row.suite}:${row.id}${row.category ? ` (${row.category})` : ''} -> ${row.reportAnchor}`,
+  })),
+];
 
 type LoadContextOptions = {
   runId?: string;
@@ -731,24 +889,38 @@ const main = async (): Promise<void> => {
       context.previous,
     );
     const jsonOut = optionString(options, 'json-out', '');
+    const junitOut = optionString(options, 'junit-out', '');
+    const sarifOut = optionString(options, 'sarif-out', '');
+    const githubAnnotationsOut = optionString(options, 'github-annotations-out', '');
+
+    const checkPayload: CheckOutputPayload = {
+      schemaVersion: 'eval-check-result/v1',
+      runId: context.current.run.id,
+      baselineRunId: context.previous?.run.id,
+      passed: result.passed,
+      failures: result.failures,
+      diagnostics: result.diagnostics,
+      baselineCompatibility: context.baselineCompatibility,
+      newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
+        id: row.id,
+        suite: row.suite,
+        category: row.category,
+        severity: row.severity,
+        reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
+      })),
+    };
 
     if (jsonOut) {
-      await writeJsonFile(jsonOut, {
-        schemaVersion: 'eval-check-result/v1',
-        runId: context.current.run.id,
-        baselineRunId: context.previous?.run.id,
-        passed: result.passed,
-        failures: result.failures,
-        diagnostics: result.diagnostics,
-        baselineCompatibility: context.baselineCompatibility,
-        newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
-          id: row.id,
-          suite: row.suite,
-          category: row.category,
-          severity: row.severity,
-          reportAnchor: `#row-${encodeURIComponent(`${row.suite}:${row.id}`)}`,
-        })),
-      });
+      await writeJsonFile(jsonOut, checkPayload);
+    }
+    if (junitOut) {
+      await writeTextFile(junitOut, toJunitXml(checkPayload));
+    }
+    if (sarifOut) {
+      await writeJsonFile(sarifOut, toSarif(checkPayload, reportDir));
+    }
+    if (githubAnnotationsOut) {
+      await writeJsonFile(githubAnnotationsOut, toGithubAnnotations(checkPayload));
     }
 
     if (result.passed) {
