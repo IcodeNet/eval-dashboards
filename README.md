@@ -171,10 +171,21 @@ Use `examples/report-power-artifacts/README.md` as the entrypoint for locally op
   - `examples/report-power-artifacts/report/summary.json` (`comparison.persistentFailures`, `comparison.disappeared`)
   - `examples/report-power-artifacts/report/index.html`
 
+Inline artifact preview (GitHub-rendered images):
+
+| Progress | History |
+|---|---|
+| ![Report-power progress metrics](docs/images/report-power-progress.png) | ![Report-power history trend](docs/images/report-power-history.png) |
+
+| Gating | Detail analysis |
+|---|---|
+| ![Report-power gate policy](docs/images/report-power-gating.png) | ![Report-power failing-row details](docs/images/report-power-detail.png) |
+
 Regenerate deterministically from fixture input with:
 
 ```sh
 ./scripts/generate-report-power-artifacts.sh
+pnpm exec tsx scripts/generate-report-power-images.ts
 ```
 
 Teach labs by delivery stage (local loop -> pre-PR -> triage -> release -> post-release) and an FDE workflow are in `docs/teach-labs/`.
