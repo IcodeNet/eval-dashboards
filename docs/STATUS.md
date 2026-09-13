@@ -51,6 +51,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Implement explicit baseline selection by run id (enhancement to `compareRuns`).
 - [x] Enhance HTML dashboard with sparklines and pass-rate trends in history view.
 - [x] Create README screenshot gallery (light and dark themes) — visual proof of UI.
+- [x] Add concrete report-power artifact fixture with tracked history/progress/gate/detail outputs and deterministic regeneration script.
+- [x] Add teach delivery-stage labs plus FDE role workflow guidance grounded in report artifacts and required evidence outputs.
 
 - [x] Add npm publishing workflow and semantic version tagging (GitHub Actions).
 
@@ -133,7 +135,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ### Phase 4D trusted confidence + adoption execution checklist (planned)
 
-- [ ] 4D.1 Add schema generation + schema-drift CI guard and remove stale count/completion claims.
+- [x] 4D.1 Add schema generation + schema-drift CI guard and remove stale count/completion claims.
 - [ ] 4D.2 Add prioritized execution backlog for validation hardening, CI-native outputs, metrics path, Python adoption, interop expansion, calibration, and OTel guidance.
 - [ ] 4D.3 Deliver the 14-day window (exactly 6 items) with owner/dependency/acceptance criteria tracking.
 - [ ] 4D.4 Deliver the 45-day window (exactly 8 items) with owner/dependency/acceptance criteria tracking.

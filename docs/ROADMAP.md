@@ -624,8 +624,10 @@ Non-negotiables
 
 ### 4D.1 Single-truth drift closure (P0)
 
-- [ ] Add schema-generation + schema-drift CI guard slice to roadmap and status.
-- [ ] Remove stale line-count, test-count, and completion-state claims across roadmap/status/docs.
+- [x] Add schema-generation + schema-drift CI guard slice to roadmap and status.
+- [x] Remove stale line-count, test-count, and completion-state claims across roadmap/status/docs.
+- [x] Add concrete, tracked report-power artifacts (history/progress/gates/detail) and document deterministic regeneration.
+- [x] Add teach delivery-stage labs and FDE role workflow docs with artifact-driven acceptance criteria.
 
 Acceptance criteria:
 
@@ -635,8 +637,8 @@ Acceptance criteria:
 
 ### 4D.2 Prioritized execution backlog from review findings (P0)
 
-- [ ] Schema generation from TS + CI drift guard.
-- [ ] Ajv/runtime validation hardening with stable error shape.
+- [x] Schema generation from TS + CI drift guard.
+- [x] Ajv/runtime validation hardening with stable error shape.
 - [ ] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
 - [ ] First-class usage metrics path (tokens/cost/latency).
 - [ ] Python emitter/adoption path.
