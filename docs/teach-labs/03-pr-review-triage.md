@@ -1,7 +1,23 @@
 # Lab 03: PR review triage
 
-Goal
-- Triage a PR using progress deltas and row-level evidence.
+Concept
+
+PR triage is comparison analysis: what got worse, what stayed broken, and what improved.
+
+Why this matters
+
+Without structured comparison, reviewers focus on loud failures and miss persistence, regressions, or ID churn that affects confidence.
+
+Lab question
+
+Can you produce a reviewer-ready triage note from run-to-run evidence?
+
+Lab outline
+
+1. Refresh artifacts.
+2. Read history and run comparison context.
+3. Extract persistent, disappeared, and newly passing rows.
+4. Confirm the gate status used by reviewers.
 
 ## Steps
 
@@ -58,6 +74,7 @@ PY
 ```
 
 ## Expected outputs
+
 - History confirms cross-run comparison context.
 - Progress data identifies run-to-run movement.
 - Row-level details identify remaining risk, id churn/removals, and resolved issues.
@@ -65,4 +82,5 @@ PY
 - In this fixture, `newlyPassing` can be empty because improvements can appear under `disappeared` when row IDs changed between runs.
 
 ## Definition of done
-You can produce a short PR-triage note with: gate decision, top persistent failures, and improvements.
+
+You can explain the concept of comparison triage and produce a short PR note with gate decision, top persistent failures, and improvements.

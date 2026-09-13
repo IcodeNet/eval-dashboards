@@ -1,7 +1,23 @@
 # Lab 05: Post-release monitoring
 
-Goal
-- Use run history and gate outputs as a post-release monitoring loop.
+Concept
+
+Post-release monitoring is the same evidence loop repeated over time.
+
+Why this matters
+
+Many teams stop after release and lose visibility into drift, persistent failures, and baseline changes. This lab teaches a repeatable monitoring loop with deterministic outputs.
+
+Lab question
+
+Can you produce a stable monitoring payload that can drive alerts or weekly review?
+
+Lab outline
+
+1. Refresh artifacts.
+2. Build a monitoring snapshot.
+3. Compute trend/watch signals.
+4. Emit a compact alert payload.
 
 ## Steps
 
@@ -58,10 +74,12 @@ PY
 ```
 
 ## Expected outputs
+
 - Monitoring snapshot contains history, summary, and check artifacts.
 - Alert payload references persistent row IDs plus baseline-missing or newly-passing IDs.
 - Gate status and pass-rate trend are explicit in machine-readable form.
 - `newlyPassingRowIds` may be empty in this fixture when improvements manifest as baseline-missing rows due to ID churn.
 
 ## Definition of done
-You can run this loop on a schedule and produce a deterministic monitoring payload grounded in artifacts.
+
+You can explain the monitoring-loop concept and run this on a schedule to produce a deterministic payload grounded in artifacts.

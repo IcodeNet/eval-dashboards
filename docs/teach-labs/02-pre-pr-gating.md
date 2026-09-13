@@ -1,7 +1,23 @@
 # Lab 02: Pre-PR gating
 
-Goal
-- Make a pre-PR gate decision using artifact evidence, not guesswork.
+Concept
+
+A gate is a policy decision over evidence, not a generic test failure.
+
+Why this matters
+
+Teams often block or merge PRs using intuition. This lab teaches how to make the same decision deterministically from machine outputs and baseline context.
+
+Lab question
+
+Can you justify merge-eligible vs blocked with explicit thresholds and row evidence?
+
+Lab outline
+
+1. Refresh deterministic artifacts.
+2. Run check with two threshold settings.
+3. Produce a decision record from machine JSON.
+4. Link decision back to persistent failing rows.
 
 ## Steps
 
@@ -47,10 +63,12 @@ PY
 ```
 
 ## Expected outputs
+
 - Pass and fail gate JSON files both exist.
 - Gate decision changes when threshold changes.
 - Baseline run id is explicit in gate output.
 - Persistent failing rows are listed with IDs and categories.
 
 ## Definition of done
-You can justify a pre-PR block/allow decision with gate JSON + row-level evidence + baseline context.
+
+You can explain why the concept is policy-over-evidence, then justify a pre-PR block/allow decision with gate JSON + row evidence + baseline context.

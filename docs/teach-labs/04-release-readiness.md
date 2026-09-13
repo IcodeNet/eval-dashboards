@@ -1,7 +1,23 @@
 # Lab 04: Release readiness
 
-Goal
-- Build a release-readiness evidence packet from artifacts.
+Concept
+
+Release readiness is an evidence packet, not a single green check.
+
+Why this matters
+
+A release can pass one gate and still carry unresolved persistent failures or weak trend confidence. Teams need a packet that combines gate, history, progress, and row rationale.
+
+Lab question
+
+Can you build a release packet that another stakeholder can validate independently?
+
+Lab outline
+
+1. Refresh deterministic artifacts.
+2. Build a fresh release bundle.
+3. Summarize confidence signals from machine outputs.
+4. Extract row-level blockers for release notes.
 
 ## Steps
 
@@ -51,10 +67,12 @@ PY
 ```
 
 ## Expected outputs
+
 - `.tmp/release-readiness/check.json` exists and shows gate status.
 - `.tmp/release-readiness/history.json` confirms retained run history.
 - `.tmp/release-readiness/summary.json` contains progress and row-level detail analysis.
 - `.tmp/release-readiness/index.html` is available for human sign-off.
 
 ## Definition of done
-You can hand a stakeholder a release packet with machine-verifiable gate result + history/progress evidence + row-level rationale.
+
+You can explain why release readiness is a packet, then hand a stakeholder machine-verifiable gate result + history/progress evidence + row-level rationale.

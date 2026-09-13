@@ -1,9 +1,27 @@
 # FDE role workflow lab: artifact-first delivery loop
 
-Goal
-- Provide a repeatable Forward Deployed Engineer (FDE) operating loop using eval-dashboards artifacts end-to-end.
+Concept
+
+An FDE should operate as an evidence translator between product risk and engineering action.
+
+Why this matters
+
+Customers and internal teams need confidence decisions they can audit. The FDE role is not only to run tools, but to connect business risk, eval evidence, and remediation priority using a repeatable artifact loop.
+
+Lab question
+
+Can you run the full FDE loop and produce a confidence packet with clear next actions?
+
+Lab outline
+
+1. Understand the operating model
+   - runner-agnostic + artifact-first
+2. Learn responsibilities by delivery stage
+3. Execute the end-to-end loop
+4. Practice the loop on deterministic fixture artifacts
 
 Principles
+
 - Runner-agnostic: keep customer runner; map outputs into `eval-report/v1`.
 - Artifact-first: every decision must point to report/check/history artifacts.
 
@@ -83,7 +101,9 @@ PY
 ```
 
 ## Definition of done
-You can deliver a customer-facing confidence packet with:
+
+You can state the concept in plain language, then deliver a customer-facing confidence packet with:
+
 - gate decision,
 - progress vs baseline,
 - row-level failures with IDs/reasons,

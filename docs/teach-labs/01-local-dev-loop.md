@@ -1,7 +1,23 @@
 # Lab 01: Local dev loop
 
-Goal
-- Run the local loop and capture history, progress, gating, and row-level details from real artifacts.
+Concept
+
+Local development should produce decision-ready evidence, not only a pass/fail feeling.
+
+Why this matters
+
+If developers do not learn to read history, progress, gates, and row details during local work, teams discover evaluation issues too late in PR or release stages.
+
+Lab question
+
+Can you prove local changes are understood through artifacts before CI is involved?
+
+Lab outline
+
+1. Regenerate deterministic artifacts.
+2. Confirm the core evidence files exist.
+3. Read progress and row-level comparison signals.
+4. Validate both pass and fail gate outputs.
 
 ## Steps
 
@@ -61,6 +77,7 @@ PY
 ```
 
 ## Expected outputs
+
 - `history.json` contains 2 runs.
 - `summary.json` includes `comparison.previousRunId`, `persistentFailures`, and `disappeared`.
 - `check-pass.json` has `passed: true`.
@@ -68,4 +85,5 @@ PY
 - `index.html` opens locally for human triage.
 
 ## Definition of done
-You can show all four evidence classes from files in `examples/report-power-artifacts/` without re-running a hosted service.
+
+You can explain the concept in one sentence and show all four evidence classes from files in `examples/report-power-artifacts/` without re-running a hosted service.
