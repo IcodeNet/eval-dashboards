@@ -120,7 +120,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] 4B.7 Add human adjudication export/import package flow.
 - [x] 4B.8 Add cost-quality frontier and benchmark-pack templates.
 
-### Phase 4C docs-site adoption checklist (slices complete; docs-generation stack decision open)
+### Phase 4C docs-site adoption checklist (complete)
 
 - [x] 4C.1 Stand up static product docs site on GitHub Pages.
 - [x] 4C.2 Publish CLI-first onboarding flow centered on `init` + local-agent setup prompts.
@@ -132,6 +132,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] 4C.8 Add integration risk register (runtime/version drift, sidecar dependencies, schema drift, cloud coupling, synthetic overfitting).
 - [x] 4C.9 Add trace-first evidence hardening guidance and end-to-end example.
 - [x] 4C.10 Add adopt-now docs path and candidate existing-runner adoption map (`docs-site/v1/adopt-now.html`, `docs/adoption-map.md`).
+- [x] 4C.docs-stack Record and apply docs-site stack decision for current milestone (`docs/docs-site-stack-decision.md`).
 
 ### Phase 4D trusted confidence + adoption execution checklist (planned)
 

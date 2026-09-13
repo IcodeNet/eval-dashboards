@@ -452,11 +452,11 @@ Acceptance criteria:
 
 Implementation recommendation (docs generation stack):
 
-- [ ] Standardize docs generation on a Node-first stack:
-  - **VitePress** for product docs pages (guides, onboarding, taxonomy, integrations)
-  - **TypeDoc** (optionally via `typedoc-plugin-markdown`) for API reference generation from exported TypeScript surfaces
-- [ ] Keep GitHub Pages as the publish target using the existing Actions-based deploy workflow.
-- [ ] Reserve Docusaurus for a future migration only if multi-version docs complexity materially exceeds VitePress limits.
+- [x] Record docs stack decision for the current milestone: keep the repo-owned static docs-site (`docs-site/v1/*.html`) as production, with migration to VitePress + TypeDoc deferred until explicit revisit triggers are met.
+- [x] Keep GitHub Pages as the publish target using the existing Actions-based deploy workflow.
+- [x] Reserve Docusaurus as a future migration fallback only if multi-version docs complexity materially exceeds the static-site path.
+
+Decision reference: `docs/docs-site-stack-decision.md`
 
 Rationale:
 
