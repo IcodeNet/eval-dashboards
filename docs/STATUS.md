@@ -140,8 +140,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [ ] 4D.2 Add prioritized execution backlog for validation hardening, CI-native outputs, metrics path, Python adoption, interop expansion, calibration, and OTel guidance.
 - [ ] 4D.3 Deliver the 14-day window (exactly 6 items) with owner/dependency/acceptance criteria tracking.
 - [ ] 4D.4 Deliver the 45-day window (exactly 8 items) with owner/dependency/acceptance criteria tracking.
-- [ ] 4D.5 Add critical/high risk register entries with trigger signals and mitigations.
-- [ ] 4D.6 Keep README/ROADMAP/STATUS/help/publishing/examples discoverability and claim consistency synchronized.
+- [x] 4D.5 Add critical/high risk register entries with trigger signals and mitigations.
+- [x] 4D.6 Keep README/ROADMAP/STATUS/help/publishing/examples discoverability and claim consistency synchronized.
 
 **Immediate next implementation slices**
 
