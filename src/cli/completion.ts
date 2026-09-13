@@ -74,6 +74,7 @@ const checkFlags = [
   '--junit-out',
   '--sarif-out',
   '--github-annotations-out',
+  '--heartbeat-out',
 ] as const;
 
 const reportFlags = [

@@ -610,8 +610,8 @@ Acceptance criteria:
 
 ### 4E.2 Gate reliability heartbeat (P0, S)
 
-- [ ] Emit a machine-readable gate-run status (`ran` | `skipped` | `errored`) alongside existing `check` outputs.
-- [ ] Document how to wire this heartbeat into existing CI monitoring so a silently skipped/errored gate is itself an alertable signal.
+- [x] Emit a machine-readable gate-run status (`ran` | `skipped` | `errored`) alongside existing `check` outputs.
+- [x] Document how to wire this heartbeat into existing CI monitoring so a silently skipped/errored gate is itself an alertable signal.
 
 Acceptance criteria:
 

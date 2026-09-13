@@ -146,7 +146,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 **Immediate next implementation slices**
 
 - Extend dataset governance beyond lifecycle/provenance presence into stricter completeness checks such as duplicate dataset case ids and stronger provenance note coverage where integrations need it.
-- CI-native machine output slice is complete: `check --json-out`, `--junit-out`, `--sarif-out`, and `--github-annotations-out` emit machine-readable gate outputs with one-hop row evidence anchors.
+- CI-native machine output slice is complete: `check --json-out`, `--junit-out`, `--sarif-out`, `--github-annotations-out`, and `--heartbeat-out` emit machine-readable gate outputs, row anchors, and run-status heartbeats for CI monitoring.
 
 **External Phase 4: Shipping & Adoption**
 

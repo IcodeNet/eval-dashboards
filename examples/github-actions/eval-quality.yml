@@ -26,17 +26,27 @@ jobs:
       - name: Generate eval dashboard
         run: npx @icodenet/eval-dashboards report --reporter=html --reporter=json-summary
 
+      # 2b — Clear previous machine outputs to avoid stale heartbeat/result reuse
+      - name: Clear stale check machine outputs
+        run: |
+          rm -f eval-report/check-result.json \
+            eval-report/check-heartbeat.json \
+            eval-report/check-result.junit.xml \
+            eval-report/check-result.sarif.json \
+            eval-report/check-annotations.json
+
       # 3 — Enforce gates and produce CI-native machine outputs
       - name: Check eval gates
         id: check
         continue-on-error: true
         run: |
-          # --json-out is required for steps 3c/3d to enforce failures reliably.
+          # --json-out is required for follow-up gate-result checks.
           npx @icodenet/eval-dashboards check \
             --min-pass-rate=0.9 \
             --max-new-failures=0 \
             --zero-critical \
             --json-out=eval-report/check-result.json \
+            --heartbeat-out=eval-report/check-heartbeat.json \
             --junit-out=eval-report/check-result.junit.xml \
             --sarif-out=eval-report/check-result.sarif.json \
             --github-annotations-out=eval-report/check-annotations.json
@@ -60,15 +70,41 @@ jobs:
             fi
           done
 
-      # 3c — Preserve non-gate failures (invalid config, missing artifacts)
-      - name: Fail on check execution errors
-        if: steps.check.outcome == 'failure' && hashFiles('eval-report/check-result.json') == ''
+      # 3c — Fail fast when check was skipped or errored (heartbeat status)
+      - name: Fail on skipped/errored check run status
+        if: always() && hashFiles('eval-report/check-heartbeat.json') != ''
         run: |
-          echo "Eval check command failed before producing check-result.json"
+          status=$(jq -r '.gateRunStatus' eval-report/check-heartbeat.json)
+          exit_code=$(jq -r '.exitCode' eval-report/check-heartbeat.json)
+          if [ "$status" != "ran" ]; then
+            echo "Eval check did not run cleanly (status=$status). See eval-report/check-heartbeat.json"
+            exit 1
+          fi
+          if [ "$exit_code" != "0" ] && [ "$exit_code" != "1" ]; then
+            echo "Eval check errored (exitCode=$exit_code). See eval-report/check-heartbeat.json"
+            exit 1
+          fi
+          if [ "$exit_code" = "1" ]; then
+            echo "Eval gates failed. See eval-report/check-result.json and eval-report/check-heartbeat.json"
+            exit 1
+          fi
+
+      # 3d — Fail if heartbeat is missing (guard against fail-open monitoring)
+      - name: Fail on missing check heartbeat
+        if: always() && hashFiles('eval-report/check-heartbeat.json') == ''
+        run: |
+          echo "Eval check heartbeat output missing: eval-report/check-heartbeat.json"
           exit 1
 
-      # 3d — Fail job explicitly when gates failed
-      - name: Fail on gate result
+      # 3e — Fail if check result JSON is missing
+      - name: Fail on missing check result
+        if: always() && hashFiles('eval-report/check-result.json') == ''
+        run: |
+          echo "Eval check result output missing: eval-report/check-result.json"
+          exit 1
+
+      # 3f — Fail job explicitly when gates failed
+      - name: Fail on gate outcome
         if: always() && hashFiles('eval-report/check-result.json') != ''
         run: |
           passed=$(jq -r '.passed' eval-report/check-result.json)

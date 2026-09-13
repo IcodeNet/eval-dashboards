@@ -1,5 +1,6 @@
 {
   "schemaVersion": "eval-check-result/v1",
+  "gateRunStatus": "ran",
   "runId": "agent-v4-2026-07-31",
   "baselineRunId": "agent-v3-2026-07-30",
   "passed": false,

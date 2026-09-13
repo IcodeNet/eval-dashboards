@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -37,6 +37,7 @@ describe('check machine outputs', () => {
 
     const parsed = JSON.parse(await readFile(outPath, 'utf8')) as {
       schemaVersion: string;
+      gateRunStatus: string;
       passed: boolean;
       runId: string;
       failures: string[];
@@ -44,6 +45,7 @@ describe('check machine outputs', () => {
     };
 
     expect(parsed.schemaVersion).toBe('eval-check-result/v1');
+    expect(parsed.gateRunStatus).toBe('ran');
     expect(parsed.passed).toBe(true);
     expect(parsed.runId).toBe('agent-quality-template-001');
     expect(Array.isArray(parsed.failures)).toBe(true);
@@ -73,11 +75,13 @@ describe('check machine outputs', () => {
     }
 
     const parsed = JSON.parse(await readFile(outPath, 'utf8')) as {
+      gateRunStatus: string;
       passed: boolean;
       failures: string[];
       newlyFailingRows: Array<{ reportAnchor: string }>;
     };
 
+    expect(parsed.gateRunStatus).toBe('ran');
     expect(parsed.passed).toBe(false);
     expect(parsed.failures.length).toBeGreaterThan(0);
     expect(parsed.newlyFailingRows.every((row) => row.reportAnchor.startsWith('#row-'))).toBe(true);
@@ -169,5 +173,135 @@ describe('check machine outputs', () => {
       expect(rowAnnotation.message).toContain(rowResult.properties.reportAnchor);
       expect(rowAnnotation.message).not.toContain('%253A');
     }
+  });
+
+  it('writes heartbeat status for skipped and errored check runs', async () => {
+    const dir = await createTempDir();
+    const skippedHeartbeatPath = path.join(dir, 'check-heartbeat-skipped.json');
+    const erroredHeartbeatPath = path.join(dir, 'check-heartbeat-errored.json');
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/does-not-exist',
+          `--heartbeat-out=${skippedHeartbeatPath}`,
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected skipped check failure');
+    } catch (error) {
+      const failure = error as { code?: number };
+      expect(failure.code).toBe(3);
+    }
+
+    const skippedHeartbeat = JSON.parse(await readFile(skippedHeartbeatPath, 'utf8')) as {
+      schemaVersion: string;
+      gateRunStatus: string;
+      exitCode: number;
+      message?: string;
+    };
+    expect(skippedHeartbeat.schemaVersion).toBe('eval-check-heartbeat/v1');
+    expect(skippedHeartbeat.gateRunStatus).toBe('skipped');
+    expect(skippedHeartbeat.exitCode).toBe(3);
+    expect(skippedHeartbeat.message).toContain('No eval artifacts directory found');
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/basic-json',
+          '--statistical-mode=bogus',
+          `--heartbeat-out=${erroredHeartbeatPath}`,
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected errored check failure');
+    } catch (error) {
+      const failure = error as { code?: number };
+      expect(failure.code).toBe(2);
+    }
+
+    const erroredHeartbeat = JSON.parse(await readFile(erroredHeartbeatPath, 'utf8')) as {
+      schemaVersion: string;
+      gateRunStatus: string;
+      exitCode: number;
+      message?: string;
+    };
+    expect(erroredHeartbeat.schemaVersion).toBe('eval-check-heartbeat/v1');
+    expect(erroredHeartbeat.gateRunStatus).toBe('errored');
+    expect(erroredHeartbeat.exitCode).toBe(2);
+    expect(erroredHeartbeat.message).toContain('Unknown statistical mode bogus');
+  });
+
+  it('does not change gate exit code when heartbeat write fails', async () => {
+    const dir = await createTempDir();
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/basic-json',
+          '--min-pass-rate=0.9',
+          `--heartbeat-out=${dir}`,
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected gate failure');
+    } catch (error) {
+      const failure = error as { code?: number; stderr?: string };
+      expect(failure.code).toBe(1);
+      expect(failure.stderr).toContain('Warning: could not write heartbeat output');
+      expect(failure.stderr).toContain('Eval gates failed:');
+    }
+  });
+
+  it('preserves run identity on errored heartbeat after context loads', async () => {
+    const dir = await createTempDir();
+    const jsonOutAsDirectory = path.join(dir, 'bad-json-out');
+    const heartbeatPath = path.join(dir, 'check-heartbeat.json');
+
+    await rm(jsonOutAsDirectory, { recursive: true, force: true });
+    await mkdir(jsonOutAsDirectory, { recursive: true });
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        [
+          'cli:dev',
+          'check',
+          '--input=examples/basic-json',
+          `--json-out=${jsonOutAsDirectory}`,
+          `--heartbeat-out=${heartbeatPath}`,
+        ],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected check output write failure');
+    } catch (error) {
+      const failure = error as { code?: number };
+      expect(failure.code).toBe(2);
+    }
+
+    const heartbeat = JSON.parse(await readFile(heartbeatPath, 'utf8')) as {
+      schemaVersion: string;
+      gateRunStatus: string;
+      exitCode: number;
+      runId?: string;
+      baselineRunId?: string;
+      message?: string;
+    };
+
+    expect(heartbeat.schemaVersion).toBe('eval-check-heartbeat/v1');
+    expect(heartbeat.gateRunStatus).toBe('errored');
+    expect(heartbeat.exitCode).toBe(2);
+    expect(heartbeat.runId).toBe('run-002');
+    expect(heartbeat.baselineRunId).toBe('run-001');
+    expect(heartbeat.message).toContain('EISDIR');
   });
 });

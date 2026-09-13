@@ -54,6 +54,7 @@ Machine-readable CI output:
 
 ```sh
 eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --json-out=eval-report/check-result.json
+eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --heartbeat-out=eval-report/check-heartbeat.json
 eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --junit-out=eval-report/check-result.junit.xml
 eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --sarif-out=eval-report/check-result.sarif.json
 eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical --github-annotations-out=eval-report/check-annotations.json
@@ -61,9 +62,58 @@ eval-dashboards check --input=.evals_output --max-new-failures=0 --zero-critical
 
 `check-result.json` includes `newlyFailingRows[]` with URL-safe `reportAnchor` values (`#row-<encodeURIComponent(suite:id)>`) so CI annotations can deep-link directly to row evidence in the generated HTML report.
 
+`check-heartbeat.json` includes machine-readable run status (`ran`, `skipped`, or `errored`) so CI can alert when gate execution did not run cleanly.
+
+Heartbeat payload contract (`eval-check-heartbeat/v1`):
+
+- `schemaVersion`: `"eval-check-heartbeat/v1"`
+- `gateRunStatus`: `"ran" | "skipped" | "errored"`
+- `generatedAt`: ISO timestamp for when heartbeat was written
+- `exitCode`: check command exit code
+- `runId` (optional): run id when available
+- `baselineRunId` (optional): selected baseline run id when available
+- `message` (optional): failure message for skipped/errored runs
+
 - `--junit-out` emits JUnit XML for test-report ingestion in CI systems.
 - `--sarif-out` emits SARIF 2.1.0 JSON with stable report-file locations plus row-anchor metadata (`properties.reportAnchor`).
 - `--github-annotations-out` emits a simple annotations JSON payload (`level`, `title`, `message`) that workflow helpers can translate into GitHub log annotations.
+- `--heartbeat-out` emits gate-run heartbeat JSON (`eval-check-heartbeat/v1`) with `gateRunStatus`, `exitCode`, and optional error message.
+
+CI heartbeat guard example:
+
+```sh
+rm -f eval-report/check-heartbeat.json eval-report/check-result.json
+
+# run check ... --heartbeat-out=eval-report/check-heartbeat.json --json-out=eval-report/check-result.json
+
+if [ ! -f eval-report/check-heartbeat.json ]; then
+  echo "Eval check heartbeat output missing"
+  exit 1
+fi
+
+status=$(jq -r '.gateRunStatus' eval-report/check-heartbeat.json)
+exit_code=$(jq -r '.exitCode' eval-report/check-heartbeat.json)
+
+if [ "$status" != "ran" ]; then
+  echo "Eval check did not run cleanly (status=$status)"
+  exit 1
+fi
+
+if [ "$exit_code" != "0" ] && [ "$exit_code" != "1" ]; then
+  echo "Eval check errored (exitCode=$exit_code)"
+  exit 1
+fi
+
+if [ "$exit_code" = "1" ]; then
+  echo "Eval gates failed"
+  exit 1
+fi
+
+if [ ! -f eval-report/check-result.json ]; then
+  echo "Eval check result output missing"
+  exit 1
+fi
+```
 
 Warning-aware gate options:
 

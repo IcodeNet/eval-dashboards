@@ -23,4 +23,5 @@ Options:
   --junit-out=<path>               Write JUnit XML for CI test-report ingestion
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
+  --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
 

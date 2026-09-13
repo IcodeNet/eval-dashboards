@@ -127,6 +127,7 @@ Options:
   --junit-out=<path>               Write JUnit XML for CI test-report ingestion
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
+  --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
 `;
 
 const publishUsage = `eval-dashboards publish [options]
@@ -190,6 +191,7 @@ type CheckOutputRow = {
 
 type CheckOutputPayload = {
   schemaVersion: 'eval-check-result/v1';
+  gateRunStatus: 'ran';
   runId: string;
   baselineRunId?: string;
   passed: boolean;
@@ -197,6 +199,26 @@ type CheckOutputPayload = {
   diagnostics: string[];
   baselineCompatibility?: unknown;
   newlyFailingRows: CheckOutputRow[];
+};
+
+type CheckHeartbeatPayload = {
+  schemaVersion: 'eval-check-heartbeat/v1';
+  gateRunStatus: 'ran' | 'skipped' | 'errored';
+  generatedAt: string;
+  exitCode: number;
+  runId?: string;
+  baselineRunId?: string;
+  message?: string;
+};
+
+const gateRunStatusFromExitCode = (exitCode: number): CheckHeartbeatPayload['gateRunStatus'] => {
+  if (exitCode === 0 || exitCode === 1) {
+    return 'ran';
+  }
+  if (exitCode === 3) {
+    return 'skipped';
+  }
+  return 'errored';
 };
 
 const xmlEscape = (value: string): string =>
@@ -858,83 +880,134 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const baselineRunId = optionString(options, 'baseline-run-id', '');
-    const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
-    const baselineLookback = optionNumber(options, 'baseline-lookback') ?? config.baseline?.lookback;
-    const context = await loadContext(input, reportDir, {
-      baselineRunId: baselineRunId || undefined,
-      baselineStrategy,
-      baselineLookback,
-    });
-    const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
-    const cliGateOverrides = gateConfigFromOptions(options);
-    const gateConfig: GateConfig = {
-      ...(config.gates ?? {}),
-      ...cliGateOverrides,
-      ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
-    };
-
-    if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
-      gateConfig.statistical = {
-        ...(config.gates?.statistical ?? {}),
-        ...(cliGateOverrides.statistical ?? {}),
-      };
-    }
-    assertValidStatisticalGateConfig(gateConfig);
-    const result = checkGates(
-      context.current,
-      context.comparison,
-      gateConfig,
-      context.baselineCompatibility,
-      context.previous,
-    );
     const jsonOut = optionString(options, 'json-out', '');
     const junitOut = optionString(options, 'junit-out', '');
     const sarifOut = optionString(options, 'sarif-out', '');
     const githubAnnotationsOut = optionString(options, 'github-annotations-out', '');
+    const heartbeatOut = optionString(options, 'heartbeat-out', '');
 
-    const checkPayload: CheckOutputPayload = {
-      schemaVersion: 'eval-check-result/v1',
-      runId: context.current.run.id,
-      baselineRunId: context.previous?.run.id,
-      passed: result.passed,
-      failures: result.failures,
-      diagnostics: result.diagnostics,
-      baselineCompatibility: context.baselineCompatibility,
-      newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
-        id: row.id,
-        suite: row.suite,
-        category: row.category,
-        severity: row.severity,
-        reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
-      })),
+    let heartbeatRunId: string | undefined;
+    let heartbeatBaselineRunId: string | undefined;
+    const writeHeartbeat = async (payload: CheckHeartbeatPayload): Promise<void> => {
+      if (!heartbeatOut) {
+        return;
+      }
+      try {
+        await writeJsonFile(heartbeatOut, payload);
+      } catch (heartbeatError) {
+        const heartbeatMessage =
+          heartbeatError instanceof Error ? heartbeatError.message : String(heartbeatError);
+        console.error(`Warning: could not write heartbeat output ${heartbeatOut}: ${heartbeatMessage}`);
+      }
     };
 
-    if (jsonOut) {
-      await writeJsonFile(jsonOut, checkPayload);
-    }
-    if (junitOut) {
-      await writeTextFile(junitOut, toJunitXml(checkPayload));
-    }
-    if (sarifOut) {
-      await writeJsonFile(sarifOut, toSarif(checkPayload, reportDir));
-    }
-    if (githubAnnotationsOut) {
-      await writeJsonFile(githubAnnotationsOut, toGithubAnnotations(checkPayload));
-    }
+    try {
+      const baselineRunId = optionString(options, 'baseline-run-id', '');
+      const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
+      const baselineLookback = optionNumber(options, 'baseline-lookback') ?? config.baseline?.lookback;
+      const context = await loadContext(input, reportDir, {
+        baselineRunId: baselineRunId || undefined,
+        baselineStrategy,
+        baselineLookback,
+      });
+      const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
+      const cliGateOverrides = gateConfigFromOptions(options);
+      const gateConfig: GateConfig = {
+        ...(config.gates ?? {}),
+        ...cliGateOverrides,
+        ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
+      };
 
-    if (result.passed) {
-      if (result.diagnostics.length > 0) {
-        console.log(`Gate diagnostics:\n${result.diagnostics.join('\n')}`);
+      if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
+        gateConfig.statistical = {
+          ...(config.gates?.statistical ?? {}),
+          ...(cliGateOverrides.statistical ?? {}),
+        };
       }
-      console.log('Eval gates passed.');
+      assertValidStatisticalGateConfig(gateConfig);
+      const result = checkGates(
+        context.current,
+        context.comparison,
+        gateConfig,
+        context.baselineCompatibility,
+        context.previous,
+      );
+
+      heartbeatRunId = context.current.run.id;
+      heartbeatBaselineRunId = context.previous?.run.id;
+
+      const checkPayload: CheckOutputPayload = {
+        schemaVersion: 'eval-check-result/v1',
+        gateRunStatus: 'ran',
+        runId: context.current.run.id,
+        baselineRunId: context.previous?.run.id,
+        passed: result.passed,
+        failures: result.failures,
+        diagnostics: result.diagnostics,
+        baselineCompatibility: context.baselineCompatibility,
+        newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
+          id: row.id,
+          suite: row.suite,
+          category: row.category,
+          severity: row.severity,
+          reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
+        })),
+      };
+
+      if (jsonOut) {
+        await writeJsonFile(jsonOut, checkPayload);
+      }
+      if (junitOut) {
+        await writeTextFile(junitOut, toJunitXml(checkPayload));
+      }
+      if (sarifOut) {
+        await writeJsonFile(sarifOut, toSarif(checkPayload, reportDir));
+      }
+      if (githubAnnotationsOut) {
+        await writeJsonFile(githubAnnotationsOut, toGithubAnnotations(checkPayload));
+      }
+
+      await writeHeartbeat({
+        schemaVersion: 'eval-check-heartbeat/v1',
+        gateRunStatus: 'ran',
+        generatedAt: new Date().toISOString(),
+        exitCode: result.passed ? 0 : 1,
+        runId: heartbeatRunId,
+        baselineRunId: heartbeatBaselineRunId,
+      });
+
+      if (result.passed) {
+        if (result.diagnostics.length > 0) {
+          console.log(`Gate diagnostics:\n${result.diagnostics.join('\n')}`);
+        }
+        console.log('Eval gates passed.');
+        return;
+      }
+
+      const diagnostics = result.diagnostics.length > 0 ? `\nDiagnostics:\n${result.diagnostics.join('\n')}` : '';
+      console.error(`Eval gates failed:\n${result.failures.join('\n')}${diagnostics}`);
+      process.exitCode = 1;
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const exitCode =
+        typeof error === 'object' && error !== null && 'exitCode' in error
+          ? Number(error.exitCode)
+          : 2;
+      const normalizedExitCode = Number.isFinite(exitCode) ? exitCode : 2;
+      await writeHeartbeat({
+        schemaVersion: 'eval-check-heartbeat/v1',
+        gateRunStatus: gateRunStatusFromExitCode(normalizedExitCode),
+        generatedAt: new Date().toISOString(),
+        exitCode: normalizedExitCode,
+        runId: heartbeatRunId,
+        baselineRunId: heartbeatBaselineRunId,
+        message,
+      });
+      console.error(message);
+      process.exitCode = normalizedExitCode;
       return;
     }
-
-    const diagnostics = result.diagnostics.length > 0 ? `\nDiagnostics:\n${result.diagnostics.join('\n')}` : '';
-    console.error(`Eval gates failed:\n${result.failures.join('\n')}${diagnostics}`);
-    process.exitCode = 1;
-    return;
   }
 
   if (command === 'lint') {
@@ -1027,12 +1100,43 @@ const main = async (): Promise<void> => {
   throw Object.assign(new Error(`Unknown command ${command}.`), { exitCode: 2 });
 };
 
-main().catch((error: unknown) => {
+main().catch(async (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   const exitCode =
     typeof error === 'object' && error !== null && 'exitCode' in error
       ? Number(error.exitCode)
       : 2;
+  const normalizedExitCode = Number.isFinite(exitCode) ? exitCode : 2;
+
+  const maybeWriteHeartbeat = async (): Promise<void> => {
+    const { command, options } = parseArgs(process.argv.slice(2));
+    if (command !== 'check') {
+      return;
+    }
+
+    const heartbeatOut = optionString(options, 'heartbeat-out', '');
+    if (!heartbeatOut) {
+      return;
+    }
+
+    const payload: CheckHeartbeatPayload = {
+      schemaVersion: 'eval-check-heartbeat/v1',
+      gateRunStatus: gateRunStatusFromExitCode(normalizedExitCode),
+      generatedAt: new Date().toISOString(),
+      exitCode: normalizedExitCode,
+      message,
+    };
+
+    try {
+      await writeJsonFile(heartbeatOut, payload);
+    } catch (heartbeatError) {
+      const heartbeatMessage =
+        heartbeatError instanceof Error ? heartbeatError.message : String(heartbeatError);
+      console.error(`Warning: could not write heartbeat output ${heartbeatOut}: ${heartbeatMessage}`);
+    }
+  };
+
+  await maybeWriteHeartbeat();
   console.error(message);
-  process.exitCode = Number.isFinite(exitCode) ? exitCode : 2;
+  process.exitCode = normalizedExitCode;
 });

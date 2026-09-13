@@ -43,6 +43,28 @@ Notes:
 - Top-level shape failures use `path: '$'`.
 - Callers can use the first issue path for concise error prefixes while keeping full messages for debugging.
 
+## Check heartbeat output contract (`eval-check-heartbeat/v1`)
+
+When `eval-dashboards check` is run with `--heartbeat-out=<path>`, it writes a machine-readable heartbeat JSON payload:
+
+```json
+{
+  "schemaVersion": "eval-check-heartbeat/v1",
+  "gateRunStatus": "ran",
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "exitCode": 0,
+  "runId": "optional-run-id",
+  "baselineRunId": "optional-baseline-run-id",
+  "message": "optional failure message"
+}
+```
+
+`gateRunStatus` values:
+
+- `ran`: gate logic executed and produced a normal gate verdict
+- `skipped`: check could not run due to missing/no artifacts (exit 3)
+- `errored`: invalid config/artifact or runtime failure (typically exit 2)
+
 ## What To Emit
 
 - A dedicated `preflight` suite with deterministic probe rows.
