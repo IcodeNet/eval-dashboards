@@ -41,6 +41,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify eval-report schema drift guard
+        run: pnpm schema:check
+
+      - name: Verify report-power artifact drift guard
+        run: pnpm artifacts:report-power && git diff --exit-code -- examples/report-power-artifacts
+
       - name: Verify CLI help snapshots and scaffold/completion guards
         run: pnpm verify:cli
 
