@@ -15,9 +15,9 @@ Goal
 
 ```sh
 rm -rf .tmp/release-readiness
-pnpm cli report --input=examples/report-power-artifacts/.evals_output --reporter=html --reporter=json-summary --reporter=markdown-summary --report-dir=.tmp/release-readiness
-pnpm cli history --input=examples/report-power-artifacts/.evals_output --out=.tmp/release-readiness/history.json
-pnpm cli check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.95 --max-new-failures=0 --zero-critical --json-out=.tmp/release-readiness/check.json
+pnpm cli:dev report --input=examples/report-power-artifacts/.evals_output --reporter=html --reporter=json-summary --reporter=markdown-summary --report-dir=.tmp/release-readiness
+pnpm cli:dev history --input=examples/report-power-artifacts/.evals_output --out=.tmp/release-readiness/history.json
+pnpm cli:dev check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.95 --max-new-failures=0 --zero-critical --json-out=.tmp/release-readiness/check.json
 ```
 
 3) Produce a release confidence summary from machine outputs.

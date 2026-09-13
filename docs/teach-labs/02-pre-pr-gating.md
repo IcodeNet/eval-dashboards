@@ -15,8 +15,8 @@ Goal
 
 ```sh
 rm -rf .tmp/lab-prepr-pass.json .tmp/lab-prepr-fail.json
-pnpm cli check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.95 --max-new-failures=0 --zero-critical --json-out=.tmp/lab-prepr-pass.json
-pnpm cli check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.99 --max-new-failures=0 --zero-critical --json-out=.tmp/lab-prepr-fail.json || true
+pnpm cli:dev check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.95 --max-new-failures=0 --zero-critical --json-out=.tmp/lab-prepr-pass.json
+pnpm cli:dev check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.99 --max-new-failures=0 --zero-critical --json-out=.tmp/lab-prepr-fail.json || true
 ```
 
 3) Produce a decision record from machine outputs.

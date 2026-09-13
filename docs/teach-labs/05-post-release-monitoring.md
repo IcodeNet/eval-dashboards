@@ -15,9 +15,9 @@ Goal
 
 ```sh
 rm -rf .tmp/post-release-monitor
-pnpm cli history --input=examples/report-power-artifacts/.evals_output --out=.tmp/post-release-monitor/history.json
-pnpm cli report --input=examples/report-power-artifacts/.evals_output --reporter=json-summary --report-dir=.tmp/post-release-monitor
-pnpm cli check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.95 --max-new-failures=0 --zero-critical --json-out=.tmp/post-release-monitor/check.json
+pnpm cli:dev history --input=examples/report-power-artifacts/.evals_output --out=.tmp/post-release-monitor/history.json
+pnpm cli:dev report --input=examples/report-power-artifacts/.evals_output --reporter=json-summary --report-dir=.tmp/post-release-monitor
+pnpm cli:dev check --input=examples/report-power-artifacts/.evals_output --min-pass-rate=0.95 --max-new-failures=0 --zero-critical --json-out=.tmp/post-release-monitor/check.json
 ```
 
 3) Compute watch signals.
