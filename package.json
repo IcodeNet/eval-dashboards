@@ -37,8 +37,7 @@
     "examples/github-actions/*.yml",
     "examples/azure-devops/*.yml",
     "examples/benchmark-packs/*.json",
-    "examples/report-power-artifacts/**",
-    "scripts/generate-report-power-artifacts.sh"
+    "examples/report-power-artifacts/**"
   ],
   "scripts": {
     "assets:regenerate": "tsx scripts/regenerate-release-assets.ts",
