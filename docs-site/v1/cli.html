@@ -13,6 +13,9 @@ eval-dashboards report-index --input=.evals_output --out=eval-dashboard/overview
 eval-dashboards publish --target=dir --input=.evals_output --report-dir=eval-dashboard
 eval-dashboards completion install
 eval-dashboards import --from=promptfoo --input=./promptfoo-results.json --out=.evals_output/import-promptfoo.json
+eval-dashboards merge --input=.evals_output --out=eval-report/merged.json
+eval-dashboards history --input=.evals_output --out=eval-report/history.json
+eval-dashboards adjudicate export --input=.evals_output --out=eval-report/adjudication-bundle.json
 eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report</code></pre>
 </section>
 <section><h2>init flags (agent-quality preset)</h2>

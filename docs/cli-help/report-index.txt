@@ -1,0 +1,7 @@
+eval-dashboards report-index [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --out=<path>             Output HTML path. Default: eval-report/overview.html
+  --locale=<tag>           Locale override for date/number formatting
+

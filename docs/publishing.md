@@ -40,7 +40,8 @@ Azure Storage target options:
 
 - `dir` is local-only and preserves offline-first behavior.
 - `github-pages` needs `--repo` and a GitHub token (`GITHUB_TOKEN` or `--token`).
-- `azure-static-webapp` and `azure-storage` require authenticated Azure CLI and access to the target resource.
+- `azure-storage` requires authenticated Azure CLI and access to the target resource.
+- `azure-static-webapp` currently supports dry-run validation only; non-dry-run returns a clear not-implemented error until a verified execution path lands.
 
 ## Examples
 
@@ -51,7 +52,7 @@ eval-dashboards publish --target=github-pages --dry-run --repo=IcodeNet/eval-das
 eval-dashboards publish --target=github-pages --repo=IcodeNet/eval-dashboards --branch=gh-pages
 
 eval-dashboards publish --target=azure-static-webapp --dry-run --app-name=eval-dashboard
-eval-dashboards publish --target=azure-static-webapp --app-name=eval-dashboard
+# non-dry-run currently returns a not-implemented error
 
 eval-dashboards publish --target=azure-storage --dry-run --account=myevalreports --container='$web'
 eval-dashboards publish --target=azure-storage --account=myevalreports --container='$web'

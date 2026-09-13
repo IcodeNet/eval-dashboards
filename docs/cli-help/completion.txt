@@ -1,0 +1,19 @@
+eval-dashboards completion [install] [options]
+
+Options:
+  --shell=<name>   Shell to render completion for: bash|zsh|fish.
+                   Default: inferred from $SHELL, falling back to bash.
+
+Examples:
+  eval-dashboards completion install
+
+  eval-dashboards completion --shell=bash > ~/.eval-dashboards-completion.bash
+  source ~/.eval-dashboards-completion.bash
+
+  mkdir -p ~/.zsh/completions
+  eval-dashboards completion --shell=zsh > ~/.zsh/completions/_evd
+  fpath=(~/.zsh/completions $fpath)
+  autoload -Uz compinit && compinit
+
+  eval-dashboards completion --shell=fish > ~/.config/fish/completions/eval-dashboards.fish
+

@@ -230,13 +230,41 @@ declare const validateEvalReport: (value: unknown) => ValidationResult;
 declare const assessBaselineCompatibility: (candidateManifests: readonly SuiteManifest[] | undefined, baselineManifests: readonly SuiteManifest[] | undefined, hasComparison: boolean) => BaselineCompatibilityResult | undefined;
 
 type BaselineStrategy = 'rolling' | 'champion';
-type RunHistoryEntry = ReturnType<typeof summarizeReport>;
+type HistoryBucket = {
+    total: number;
+    passed: number;
+    failed: number;
+    passRate: number;
+};
+type HistoryRegressionCounts = {
+    newlyFailing: number;
+    newlyPassing: number;
+    persistentFailures: number;
+    disappeared: number;
+};
+type RowStabilityCounts = {
+    stable: number;
+    flaky: number;
+    persistentFailure: number;
+};
+type RunHistoryEntry = ReturnType<typeof summarizeReport> & {
+    bySuite: Record<string, HistoryBucket>;
+    byRiskArea: Record<string, HistoryBucket>;
+    byKind: Record<string, HistoryBucket>;
+    regression: HistoryRegressionCounts;
+    /**
+     * Cumulative stability counts computed across all runs up to this history entry.
+     * These counts are not limited to rows present in only the current run.
+     */
+    rowStability: RowStabilityCounts;
+};
 type RunComparison = {
     currentRunId: string;
     previousRunId?: string;
     newlyFailing: EvalRow[];
     newlyPassing: EvalRow[];
     persistentFailures: EvalRow[];
+    disappeared: EvalRow[];
 };
 declare const buildHistory: (reports: EvalReportV1[]) => RunHistoryEntry[];
 declare const compareRuns: (current: EvalReportV1, previous?: EvalReportV1) => RunComparison;

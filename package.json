@@ -55,6 +55,7 @@
     "release": "semantic-release",
     "release:dry": "semantic-release --dry-run --no-ci",
     "release:prepare": "pnpm check && pnpm assets:verify",
+    "verify:cli": "./scripts/verify-cli-init-and-completion.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",

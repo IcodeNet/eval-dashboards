@@ -2,7 +2,37 @@ import { type EvalReportV1, type EvalRow, rowKey, summarizeReport } from '../mod
 
 export type BaselineStrategy = 'rolling' | 'champion';
 
-export type RunHistoryEntry = ReturnType<typeof summarizeReport>;
+export type HistoryBucket = {
+  total: number;
+  passed: number;
+  failed: number;
+  passRate: number;
+};
+
+export type HistoryRegressionCounts = {
+  newlyFailing: number;
+  newlyPassing: number;
+  persistentFailures: number;
+  disappeared: number;
+};
+
+export type RowStabilityCounts = {
+  stable: number;
+  flaky: number;
+  persistentFailure: number;
+};
+
+export type RunHistoryEntry = ReturnType<typeof summarizeReport> & {
+  bySuite: Record<string, HistoryBucket>;
+  byRiskArea: Record<string, HistoryBucket>;
+  byKind: Record<string, HistoryBucket>;
+  regression: HistoryRegressionCounts;
+  /**
+   * Cumulative stability counts computed across all runs up to this history entry.
+   * These counts are not limited to rows present in only the current run.
+   */
+  rowStability: RowStabilityCounts;
+};
 
 export type RowStability = 'stable' | 'flaky' | 'persistent-failure';
 
@@ -12,6 +42,7 @@ export type RunComparison = {
   newlyFailing: EvalRow[];
   newlyPassing: EvalRow[];
   persistentFailures: EvalRow[];
+  disappeared: EvalRow[];
 };
 
 export type RowTrend = {
@@ -21,10 +52,76 @@ export type RowTrend = {
   passCount: number;
 };
 
-export const buildHistory = (reports: EvalReportV1[]): RunHistoryEntry[] =>
-  [...reports]
-    .sort((left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt))
-    .map((report) => summarizeReport(report));
+const toBucket = (rows: EvalRow[]): HistoryBucket => {
+  const total = rows.length;
+  const passed = rows.filter((row) => row.passed).length;
+  const failed = total - passed;
+  return {
+    total,
+    passed,
+    failed,
+    passRate: total === 0 ? 0 : passed / total,
+  };
+};
+
+const groupRows = (rows: EvalRow[], keyFn: (row: EvalRow) => string): Record<string, HistoryBucket> => {
+  const grouped = new Map<string, EvalRow[]>();
+  for (const row of rows) {
+    const key = keyFn(row);
+    const current = grouped.get(key) ?? [];
+    current.push(row);
+    grouped.set(key, current);
+  }
+
+  return Object.fromEntries(
+    [...grouped.entries()].map(([key, groupedRows]) => [key, toBucket(groupedRows)]),
+  );
+};
+
+export const buildHistory = (reports: EvalReportV1[]): RunHistoryEntry[] => {
+  const ordered = [...reports].sort(
+    (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt),
+  );
+
+  return ordered.map((report, index) => {
+    const previous = index > 0 ? ordered[index - 1] : undefined;
+    const comparison = compareRuns(report, previous);
+    const manifestsBySuite = new Map((report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
+    const stability = analyzeRowStability(ordered.slice(0, index + 1));
+    const rowStability: RowStabilityCounts = {
+      stable: 0,
+      flaky: 0,
+      persistentFailure: 0,
+    };
+
+    for (const trend of stability.values()) {
+      if (trend.stability === 'persistent-failure') {
+        rowStability.persistentFailure += 1;
+      } else if (trend.stability === 'flaky') {
+        rowStability.flaky += 1;
+      } else {
+        rowStability.stable += 1;
+      }
+    }
+
+    return {
+      ...summarizeReport(report),
+      bySuite: groupRows(report.rows, (row) => row.suite),
+      byKind: groupRows(report.rows, (row) => row.kind ?? 'unspecified'),
+      byRiskArea: groupRows(
+        report.rows,
+        (row) => manifestsBySuite.get(row.suite)?.riskArea ?? 'unspecified',
+      ),
+      regression: {
+        newlyFailing: comparison.newlyFailing.length,
+        newlyPassing: comparison.newlyPassing.length,
+        persistentFailures: comparison.persistentFailures.length,
+        disappeared: comparison.disappeared.length,
+      },
+      rowStability,
+    };
+  });
+};
 
 export const compareRuns = (
   current: EvalReportV1,
@@ -36,6 +133,7 @@ export const compareRuns = (
       newlyFailing: current.rows.filter((row) => !row.passed),
       newlyPassing: [],
       persistentFailures: [],
+      disappeared: [],
     };
   }
 
@@ -54,6 +152,8 @@ export const compareRuns = (
       continue;
     }
 
+    previousRows.delete(rowKey(currentRow));
+
     if (previousRow.passed && !currentRow.passed) {
       newlyFailing.push(currentRow);
     } else if (!previousRow.passed && currentRow.passed) {
@@ -63,12 +163,15 @@ export const compareRuns = (
     }
   }
 
+  const disappeared = [...previousRows.values()];
+
   return {
     currentRunId: current.run.id,
     previousRunId: previous.run.id,
     newlyFailing,
     newlyPassing,
     persistentFailures,
+    disappeared,
   };
 };
 

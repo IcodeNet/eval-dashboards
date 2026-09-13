@@ -20,7 +20,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Add initial gate checking.
 - [x] Add starter `text`, `json-summary`, `markdown-summary`, and `html` reporters.
 - [x] Add local directory publish target.
-- [x] Implement publishing adapters for GitHub Pages, Azure Static Web Apps, and Azure Storage (with dry-run preview mode).
+- [x] Implement publishing adapters for GitHub Pages and Azure Storage, plus Azure Static Web Apps dry-run validation mode.
 - [x] Add required example directories and starter artifacts.
 - [x] Add runnable provider-free agent/chat eval example that generates artifacts and reports.
 - [x] Add focused starter tests.
@@ -40,7 +40,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Add taxonomy completeness score (0–100%) to row display with visual indicators.
 - [x] Add kind badges (deterministic, agent, llm-judge, human-review) to row display.
 - [x] Add "All rows (by dataset & scenario)" section with full grouping.
-- [x] Implement Azure Static Web Apps publishing adapter (including dry-run validation path).
+- [x] Implement Azure Static Web Apps dry-run validation path (non-dry-run execution path pending).
 - [x] Implement Azure Storage static website publishing adapter (including dry-run validation path).
 - [x] Add persistent failure detection with `analyzeRowStability()` function.
 - [x] Add flaky row classification based on pass/fail history across runs.

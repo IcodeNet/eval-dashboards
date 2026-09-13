@@ -8,8 +8,16 @@ These files are exact snapshots of live CLI `--help` output.
 - `import.txt`
 - `teach.txt`
 - `init.txt`
+- `lint.txt`
+- `merge.txt`
+- `history.txt`
+- `report-index.txt`
+- `completion.txt`
+- `adjudicate.txt`
+- `root.txt`
 
 Verification rule:
 
 - `scripts/verify-cli-init-and-completion.sh` compares each snapshot to live command output.
 - Update snapshots when command help intentionally changes.
+- Refresh command: `pnpm build && ./scripts/verify-cli-init-and-completion.sh`

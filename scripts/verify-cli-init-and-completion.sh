@@ -124,6 +124,34 @@ contains_check "teach --help mirrors init usage" "$TEACH_HELP" "eval-dashboards 
 exact_match_check "teach help snapshot matches docs/cli-help/teach.txt" "$TEACH_HELP" "$(cat docs/cli-help/teach.txt)"
 exact_match_check "init help snapshot matches docs/cli-help/init.txt" "$INIT_HELP" "$(cat docs/cli-help/init.txt)"
 
+LINT_HELP="$(run_cli lint --help || true)"
+contains_check "lint --help usage header" "$LINT_HELP" "eval-dashboards lint [options]"
+exact_match_check "lint help snapshot matches docs/cli-help/lint.txt" "$LINT_HELP" "$(cat docs/cli-help/lint.txt)"
+
+MERGE_HELP="$(run_cli merge --help || true)"
+contains_check "merge --help usage header" "$MERGE_HELP" "eval-dashboards merge [options]"
+exact_match_check "merge help snapshot matches docs/cli-help/merge.txt" "$MERGE_HELP" "$(cat docs/cli-help/merge.txt)"
+
+HISTORY_HELP="$(run_cli history --help || true)"
+contains_check "history --help usage header" "$HISTORY_HELP" "eval-dashboards history [options]"
+exact_match_check "history help snapshot matches docs/cli-help/history.txt" "$HISTORY_HELP" "$(cat docs/cli-help/history.txt)"
+
+REPORT_INDEX_HELP="$(run_cli report-index --help || true)"
+contains_check "report-index --help usage header" "$REPORT_INDEX_HELP" "eval-dashboards report-index [options]"
+exact_match_check "report-index help snapshot matches docs/cli-help/report-index.txt" "$REPORT_INDEX_HELP" "$(cat docs/cli-help/report-index.txt)"
+
+COMPLETION_HELP="$(run_cli completion --help || true)"
+contains_check "completion --help usage header" "$COMPLETION_HELP" "eval-dashboards completion [install] [options]"
+exact_match_check "completion help snapshot matches docs/cli-help/completion.txt" "$COMPLETION_HELP" "$(cat docs/cli-help/completion.txt)"
+
+ADJUDICATE_HELP="$(run_cli adjudicate --help || true)"
+contains_check "adjudicate --help usage header" "$ADJUDICATE_HELP" "eval-dashboards adjudicate <action> [options]"
+exact_match_check "adjudicate help snapshot matches docs/cli-help/adjudicate.txt" "$ADJUDICATE_HELP" "$(cat docs/cli-help/adjudicate.txt)"
+
+ROOT_HELP="$(run_cli --help || true)"
+contains_check "root help usage header" "$ROOT_HELP" "eval-dashboards <command>"
+exact_match_check "root help snapshot matches docs/cli-help/root.txt" "$ROOT_HELP" "$(cat docs/cli-help/root.txt)"
+
 printf '\n== default init dry-run ==\n'
 DEFAULT_DRY_RUN="$(run_cli init --preset=agent-quality --write --dry-run || true)"
 contains_check "default dry-run shows 5 files" "$DEFAULT_DRY_RUN" "Would write 5 file(s):"

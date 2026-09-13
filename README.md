@@ -116,10 +116,10 @@ See working examples:
 
 ## Visual Gallery
 
-The HTML dashboard is fully responsive and works in both light and dark themes. View live examples:
+The HTML dashboard is fully responsive and works in both light and dark themes. View tracked fixture examples:
 
-- **[Light theme dashboard](eval-report/index.html)** — Default presentation with light background
-- **[Dark theme dashboard](eval-report-dark/index.html)** — Dark mode with reduced eye strain
+- **[Light theme dashboard](examples/screenshot-fixture/report/index.html)** — Default presentation with light background
+- **[Dark theme dashboard](examples/screenshot-fixture/report-dark/index.html)** — Dark mode with reduced eye strain
 
 | Light Theme | Dark Theme |
 |---|---|
@@ -263,7 +263,7 @@ Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot 
 | `eval-dashboards report-index` | Generate grouped multi-report HTML index from discovered artifacts |
 | `eval-dashboards lint` | Run fast semantic/taxonomy preflight checks before expensive eval runs |
 | `eval-dashboards check` | Enforce pass-rate, new-failure, critical-severity, and suite-manifest gates |
-| `eval-dashboards publish` | Publish dashboard to `dir`, `github-pages`, Azure Static Web Apps, or Azure Storage |
+| `eval-dashboards publish` | Publish dashboard to dir, github-pages, or Azure Storage (Azure Static Web Apps: dry-run validation only) |
 | `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |
 | `eval-dashboards merge` | Merge multiple artifacts into one |
 | `eval-dashboards teach` | Guided onboarding walkthrough (alias of `init --preset=agent-quality --teach`) |
@@ -408,7 +408,7 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - **Contributors** — improve HTML styling, add publishing targets, expand examples
 
 **Current metrics (targeting by 2026-Q4):**
-- ✅ Schema + taxonomy complete
+- ✅ Schema + taxonomy foundation complete (drift guard hardening in progress)
 - ⏳ 5+ external runners discovering this project
 - ⏳ 1 runner emitting taxonomy-complete artifacts
 - ⏳ 100+ npm downloads/week

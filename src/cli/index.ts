@@ -148,6 +148,35 @@ Azure Storage target options:
   --container=<name>       Blob container. Default: $web
 `;
 
+const reportIndexUsage = `eval-dashboards report-index [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --out=<path>             Output HTML path. Default: eval-report/overview.html
+  --locale=<tag>           Locale override for date/number formatting
+`;
+
+const lintUsage = `eval-dashboards lint [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --strict                 Fail on warnings as well as errors
+`;
+
+const mergeUsage = `eval-dashboards merge [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --out=<path>             Output merged JSON path. Default: eval-report/merged.json
+`;
+
+const historyUsage = `eval-dashboards history [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --out=<path>             Output history JSON path. Default: eval-report/history.json
+`;
+
 type LoadContextOptions = {
   runId?: string;
   baselineRunId?: string;
@@ -652,6 +681,11 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'report-index') {
+    if (optionBoolean(options, 'help')) {
+      console.log(reportIndexUsage);
+      return;
+    }
+
     const reports = await readEvalReports(input);
     const locale = optionString(options, 'locale', '') || config.locale;
     const out = optionString(options, 'out', path.join(reportDir, 'overview.html'));
@@ -732,6 +766,11 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'lint') {
+    if (optionBoolean(options, 'help')) {
+      console.log(lintUsage);
+      return;
+    }
+
     const reports = await readEvalReports(input);
     const result = lintReportsTaxonomy(reports);
     const strict = optionBoolean(options, 'strict');
@@ -764,6 +803,11 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'merge') {
+    if (optionBoolean(options, 'help')) {
+      console.log(mergeUsage);
+      return;
+    }
+
     const reports = await readEvalReports(input);
     const out = optionString(options, 'out', 'eval-report/merged.json');
     await writeJsonFile(out, { schemaVersion: 'eval-report-merged/v1', reports });
@@ -772,6 +816,11 @@ const main = async (): Promise<void> => {
   }
 
   if (command === 'history') {
+    if (optionBoolean(options, 'help')) {
+      console.log(historyUsage);
+      return;
+    }
+
     const reports = await readEvalReports(input);
     const out = optionString(options, 'out', 'eval-report/history.json');
     await writeJsonFile(out, buildHistory(reports));

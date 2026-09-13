@@ -1,0 +1,6 @@
+eval-dashboards history [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --out=<path>             Output history JSON path. Default: eval-report/history.json
+

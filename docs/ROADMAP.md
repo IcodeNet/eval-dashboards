@@ -57,8 +57,8 @@ The schema is only useful if runners emit it. Phase 2A made taxonomy first-class
 - [x] Jest custom reporter example with README and step-by-step guide
 - [x] Vitest eval example with README and patterns
 - [x] Plain Node/TypeScript eval example with README and use cases
-- [x] Production Azure Static Web Apps publishing (real, not dry-run)
-- [x] Production Azure Storage publishing (real, not dry-run)
+- [x] Azure Static Web Apps dry-run validation path implemented (non-dry-run execution path pending)
+- [x] Azure Storage publishing adapter implemented (dry-run and execution paths)
 - [x] Explicit baseline selection by run id via `selectBaseline()` and `--baseline-run-id` CLI flag
 - [x] Persistent failure and flaky row classification with historical trend analysis
 

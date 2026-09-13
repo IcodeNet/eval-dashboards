@@ -1,0 +1,6 @@
+eval-dashboards lint [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --strict                 Fail on warnings as well as errors
+

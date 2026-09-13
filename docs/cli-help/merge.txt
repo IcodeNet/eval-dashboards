@@ -1,0 +1,6 @@
+eval-dashboards merge [options]
+
+Options:
+  --input=<path>           Artifact directory to read. Default: .evals_output
+  --out=<path>             Output merged JSON path. Default: eval-report/merged.json
+

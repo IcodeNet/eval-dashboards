@@ -120,48 +120,9 @@ export const publishReport = async (options: PublishOptions): Promise<PublishRes
       };
     }
 
-    // Use Azure CLI to deploy via build + upload
-    // First, verify Azure CLI and authentication
-    try {
-      execSync('az --version', { stdio: 'pipe' });
-    } catch {
-      throw new Error('Azure CLI is not installed or not in PATH. Install from https://learn.microsoft.com/cli/azure/install-azure-cli');
-    }
-
-    // Get app info to determine resource group and build output path
-    let appInfo: { defaultHostname: string; resourceGroup: string };
-    try {
-      const output = execSync(`az staticwebapp show --name "${options.appName}" --query "{defaultHostname:defaultHostname,resourceGroup:resourceGroup}" --output json`, {
-        stdio: 'pipe',
-      }).toString();
-      appInfo = JSON.parse(output);
-    } catch {
-      throw new Error(`Failed to retrieve Azure Static Web App "${options.appName}". Verify it exists and you have access.`);
-    }
-
-    // Upload via Azure CLI deployment
-    const files = await collectFiles(options.reportDir);
-    for (const { relPath, content } of files) {
-      const tempFile = path.join('.tmp-deploy', relPath);
-      await mkdir(path.dirname(tempFile), { recursive: true });
-      await (await import('node:fs/promises')).writeFile(tempFile, content);
-    }
-
-    try {
-      execSync(`az staticwebapp enterprise build --name "${options.appName}" --output-location "${'.tmp-deploy'}"`, {
-        stdio: 'inherit',
-      });
-    } catch {
-      // Fall back to direct deployment approach
-      console.log(`Deploying ${files.length} files to ${options.appName}...`);
-    }
-
-    return {
-      target: options.target,
-      dryRun: false,
-      message: `Published ${files.length} file(s) from ${options.reportDir} to Azure Static Web App "${options.appName}".`,
-      url: `https://${appInfo.defaultHostname}`,
-    };
+    throw new Error(
+      'azure-static-webapp non-dry-run publish is not implemented yet. Use --dry-run for validation, or publish with --target=azure-storage/--target=github-pages.',
+    );
   }
 
   if (options.target === 'azure-storage') {

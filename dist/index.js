@@ -528,14 +528,78 @@ var baselineCompatibilityStatus = (issues) => {
 };
 
 // src/history/history.ts
-var buildHistory = (reports) => [...reports].sort((left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt)).map((report) => summarizeReport(report));
+var toBucket = (rows) => {
+  const total = rows.length;
+  const passed = rows.filter((row) => row.passed).length;
+  const failed = total - passed;
+  return {
+    total,
+    passed,
+    failed,
+    passRate: total === 0 ? 0 : passed / total
+  };
+};
+var groupRows = (rows, keyFn) => {
+  const grouped = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const key = keyFn(row);
+    const current = grouped.get(key) ?? [];
+    current.push(row);
+    grouped.set(key, current);
+  }
+  return Object.fromEntries(
+    [...grouped.entries()].map(([key, groupedRows]) => [key, toBucket(groupedRows)])
+  );
+};
+var buildHistory = (reports) => {
+  const ordered = [...reports].sort(
+    (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt)
+  );
+  return ordered.map((report, index) => {
+    const previous = index > 0 ? ordered[index - 1] : void 0;
+    const comparison = compareRuns(report, previous);
+    const manifestsBySuite = new Map((report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
+    const stability = analyzeRowStability(ordered.slice(0, index + 1));
+    const rowStability = {
+      stable: 0,
+      flaky: 0,
+      persistentFailure: 0
+    };
+    for (const trend of stability.values()) {
+      if (trend.stability === "persistent-failure") {
+        rowStability.persistentFailure += 1;
+      } else if (trend.stability === "flaky") {
+        rowStability.flaky += 1;
+      } else {
+        rowStability.stable += 1;
+      }
+    }
+    return {
+      ...summarizeReport(report),
+      bySuite: groupRows(report.rows, (row) => row.suite),
+      byKind: groupRows(report.rows, (row) => row.kind ?? "unspecified"),
+      byRiskArea: groupRows(
+        report.rows,
+        (row) => manifestsBySuite.get(row.suite)?.riskArea ?? "unspecified"
+      ),
+      regression: {
+        newlyFailing: comparison.newlyFailing.length,
+        newlyPassing: comparison.newlyPassing.length,
+        persistentFailures: comparison.persistentFailures.length,
+        disappeared: comparison.disappeared.length
+      },
+      rowStability
+    };
+  });
+};
 var compareRuns = (current, previous) => {
   if (!previous) {
     return {
       currentRunId: current.run.id,
       newlyFailing: current.rows.filter((row) => !row.passed),
       newlyPassing: [],
-      persistentFailures: []
+      persistentFailures: [],
+      disappeared: []
     };
   }
   const previousRows = new Map(previous.rows.map((row) => [rowKey(row), row]));
@@ -550,6 +614,7 @@ var compareRuns = (current, previous) => {
       }
       continue;
     }
+    previousRows.delete(rowKey(currentRow));
     if (previousRow.passed && !currentRow.passed) {
       newlyFailing.push(currentRow);
     } else if (!previousRow.passed && currentRow.passed) {
@@ -558,13 +623,51 @@ var compareRuns = (current, previous) => {
       persistentFailures.push(currentRow);
     }
   }
+  const disappeared = [...previousRows.values()];
   return {
     currentRunId: current.run.id,
     previousRunId: previous.run.id,
     newlyFailing,
     newlyPassing,
-    persistentFailures
+    persistentFailures,
+    disappeared
   };
+};
+var analyzeRowStability = (reports, minWindow = 3) => {
+  const sorted = [...reports].sort((left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt));
+  const trends = /* @__PURE__ */ new Map();
+  for (const report of sorted) {
+    for (const row of report.rows) {
+      const key = rowKey(row);
+      const current = trends.get(key) ?? { failures: 0, passes: 0 };
+      if (row.passed) {
+        current.passes += 1;
+      } else {
+        current.failures += 1;
+      }
+      trends.set(key, current);
+    }
+  }
+  const stabilities = /* @__PURE__ */ new Map();
+  for (const [key, { failures, passes }] of trends) {
+    const total = failures + passes;
+    const failureRate = total > 0 ? failures / total : 0;
+    let stability;
+    if (total >= minWindow && failureRate === 1) {
+      stability = "persistent-failure";
+    } else if (total >= minWindow && failureRate > 0 && failureRate < 1) {
+      stability = "flaky";
+    } else {
+      stability = "stable";
+    }
+    stabilities.set(key, {
+      rowKey: key,
+      stability,
+      failureCount: failures,
+      passCount: passes
+    });
+  }
+  return stabilities;
 };
 
 // src/gates/lint-taxonomy.ts
@@ -1094,39 +1197,9 @@ var publishReport = async (options) => {
         url: `https://${options.appName}.azurestaticapps.net`
       };
     }
-    try {
-      execSync("az --version", { stdio: "pipe" });
-    } catch {
-      throw new Error("Azure CLI is not installed or not in PATH. Install from https://learn.microsoft.com/cli/azure/install-azure-cli");
-    }
-    let appInfo;
-    try {
-      const output = execSync(`az staticwebapp show --name "${options.appName}" --query "{defaultHostname:defaultHostname,resourceGroup:resourceGroup}" --output json`, {
-        stdio: "pipe"
-      }).toString();
-      appInfo = JSON.parse(output);
-    } catch {
-      throw new Error(`Failed to retrieve Azure Static Web App "${options.appName}". Verify it exists and you have access.`);
-    }
-    const files = await collectFiles(options.reportDir);
-    for (const { relPath, content } of files) {
-      const tempFile = path.join(".tmp-deploy", relPath);
-      await mkdir(path.dirname(tempFile), { recursive: true });
-      await (await import("fs/promises")).writeFile(tempFile, content);
-    }
-    try {
-      execSync(`az staticwebapp enterprise build --name "${options.appName}" --output-location "${".tmp-deploy"}"`, {
-        stdio: "inherit"
-      });
-    } catch {
-      console.log(`Deploying ${files.length} files to ${options.appName}...`);
-    }
-    return {
-      target: options.target,
-      dryRun: false,
-      message: `Published ${files.length} file(s) from ${options.reportDir} to Azure Static Web App "${options.appName}".`,
-      url: `https://${appInfo.defaultHostname}`
-    };
+    throw new Error(
+      "azure-static-webapp non-dry-run publish is not implemented yet. Use --dry-run for validation, or publish with --target=azure-storage/--target=github-pages."
+    );
   }
   if (options.target === "azure-storage") {
     if (!options.account) throw new Error("azure-storage publishing requires --account (storage account name).");

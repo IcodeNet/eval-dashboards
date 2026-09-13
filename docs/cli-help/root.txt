@@ -1,0 +1,16 @@
+eval-dashboards <command>
+
+Commands:
+  report   Generate HTML dashboards from eval-report/v1 artifacts (use --profile=guardrail for attack-focused triage).
+  report-index  Generate grouped multi-report HTML index from discovered artifacts.
+  lint     Run fast semantic/taxonomy preflight checks on artifacts.
+  check    Enforce eval quality gates.
+  merge    Merge discovered reports into one JSON file.
+  history  Build history JSON from discovered reports.
+  publish  Publish or dry-run publish for a static dashboard.
+  teach    Guided eval onboarding walkthrough (alias of init --preset=agent-quality --teach).
+  init     Print starter config or scaffold preset files.
+  completion  Print shell completion script for bash/zsh/fish.
+  import   Convert third-party eval output JSON into eval-report/v1.
+  adjudicate  Export unresolved rows for human review and merge reviewed verdicts back.
+

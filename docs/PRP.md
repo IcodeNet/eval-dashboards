@@ -138,7 +138,7 @@ Implement v1 adapters:
 ```sh
 eval-reports publish --target=dir
 eval-reports publish --target=github-pages
-eval-reports publish --target=azure-static-webapp
+eval-reports publish --target=azure-static-webapp    # dry-run validation path in current implementation
 eval-reports publish --target=azure-storage
 ```
 
