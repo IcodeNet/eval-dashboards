@@ -1,7 +1,7 @@
 ---
 name: eval-dashboards-adopt
 description: Wire @icodenet/eval-dashboards into an existing repo's eval runner.
-version: 0.1.0
+version: 0.1.1
 author: Byron Thanopoulos (IcodeNet), eval-dashboards maintainers
 license: MIT
 platforms: [linux, macos, windows]
@@ -30,8 +30,9 @@ program and wants dashboards, gates, and history for free.
   wiring CI (Step 4).
 
 Don't use for: building a new eval runner from scratch (this skill only
-standardizes the *output* of a runner that already exists), or repos with no
-concept of pass/fail eval cases at all.
+standardizes the *output* of a runner that already exists), repos with no
+concept of pass/fail eval cases at all, or concept-first onboarding/training
+(use `eval-dashboards-learn` for curriculum, exercises, and labs).
 
 ## Prerequisites
 
@@ -103,8 +104,9 @@ script to execute blindly.
    eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report
    ```
    Completion criterion: the CI file diff is additive (existing eval command
-   untouched) and a local dry run of both commands exits 0 against the
-   artifact from Step 3.
+   untouched) and a local dry run of both commands executes against the
+   artifact from Step 3 with expected outcomes (pass if current quality passes,
+   or understood non-zero if current quality intentionally fails policy).
 
 5. **Open a PR, not a tutorial.**
    Commit the adapter, the `.evals_output` gitignore entry (history files
