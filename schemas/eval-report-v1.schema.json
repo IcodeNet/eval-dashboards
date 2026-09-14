@@ -89,7 +89,7 @@
         },
         "kind": {
           "type": "string",
-          "description": "Optional: run kind (e.g., 'regression', 'release-candidate', 'experimental')."
+          "description": "Optional: run kind (e.g., 'regression', 'release-candidate', 'experimental', 'calibration'). 'calibration' runs are excluded from automatic baseline selection."
         },
         "branch": {
           "type": "string",

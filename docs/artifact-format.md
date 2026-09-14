@@ -107,6 +107,11 @@ export type EvalReportV1 = {
 };
 ```
 
+`run.kind` conventions:
+
+- `calibration`: marks a calibration-evidence artifact (for example, `judge-calibration` rows) and excludes that run from automatic baseline selection (`--baseline-strategy`) so calibration-only artifacts do not become report/check baselines.
+- Other values are currently free-form and tool-specific.
+
 Rows are runner-agnostic:
 
 ```ts

@@ -315,7 +315,7 @@ type GateConfig = {
     requiredPassingSuites?: string[];
     statistical?: StatisticalGateConfig;
     calibration?: {
-        /** Enable/disable pre-gate calibration evidence checks. Default: true. */
+        /** Enable/disable pre-gate calibration evidence checks. Default: auto (on when calibration suite manifest is present). */
         enabled?: boolean;
         /** Calibration suite id used as evidence source. Default: judge-calibration. */
         suite?: string;

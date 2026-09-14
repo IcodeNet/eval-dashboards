@@ -619,7 +619,7 @@ Acceptance criteria:
 
 ### 4E.3 Mandatory pre-gate calibration check (P0, M)
 
-- [x] `check` refuses to run a `blocking` gate against a suite with judge-calibration configured unless a calibration run exists within a configurable recency window and matches the current `judgeModel` + `rubricVersion`.
+- [x] `check` refuses to run a `blocking` gate against a suite with judge-calibration configured unless an independent calibration run exists within a configurable recency window and matches the current `judgeModel` plus the configured calibration-suite rubric contract.
 - [x] Default behavior on missing/stale calibration: warn loudly in report-only mode, fail in blocking mode (configurable escape hatch documented).
 
 Acceptance criteria:

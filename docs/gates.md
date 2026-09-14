@@ -89,8 +89,10 @@ Notification adapters (opt-in):
 - `--notify-email-smtp=<url>`, `--notify-email-from=<address>`, `--notify-email-to=<address>` configure SMTP email notifications.
 - `--notify-report-link=<url-or-path>` overrides the link/path included in payloads (default: `<report-dir>/index.html`).
 - `--calibration-suite=<id>` overrides the calibration evidence suite id (default: `judge-calibration`).
-- `--calibration-max-age-hours=<n>` sets recency window for calibration evidence (default: `168`).
+- `--calibration-max-age-hours=<n>` sets recency window for calibration evidence (default: `168`; must be finite and `> 0`).
+- `--calibration-preflight` force-enables calibration preflight checks.
 - `--allow-stale-calibration` is the escape hatch: missing/stale calibration evidence is downgraded to diagnostics instead of failing blocking suites.
+- `--no-calibration-preflight` disables calibration preflight checks.
 - Environment fallbacks are supported for CI secret hygiene: `EVAL_NOTIFY_CHANNELS`, `EVAL_NOTIFY_WEBHOOK`, `EVAL_NOTIFY_SLACK_WEBHOOK`, `EVAL_NOTIFY_TEAMS_WEBHOOK`, `EVAL_NOTIFY_SMTP_URL`, `EVAL_NOTIFY_EMAIL_FROM`, `EVAL_NOTIFY_EMAIL_TO`, `EVAL_NOTIFY_REPORT_LINK`.
 - Notification delivery is best-effort: send failures/skips are captured in `check-result.json` (`diagnostics` and optional `notifications`) when `--json-out` is enabled, but do not change check exit codes.
 
@@ -181,12 +183,23 @@ Preflight suite enforcement:
 
 Mandatory calibration preflight for judge-scored suites:
 
-- Applies when the current artifact includes a calibration suite manifest (default id `judge-calibration`).
-- For each judge-scored suite (`llm-judge` / `human-labelled-calibration` graders), check requires a calibration run within the recency window whose calibration rows include matching `judgeModel` and `groundTruthVerdict`.
+- Applies when the current artifact includes the configured calibration suite manifest (default: `judge-calibration`), or when force-enabled via `--calibration-preflight` / `gates.calibration.enabled: true`.
+- Runs on judge-scored suites in the current artifact (`llm-judge` / `human-labelled-calibration` graders), excluding the calibration suite id itself.
+- Check requires a calibration evidence run within the recency window whose calibration rows include matching `judgeModel` and `groundTruthVerdict`.
+- Rubric matching is evaluated against the calibration suite rubric contract (`judge-calibration`), not each target suite manifest rubric.
+- Blocking suites require independent evidence: current-run calibration rows do not satisfy blocking gate checks.
+- Report-only suites may self-certify against current-run calibration rows (diagnostic signal, not blocking enforcement).
 - If a matching recent calibration run is missing:
   - `gate.mode=blocking`: check fails by default.
   - `gate.mode=report-only`: check emits a loud diagnostic warning.
+- Suites that do not emit `judgeModel` values fail in `blocking` mode (unless `--allow-stale-calibration` is set), and emit warning-only diagnostics in `report-only` mode.
 - Escape hatch: `--allow-stale-calibration` (or `gates.calibration.allowBlockingWithoutRecentMatch: true`) downgrades blocking failures to warnings.
+- Force-enable path: `--calibration-preflight` (or `gates.calibration.enabled: true`).
+- When the current artifact includes the configured calibration suite manifest, that suite must include rubric metadata (`rubricVersion` in suite manifest or rubric contract).
+- Missing calibration rubric metadata in that case is treated as invalid artifact/config input (exit code `2`).
+- Disable path: `--no-calibration-preflight` (or `gates.calibration.enabled: false`).
+- Conflicting flags (`--calibration-preflight` and `--no-calibration-preflight`) fail fast with exit code `2`.
+- Breaking behavior change: blocking suites now require independent calibration evidence; same-run calibration rows no longer satisfy blocking checks.
 
 Config file equivalent:
 
@@ -194,6 +207,7 @@ Config file equivalent:
 export default {
   gates: {
     calibration: {
+      enabled: true,
       suite: 'judge-calibration',
       maxAgeHours: 168,
       allowBlockingWithoutRecentMatch: false,

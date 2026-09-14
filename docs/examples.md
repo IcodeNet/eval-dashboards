@@ -82,6 +82,12 @@ eval-dashboards check --input=examples/agent-quality-preset/artifacts --allow-bl
 eval-dashboards report --input=examples/agent-quality-preset/artifacts --reporter=html --reporter=json-summary --report-dir=eval-report
 ```
 
+Note: `examples/agent-quality-preset/artifacts` includes two reports by design:
+- `run-agent-quality-template.json` (current run)
+- `run-agent-quality-calibration.json` (independent calibration evidence, `run.kind="calibration"` so it is excluded from automatic baseline selection)
+
+This keeps blocking calibration preflight examples runnable now that same-run calibration rows no longer satisfy blocking checks.
+
 ## `llm-agent-evals`
 
 Use this as a local reference for agent/chat eval rows with tool-call and judge evidence.

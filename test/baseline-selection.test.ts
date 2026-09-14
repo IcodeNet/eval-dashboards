@@ -123,4 +123,17 @@ describe('selectBaselineByStrategy', () => {
 
     expect(result).toBe(live);
   });
+
+  it('excludes calibration-kind runs from automatic baseline selection', () => {
+    const calibration = makeReport('run-calibration', '2026-08-01T00:00:00Z', [true]);
+    calibration.run.kind = 'calibration';
+    const candidate = makeReport('run-candidate', '2026-08-02T00:00:00Z', [true]);
+    const current = makeReport('run-current', '2026-08-03T00:00:00Z', [true]);
+
+    const result = selectBaselineByStrategy([calibration, candidate, current], 'run-current', {
+      strategy: 'rolling',
+    });
+
+    expect(result).toBe(candidate);
+  });
 });

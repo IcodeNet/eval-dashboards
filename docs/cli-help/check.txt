@@ -32,7 +32,9 @@ Options:
   --notify-email-from=<address>    Sender address for email notifications
   --notify-email-to=<address>      Recipient address (repeatable/csv)
   --notify-report-link=<url/path>  Report URL/path included in notification payloads
-  --calibration-suite=<id>          Calibration suite id to require for blocking judge-scored suites
-  --calibration-max-age-hours=<n>   Maximum calibration run age in hours (default: 168)
-  --allow-stale-calibration         Escape hatch: warn instead of fail when calibration evidence is missing/stale
+  --calibration-suite=<id>           Calibration suite id to require for blocking judge-scored suites
+  --calibration-max-age-hours=<n>    Maximum calibration run age in hours (default: 168; must be > 0)
+  --calibration-preflight            Force-enable calibration preflight checks
+  --allow-stale-calibration          Escape hatch: warn instead of fail when calibration evidence is missing/stale
+  --no-calibration-preflight         Disable calibration preflight checks
 

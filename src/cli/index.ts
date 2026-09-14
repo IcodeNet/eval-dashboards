@@ -143,9 +143,11 @@ Options:
   --notify-email-from=<address>    Sender address for email notifications
   --notify-email-to=<address>      Recipient address (repeatable/csv)
   --notify-report-link=<url/path>  Report URL/path included in notification payloads
-  --calibration-suite=<id>          Calibration suite id to require for blocking judge-scored suites
-  --calibration-max-age-hours=<n>   Maximum calibration run age in hours (default: 168)
-  --allow-stale-calibration         Escape hatch: warn instead of fail when calibration evidence is missing/stale
+  --calibration-suite=<id>           Calibration suite id to require for blocking judge-scored suites
+  --calibration-max-age-hours=<n>    Maximum calibration run age in hours (default: 168; must be > 0)
+  --calibration-preflight            Force-enable calibration preflight checks
+  --allow-stale-calibration          Escape hatch: warn instead of fail when calibration evidence is missing/stale
+  --no-calibration-preflight         Disable calibration preflight checks
 `;
 
 const publishUsage = `eval-dashboards publish [options]
@@ -469,7 +471,9 @@ const loadContext = async (
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
   }
 
-  let current = options?.runId ? selectRun(reports, options.runId) : reports.at(-1);
+  const nonCalibrationReports = reports.filter((report) => report.run.kind !== 'calibration');
+  const defaultCurrent = nonCalibrationReports.at(-1) ?? reports.at(-1);
+  let current = options?.runId ? selectRun(reports, options.runId) : defaultCurrent;
 
   if (options?.runId && !current) {
     throw Object.assign(new Error(`Run ID ${options.runId} was not found under ${input}.`), {
@@ -477,7 +481,7 @@ const loadContext = async (
     });
   }
 
-  current = current ?? reports.at(-1);
+  current = current ?? defaultCurrent;
 
   if (!current) {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
@@ -518,6 +522,36 @@ const loadContext = async (
 const CALIBRATION_DEFAULT_SUITE = 'judge-calibration';
 const CALIBRATION_DEFAULT_MAX_AGE_HOURS = 168;
 
+const parseCalibrationMaxAgeHours = (
+  options: Record<string, string | boolean | string[]>,
+): number | undefined => {
+  const raw = options['calibration-max-age-hours'];
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  if (Array.isArray(raw)) {
+    throw Object.assign(new Error('--calibration-max-age-hours may only be set once.'), {
+      exitCode: 2,
+    });
+  }
+
+  if (typeof raw !== 'string') {
+    throw Object.assign(new Error('--calibration-max-age-hours requires a numeric value greater than 0.'), {
+      exitCode: 2,
+    });
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw Object.assign(new Error('--calibration-max-age-hours must be a finite number greater than 0.'), {
+      exitCode: 2,
+    });
+  }
+
+  return parsed;
+};
+
 type CalibrationCheckResult = {
   failures: string[];
   diagnostics: string[];
@@ -542,10 +576,35 @@ const evaluateCalibrationChecks = (
   const suiteId = calibrationConfig.suite ?? CALIBRATION_DEFAULT_SUITE;
   const maxAgeHours = calibrationConfig.maxAgeHours ?? CALIBRATION_DEFAULT_MAX_AGE_HOURS;
   const allowBlockingWithoutRecentMatch = calibrationConfig.allowBlockingWithoutRecentMatch === true;
-  const calibrationConfigured = current.suiteManifests?.some((manifest) => manifest.name === suiteId) === true;
-
-  if (!calibrationConfigured || !current.suiteManifests?.length) {
+  if (!current.suiteManifests?.length) {
     return { failures, diagnostics };
+  }
+
+  const targetSuites = current.suiteManifests.filter(
+    (manifest) => manifest.name !== suiteId && isJudgeScoredSuite(manifest),
+  );
+  if (targetSuites.length === 0) {
+    return { failures, diagnostics };
+  }
+
+  const calibrationConfigured = current.suiteManifests.some((manifest) => manifest.name === suiteId);
+  const forceEnabled = calibrationConfig.enabled === true;
+  if (!calibrationConfigured && !forceEnabled) {
+    return { failures, diagnostics };
+  }
+
+  const expectedCalibrationRubricVersion =
+    current.suiteManifests.find((manifest) => manifest.name === suiteId)?.rubricVersion ??
+    current.rubricContracts?.find((contract) => contract.suiteName === suiteId)?.rubricVersion;
+
+  if (calibrationConfigured && expectedCalibrationRubricVersion === undefined) {
+    throw Object.assign(
+      new Error(
+        `Invalid calibration gate config: calibration suite "${suiteId}" requires rubric metadata ` +
+          '(suite manifest or rubric contract) in the current artifact.',
+      ),
+      { exitCode: 2 },
+    );
   }
 
   const nowMs = Number.isFinite(Date.parse(current.run.generatedAt))
@@ -561,27 +620,41 @@ const evaluateCalibrationChecks = (
     return generatedAtMs >= cutoffMs && generatedAtMs <= nowMs;
   });
 
-  const targetSuites = current.suiteManifests.filter(isJudgeScoredSuite);
-
   for (const manifest of targetSuites) {
     const suiteRows = current.rows.filter((row) => row.suite === manifest.name);
     const judgeModels = [...new Set(suiteRows.map((row) => row.judgeModel).filter((value): value is string => typeof value === 'string' && value.length > 0))];
 
     if (judgeModels.length === 0) {
-      diagnostics.push(
-        `Calibration preflight: suite "${manifest.name}" has no judgeModel values in current rows; calibration evidence cannot be matched.`,
-      );
+      const issue =
+        `Calibration preflight: suite "${manifest.name}" has no judgeModel values in current rows; ` +
+        'calibration evidence cannot be matched.';
+      if (manifest.gate.mode === 'blocking' && !allowBlockingWithoutRecentMatch) {
+        failures.push(issue);
+      } else {
+        diagnostics.push(`${issue} (warning-only)`);
+      }
       continue;
     }
 
     for (const judgeModel of judgeModels) {
-      const hasRecentMatch = evidenceRuns.some((report) => {
-        const suiteManifest = report.suiteManifests?.find((candidate) => candidate.name === suiteId);
-        if (!suiteManifest) {
+      const evidenceCandidates =
+        manifest.gate.mode === 'blocking'
+          ? evidenceRuns.filter((report) => report.run.id !== current.run.id)
+          : evidenceRuns;
+
+      const hasRecentMatch = evidenceCandidates.some((report) => {
+        const calibrationManifest = report.suiteManifests?.find((candidate) => candidate.name === suiteId);
+        if (!calibrationManifest) {
           return false;
         }
 
-        if (manifest.rubricVersion && suiteManifest.rubricVersion !== manifest.rubricVersion) {
+        const calibrationRubricVersion =
+          calibrationManifest.rubricVersion ??
+          report.rubricContracts?.find((contract) => contract.suiteName === suiteId)?.rubricVersion;
+        if (
+          expectedCalibrationRubricVersion !== undefined &&
+          calibrationRubricVersion !== expectedCalibrationRubricVersion
+        ) {
           return false;
         }
 
@@ -599,7 +672,7 @@ const evaluateCalibrationChecks = (
 
       const issue =
         `Calibration preflight: suite "${manifest.name}" requires recent "${suiteId}" evidence ` +
-        `(judgeModel="${judgeModel}", rubricVersion="${manifest.rubricVersion ?? 'n/a'}", maxAgeHours=${maxAgeHours}) ` +
+        `(judgeModel="${judgeModel}", calibrationRubricVersion="${expectedCalibrationRubricVersion ?? 'n/a'}", maxAgeHours=${maxAgeHours}) ` +
         'but no matching calibration run was found.';
 
       if (manifest.gate.mode === 'blocking' && !allowBlockingWithoutRecentMatch) {
@@ -642,8 +715,10 @@ const gateConfigFromOptions = (
   const bootstrapSamples = optionNumber(options, 'bootstrap-samples');
   const minPassRateDelta = optionNumber(options, 'min-pass-rate-delta');
   const calibrationSuite = optionString(options, 'calibration-suite', '');
-  const calibrationMaxAgeHours = optionNumber(options, 'calibration-max-age-hours');
+  const calibrationMaxAgeHours = parseCalibrationMaxAgeHours(options);
+  const enableCalibrationPreflight = optionBoolean(options, 'calibration-preflight');
   const allowStaleCalibration = optionBoolean(options, 'allow-stale-calibration');
+  const disableCalibrationPreflight = optionBoolean(options, 'no-calibration-preflight');
   const statisticalFields = {
     mode: statisticalMode,
     confidenceLevel,
@@ -661,8 +736,14 @@ const gateConfigFromOptions = (
       : undefined;
 
   const calibration =
-    calibrationSuite !== '' || calibrationMaxAgeHours !== undefined || allowStaleCalibration
+    calibrationSuite !== '' ||
+    calibrationMaxAgeHours !== undefined ||
+    enableCalibrationPreflight ||
+    allowStaleCalibration ||
+    disableCalibrationPreflight
       ? {
+        ...(enableCalibrationPreflight ? { enabled: true } : {}),
+        ...(disableCalibrationPreflight ? { enabled: false } : {}),
         ...(calibrationSuite !== '' ? { suite: calibrationSuite } : {}),
         ...(calibrationMaxAgeHours !== undefined ? { maxAgeHours: calibrationMaxAgeHours } : {}),
         ...(allowStaleCalibration ? { allowBlockingWithoutRecentMatch: true } : {}),
@@ -754,12 +835,75 @@ const assertValidStatisticalGateConfig = (gateConfig: GateConfig): void => {
   }
 };
 
+const assertValidCalibrationGateConfig = (gateConfig: GateConfig): void => {
+  const calibration = gateConfig.calibration;
+  if (!calibration) {
+    return;
+  }
+
+  if (calibration.maxAgeHours !== undefined) {
+    const maxAgeHours = Number(calibration.maxAgeHours);
+    if (!Number.isFinite(maxAgeHours) || maxAgeHours <= 0) {
+      throw Object.assign(
+        new Error('Invalid calibration gate config: maxAgeHours must be a finite number greater than 0.'),
+        { exitCode: 2 },
+      );
+    }
+  }
+};
+
 const main = async (): Promise<void> => {
   const rawArgs = process.argv.slice(2);
   const { command, options } = parseArgs(rawArgs);
+  const isCheckCommand = command === 'check';
+  const cliCalibrationSuite = isCheckCommand ? optionString(options, 'calibration-suite', '') : '';
+  const cliCalibrationMaxAgeHours = isCheckCommand ? parseCalibrationMaxAgeHours(options) : undefined;
+  const cliEnableCalibrationPreflight = isCheckCommand
+    ? optionBoolean(options, 'calibration-preflight')
+    : false;
+  const cliDisableCalibrationPreflight = isCheckCommand
+    ? optionBoolean(options, 'no-calibration-preflight')
+    : false;
+  const cliAllowStaleCalibration = isCheckCommand ? optionBoolean(options, 'allow-stale-calibration') : false;
+
+  if (isCheckCommand && cliEnableCalibrationPreflight && cliDisableCalibrationPreflight) {
+    throw Object.assign(
+      new Error('Cannot combine --calibration-preflight and --no-calibration-preflight.'),
+      { exitCode: 2 },
+    );
+  }
 
   // Load file-based config, then merge CLI flags on top (CLI wins)
   const fileConfig = await loadConfig();
+  assertValidCalibrationGateConfig({ calibration: fileConfig.gates?.calibration });
+  const mergedCalibration = (() => {
+    const enabled = cliDisableCalibrationPreflight
+      ? false
+      : cliEnableCalibrationPreflight
+        ? true
+        : fileConfig.gates?.calibration?.enabled;
+    const suite = cliCalibrationSuite || fileConfig.gates?.calibration?.suite;
+    const maxAgeHours = cliCalibrationMaxAgeHours ?? fileConfig.gates?.calibration?.maxAgeHours;
+    const allowBlockingWithoutRecentMatch =
+      cliAllowStaleCalibration || fileConfig.gates?.calibration?.allowBlockingWithoutRecentMatch;
+
+    if (
+      enabled === undefined &&
+      suite === undefined &&
+      maxAgeHours === undefined &&
+      allowBlockingWithoutRecentMatch === undefined
+    ) {
+      return undefined;
+    }
+
+    return {
+      enabled,
+      suite,
+      maxAgeHours,
+      allowBlockingWithoutRecentMatch,
+    };
+  })();
+
   const config = mergeConfig(fileConfig, {
     input: optionString(options, 'input', undefined as unknown as string) || undefined,
     reportDir: optionString(options, 'report-dir', undefined as unknown as string) || undefined,
@@ -787,6 +931,7 @@ const main = async (): Promise<void> => {
           optionNumber(options, 'min-pass-rate-delta') ??
           fileConfig.gates?.statistical?.minPassRateDelta,
       },
+      calibration: mergedCalibration,
     },
   });
 
@@ -1055,6 +1200,7 @@ const main = async (): Promise<void> => {
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
     const locale = optionString(options, 'locale', '') || config.locale;
     assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });
+    assertValidCalibrationGateConfig({ calibration: config.gates?.calibration });
     const outputs = await renderReports({
       ...context,
       theme,
@@ -1169,7 +1315,14 @@ const main = async (): Promise<void> => {
           ...(cliGateOverrides.statistical ?? {}),
         };
       }
+      if ((config.gates?.calibration ?? cliGateOverrides.calibration) !== undefined) {
+        gateConfig.calibration = {
+          ...(config.gates?.calibration ?? {}),
+          ...(cliGateOverrides.calibration ?? {}),
+        };
+      }
       assertValidStatisticalGateConfig(gateConfig);
+      assertValidCalibrationGateConfig(gateConfig);
       const gateResult = checkGates(
         context.current,
         context.comparison,

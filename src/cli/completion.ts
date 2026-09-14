@@ -85,7 +85,9 @@ const checkFlags = [
   '--notify-report-link',
   '--calibration-suite',
   '--calibration-max-age-hours',
+  '--calibration-preflight',
   '--allow-stale-calibration',
+  '--no-calibration-preflight',
 ] as const;
 
 const reportFlags = [

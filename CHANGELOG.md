@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cost/latency-quality frontier sections in markdown/html reports when row-level `score` plus `durationMs`/cost metadata are present.
 - Benchmark-pack templates for safety, tool-routing, and groundedness under `examples/benchmark-packs/` with compatibility guidance.
 - Docs-site assistant-ui reference integration page with reproducible lint/check/report/publish command flow.
+- Independent calibration evidence fixture `examples/agent-quality-preset/artifacts/run-agent-quality-calibration.json` (`run.kind: "calibration"`) for runnable blocking-preflight examples.
+- Calibration preflight controls: `--calibration-preflight`, `--no-calibration-preflight`, and `gates.calibration.enabled` for explicit force-enable/disable behavior.
 
 ### Changed
 
@@ -23,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pack compatibility test now validates templates through `validateEvalReport` using `suiteManifests`, not string-shape checks only.
 - Pack JSON templates are now included in npm package `files` for downstream consumers.
 - `report --reporter` now exits 2 on unknown reporter values instead of silently skipping output generation; `markdown` is accepted as an alias for `markdown-summary`.
+- Breaking: calibration preflight now requires independent evidence for blocking suites (same-run calibration rows no longer satisfy blocking checks) and validates calibration rubric metadata before gate evaluation.
+- Automatic baseline selection (`--baseline-strategy`) now excludes runs with `run.kind: "calibration"` so calibration-only artifacts do not become report/check baselines.
 
 ### Fixed
 

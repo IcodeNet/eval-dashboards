@@ -7,6 +7,7 @@ This folder is a copyable starting point for agent and assistant eval programs. 
 | File | Purpose |
 |---|---|
 | `artifacts/run-agent-quality-template.json` | Runnable `eval-report/v1` artifact with suite manifests, rubric contracts, rows, and dataset changelog metadata. |
+| `artifacts/run-agent-quality-calibration.json` | Independent calibration evidence artifact used by blocking calibration preflight examples (`run.kind=calibration`, excluded from automatic baseline selection). |
 | `datasets/agent-quality-cases.jsonl` | Starter JSONL dataset with stable ids, suite names, expected evidence, lifecycle, and provenance. |
 | `rubrics/agent-quality-rubrics.json` | Starter rubric contracts for common agent quality suites. |
 
@@ -19,6 +20,9 @@ eval-dashboards report --input=examples/agent-quality-preset/artifacts --reporte
 ```
 
 For local development from this repo, replace `eval-dashboards` with `pnpm dev`.
+
+The preset ships an independent calibration artifact so `check --allow-blocked-baseline` remains runnable under blocking calibration preflight (same-run calibration rows do not satisfy blocking checks).
+Keep the calibration artifact timestamp (`run.generatedAt`) within your configured calibration recency window (`--calibration-max-age-hours`, default 168) relative to the evaluated run.
 
 ## How To Adapt
 

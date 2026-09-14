@@ -24,6 +24,12 @@ export default {
       'missing-kind': 0,
     },
     failOnWarningCodes: ['missing-judge-model'],
+    calibration: {
+      enabled: true,
+      suite: 'judge-calibration',
+      maxAgeHours: 168,
+      allowBlockingWithoutRecentMatch: false,
+    },
   },
   baseline: {
     strategy: 'champion', // 'rolling' | 'champion'
@@ -56,6 +62,10 @@ Recommended artifact layout:
 - `gates.newFailureKey`: choose canonical failure keying (`row`, `scenario`, `scenario-category`, `id-category`).
 - `gates.maxWarnings` and `gates.maxWarningsByCode`: cap warning volume globally and per code.
 - `gates.failOnWarningCodes`: promote selected warning codes to hard failures.
+- `gates.calibration.enabled`: `true` force-enables checks; `false` disables checks; unset uses auto mode (enabled when calibration suite metadata is present).
+- `gates.calibration.suite`: calibration evidence suite id (default `judge-calibration`).
+- `gates.calibration.maxAgeHours`: calibration recency window in hours (must be finite and > 0).
+- `gates.calibration.allowBlockingWithoutRecentMatch`: downgrade blocking calibration failures to warnings.
 
 ## How
 

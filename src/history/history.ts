@@ -262,7 +262,9 @@ export const selectBaselineByStrategy = (
     return undefined;
   }
 
-  const candidateSlice = ordered.slice(0, currentIndex);
+  const candidateSlice = ordered
+    .slice(0, currentIndex)
+    .filter((report) => report.run.kind !== 'calibration');
   const current = ordered[currentIndex];
   const currentMode = current ? runMode(current) : undefined;
   const modeMatchedCandidates =

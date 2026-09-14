@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "agent-quality-calibration-000",
+    "generatedAt": "2026-08-02T00:00:00.000Z",
+    "project": "agent-quality-template",
+    "team": "example",
+    "kind": "calibration"
+  },
+  "suites": [
+    {
+      "id": "judge-calibration",
+      "name": "Judge calibration",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "passRate": 1
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "judge-calibration",
+      "target": "judge",
+      "owner": "evals",
+      "datasetSource": "labelled-synthetic",
+      "datasetPath": "examples/agent-quality-preset/datasets/agent-quality-cases.jsonl",
+      "datasetVersion": "agent-quality-dataset-v1",
+      "rubricVersion": "agent-quality-v1",
+      "riskArea": "custom",
+      "graders": [
+        "human-labelled-calibration"
+      ],
+      "gate": {
+        "mode": "report-only",
+        "thresholds": {
+          "passRate": 0.9
+        }
+      },
+      "description": "Checks whether judge output matches labelled human expectations."
+    }
+  ],
+  "rubricContracts": [
+    {
+      "suiteName": "judge-calibration",
+      "rubricVersion": "agent-quality-v1",
+      "rubrics": [
+        {
+          "axis": "human_agreement",
+          "version": "agent-quality-v1",
+          "sourcePath": "examples/agent-quality-preset/rubrics/agent-quality-rubrics.json",
+          "summary": "The judge agrees with labelled human expectations within the allowed tolerance."
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "id": "judge-calibration-001",
+      "suite": "judge-calibration",
+      "kind": "human-review",
+      "name": "Judge agrees with label",
+      "datasetId": "agent-quality-dataset-v1",
+      "scenarioId": "judge-calibration",
+      "rubricId": "human_agreement",
+      "judgeModel": "example-judge",
+      "judgeVerdict": true,
+      "groundTruthVerdict": true,
+      "groundTruthCategory": "supported",
+      "groundTruthAnnotation": "Human label expects a pass for a supported answer.",
+      "axisScores": {
+        "human_agreement": 1
+      },
+      "passed": true,
+      "score": 1,
+      "severity": "none",
+      "category": "judge-calibration",
+      "metadata": {
+        "lifecycle": {
+          "status": "active"
+        },
+        "provenance": {
+          "source": "custom"
+        }
+      }
+    }
+  ],
+  "datasetChangelog": [
+    {
+      "suiteName": "agent-quality",
+      "datasetVersion": "agent-quality-dataset-v1",
+      "rubricVersion": "agent-quality-v1",
+      "changedAt": "2026-08-03T00:00:00.000Z",
+      "changeType": "initial-baseline",
+      "summary": "Initial starter dataset and rubric template.",
+      "rowChanges": {
+        "added": 21,
+        "updated": 0,
+        "removed": 0,
+        "relabelled": 0
+      }
+    }
+  ],
+  "metadata": {
+    "template": "agent-quality-preset",
+    "notes": "Copy and adapt this artifact shape. Do not treat preset suite names as required schema enum values."
+  }
+}
