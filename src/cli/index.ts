@@ -193,6 +193,7 @@ const lintUsage = `eval-dashboards lint [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --strict                 Fail on warnings as well as errors
+  --fail-on-warning-code=<code>  Fail when warning code appears (repeatable)
 `;
 
 const mergeUsage = `eval-dashboards merge [options]
@@ -1493,7 +1494,15 @@ const main = async (): Promise<void> => {
     const reports = await readEvalReports(input);
     const result = lintReportsTaxonomy(reports);
     const strict = optionBoolean(options, 'strict');
-    const shouldFail = !result.passed || (strict && result.issues.some((issue) => issue.level === 'warning'));
+    const lintFailOnWarningCodes = new Set(optionStrings(options, 'fail-on-warning-code', []));
+    const triggeredFailOnWarningCodes = result.issues
+      .filter((issue) => issue.level === 'warning' && lintFailOnWarningCodes.has(issue.code))
+      .map((issue) => issue.code);
+
+    const shouldFail =
+      !result.passed ||
+      (strict && result.issues.some((issue) => issue.level === 'warning')) ||
+      triggeredFailOnWarningCodes.length > 0;
 
     if (result.issues.length === 0) {
       console.log('Eval taxonomy lint passed with no issues.');
@@ -1507,9 +1516,14 @@ const main = async (): Promise<void> => {
       (issue) => `${issue.level.toUpperCase()} [${issue.code}] ${issue.message}`,
     );
 
+    const failOnWarningSummary =
+      triggeredFailOnWarningCodes.length > 0
+        ? `\nFail-on-warning codes triggered: ${[...new Set(triggeredFailOnWarningCodes)].join(', ')}.`
+        : '';
+
     if (shouldFail) {
       console.error(
-        `Eval taxonomy lint failed with ${errorCount} error(s) and ${warningCount} warning(s):\n${issueLines.join('\n')}`,
+        `Eval taxonomy lint failed with ${errorCount} error(s) and ${warningCount} warning(s):\n${issueLines.join('\n')}${failOnWarningSummary}`,
       );
       process.exitCode = 1;
       return;

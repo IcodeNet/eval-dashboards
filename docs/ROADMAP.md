@@ -637,8 +637,8 @@ Acceptance criteria:
 
 ### 4E.5 Dataset governance hardening (P1, M)
 
-- [ ] Add `lint` checks for duplicate dataset case ids, orphaned `scenarioId` references, and minimum coverage-per-category warnings.
-- [ ] Document these checks in the dataset governance section of the taxonomy docs.
+- [x] Add `lint` checks for duplicate dataset case ids, orphaned `scenarioId` references, and minimum coverage-per-category warnings.
+- [x] Document these checks in the dataset governance section of the taxonomy docs.
 
 Acceptance criteria:
 
@@ -690,7 +690,7 @@ Revised after the 2026-09-14 multi-role review (see Phase 4F review inputs). Ord
 1. 4E.1 Alerting adapters — done
 2. 4E.2 Gate reliability heartbeat — done
 3. 4E.3 Mandatory pre-gate calibration check — done; still to surface calibration age/agreement on the HTML report face
-4. 4E.5 Dataset governance hardening — extend scope with dataset-staleness and required-taxonomy-field checks
+4. 4E.5 Dataset governance hardening — done (duplicate dataset case ids, orphan scenario references, and low category coverage warnings shipped in lint + docs). Follow-up extension: dataset-staleness and required-taxonomy-field checks.
 5. 4E.7 Diagnose-a-red-run exercise — cheapest antidote to "rerun until green"
 6. 4E.8 Product-owner reading track — pair with the 4F.1/4F.2 confidentiality work before promoting a non-engineer view
 7. 4E.6 Scoped P1 security presets — build in loss-given-failure order: `output-handling-safety`, then `prompt-leakage-resilience`, then category-split content safety

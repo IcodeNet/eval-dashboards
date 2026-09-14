@@ -13,12 +13,16 @@ export type TaxonomyLintResult = {
   issues: TaxonomyLintIssue[];
 };
 
+const MIN_CATEGORY_COVERAGE = 2;
+
 export function lintReportTaxonomy(report: EvalReportV1): TaxonomyLintResult {
   const issues: TaxonomyLintIssue[] = [];
   const suiteIds = new Set(report.suites.map((suite) => suite.id));
   const suiteManifestNames = new Set(report.suiteManifests?.map((manifest) => manifest.name) ?? []);
   const suiteRowCounts = new Map<string, { total: number; passed: number; failed: number }>();
   const rowKeys = new Set<string>();
+  const datasetCaseKeys = new Map<string, Map<string, string>>();
+  const suiteCategoryCoverage = new Map<string, Map<string, number>>();
 
   for (const row of report.rows) {
     const key = `${row.suite}:${row.id}`;
@@ -30,6 +34,39 @@ export function lintReportTaxonomy(report: EvalReportV1): TaxonomyLintResult {
       });
     }
     rowKeys.add(key);
+
+    if (row.datasetId) {
+      const datasetCases = datasetCaseKeys.get(row.datasetId) ?? new Map<string, string>();
+      const existingRowKey = datasetCases.get(row.id);
+      if (existingRowKey && existingRowKey !== key) {
+        issues.push({
+          level: 'warning',
+          code: 'duplicate-dataset-case-id',
+          message:
+            `Duplicate dataset case id detected: ${row.datasetId}:${row.id} appears in ${existingRowKey} and ${key}. ` +
+            'Dataset-governed suites should keep case ids stable and unique within each datasetId.',
+        });
+      } else {
+        datasetCases.set(row.id, key);
+        datasetCaseKeys.set(row.datasetId, datasetCases);
+      }
+    }
+
+    if (row.scenarioId && !row.datasetId) {
+      issues.push({
+        level: 'warning',
+        code: 'orphan-scenario-reference',
+        message:
+          `Row ${key} declares scenarioId "${row.scenarioId}" but has no datasetId. ` +
+          'Scenario references should be anchored to a datasetId for governance and trend traceability.',
+      });
+    }
+
+    if (suiteManifestNames.has(row.suite) && row.category) {
+      const suiteCoverage = suiteCategoryCoverage.get(row.suite) ?? new Map<string, number>();
+      suiteCoverage.set(row.category, (suiteCoverage.get(row.category) ?? 0) + 1);
+      suiteCategoryCoverage.set(row.suite, suiteCoverage);
+    }
 
     if (!suiteIds.has(row.suite)) {
       issues.push({
@@ -159,6 +196,21 @@ export function lintReportTaxonomy(report: EvalReportV1): TaxonomyLintResult {
           level: 'warning',
           code: 'missing-suite-manifest',
           message: `Suite ${suite.id} has no matching suite manifest.`,
+        });
+      }
+    }
+
+    for (const [suiteName, categoryCounts] of suiteCategoryCoverage.entries()) {
+      for (const [category, count] of categoryCounts.entries()) {
+        if (count >= MIN_CATEGORY_COVERAGE) {
+          continue;
+        }
+        issues.push({
+          level: 'warning',
+          code: 'low-category-coverage',
+          message:
+            `Suite ${suiteName} category "${category}" has ${count} row(s); ` +
+            `minimum recommended coverage is ${MIN_CATEGORY_COVERAGE}.`,
         });
       }
     }

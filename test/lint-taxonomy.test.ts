@@ -276,6 +276,109 @@ describe('lintReportTaxonomy', () => {
     const result = lintReportTaxonomy(report);
     expect(result.issues.some((issue) => issue.code === 'expectation-mismatch')).toBe(false);
   });
+
+  it('warns when dataset case ids are duplicated within the same datasetId across suites', () => {
+    const report = makeReport({
+      suites: [
+        { id: 'quality', total: 1, passed: 1, failed: 0 },
+        { id: 'safety', total: 1, passed: 1, failed: 0 },
+      ],
+      rows: [
+        {
+          id: 'case-001',
+          suite: 'quality',
+          passed: true,
+          kind: 'agent',
+          severity: 'none',
+          category: 'answer-quality',
+          datasetId: 'dataset-v1',
+        },
+        {
+          id: 'case-001',
+          suite: 'safety',
+          passed: true,
+          kind: 'agent',
+          severity: 'none',
+          category: 'policy',
+          datasetId: 'dataset-v1',
+        },
+      ],
+    });
+
+    const result = lintReportTaxonomy(report);
+    expect(result.passed).toBe(true);
+    expect(result.issues.some((issue) => issue.code === 'duplicate-dataset-case-id')).toBe(true);
+  });
+
+  it('warns when scenarioId is present without datasetId', () => {
+    const report = makeReport({
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          kind: 'agent',
+          severity: 'none',
+          category: 'answer-quality',
+          scenarioId: 'returns',
+        },
+      ],
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+    });
+
+    const result = lintReportTaxonomy(report);
+    expect(result.passed).toBe(true);
+    expect(result.issues.some((issue) => issue.code === 'orphan-scenario-reference')).toBe(true);
+  });
+
+  it('warns when dataset-governed category coverage is below minimum recommendation', () => {
+    const report = makeReport({
+      suiteManifests: [
+        {
+          name: 'quality',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: '1.0.0',
+          rubricVersion: '1.0.0',
+          riskArea: 'response-quality',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: { passRate: 0.9 } },
+        },
+      ],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          kind: 'agent',
+          severity: 'none',
+          category: 'answer-quality',
+          datasetId: 'dataset-v1',
+          metadata: {
+            lifecycle: { status: 'active' },
+            provenance: { source: 'synthetic' },
+          },
+        },
+        {
+          id: 'row-2',
+          suite: 'quality',
+          passed: false,
+          kind: 'agent',
+          severity: 'low',
+          category: 'policy',
+          datasetId: 'dataset-v1',
+          metadata: {
+            lifecycle: { status: 'active' },
+            provenance: { source: 'synthetic' },
+          },
+        },
+      ],
+    });
+
+    const result = lintReportTaxonomy(report);
+    expect(result.passed).toBe(true);
+    expect(result.issues.some((issue) => issue.code === 'low-category-coverage')).toBe(true);
+  });
 });
 
 describe('lintReportsTaxonomy', () => {

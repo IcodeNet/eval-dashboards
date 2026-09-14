@@ -3,4 +3,5 @@ eval-dashboards lint [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --strict                 Fail on warnings as well as errors
+  --fail-on-warning-code=<code>  Fail when warning code appears (repeatable)
 

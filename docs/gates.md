@@ -260,6 +260,12 @@ Use `--strict` to fail on warnings as well as errors:
 eval-dashboards lint --input=.evals_output --strict
 ```
 
+Fail on selected warning codes without enabling full strict mode:
+
+```sh
+eval-dashboards lint --input=.evals_output --fail-on-warning-code=orphan-scenario-reference --fail-on-warning-code=duplicate-dataset-case-id
+```
+
 Guardrail triage report (for attack-style suites using existing safety taxonomy categories):
 
 ```sh

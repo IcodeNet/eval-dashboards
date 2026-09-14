@@ -281,6 +281,20 @@ Then provide a **rubric contract** in `rubricContracts[]`:
 }
 ```
 
+### 2.6 Dataset Governance Lint Checks
+
+`eval-dashboards lint` includes dataset governance checks intended to catch drift before expensive runs:
+
+- `duplicate-dataset-case-id` (warning): the same `datasetId:id` appears in more than one suite row. Same-suite duplicates are already hard errors (`duplicate-row-key`).
+- `orphan-scenario-reference` (warning): a row declares `scenarioId` without `datasetId`. Scenario labels become non-traceable across runs when detached from datasets.
+- `low-category-coverage` (warning): for dataset-governed suites (those with `suiteManifests`), a category has fewer than 2 rows. Thin category coverage makes trend/gate movement noisy.
+
+Strictness controls:
+
+- Default: warnings do not fail `lint`.
+- `--strict`: all warnings fail.
+- `--fail-on-warning-code=<code>`: fail only on selected warning codes (repeatable).
+
 ---
 
 ## 3. Implementation Checklist
