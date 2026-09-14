@@ -154,7 +154,7 @@ Per user directive: "adoption and shipping should be done last when we are ready
 - Add adoption metrics snapshot script and manual signal tracker
 
 **Phase 4 prerequisites:**
-- [x] npm publishing workflow (GitHub Actions for version tags & releases)
+- [x] npm publishing workflow (manual `workflow_dispatch` publish). Audit 2026-09-14: `publish.yml` and `release.yml` are `workflow_dispatch`-only; there is no `push: tags` trigger, so tag-triggered publishing is not implemented.
 - [x] Community seeding loop infrastructure (outreach log + metrics cadence)
 
 **External outcomes remain ongoing:**
@@ -174,18 +174,18 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 ### Stream A: reference integration eval stream
 
 - [x] Inspect the existing reference integration eval runner, datasets, and CI wiring
-- [x] Add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency
+- [ ] Add `@icodenet/eval-dashboards` as an explicit dev dependency in the reference integration repo. Audit 2026-09-14: unverifiable from this repo — no external commit/PR link recorded. Re-mark only with a link to the external change.
 - [x] Map current reference integration eval results into `eval-report/v1`
 - [x] Emit `.evals_output/*.json` artifacts from existing eval runs
 - [x] Add suite manifests, dataset versions, rubric versions, and dashboard gates
-- [x] Wire `eval-dashboards lint`, `check`, and `report` into reference integration workflows
+- [x] Run `eval-dashboards lint`, `check`, and `report` against the reference integration. Audit 2026-09-14: commands were run manually and are documented; they are not wired into a committed CI workflow in the reference repo.
 - [x] Add rubric contracts plus row provenance/lifecycle metadata
-- [x] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard
-- [x] Generate the first published dashboard baseline and document initial quality gaps
+- [ ] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard. Audit 2026-09-14: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only and no PR has been opened.
+- [x] Generate a first dashboard baseline locally and document initial quality gaps. Audit 2026-09-14: the quality-gap findings are substantive; no published baseline URL or committed baseline history manifest exists.
 
 ### Stream B: eval-dashboards setup-layer evolution
 
-- [x] Publish TypeScript declaration files for package consumers
+- [x] Publish TypeScript declaration files for package consumers (`dts: true` in `tsup.config.ts`; `main`/`types`/`exports` in `package.json`). Audit 2026-09-14: the packed-package consumer smoke test named in this slice is still missing — the downstream compile was a one-off manual check, not a checked-in test.
    - Generate `.d.ts` files in `dist` during `pnpm build`.
    - Add package metadata (`types` / export typings) so imports like `import type { EvalReportV1 } from '@icodenet/eval-dashboards'` resolve in downstream projects.
    - Add a package-consumer smoke test that installs/builds against the packed package and verifies public types resolve.
@@ -354,7 +354,7 @@ Acceptance criteria:
   - deepeval
   - openevals / agentevals
 - [x] Provide adapter CLI entrypoints (for example `eval-dashboards import --from=<tool> --input=<path> --out=.evals_output/...`).
-- [x] Preserve source-run metadata in row/run evidence fields.
+- [x] Preserve source-run metadata in run evidence fields (`importSource`, `importInputPath`). Audit 2026-09-14: row-level provenance is constructed by each importer but `mapRow` forwards only `caseResult.metadata`, and no test asserts row `sourceRef` survives into the emitted artifact.
 - [x] Implement importers as thin conversion frontends over existing adapter helpers (`createEvalReportArtifact(...)` / `writeEvalReportArtifact(...)`) to avoid duplicate normalization logic.
 
 Current slice status:
@@ -448,7 +448,7 @@ Make onboarding and ecosystem fit obvious in one place: setup path, CI path, tax
 Acceptance criteria:
 
 - A stable public docs URL exists and is generated from this repository on merge to main.
-- Every core CLI command page includes runnable examples.
+- Every core CLI command page includes runnable examples. Audit 2026-09-14: unmet — `docs-site/v1/cli.html` is a single combined page, not per-command pages.
 
 Implementation recommendation (docs generation stack):
 
@@ -496,7 +496,7 @@ Acceptance criteria:
 
 - [x] Use assistant-ui integration as the living reference example for agent-eval adoption docs.
 - [x] Publish a case-study style walkthrough: baseline setup, emitted artifacts, lint/check/report wiring, dashboard publish flow, and key lessons.
-- [x] Keep example aligned with current branch/PR state and update docs when integration steps change.
+- [ ] Keep example aligned with current branch/PR state and update docs when integration steps change. Audit 2026-09-14: no sync mechanism, CI check, or dated sync record exists, so this cannot be evidenced. Needs either a scheduled check or a dated review log.
 
 Acceptance criteria:
 
@@ -515,7 +515,7 @@ Acceptance criteria:
 
 - [x] Run a cross-doc consistency pass so roadmap/status/docs/readme/help/examples reflect actual implementation and live site state.
 - [x] Remove stale claims about blocked GitHub Pages or cloud publish dry-run-only behavior where implementation is already live.
-- [x] Add a docs consistency checklist to release hygiene so stale state claims are caught before merge.
+- [ ] Add a docs consistency checklist to release hygiene so stale state claims are caught before merge. Audit 2026-09-14: no such checklist exists in `CHECKS_LEDGER.md` or `docs/REPO-HARDENING.md`.
 
 Acceptance criteria:
 
@@ -532,7 +532,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Each integration page includes at least one concrete conversion/adapter pattern into `eval-report/v1`.
+- Each integration page includes at least one concrete conversion/adapter pattern into `eval-report/v1`. Audit 2026-09-14: partially met — all pages point at the same generic mapper, which records `--source` in metadata but does not apply per-tool field mappings.
 - Teams can decide in under 10 minutes whether to pair `eval-dashboards` with their current stack.
 
 ### 4C.8 Integration risk register and mitigations (P1)
@@ -548,7 +548,7 @@ Acceptance criteria:
 Acceptance criteria:
 
 - Risk register exists and is referenced from interoperability docs.
-- New integrations cannot be marked complete without explicit risk/mitigation entries.
+- New integrations cannot be marked complete without explicit risk/mitigation entries. Audit 2026-09-14: stated as a prose convention in `docs/integrations/risk-register.md`; nothing enforces it in lint or CI.
 
 ### 4C.9 Trace-first evidence hardening (P1)
 
@@ -883,14 +883,14 @@ Acceptance criteria:
 
 ### 4D.2 Prioritized execution backlog from review findings (P0)
 
-- [x] Schema generation from TS + CI drift guard.
-- [x] Ajv/runtime validation hardening with stable error shape.
+- [x] Schema enum sync from TS + CI drift guard (`pnpm schema:check`). Audit 2026-09-14: `scripts/sync-eval-report-v1-schema.ts` patches enums/consts into a hand-maintained schema; it does not generate the schema from TS types, so a newly added optional field does not trip the guard.
+- [x] Runtime validation hardening with a stable error shape (`ValidationIssue { code, path, message }`). Audit 2026-09-14: validation is hand-rolled in `src/model/validate.ts`, not Ajv — Ajv is not a dependency — and `path` is reverse-parsed from message strings, which is fragile.
 - [x] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
-- [x] First-class usage metrics path (tokens/cost/latency).
+- [ ] First-class usage metrics path (tokens/cost/latency). Audit 2026-09-14: latency (`durationMs`) and cost (`metadata` alias keys) are read opportunistically by the reporters only. Token metrics are absent entirely and none of the three are schema fields, so the additive-fields acceptance criterion is unmet.
 - [x] Python emitter/adoption path.
-- [x] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs).
+- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs). Audit 2026-09-14: documentation only. `resolveImportSource` in `src/cli/import-adapters.ts` accepts promptfoo, deepeval and agentevals/openevals and rejects all five named sources; no fixtures or tests exist. Tracked as 4E.9.
 - [x] Judge calibration workflow and measurable agreement reporting.
-- [x] Trace/OTel evidence hardening guidance.
+- [x] Trace-link evidence hardening guidance (`rows[].trace` deep links). Audit 2026-09-14: OpenTelemetry-specific guidance is still missing — no semantic-convention or span-attribute mapping in `docs/integrations/trace-stacks.md`.
 
 Acceptance criteria:
 
