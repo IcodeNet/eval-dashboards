@@ -20,6 +20,10 @@ examples/**/dist/
 !examples/report-power-artifacts/**
 !examples/report-power-artifacts/.evals_output/
 !examples/report-power-artifacts/.evals_output/**
+!examples/diagnose-a-red-run/
+!examples/diagnose-a-red-run/**
+!examples/diagnose-a-red-run/.evals_output/
+!examples/diagnose-a-red-run/.evals_output/**
 
 # Local tooling scratch
 eval-reports.code-workspace
