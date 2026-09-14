@@ -515,7 +515,7 @@ Acceptance criteria:
 
 - [x] Run a cross-doc consistency pass so roadmap/status/docs/readme/help/examples reflect actual implementation and live site state.
 - [x] Remove stale claims about blocked GitHub Pages or cloud publish dry-run-only behavior where implementation is already live.
-- [ ] Add a docs consistency checklist to release hygiene so stale state claims are caught before merge. Audit 2026-09-14: no such checklist exists in `CHECKS_LEDGER.md` or `docs/REPO-HARDENING.md`.
+- [x] Add a docs consistency checklist to release hygiene so stale state claims are caught before merge. Evidence: `CHECKS_LEDGER.md:13-42` section "1a) Docs Consistency Checklist (completion-claim gate)" — requires `path:line` evidence in the commit message before any `- [ ]` becomes `- [x]`, and rules out external-repo, docs-only, and unfalsifiable process claims.
 
 Acceptance criteria:
 

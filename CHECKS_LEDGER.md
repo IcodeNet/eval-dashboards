@@ -11,6 +11,36 @@ Use this ledger before declaring any task finished.
 - Confirm command-help snapshots in `docs/cli-help/*.txt` match live CLI output for: `report`, `check`, `publish`, `import`, `teach`, `init`.
 - Confirm each integration guide links `docs/integrations/risk-register.md` and uses it as a completion gate.
 
+## 1a) Docs Consistency Checklist (completion-claim gate)
+
+Run this whenever a change marks a roadmap or status item complete. A 2026-09-14 audit of
+`docs/ROADMAP.md` found six items marked `- [x]` that no code supported, so completion claims
+are treated as assertions requiring evidence, not as prose.
+
+Before flipping any `- [ ]` to `- [x]` in `docs/ROADMAP.md` or adding a "done" line to
+`docs/STATUS.md`:
+
+- Cite the evidence in the commit message as `path:line` for each claim. A claim with no
+  citable code, test, or committed artifact does not get checked off.
+- Confirm the item's own acceptance criteria are all met, not just the headline sentence.
+  Partial delivery is reworded to describe what shipped; it is not marked complete.
+- Confirm a test covers the behaviour. Per `AGENTS.md`, items are done only when code **and**
+  tests exist.
+- For CLI surface changes, confirm the matching `docs/cli-help/*.txt` snapshot was regenerated.
+- For contract changes, confirm schema, `docs/artifact-format.md`, and examples moved together.
+
+Claims that cannot be evidenced from this repository:
+
+- Work landing in an **external** repository is not marked complete here without a link to the
+  external commit or PR in the roadmap line itself. "Wired up locally" is not done.
+- Work that is **documentation-only** for a backlog item whose acceptance criteria demand code
+  (fixtures, adapters, tests) stays open, with the docs progress noted inline.
+- **Process or alignment claims** ("kept in sync", "reviewed each release") need a mechanism, a
+  CI check, or a dated record. An unfalsifiable promise is not a completion.
+
+When an audit downgrades a claim, keep the item open and append a dated `Audit YYYY-MM-DD:` note
+naming the evidence gap, so the next reader sees why rather than only a flipped box.
+
 ## 2) Verification Evidence
 
 - Include exact commands used for validation.

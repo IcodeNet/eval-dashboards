@@ -1,23 +1,27 @@
 node_modules/
 dist/
+coverage/
+*.log
+
+# Generated report output
 eval-report/
 eval-report-dark/
 published-eval-report/
+.evals_output/
+
+# Example scratch output
 examples/screenshot-fixture/
 examples/**/.evals_output/
 examples/**/report*/
+examples/**/dist/
+
+# Tracked example fixtures (must survive the rules above)
 !examples/report-power-artifacts/
 !examples/report-power-artifacts/**
-examples/**/dist/
-node_modules/
-dist/
-coverage/
-eval-report/
-published-eval-report/
-.evals_output/
 !examples/report-power-artifacts/.evals_output/
 !examples/report-power-artifacts/.evals_output/**
-*.log
+
+# Local tooling scratch
 eval-reports.code-workspace
 .tmp/
 .hermes/
