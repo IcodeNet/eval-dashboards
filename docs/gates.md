@@ -88,6 +88,9 @@ Notification adapters (opt-in):
   - When both `slack` and `teams` are enabled, provide channel-specific URLs (shared webhook fallback is rejected).
 - `--notify-email-smtp=<url>`, `--notify-email-from=<address>`, `--notify-email-to=<address>` configure SMTP email notifications.
 - `--notify-report-link=<url-or-path>` overrides the link/path included in payloads (default: `<report-dir>/index.html`).
+- `--calibration-suite=<id>` overrides the calibration evidence suite id (default: `judge-calibration`).
+- `--calibration-max-age-hours=<n>` sets recency window for calibration evidence (default: `168`).
+- `--allow-stale-calibration` is the escape hatch: missing/stale calibration evidence is downgraded to diagnostics instead of failing blocking suites.
 - Environment fallbacks are supported for CI secret hygiene: `EVAL_NOTIFY_CHANNELS`, `EVAL_NOTIFY_WEBHOOK`, `EVAL_NOTIFY_SLACK_WEBHOOK`, `EVAL_NOTIFY_TEAMS_WEBHOOK`, `EVAL_NOTIFY_SMTP_URL`, `EVAL_NOTIFY_EMAIL_FROM`, `EVAL_NOTIFY_EMAIL_TO`, `EVAL_NOTIFY_REPORT_LINK`.
 - Notification delivery is best-effort: send failures/skips are captured in `check-result.json` (`diagnostics` and optional `notifications`) when `--json-out` is enabled, but do not change check exit codes.
 
@@ -175,6 +178,29 @@ Canonical new-failure keys:
 Preflight suite enforcement:
 
 - `--require-suite-pass=<suite-id>` (repeatable): fail when a required suite has any failing rows.
+
+Mandatory calibration preflight for judge-scored suites:
+
+- Applies when the current artifact includes a calibration suite manifest (default id `judge-calibration`).
+- For each judge-scored suite (`llm-judge` / `human-labelled-calibration` graders), check requires a calibration run within the recency window whose calibration rows include matching `judgeModel` and `groundTruthVerdict`.
+- If a matching recent calibration run is missing:
+  - `gate.mode=blocking`: check fails by default.
+  - `gate.mode=report-only`: check emits a loud diagnostic warning.
+- Escape hatch: `--allow-stale-calibration` (or `gates.calibration.allowBlockingWithoutRecentMatch: true`) downgrades blocking failures to warnings.
+
+Config file equivalent:
+
+```ts
+export default {
+  gates: {
+    calibration: {
+      suite: 'judge-calibration',
+      maxAgeHours: 168,
+      allowBlockingWithoutRecentMatch: false,
+    },
+  },
+};
+```
 - Typical usage: `--require-suite-pass=preflight` before live/judge gates.
 
 Baseline-aware options:

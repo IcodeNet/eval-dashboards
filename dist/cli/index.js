@@ -3935,7 +3935,10 @@ var checkFlags = [
   "--notify-email-smtp",
   "--notify-email-from",
   "--notify-email-to",
-  "--notify-report-link"
+  "--notify-report-link",
+  "--calibration-suite",
+  "--calibration-max-age-hours",
+  "--allow-stale-calibration"
 ];
 var reportFlags = [
   "--input",
@@ -5062,6 +5065,9 @@ Options:
   --notify-email-from=<address>    Sender address for email notifications
   --notify-email-to=<address>      Recipient address (repeatable/csv)
   --notify-report-link=<url/path>  Report URL/path included in notification payloads
+  --calibration-suite=<id>          Calibration suite id to require for blocking judge-scored suites
+  --calibration-max-age-hours=<n>   Maximum calibration run age in hours (default: 168)
+  --allow-stale-calibration         Escape hatch: warn instead of fail when calibration evidence is missing/stale
 `;
 var publishUsage = `eval-dashboards publish [options]
 
@@ -5330,6 +5336,68 @@ var loadContext = async (input, reportDir, options) => {
     reportDir
   };
 };
+var CALIBRATION_DEFAULT_SUITE = "judge-calibration";
+var CALIBRATION_DEFAULT_MAX_AGE_HOURS = 168;
+var isJudgeScoredSuite = (manifest) => manifest.graders.includes("llm-judge") || manifest.graders.includes("human-labelled-calibration");
+var evaluateCalibrationChecks = (reports, current, gateConfig) => {
+  const failures = [];
+  const diagnostics = [];
+  const calibrationConfig = gateConfig.calibration ?? {};
+  if (calibrationConfig.enabled === false) {
+    return { failures, diagnostics };
+  }
+  const suiteId = calibrationConfig.suite ?? CALIBRATION_DEFAULT_SUITE;
+  const maxAgeHours = calibrationConfig.maxAgeHours ?? CALIBRATION_DEFAULT_MAX_AGE_HOURS;
+  const allowBlockingWithoutRecentMatch = calibrationConfig.allowBlockingWithoutRecentMatch === true;
+  const calibrationConfigured = current.suiteManifests?.some((manifest) => manifest.name === suiteId) === true;
+  if (!calibrationConfigured || !current.suiteManifests?.length) {
+    return { failures, diagnostics };
+  }
+  const nowMs = Number.isFinite(Date.parse(current.run.generatedAt)) ? Date.parse(current.run.generatedAt) : Date.now();
+  const cutoffMs = nowMs - maxAgeHours * 60 * 60 * 1e3;
+  const evidenceRuns = reports.filter((report) => {
+    const generatedAtMs = Date.parse(report.run.generatedAt);
+    if (!Number.isFinite(generatedAtMs)) {
+      return false;
+    }
+    return generatedAtMs >= cutoffMs && generatedAtMs <= nowMs;
+  });
+  const targetSuites = current.suiteManifests.filter(isJudgeScoredSuite);
+  for (const manifest of targetSuites) {
+    const suiteRows2 = current.rows.filter((row) => row.suite === manifest.name);
+    const judgeModels = [...new Set(suiteRows2.map((row) => row.judgeModel).filter((value) => typeof value === "string" && value.length > 0))];
+    if (judgeModels.length === 0) {
+      diagnostics.push(
+        `Calibration preflight: suite "${manifest.name}" has no judgeModel values in current rows; calibration evidence cannot be matched.`
+      );
+      continue;
+    }
+    for (const judgeModel of judgeModels) {
+      const hasRecentMatch = evidenceRuns.some((report) => {
+        const suiteManifest = report.suiteManifests?.find((candidate) => candidate.name === suiteId);
+        if (!suiteManifest) {
+          return false;
+        }
+        if (manifest.rubricVersion && suiteManifest.rubricVersion !== manifest.rubricVersion) {
+          return false;
+        }
+        return report.rows.some(
+          (row) => row.suite === suiteId && row.judgeModel === judgeModel && row.groundTruthVerdict !== void 0
+        );
+      });
+      if (hasRecentMatch) {
+        continue;
+      }
+      const issue = `Calibration preflight: suite "${manifest.name}" requires recent "${suiteId}" evidence (judgeModel="${judgeModel}", rubricVersion="${manifest.rubricVersion ?? "n/a"}", maxAgeHours=${maxAgeHours}) but no matching calibration run was found.`;
+      if (manifest.gate.mode === "blocking" && !allowBlockingWithoutRecentMatch) {
+        failures.push(issue);
+      } else {
+        diagnostics.push(`${issue} (warning-only)`);
+      }
+    }
+  }
+  return { failures, diagnostics };
+};
 var gateConfigFromOptions = (options) => {
   const newFailureKey = optionString(options, "new-failure-key", "");
   const warningBudgets = optionStrings(options, "max-warning-code", []);
@@ -5351,6 +5419,9 @@ var gateConfigFromOptions = (options) => {
   const confidenceLevel = optionNumber(options, "confidence-level");
   const bootstrapSamples = optionNumber(options, "bootstrap-samples");
   const minPassRateDelta = optionNumber(options, "min-pass-rate-delta");
+  const calibrationSuite = optionString(options, "calibration-suite", "");
+  const calibrationMaxAgeHours = optionNumber(options, "calibration-max-age-hours");
+  const allowStaleCalibration = optionBoolean(options, "allow-stale-calibration");
   const statisticalFields = {
     mode: statisticalMode,
     confidenceLevel,
@@ -5360,6 +5431,11 @@ var gateConfigFromOptions = (options) => {
   const statistical = statisticalMode !== void 0 || confidenceLevel !== void 0 || bootstrapSamples !== void 0 || minPassRateDelta !== void 0 ? Object.fromEntries(
     Object.entries(statisticalFields).filter(([, value]) => value !== void 0)
   ) : void 0;
+  const calibration = calibrationSuite !== "" || calibrationMaxAgeHours !== void 0 || allowStaleCalibration ? {
+    ...calibrationSuite !== "" ? { suite: calibrationSuite } : {},
+    ...calibrationMaxAgeHours !== void 0 ? { maxAgeHours: calibrationMaxAgeHours } : {},
+    ...allowStaleCalibration ? { allowBlockingWithoutRecentMatch: true } : {}
+  } : void 0;
   return {
     minPassRate: optionNumber(options, "min-pass-rate"),
     minMatchedExpectationRate: optionNumber(options, "min-matched-expectation-rate"),
@@ -5370,7 +5446,8 @@ var gateConfigFromOptions = (options) => {
     failOnWarningCodes: optionStrings(options, "fail-on-warning-code", []),
     newFailureKey: parsedNewFailureKey,
     requiredPassingSuites: optionStrings(options, "require-suite-pass", []),
-    ...statistical ? { statistical } : {}
+    ...statistical ? { statistical } : {},
+    ...calibration ? { calibration } : {}
   };
 };
 var baselineStrategyFromOptions = (options) => {
@@ -5749,13 +5826,17 @@ ${written.join("\n")}`);
         };
       }
       assertValidStatisticalGateConfig(gateConfig);
-      const result = checkGates(
+      const gateResult = checkGates(
         context.current,
         context.comparison,
         gateConfig,
         context.baselineCompatibility,
         context.previous
       );
+      const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
+      const combinedFailures = [...gateResult.failures, ...calibrationChecks.failures];
+      const combinedDiagnostics = [...gateResult.diagnostics, ...calibrationChecks.diagnostics];
+      const gatePassed = combinedFailures.length === 0;
       heartbeatRunId = context.current.run.id;
       heartbeatBaselineRunId = context.previous?.run.id;
       const checkPayload = {
@@ -5763,9 +5844,9 @@ ${written.join("\n")}`);
         gateRunStatus: "ran",
         runId: context.current.run.id,
         baselineRunId: context.previous?.run.id,
-        passed: result.passed,
-        failures: result.failures,
-        diagnostics: result.diagnostics,
+        passed: gatePassed,
+        failures: combinedFailures,
+        diagnostics: combinedDiagnostics,
         baselineCompatibility: context.baselineCompatibility,
         newlyFailingRows: context.comparison.newlyFailing.map((row) => ({
           id: row.id,
@@ -5791,12 +5872,12 @@ ${written.join("\n")}`);
         );
       })();
       const newlyBlockedBaseline = baselineBlocked && !baselineRunId && previousBaselineCompatibility?.status !== "blocked";
-      const shouldNotify = notificationChannels.length > 0 && (!result.passed || newlyBlockedBaseline);
+      const shouldNotify = notificationChannels.length > 0 && (!gatePassed || newlyBlockedBaseline);
       if (shouldNotify) {
         const failingSuites = [
           ...new Set(context.current.rows.filter((row) => !row.passed).map((row) => row.suite))
         ].sort();
-        const eventFailures = result.failures.length > 0 ? result.failures : baselineBlocked ? ["Baseline compatibility is blocked due to dataset/rubric version drift."] : [];
+        const eventFailures = combinedFailures.length > 0 ? combinedFailures : baselineBlocked ? ["Baseline compatibility is blocked due to dataset/rubric version drift."] : [];
         const notificationResults = await sendGateNotifications(
           notificationChannels,
           {
@@ -5840,23 +5921,23 @@ ${written.join("\n")}`);
         schemaVersion: "eval-check-heartbeat/v1",
         gateRunStatus: "ran",
         generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        exitCode: result.passed ? 0 : 1,
+        exitCode: gatePassed ? 0 : 1,
         runId: heartbeatRunId,
         baselineRunId: heartbeatBaselineRunId
       });
-      if (result.passed) {
-        if (result.diagnostics.length > 0) {
+      if (gatePassed) {
+        if (combinedDiagnostics.length > 0) {
           console.log(`Gate diagnostics:
-${result.diagnostics.join("\n")}`);
+${combinedDiagnostics.join("\n")}`);
         }
         console.log("Eval gates passed.");
         return;
       }
-      const diagnostics = result.diagnostics.length > 0 ? `
+      const diagnostics = combinedDiagnostics.length > 0 ? `
 Diagnostics:
-${result.diagnostics.join("\n")}` : "";
+${combinedDiagnostics.join("\n")}` : "";
       console.error(`Eval gates failed:
-${result.failures.join("\n")}${diagnostics}`);
+${combinedFailures.join("\n")}${diagnostics}`);
       process.exitCode = 1;
       return;
     } catch (error) {

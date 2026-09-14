@@ -83,6 +83,9 @@ const checkFlags = [
   '--notify-email-from',
   '--notify-email-to',
   '--notify-report-link',
+  '--calibration-suite',
+  '--calibration-max-age-hours',
+  '--allow-stale-calibration',
 ] as const;
 
 const reportFlags = [

@@ -619,8 +619,8 @@ Acceptance criteria:
 
 ### 4E.3 Mandatory pre-gate calibration check (P0, M)
 
-- [ ] `check` refuses to run a `blocking` gate against a suite with judge-calibration configured unless a calibration run exists within a configurable recency window and matches the current `judgeModel` + `rubricVersion`.
-- [ ] Default behavior on missing/stale calibration: warn loudly in report-only mode, fail in blocking mode (configurable escape hatch documented).
+- [x] `check` refuses to run a `blocking` gate against a suite with judge-calibration configured unless a calibration run exists within a configurable recency window and matches the current `judgeModel` + `rubricVersion`.
+- [x] Default behavior on missing/stale calibration: warn loudly in report-only mode, fail in blocking mode (configurable escape hatch documented).
 
 Acceptance criteria:
 
@@ -685,15 +685,151 @@ Acceptance criteria:
 
 ### 4E execution order
 
-1. 4E.1 Alerting adapters
-2. 4E.2 Gate reliability heartbeat
-3. 4E.3 Mandatory pre-gate calibration check
-4. 4E.4 Multi-reviewer adjudication default
-5. 4E.5 Dataset governance hardening
-6. 4E.7 Diagnose-a-red-run exercise
-7. 4E.8 Product-owner reading track
-8. 4E.6 Scoped P1 security presets
-9. 4E.9 Complete coded import adapters
+Revised after the 2026-09-14 multi-role review (see Phase 4F review inputs). Ordering is by adoption impact, not by item number.
+
+1. 4E.1 Alerting adapters — done
+2. 4E.2 Gate reliability heartbeat — done
+3. 4E.3 Mandatory pre-gate calibration check — done; still to surface calibration age/agreement on the HTML report face
+4. 4E.5 Dataset governance hardening — extend scope with dataset-staleness and required-taxonomy-field checks
+5. 4E.7 Diagnose-a-red-run exercise — cheapest antidote to "rerun until green"
+6. 4E.8 Product-owner reading track — pair with the 4F.1/4F.2 confidentiality work before promoting a non-engineer view
+7. 4E.6 Scoped P1 security presets — build in loss-given-failure order: `output-handling-safety`, then `prompt-leakage-resilience`, then category-split content safety
+8. 4E.9 Complete coded import adapters — decide by surveying which runners teams actually use; promote sharply if Ragas/Langfuse/Phoenix/Braintrust are in real use
+9. 4E.4 Multi-reviewer adjudication — demoted: ship as a documented rigor tier, required only for suites gating regulated releases. Making two-reviewer ground truth the global default raises the cost of the first calibration run, which is the step teams already skip.
+
+Related follow-up captured in 4F: the statistical gate knobs (`--confidence-level`, `--bootstrap-samples`) are over-exposed. A misconfigured statistical gate is worse than a blunt one; prefer one opinionated preset over raw knobs.
+
+---
+
+## 🚧 Phase 4F: Evidence, confidentiality, and org rollout (NEW)
+
+Mission
+
+Make eval results defensible as evidence and safe to publish, and make multi-agent rollout legible to product and leadership — without becoming a hosted platform. Every item here is an artifact field, a lint rule, a CLI flag, or a static output. The charter forbids hosting; it does not forbid evidence.
+
+Review inputs (2026-09-14, four independent role reviews)
+
+- Staff Platform/DevOps Architect: CI-native outputs are strong; no alerting, no gate telemetry, no rollup.
+- Senior AI/ML Evaluation Methodologist: calibration enforcement and dataset governance are the top methodology gaps.
+- Principal Engineering Manager / Head of AI Platform: the emitter is the adoption tax, not the dashboard; cross-agent trends and bypass accounting are the month-2/3 walls; leadership cannot trust a gate whose bar the gated party can lower.
+- Principal Security & Governance Architect: the published-report model is a data-egress failure independent of HTML escaping; gate results are self-attested and therefore inadmissible as audit evidence.
+
+Consensus blockers: cross-agent rollup does not exist; published reports have no access control and no redaction; gate evidence carries no resolved config, no versions, no digests, and no signature.
+
+### 4F.1 Two-tier artifact split (P0, 5-8 d)
+
+- [ ] Split emitted artifacts into a public tier (counts, rates, ids, categories, severities, verdicts, versions) and a sensitive tier (prompts, model outputs, retrieved chunks, judge reasoning).
+- [ ] Publish targets consume the public tier by default; the sensitive tier stays in the controlled store.
+
+Acceptance criteria:
+
+- A publish run against an artifact containing evidence text emits only the public tier, and the sensitive tier is verifiably absent from the published output.
+
+### 4F.2 Redaction profile and publish preflight (P0, 4-6 d)
+
+- [ ] Add a `--redact` deny-by-default profile: evidence text fields are dropped unless explicitly allow-listed per suite. Regex/entity PII detection is a secondary net, never the primary control.
+- [ ] Publish preflight hard-fails when evidence fields are present in the payload, with an explicit `--allow-sensitive-publish` override recorded in the run record.
+- [ ] Record the applied `redactionProfile` in the run record.
+
+Acceptance criteria:
+
+- Publishing an artifact with unredacted evidence fails without the override, and the override's use is visible in the resulting run record.
+
+### 4F.3 `eval-check-result/v2` provenance fields (P0, 3-4 d)
+
+- [ ] Extend the check-result payload with: fully resolved gate configuration, per-suite `datasetVersion` and `rubricVersion`, sha256 digests of every input artifact, subject (commit SHA / release / image digest), and CI environment (provider, run id, run URL, actor).
+
+Acceptance criteria:
+
+- An auditor can read a single check-result file and determine which thresholds were in force, against which dataset and rubric versions, for which commit — without reading workflow YAML at that commit.
+
+### 4F.4 Artifact digest and detached signature (P0, 4-6 d)
+
+- [ ] Hash artifacts and gate results; emit a detached signature using cosign keyless via CI OIDC.
+- [ ] Add a `verify` command that re-validates digest and signature.
+
+Acceptance criteria:
+
+- A hand-edited check-result claiming `passed: true` fails `verify`, and a genuine one passes with its producing workflow, repo, and commit identifiable from the signature.
+
+### 4F.5 Waiver and exception register (P1, 5-7 d)
+
+- [ ] Support a signed waiver file recording suite/row, justification, risk owner, ticket reference, and expiry date.
+- [ ] `check` honours active waivers, reports them prominently, and fails on expired waivers.
+
+Acceptance criteria:
+
+- A release with a known failure can ship via a recorded, expiring waiver instead of a disabled gate; an expired waiver fails the gate.
+
+### 4F.6 Threshold-change detection (segregation of duties) (P1, 3-4 d)
+
+- [ ] Detect when resolved gate configuration loosens relative to the baseline; fail the gate or require CODEOWNER approval.
+- [ ] Surface the loosening in `check --json-out` so it is visible in both the diff and the artifact.
+
+Acceptance criteria:
+
+- A PR that lowers `minPassRate` while introducing failures cannot pass on its own authority.
+
+### 4F.7 Heartbeat verifier (P1, 2-3 d)
+
+- [ ] Add a scheduled verification path asserting that every release subject has a fresh heartbeat within N hours; absence raises an alert.
+
+Acceptance criteria:
+
+- Deleting or skipping the gate step on a release produces an alert rather than silent success. Absence of evidence becomes detectable.
+
+### 4F.8 Static org rollup index (P1, M)
+
+- [ ] Render a single offline overview from N published history artifacts across repos: pass rate, critical failures, and baseline drift per agent over time.
+- [ ] Remains a static, offline-first output — no server, no ingestion API, no auth system.
+
+Acceptance criteria:
+
+- With three or more agent repos publishing history, one generated page answers "which agent regressed this week" without opening each repo's site.
+
+### 4F.9 Bypass accounting (P1, S)
+
+- [ ] Count and report use of `--allow-blocked-baseline`, `--allow-stale-calibration`, and `--allow-sensitive-publish` as a first-class org metric in history and rollup views.
+
+Acceptance criteria:
+
+- Gate erosion over time is visible as a trend rather than discovered during an audit.
+
+### 4F.10 PR-subset vs full-suite tiering with cost budget (P2, M)
+
+- [ ] Add a first-class concept of a fast PR subset versus a full scheduled suite, with judge cost and runtime reporting per run.
+
+Acceptance criteria:
+
+- A team can keep PR gating under an explicit time and cost budget instead of moving the gate to nightly and losing PR protection entirely.
+
+### 4F.11 Evidence export bundle (P2, 3-4 d)
+
+- [ ] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest.
+
+Acceptance criteria:
+
+- A single artifact can be handed to an examiner and independently verified.
+
+### Still out of scope in 4F
+
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
+
+### 4F execution order
+
+1. 4F.1 Two-tier artifact split
+2. 4F.2 Redaction profile and publish preflight
+3. 4F.3 `eval-check-result/v2` provenance fields
+4. 4F.4 Artifact digest and detached signature
+5. 4F.5 Waiver and exception register
+6. 4F.6 Threshold-change detection
+7. 4F.7 Heartbeat verifier
+8. 4F.8 Static org rollup index
+9. 4F.9 Bypass accounting
+10. 4F.10 PR-subset tiering with cost budget
+11. 4F.11 Evidence export bundle
+
+Until 4F.1 through 4F.4 ship, the honest guidance is: do not publish reports produced from production data.
 
 ---
 

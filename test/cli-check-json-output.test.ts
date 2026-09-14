@@ -531,4 +531,121 @@ describe('check machine outputs', () => {
     expect(payload.text).toContain('run-002');
     expect(payload.text).toContain('Baseline compatibility: blocked');
   });
+
+  it('fails blocking judge-scored suite when no recent matching calibration evidence exists', async () => {
+    const dir = await createTempDir();
+    const artifactDir = path.join(dir, 'artifacts');
+    await mkdir(artifactDir, { recursive: true });
+
+    const templateRaw = await readFile(
+      path.join(process.cwd(), 'examples/agent-quality-preset/artifacts/run-agent-quality-template.json'),
+      'utf8',
+    );
+
+    const staleReport = JSON.parse(templateRaw) as any;
+    const currentReport = JSON.parse(templateRaw) as any;
+
+    const normalize = (report: any, id: string, generatedAt: string) => {
+      report.run.id = id;
+      report.run.generatedAt = generatedAt;
+      report.rows = report.rows.map((row: any) => ({
+        ...row,
+        passed: true,
+        judgeModel: row.suite === 'answer-quality' ? 'judge-model-v1' : row.judgeModel,
+      }));
+      report.suites = report.suites.map((suite: any) => ({
+        ...suite,
+        passed: suite.total,
+        failed: 0,
+        passRate: 1,
+      }));
+      report.suiteManifests = (report.suiteManifests ?? []).map((manifest: any) => ({
+        ...manifest,
+        gate: manifest.name === 'answer-quality' ? { ...manifest.gate, mode: 'blocking' } : manifest.gate,
+      }));
+      return report;
+    };
+
+    normalize(staleReport, 'run-stale', '2026-01-01T00:00:00.000Z');
+    normalize(currentReport, 'run-current', '2026-01-10T00:00:00.000Z');
+    currentReport.rows = currentReport.rows.filter((row: any) => row.suite !== 'judge-calibration');
+
+    await Promise.all([
+      writeFile(path.join(artifactDir, 'run-stale.json'), JSON.stringify(staleReport, null, 2)),
+      writeFile(path.join(artifactDir, 'run-current.json'), JSON.stringify(currentReport, null, 2)),
+    ]);
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        ['cli:dev', 'check', `--input=${artifactDir}`, '--calibration-max-age-hours=24'],
+        { cwd: process.cwd() },
+      );
+      throw new Error('expected calibration preflight failure');
+    } catch (error) {
+      const failure = error as { code?: number; stderr?: string };
+      expect(failure.code).toBe(1);
+      expect(failure.stderr).toContain('Calibration preflight');
+      expect(failure.stderr).toContain('answer-quality');
+      expect(failure.stderr).toContain('judge-model-v1');
+    }
+  });
+
+  it('downgrades missing calibration evidence to diagnostics when allow-stale-calibration is set', async () => {
+    const dir = await createTempDir();
+    const artifactDir = path.join(dir, 'artifacts');
+    const outPath = path.join(dir, 'check-result.json');
+    await mkdir(artifactDir, { recursive: true });
+
+    const templateRaw = await readFile(
+      path.join(process.cwd(), 'examples/agent-quality-preset/artifacts/run-agent-quality-template.json'),
+      'utf8',
+    );
+    const currentReport = JSON.parse(templateRaw) as any;
+
+    currentReport.run.id = 'run-current';
+    currentReport.run.generatedAt = '2026-01-10T00:00:00.000Z';
+    currentReport.rows = currentReport.rows
+      .map((row: any) => ({
+        ...row,
+        passed: true,
+        judgeModel: row.suite === 'answer-quality' ? 'judge-model-v1' : row.judgeModel,
+      }))
+      .filter((row: any) => row.suite !== 'judge-calibration');
+    currentReport.suites = currentReport.suites.map((suite: any) => ({
+      ...suite,
+      passed: suite.total,
+      failed: 0,
+      passRate: 1,
+    }));
+    currentReport.suiteManifests = (currentReport.suiteManifests ?? []).map((manifest: any) => ({
+      ...manifest,
+      gate: manifest.name === 'answer-quality' ? { ...manifest.gate, mode: 'blocking' } : manifest.gate,
+    }));
+
+    await writeFile(path.join(artifactDir, 'run-current.json'), JSON.stringify(currentReport, null, 2));
+
+    await execFileAsync(
+      'pnpm',
+      [
+        'cli:dev',
+        'check',
+        `--input=${artifactDir}`,
+        '--allow-stale-calibration',
+        '--calibration-max-age-hours=24',
+        `--json-out=${outPath}`,
+      ],
+      { cwd: process.cwd() },
+    );
+
+    const payload = JSON.parse(await readFile(outPath, 'utf8')) as {
+      passed: boolean;
+      diagnostics: string[];
+      failures: string[];
+    };
+    expect(payload.passed).toBe(true);
+    expect(payload.failures).toHaveLength(0);
+    expect(payload.diagnostics.some((entry) => entry.includes('Calibration preflight'))).toBe(true);
+    expect(payload.diagnostics.some((entry) => entry.includes('warning-only'))).toBe(true);
+  });
 });

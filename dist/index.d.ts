@@ -314,6 +314,19 @@ type GateConfig = {
     newFailureKey?: NewFailureKeyMode;
     requiredPassingSuites?: string[];
     statistical?: StatisticalGateConfig;
+    calibration?: {
+        /** Enable/disable pre-gate calibration evidence checks. Default: true. */
+        enabled?: boolean;
+        /** Calibration suite id used as evidence source. Default: judge-calibration. */
+        suite?: string;
+        /** Max calibration age in hours. Default: 168 (7 days). */
+        maxAgeHours?: number;
+        /**
+         * Escape hatch: do not fail blocking suites when calibration evidence is
+         * missing/stale/mismatched; emit diagnostics only.
+         */
+        allowBlockingWithoutRecentMatch?: boolean;
+    };
 };
 type GateResult = {
     passed: boolean;
