@@ -701,6 +701,87 @@ Related follow-up captured in 4F: the statistical gate knobs (`--confidence-leve
 
 ---
 
+## 🚧 Phase 4G: Teaching curriculum consistency (NEW)
+
+Mission: the teaching track is the adoption funnel. An independent review on
+2026-09-14 executed all 19 files in `docs/teach-labs/` and `docs/teach-exercises/`
+and found the set is bimodal — four strong files and fifteen thin ones — plus
+several commands that do not do what the docs say. Fix the broken commands
+first, then normalise the rest onto the format the four strong files already use.
+
+Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.md`,
+`teach-labs/05-post-release-monitoring.md`, `teach-exercises/11-diagnose-a-red-run.md`,
+`teach-exercises/pm-01-reading-a-report.md`.
+
+### P0 — broken commands (a learner following instructions exactly hits these)
+
+- [ ] 4G.1 Fix `07-judge-calibration.md`: the exercise's own row fails `lint` with
+      `missing-row-lifecycle` and `missing-row-provenance` (exit 1) while the doc
+      claims "Commands run without schema errors" (`docs/teach-exercises/07-judge-calibration.md:89-90`).
+      Root cause is cross-file: Ex05 adds `suiteManifests`, promoting the suites to
+      dataset-governed, which makes provenance/lifecycle mandatory in Ex07. Either
+      add the required fields or teach the error as the lesson. Acceptance: the
+      exercise runs clean, or the failure is the documented teaching point.
+- [x] 4G.2 `history --history-dir` was a non-existent flag, silently ignored, that
+      wrote to the default path while appearing to work. Fixed two ways: the doc now
+      uses `--out` (`docs/teach-exercises/11-diagnose-a-red-run.md:66`), and the CLI
+      now rejects unknown flags with exit 2 (`src/cli/args.ts` `assertKnownFlags`,
+      19 tests in `test/cli-args-validation.test.ts`). Commit `e562b1f`.
+- [ ] 4G.3 Fix `08-gates-release.md`: the doc primes the learner to expect a failing
+      `check` (exit 1) but the minimal artifact has one passing row, so the gate
+      passes and exits 0. Either change the fixture or change the text.
+- [ ] 4G.4 Fix `05-suite-taxonomy.md`: it adds manifests for `refusal-safety` and
+      `answer-quality`, neither of which exists in the artifact, while the one suite
+      that does exist (`quality`) gets none — so lint goes from clean to
+      `missing-suite-manifest`. Doing the exercise correctly makes lint worse and the
+      doc says nothing. Also the origin of the Ex05 → Ex07 trap in 4G.1.
+- [ ] 4G.5 Fix the dangling `pm-02-reading-drift.md` link in `pm-01-reading-a-report.md`:
+      write the file or drop the reference. "Reading track A" also implies a track B
+      that does not exist.
+- [ ] 4G.6 Fix `fde-role-workflow.md`: steps 1-5 run `npx eval-dashboards` against a
+      hypothetical customer repo, so none of them are runnable as written.
+
+### P1 — the curriculum contradicts its own best work
+
+- [ ] 4G.7 Index the two best exercises. `docs/teach-curriculum.md` does not
+      reference `11-diagnose-a-red-run.md` or `pm-01-reading-a-report.md` at all
+      (verified: zero matches), so they are unreachable from the curriculum index.
+- [ ] 4G.8 Replace the placeholder expected-result string. "Commands run without
+      schema errors. Artifact is updated as described in the goal." appears verbatim
+      in four exercises and is factually false in Ex07. Replace each with verbatim
+      real output, as Labs 04/05 do. Acceptance: no file contains the placeholder.
+- [ ] 4G.9 State the prerequisite chain. Every exercise carries identical
+      boilerplate that never names its real dependency. The actual chain
+      (Ex02 → Ex04 → Ex05 → Ex06 → Ex07 → Ex09 → Ex10) mutates one shared artifact,
+      which is why Ex05 silently breaks Ex07. Name the real prerequisite per file.
+- [ ] 4G.10 Add an artifact-hygiene rule: exercises run in a scratch directory,
+      never the repo root. Ex03 runs `init --write`, dropping five files including a
+      workflow snippet into the working directory, and labs/README tells learners to
+      work inside the checkout. Reviewers and learners both polluted the repo this way.
+- [ ] 4G.11 Reframe `10-iteration-loop.md`. Its "fix" is editing `passed: false` to
+      `passed: true` in the artifact — falsifying evidence, the exact behaviour this
+      package exists to prevent. Needs a loud framing that this simulates a rubric
+      change and is never done to a real run. Highest-risk content in the set.
+
+### P2 — normalise the remaining files
+
+- [ ] 4G.12 Apply the section template from the four reference files to the fifteen
+      thin ones: what this teaches (numbered ideas), why this matters, question this
+      answers, named prerequisites, where to run it, per-step rationale, verbatim
+      expected output, how-to-read-it table, common mistakes, definition of done.
+- [ ] 4G.13 Teach `disappeared` properly. Three separate labs print `disappeared= 4`
+      and none explains that it is ID churn rather than four fixed bugs — a reviewer
+      reading the fixture cold concludes "nothing changed", which is wrong.
+- [ ] 4G.14 Teach where thresholds come from. Lab 02 uses 0.95 and 0.99 against a
+      fixture at 0.973 without saying the thresholds were chosen to straddle it. A
+      threshold is a negotiated risk position, not a constant.
+- [ ] 4G.15 Use the "four evidence classes" spine (history / progress / gate /
+      row detail) from labs/README to label every lab step. Declared once, never used.
+- [ ] 4G.16 Surface `--min-matched-expectation-rate`. Ex03 introduces `expectation`
+      as "one extra field" and never mentions the gate that consumes it.
+
+---
+
 ## 🚧 Phase 4F: Evidence, confidentiality, and org rollout (NEW)
 
 Mission
