@@ -55,6 +55,33 @@ If you want a custom local alias, add it in your shell profile, for example:
 alias myeval='evd'
 ```
 
+### See it work first (no runner required)
+
+You do not need an eval runner, an API key, or a network connection to get a
+real dashboard. `init --write` scaffolds a working example artifact, so these
+three commands take you from empty directory to open dashboard:
+
+```sh
+# 1. Scaffold config, dataset, rubric, CI snippet and one example artifact
+eval-dashboards init --preset=agent-quality --write
+
+# 2. Generate an HTML dashboard from it
+eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report
+
+# 3. Enforce quality gates (non-zero exit if gates fail)
+eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failures=0
+```
+
+Step 2 prints `eval-report/index.html` — open it in any browser. Step 3 prints
+`Eval gates passed.` and exits `0`.
+
+Use `--dry-run` to see exactly which files would be written before committing
+to anything, or `--teach` for a guided walkthrough that writes nothing.
+
+### Then wire in your own runner
+
+Replace the scaffolded artifact with real output from your own eval run:
+
 ```sh
 # 1. Emit a taxonomy-complete artifact from your runner
 my-eval-runner --output=.evals_output/run-2026-08-05T170000Z.json
@@ -68,6 +95,11 @@ eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failur
 # 4. Publish to GitHub Pages
 eval-dashboards publish --target=github-pages --repo=owner/repo
 ```
+
+`my-eval-runner` is a placeholder for whatever produces your results — Vitest,
+Jest, a Node script, a Python harness. The scaffolded
+`.evals_output/run-agent-quality-template.json` is the shape it needs to emit;
+see [docs/artifact-format.md](docs/artifact-format.md) for the full contract.
 
 Use one file per run in `.evals_output` instead of overwriting a single artifact. History-preserving output enables baseline selection (`rolling` / `champion`) and trend reports.
 
