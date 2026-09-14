@@ -26,7 +26,14 @@ import {
 } from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
 import type { NotificationChannel, NotificationsConfig } from '../config/config.js';
-import { optionBoolean, optionNumber, optionString, optionStrings, parseArgs } from './args.js';
+import {
+  assertKnownFlags,
+  optionBoolean,
+  optionNumber,
+  optionString,
+  optionStrings,
+  parseArgs,
+} from './args.js';
 import {
   buildAgentQualitySetupPlaybook,
   buildAgentQualityScaffoldFiles,
@@ -113,6 +120,7 @@ const checkUsage = `eval-dashboards check [options]
 
 Options:
   --input=<path>                   Artifact directory to read. Default: .evals_output
+  --run-id=<id>                    Run id to gate. Default: latest run
   --baseline-run-id=<id>           Fixed baseline run id for new-failure checks
   --baseline-strategy=<mode>       rolling|champion baseline selection
   --baseline-lookback=<number>     Candidate lookback depth for rolling/champion baseline
@@ -854,7 +862,10 @@ const assertValidCalibrationGateConfig = (gateConfig: GateConfig): void => {
 
 const main = async (): Promise<void> => {
   const rawArgs = process.argv.slice(2);
-  const { command, options } = parseArgs(rawArgs);
+  const parsed = parseArgs(rawArgs);
+  const { command, options } = parsed;
+
+  assertKnownFlags(parsed);
   const isCheckCommand = command === 'check';
   const cliCalibrationSuite = isCheckCommand ? optionString(options, 'calibration-suite', '') : '';
   const cliCalibrationMaxAgeHours = isCheckCommand ? parseCalibrationMaxAgeHours(options) : undefined;
@@ -1293,10 +1304,12 @@ const main = async (): Promise<void> => {
     };
 
     try {
+      const runId = optionString(options, 'run-id', '');
       const baselineRunId = optionString(options, 'baseline-run-id', '');
       const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
       const baselineLookback = optionNumber(options, 'baseline-lookback') ?? config.baseline?.lookback;
       const context = await loadContext(input, reportDir, {
+        runId: runId || undefined,
         baselineRunId: baselineRunId || undefined,
         baselineStrategy,
         baselineLookback,

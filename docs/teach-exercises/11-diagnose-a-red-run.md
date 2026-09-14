@@ -63,7 +63,7 @@ Answer these before reading the next section.
 3. Build the history and look at row stability:
 
 ```sh
-npx eval-dashboards history --input=.evals_output --history-dir=eval-report
+npx eval-dashboards history --input=.evals_output --out=eval-report/history.json
 python3 -c "import json;print(json.load(open('eval-report/history.json'))[-1]['rowStability'])"
 ```
 

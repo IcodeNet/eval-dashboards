@@ -2,6 +2,7 @@ eval-dashboards check [options]
 
 Options:
   --input=<path>                   Artifact directory to read. Default: .evals_output
+  --run-id=<id>                    Run id to gate. Default: latest run
   --baseline-run-id=<id>           Fixed baseline run id for new-failure checks
   --baseline-strategy=<mode>       rolling|champion baseline selection
   --baseline-lookback=<number>     Candidate lookback depth for rolling/champion baseline
