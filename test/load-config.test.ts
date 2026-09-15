@@ -49,4 +49,24 @@ describe('loadConfig', () => {
 
     await expect(loadConfig(dir)).rejects.toThrow(/Failed to load config file/);
   });
+
+  it('throws instead of silently falling back to defaults when package.json has malformed JSON', async () => {
+    await writeFile(
+      path.join(dir, 'package.json'),
+      '{ "name": "t", "eval-dashboards": { "gates": { "minPassRate": 0.9 } }  invalid\n',
+      'utf8',
+    );
+
+    await expect(loadConfig(dir)).rejects.toThrow(/Failed to load package.json config/);
+  });
+
+  it('loads a well-formed package.json#eval-dashboards config', async () => {
+    await writeFile(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name: 't', 'eval-dashboards': { gates: { minPassRate: 0.8 } } }),
+      'utf8',
+    );
+
+    await expect(loadConfig(dir)).resolves.toEqual({ gates: { minPassRate: 0.8 } });
+  });
 });

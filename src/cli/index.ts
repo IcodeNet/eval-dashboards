@@ -1051,7 +1051,13 @@ const gateConfigFromOptions = (
   for (const budget of warningBudgets) {
     const [code, rawCount] = budget.split(':', 2);
     const count = Number(rawCount);
-    if (!code || !Number.isFinite(count)) continue;
+    if (!code || !Number.isFinite(count)) {
+      console.error(
+        `Invalid value for --max-warning-code: "${budget}" is not in <code:count> form with a finite count. ` +
+          'This budget entry will be ignored, which may silently disable a gate.',
+      );
+      continue;
+    }
     maxWarningsByCode[code] = count;
   }
 
