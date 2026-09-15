@@ -682,11 +682,19 @@ Acceptance criteria:
 
 ### 4E.10 JSONL import ingress for eval migration paths (P1, S)
 
-- [ ] Allow `eval-dashboards import` to accept newline-delimited JSON (`.jsonl`) inputs in addition to JSON objects/arrays, so teams can ingest line-oriented exports without pre-conversion.
+- [x] Allow `eval-dashboards import` to accept newline-delimited JSON (`.jsonl`) inputs in addition to JSON objects/arrays, so teams can ingest line-oriented exports without pre-conversion.
+      `parseJsonFile` in `src/cli/import-adapters.ts` now falls back to
+      line-by-line JSON.parse when the whole-file parse fails, with a clear
+      error naming the offending line if a line isn't valid JSON either.
+      Help text and `docs/cli-help/import.txt` updated to say JSON/JSONL.
 
 Acceptance criteria:
 
 - A JSONL fixture imports through at least one adapter path and emits a valid `eval-report/v1` artifact with correct row/suite totals.
+      Verified: `test/import-adapters.test.ts` "imports newline-delimited
+      JSON (JSONL) rows" — 2-row promptfoo JSONL fixture imports, validates
+      as `eval-report/v1`, row ids and provenance metadata correct. Full
+      suite 209/209, typecheck clean, build clean.
 
 Rationale: OpenAI's eval workflow documentation explicitly uses uploaded JSONL datasets and teams migrating off hosted eval surfaces increasingly handle line-oriented artifacts first (`https://developers.openai.com/api/docs/guides/evals`).
 

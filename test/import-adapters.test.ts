@@ -19,6 +19,50 @@ afterEach(async () => {
 });
 
 describe('import adapters', () => {
+
+  it('imports newline-delimited JSON (JSONL) rows', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'promptfoo-results.jsonl');
+    const outPath = path.join(dir, '.evals_output', 'import-promptfoo-jsonl.json');
+
+    await writeFile(
+      inputPath,
+      [
+        JSON.stringify({
+          id: 'jsonl-1',
+          description: 'jsonl pass',
+          gradingResult: { pass: true, score: 1 },
+          testCase: { metadata: { suite: 'retrieval-recall' } },
+        }),
+        JSON.stringify({
+          id: 'jsonl-2',
+          description: 'jsonl fail',
+          gradingResult: { pass: false, score: 0 },
+          testCase: { metadata: { suite: 'retrieval-recall', severity: 'medium' } },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const imported = await importFromSource({
+      source: 'promptfoo',
+      inputPath,
+      outPath,
+    });
+
+    expect(imported.rowCount).toBe(2);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows.map((row) => row.id)).toEqual(['jsonl-1', 'jsonl-2']);
+    expect(validated.report.rows[0]?.metadata?.provenance).toEqual(
+      expect.objectContaining({ source: 'custom', sourceRef: 'promptfoo' }),
+    );
+  });
+
   it('imports promptfoo results into a valid eval-report/v1 artifact', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-results.json');
@@ -194,6 +238,26 @@ describe('import adapters', () => {
     const reportRaw = await readFile(outPath, 'utf8');
     const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
     expect(validated.ok).toBe(true);
+  });
+
+
+  it('fails clearly on malformed JSONL input', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'bad.jsonl');
+
+    await writeFile(
+      inputPath,
+      ['{"id":"ok","pass":true}', '{"id":"broken"'].join('\n'),
+      'utf8',
+    );
+
+    await expect(
+      importFromSource({
+        source: 'promptfoo',
+        inputPath,
+        outPath: path.join(dir, '.evals_output', 'import-bad.json'),
+      }),
+    ).rejects.toThrow('not valid JSON or JSONL');
   });
 
   it('validates allowed import sources', () => {

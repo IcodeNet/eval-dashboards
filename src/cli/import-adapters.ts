@@ -10,7 +10,7 @@ export const importUsage = `eval-dashboards import --from=<source> --input=<path
 Options:
   --from=<source>          Import source: promptfoo|deepeval|agentevals|openevals.
                            openevals is accepted as an alias for agentevals.
-  --input=<path>           Source JSON path to convert.
+  --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
                            Default: .evals_output/import-<source>.json
   --suite=<name>           Fallback suite name when source data has no suite.
@@ -85,7 +85,36 @@ type AgentEvalsResult = {
 
 const parseJsonFile = async (filePath: string): Promise<unknown> => {
   const content = await readFile(filePath, 'utf8');
-  return JSON.parse(content) as unknown;
+
+  try {
+    return JSON.parse(content) as unknown;
+  } catch (jsonError) {
+    const lines = content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length === 0) {
+      throw Object.assign(new Error(`Import input ${filePath} is empty.`), { exitCode: 2 });
+    }
+
+    const parsedRows: unknown[] = [];
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      try {
+        parsedRows.push(JSON.parse(line) as unknown);
+      } catch {
+        throw Object.assign(
+          new Error(
+            `Import input ${filePath} is not valid JSON or JSONL (line ${index + 1} failed JSON.parse).`,
+          ),
+          { exitCode: 2, cause: jsonError },
+        );
+      }
+    }
+
+    return parsedRows;
+  }
 };
 
 const stringifyIfObject = (value: unknown): string | undefined => {
