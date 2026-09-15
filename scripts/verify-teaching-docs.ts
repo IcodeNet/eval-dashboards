@@ -17,7 +17,7 @@
  *   pnpm teach:verify --print  # also print captured stdout per exercise
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -25,6 +25,11 @@ const repoRoot = process.cwd();
 const cliEntry = path.join(repoRoot, 'src', 'cli', 'index.ts');
 const tsxBin = path.join(repoRoot, 'node_modules', '.bin', 'tsx');
 const printMode = process.argv.includes('--print');
+/**
+ * Skip the labs. They regenerate tracked fixtures and write to the repo's
+ * .tmp/, which is unsafe to do from inside a concurrent test run.
+ */
+const exercisesOnly = process.argv.includes('--exercises-only');
 
 /**
  * The artifact-mutating chain, in order. 01 and 03 only write notes/datasets,
@@ -42,9 +47,13 @@ const CHAIN = [
 ];
 
 /**
- * Labs differ from exercises: each is self-contained and runs from the repo
- * root against tracked fixtures in examples/, rather than building up a private
- * artifact in a scratch dir. They are replayed independently, in the repo.
+ * Labs are self-contained: each runs against tracked fixtures in examples/
+ * rather than building up the CHAIN artifact.
+ *
+ * They are replayed in a scratch dir with examples/ linked in, NOT in the
+ * checkout. Their documented steps write to a repo-relative `.tmp/<name>` and
+ * `rm -rf` it first; running that in the checkout races with anything else
+ * using .tmp (notably the rest of the vitest suite) and makes this check flaky.
  */
 const LABS = ['04-release-readiness.md', '05-post-release-monitoring.md'];
 
@@ -161,7 +170,9 @@ function main(): number {
     for (const filename of CHAIN) {
       assertedCount += verifyDoc(`docs/teach-exercises/${filename}`, workdir, drifts);
     }
-    // Labs are self-contained and run from the repo root against examples/.
+    // Labs regenerate tracked fixtures in examples/ and write to a repo-relative
+    // .tmp/<name>, so they must replay in the checkout itself. Consequence: only
+    // one teach:verify may run at a time. Do not run it concurrently with itself.
     for (const filename of LABS) {
       assertedCount += verifyDoc(`docs/teach-labs/${filename}`, repoRoot, drifts);
     }
