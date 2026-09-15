@@ -483,6 +483,23 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
 
+        if (manifest.scoreScale !== undefined) {
+          if (!isObject(manifest.scoreScale)) {
+            errors.push(`suiteManifests[${index}].scoreScale must be an object when provided.`);
+          } else {
+            const { min, max } = manifest.scoreScale;
+            if (!isNumber(min)) {
+              errors.push(`suiteManifests[${index}].scoreScale.min must be a number.`);
+            }
+            if (!isNumber(max)) {
+              errors.push(`suiteManifests[${index}].scoreScale.max must be a number.`);
+            }
+            if (isNumber(min) && isNumber(max) && min >= max) {
+              errors.push(`suiteManifests[${index}].scoreScale.min must be less than scoreScale.max.`);
+            }
+          }
+        }
+
         const hasLlMJudgeGrader =
           Array.isArray(manifest.graders) && manifest.graders.some((grader) => grader === 'llm-judge');
         const isBlockingGate = isObject(manifest.gate) && manifest.gate.mode === 'blocking';

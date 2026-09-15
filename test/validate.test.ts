@@ -83,6 +83,57 @@ describe('validateEvalReport', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts suiteManifests[].scoreScale (4F.18)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'likert', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'likert',
+          target: 'judge',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          rubricVersion: 'v1',
+          gate: { mode: 'report-only', thresholds: {} },
+          scoreScale: { min: 0, max: 3 },
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'likert', passed: true, score: 2 }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an invalid suiteManifests[].scoreScale (4F.18)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'likert', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'likert',
+          target: 'judge',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          rubricVersion: 'v1',
+          gate: { mode: 'report-only', thresholds: {} },
+          scoreScale: { min: 3, max: 0 },
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'likert', passed: true, score: 2 }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'suiteManifests[0].scoreScale.min must be less than scoreScale.max.',
+    );
+  });
+
   it('rejects non-string rows[].complianceRefs entries', () => {
     const result = validateEvalReport({
       schemaVersion: 'eval-report/v1',

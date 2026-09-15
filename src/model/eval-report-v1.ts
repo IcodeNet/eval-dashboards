@@ -143,6 +143,15 @@ export type SuiteManifest = {
    * strings it's given.
    */
   complianceFrameworks?: string[];
+  /**
+   * 4F.18 — declared, non-normalized score scale for this suite's rows (e.g.
+   * a 0-3 Likert rubric or a 1-5 scale), as `{ min, max }`. One per suite, not
+   * per row: `rows[].score` values in this suite are assumed to live within
+   * `[min, max]`. Reporters use this to render score bars/gauges correctly
+   * instead of assuming the default 0-1 range. Optional and additive; suites
+   * without it keep the existing 0-1 assumption.
+   */
+  scoreScale?: { min: number; max: number };
 };
 
 export type RegisteredRubric = {

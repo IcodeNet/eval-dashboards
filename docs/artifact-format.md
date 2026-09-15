@@ -310,6 +310,7 @@ export type SuiteManifest = {
   gate: { mode: 'blocking' | 'report-only'; thresholds: Record<string, number> };
   description?: string;
   complianceFrameworks?: string[];
+  scoreScale?: { min: number; max: number };
 };
 ```
 
@@ -320,6 +321,8 @@ Use `target: 'agent'` for live agent behavior, tool use, channel, prompt, and ve
 For fail-fast live pipelines, define a dedicated `preflight` suite (`target: 'custom'`) with deterministic probe rows and gate it via required suite pass checks.
 
 `complianceFrameworks` (optional): opaque, free-form compliance/regulatory framework tags this suite maps to, e.g. `["owasp:llm", "nist:ai:measure:1.1", "eu:ai-act"]`. Deliberately not a canonical enum — classification is harness territory. Combined with `rows[].complianceRefs`, reporters group/filter a "Compliance coverage" view; both fields are additive and produce no UI change when omitted.
+
+`scoreScale` (optional, 4F.18): a declared, non-normalized score range for this suite's rows, `{ min: number; max: number }`, e.g. `{ min: 0, max: 3 }` for a 0-3 Likert rubric. One per suite, not per row — `rows[].score` values for rows in this suite are assumed to fall within `[min, max]`. The HTML reporter uses it to render row score bars/gauges proportionally to the declared scale; suites without it keep the existing default 0-1 assumption, so this is additive with no behavior change when omitted.
 
 Rubric contracts describe the axes used by judge and human-review rows:
 

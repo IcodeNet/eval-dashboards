@@ -91,6 +91,45 @@ describe('render html safety and taxonomy scoring', () => {
     expect(markdown).toContain('model=gpt-4o');
   });
 
+  it('renders declared suite scoreScale (4F.18) on row score bars, falling back to 0-1 when absent', async () => {
+    const reportDir = await createTempDir();
+    const scaled: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-scale', generatedAt: '2026-08-04T12:00:00.000Z' },
+      suites: [{ id: 'likert', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'likert',
+          target: 'judge',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          rubricVersion: 'v1',
+          gate: { mode: 'report-only', thresholds: {} },
+          scoreScale: { min: 0, max: 3 },
+        },
+      ],
+      rows: [
+        { id: 'row-1', suite: 'likert', passed: true, score: 2, reason: 'Likert score 2 of 3' },
+      ],
+    };
+
+    await renderReports(
+      {
+        current: scaled,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(scaled, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('2 (of 0-3)');
+  });
+
   it('groups by compliance-framework tags (4F.14) when present, with no UI change when absent', async () => {
     const reportDir = await createTempDir();
     const tagged: EvalReportV1 = {

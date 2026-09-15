@@ -8,6 +8,7 @@ import {
   type EvalRow,
   type EvalSuiteSummary,
   type RiskArea,
+  type SuiteManifest,
 } from '../model/eval-report-v1.js';
 import { writeJsonFile, writeTextFile } from '../io/reports.js';
 import { formatDate, formatPassRate, formatDuration } from '../utils/format.js';
@@ -820,7 +821,18 @@ const groupRows = (
 
 // ── Row detail panel (expanded view) ──
 
-const renderRowDetail = (r: EvalRow, colSpan: number): string => {
+// 4F.18 — declared, non-normalized suite score scale: renders a 0-100% bar
+// for row.score using the suite manifest's scoreScale when present, falling
+// back to assuming a 0-1 range when absent (unchanged prior behaviour).
+const scoreScaleBar = (score: number, scale?: { min: number; max: number }): string => {
+  const { min, max } = scale ?? { min: 0, max: 1 };
+  const range = max - min;
+  const pct = range > 0 ? Math.max(0, Math.min(100, Math.round(((score - min) / range) * 100))) : 0;
+  const label = scale ? `${score} (of ${min}-${max})` : score.toFixed(2);
+  return `<span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span> ${e(label)}`;
+};
+
+const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number; max: number }): string => {
   const fields: string[] = [];
 
   const field = (
@@ -862,6 +874,14 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
     'Human-written notes that explain why the labelled verdict or category is correct.',
   );
   field('Judge model', r.judgeModel, false, false, 'The grader model or judge used to score this row.');
+
+  if (typeof r.score === 'number' && Number.isFinite(r.score)) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value">${scoreScaleBar(r.score, scoreScale)}</span>
+    </div>`);
+  }
+
   field(
     'Judge verdict',
     r.judgeVerdict != null ? String(r.judgeVerdict) : null,
@@ -942,7 +962,12 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
 
 // ── Grouped rows table with taxonomy completeness ──
 
-const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true, anchorPrefix = 'row'): string => {
+const groupedRowsTable = (
+  rows: EvalRow[],
+  showTaxonomy = true,
+  anchorPrefix = 'row',
+  manifestBySuite?: Map<string, SuiteManifest>,
+): string => {
   if (!rows.length) return '<p class="empty">No rows.</p>';
 
   const groups = groupRows(rows);
@@ -970,7 +995,7 @@ const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true, anchorPrefix = '
         .map((r) => {
           const tax = taxonomyCompleteness(r);
           const colSpan = showTaxonomy ? 5 : 4;
-          const detail = renderRowDetail(r, colSpan);
+          const detail = renderRowDetail(r, colSpan, manifestBySuite?.get(r.suite)?.scoreScale);
           const hasDetail = detail.length > 0;
           const rowDomId = `${anchorPrefix}-${encodeURIComponent(`${r.suite}:${r.id}`)}`;
           return `<tr id="${rowDomId}" class="data-row${r.passed ? '' : ' fail-row'}"${hasDetail ? ` onclick="toggleRow(this)"` : ''}>
@@ -1449,6 +1474,7 @@ const renderHtml = (context: ReportContext): string => {
     ? '0 rows • no failures'
     : `${pluralize(failingRows.length, 'row')} • ${pluralize(newlyFailing.length, 'new regression')} • ${pluralize(comparison.persistentFailures.length, 'persistent failure')}`;
   const allRowsSummary = `${pluralize(current.rows.length, 'row')} • ${summary.failed} failing • ${formatPassRate(summary.passed, summary.total)} pass rate`;
+  const manifestBySuiteForRows = new Map((current.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
   const datasetChangelogSummary = `${pluralize(datasetChangelog.length, 'entry')} • +${datasetChangelogTotals.added} / ~${datasetChangelogTotals.updated} / -${datasetChangelogTotals.removed}`;
   const baselineCompatibilitySummary = `${compatStatus} • ${pluralize(compat?.issues.length ?? 0, 'issue')}`;
   const judgeCalibrationSummary = judgeCalibration
@@ -1859,7 +1885,7 @@ ${renderCssVariables(theme)}
           </div>` : ''}
         </div>`,
       body: `${failingRows.length > 0
-        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true, 'failrow')}</div>
+        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true, 'failrow', manifestBySuiteForRows)}</div>
              <div id="failrows-table" class="view-pane">${flatRowsTable(failingRows)}</div>
              <div id="failrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(failingRows, null, 2))}</pre></div>`
         : '<p class="empty">No failing rows.</p>'
@@ -1878,7 +1904,7 @@ ${renderCssVariables(theme)}
             <button class="view-btn" onclick="switchView('allrows','json',this)">JSON</button>
           </div>
         </div>`,
-      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true, 'row')}</div>
+      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true, 'row', manifestBySuiteForRows)}</div>
         <div id="allrows-table" class="view-pane">${flatRowsTable(current.rows)}</div>
         <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>`,
     })}

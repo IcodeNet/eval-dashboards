@@ -1302,12 +1302,12 @@ Acceptance criteria:
 
 ### 4F.18 Declared score scale on a suite (P2, S)
 
-- [ ] Add optional `scoreScale?: { min: number; max: number }` to the suite
+- [x] Add optional `scoreScale?: { min: number; max: number }` to the suite
       manifest (not per-row) so non-normalized scores (e.g. a 0-3 Likert
       rubric) render correctly instead of being assumed 0-1.
-- [ ] HTML reporter uses the declared scale when rendering score bars/gauges
+- [x] HTML reporter uses the declared scale when rendering score bars/gauges
       for that suite; falls back to 0-1 assumption when absent.
-- [ ] Update `docs/artifact-format.md`; fixture + test.
+- [x] Update `docs/artifact-format.md`; fixture + test.
 
 ### Still out of scope in 4F
 
