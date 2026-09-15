@@ -78,6 +78,7 @@ describe('adjudication bundles', () => {
     const merged = mergeAdjudicationBundle(baseReport(), bundle, {
       importedAt: '2026-09-12T00:07:00.000Z',
       sourceBundlePath: '/tmp/bundle.json',
+      allowSingleReviewer: true,
     });
 
     expect(merged.applied).toBe(1);
@@ -136,5 +137,99 @@ describe('adjudication bundles', () => {
       rows: 'not-array',
     });
     expect(invalid.length).toBeGreaterThan(0);
+  });
+
+  it('applies a row when 2 reviewers agree, and reports disagreement rate', () => {
+    const bundle: AdjudicationBundleV1 = {
+      schemaVersion: ADJUDICATION_BUNDLE_SCHEMA_VERSION,
+      bundleId: 'bundle-two-agree',
+      generatedAt: '2026-09-12T00:05:00.000Z',
+      source: { runId: 'run-1', generatedAt: '2026-09-12T00:00:00.000Z' },
+      rows: [
+        {
+          id: 'row-fail',
+          suite: 'quality',
+          unresolvedReason: 'expectation-mismatch',
+          currentPassed: false,
+          reviews: [
+            { verdict: 'pass', reviewer: 'reviewer-a' },
+            { verdict: 'pass', reviewer: 'reviewer-b' },
+          ],
+        },
+      ],
+    };
+
+    const merged = mergeAdjudicationBundle(baseReport(), bundle);
+    expect(merged.applied).toBe(1);
+    expect(merged.skippedDisagreement).toBe(0);
+    expect(merged.skippedInsufficientReviewers).toBe(0);
+    expect(merged.disagreementRate).toBe(0);
+
+    const row = merged.report.rows.find((candidate) => candidate.id === 'row-fail');
+    expect(row?.passed).toBe(true);
+    expect(row?.groundTruthVerdict).toBe(true);
+  });
+
+  it('skips and records disagreement when 2 reviewers disagree', () => {
+    const bundle: AdjudicationBundleV1 = {
+      schemaVersion: ADJUDICATION_BUNDLE_SCHEMA_VERSION,
+      bundleId: 'bundle-two-disagree',
+      generatedAt: '2026-09-12T00:05:00.000Z',
+      source: { runId: 'run-1', generatedAt: '2026-09-12T00:00:00.000Z' },
+      rows: [
+        {
+          id: 'row-fail',
+          suite: 'quality',
+          unresolvedReason: 'expectation-mismatch',
+          currentPassed: false,
+          reviews: [
+            { verdict: 'pass', reviewer: 'reviewer-a' },
+            { verdict: 'fail', reviewer: 'reviewer-b' },
+          ],
+        },
+      ],
+    };
+
+    const merged = mergeAdjudicationBundle(baseReport(), bundle);
+    expect(merged.applied).toBe(0);
+    expect(merged.skippedDisagreement).toBe(1);
+    expect(merged.disagreementRate).toBe(1);
+    expect(merged.adjudicationDisagreements).toHaveLength(1);
+    expect(merged.adjudicationDisagreements[0]?.id).toBe('row-fail');
+
+    const row = merged.report.rows.find((candidate) => candidate.id === 'row-fail');
+    expect(row?.passed).toBe(false);
+    expect(row?.groundTruthVerdict).toBeUndefined();
+  });
+
+  it('applies a single reviewer only when allowSingleReviewer is true (legacy opt-down)', () => {
+    const bundle: AdjudicationBundleV1 = {
+      schemaVersion: ADJUDICATION_BUNDLE_SCHEMA_VERSION,
+      bundleId: 'bundle-single',
+      generatedAt: '2026-09-12T00:05:00.000Z',
+      source: { runId: 'run-1', generatedAt: '2026-09-12T00:00:00.000Z' },
+      rows: [
+        {
+          id: 'row-fail',
+          suite: 'quality',
+          unresolvedReason: 'expectation-mismatch',
+          currentPassed: false,
+          review: { verdict: 'pass', reviewer: 'solo-reviewer' },
+        },
+      ],
+    };
+
+    const withoutFlag = mergeAdjudicationBundle(baseReport(), bundle);
+    expect(withoutFlag.applied).toBe(0);
+    expect(withoutFlag.skippedInsufficientReviewers).toBe(1);
+    const rowWithoutFlag = withoutFlag.report.rows.find((candidate) => candidate.id === 'row-fail');
+    expect(rowWithoutFlag?.passed).toBe(false);
+
+    const withFlag = mergeAdjudicationBundle(baseReport(), bundle, { allowSingleReviewer: true });
+    expect(withFlag.applied).toBe(1);
+    expect(withFlag.skippedInsufficientReviewers).toBe(0);
+    const rowWithFlag = withFlag.report.rows.find((candidate) => candidate.id === 'row-fail');
+    expect(rowWithFlag?.passed).toBe(true);
+    expect(rowWithFlag?.groundTruthVerdict).toBe(true);
   });
 });

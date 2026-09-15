@@ -116,6 +116,7 @@ const adjudicateFlags = [
   '--out',
   '--bundle',
   '--include-passed',
+  '--allow-single-reviewer',
 ] as const;
 
 const optionValues = {

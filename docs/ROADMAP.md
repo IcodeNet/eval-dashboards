@@ -628,12 +628,12 @@ Acceptance criteria:
 
 ### 4E.4 Multi-reviewer adjudication as the default (P0, M)
 
-- [ ] Require ≥2 independent reviewers for calibration ground truth by default; single-reviewer mode becomes an explicit opt-down flag, not the default path.
-- [ ] Report inter-rater disagreement rate alongside judge agreement/disagreement in artifacts and reporters.
+- [x] Require ≥2 independent reviewers for calibration ground truth by default; single-reviewer mode becomes an explicit opt-down flag, not the default path. (`src/adjudication/bundles.ts:255-270`: `mergeAdjudicationBundle` skips rows with `skippedInsufficientReviewers` unless `--allow-single-reviewer` / `allowSingleReviewer: true` is passed; CLI flag wired in `src/cli/index.ts:1177-1180`.)
+- [x] Report inter-rater disagreement rate alongside judge agreement/disagreement in artifacts and reporters. (`src/adjudication/bundles.ts:281-297,352-368`: per-row `adjudicationDisagreements` and overall `disagreementRate`/`interRaterAgreement` recorded in `MergeAdjudicationResult` and `report.metadata.adjudication.imports[].interRaterAgreement`; surfaced in CLI import summary at `src/cli/index.ts:1191-1197`.)
 
 Acceptance criteria:
 
-- Default `init --setup=judges` scaffolding and docs demonstrate two-reviewer adjudication; single-reviewer mode is documented as an explicit reduced-rigor opt-out.
+- Default `init --setup=judges` scaffolding and docs demonstrate two-reviewer adjudication; single-reviewer mode is documented as an explicit reduced-rigor opt-out. (`exportUnresolvedRowsBundle` in `src/adjudication/bundles.ts:151` emits `reviews: [{}, {}]` by default; `src/cli/init-scaffold.ts:278-283,752` teach-mode/prompt copy documents the two-reviewer default and the `--allow-single-reviewer` opt-out.) Verified via `npx vitest run` (216/216 passing, including new `test/adjudication.test.ts` cases for agree/disagree/single-reviewer paths) and `npx tsc --noEmit` (clean).
 
 ### 4E.5 Dataset governance hardening (P1, M)
 
@@ -722,7 +722,7 @@ Revised after the 2026-09-14 multi-role review (see Phase 4F review inputs). Ord
 6. 4E.8 Product-owner reading track — pair with the 4F.1/4F.2 confidentiality work before promoting a non-engineer view
 7. 4E.6 Scoped P1 security presets — build in loss-given-failure order: `output-handling-safety`, then `prompt-leakage-resilience`, then category-split content safety
 8. 4E.9 Complete coded import adapters — decide by surveying which runners teams actually use; promote sharply if Ragas/Langfuse/Phoenix/Braintrust are in real use
-9. 4E.4 Multi-reviewer adjudication — demoted: ship as a documented rigor tier, required only for suites gating regulated releases. Making two-reviewer ground truth the global default raises the cost of the first calibration run, which is the step teams already skip.
+9. 4E.4 Multi-reviewer adjudication — done as the default path, with `--allow-single-reviewer` as the explicit opt-down for teams that can't yet afford two-reviewer ground truth on every calibration run.
 
 Related follow-up captured in 4F: the statistical gate knobs (`--confidence-level`, `--bootstrap-samples`) are over-exposed. A misconfigured statistical gate is worse than a blunt one; prefer one opinionated preset over raw knobs.
 

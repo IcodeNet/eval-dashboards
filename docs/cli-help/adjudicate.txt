@@ -11,8 +11,9 @@ Options (export):
   --include-passed      Include unresolved rows even when passed=true.
 
 Options (import):
-  --input=<dir>         Artifact directory to read. Default: .evals_output
-  --run-id=<id>         Optional run id to merge into (default: bundle source run)
-  --bundle=<path>       Path to adjudication bundle JSON (required)
-  --out=<path>          Output artifact path. Default: eval-report/adjudicated-<run-id>.json
+  --input=<dir>              Artifact directory to read. Default: .evals_output
+  --run-id=<id>              Optional run id to merge into (default: bundle source run)
+  --bundle=<path>            Path to adjudication bundle JSON (required)
+  --out=<path>               Output artifact path. Default: eval-report/adjudicated-<run-id>.json
+  --allow-single-reviewer    Escape hatch: accept a single reviewer verdict per row instead of requiring >=2 (reduced rigor)
 

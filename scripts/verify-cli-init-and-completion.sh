@@ -493,11 +493,35 @@ cat > "$TMP_ADJ_OUT_DIR/adjudication-reviewed.json" <<'JSON'
   ]
 }
 JSON
-ADJ_IMPORT_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/adjudication-reviewed.json" --out="$TMP_ADJ_OUT_DIR/adjudicated.json" || true)"
+ADJ_IMPORT_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/adjudication-reviewed.json" --out="$TMP_ADJ_OUT_DIR/adjudicated.json" --allow-single-reviewer || true)"
 contains_check "adjudicate import reports applied row" "$ADJ_IMPORT_OUTPUT" "applied=1"
 run_check "adjudicate import writes merged artifact" test -f "$TMP_ADJ_OUT_DIR/adjudicated.json"
 contains_check "adjudicated row includes ground truth verdict" "$(cat "$TMP_ADJ_OUT_DIR/adjudicated.json")" "\"groundTruthVerdict\": true"
 contains_check "adjudicated artifact includes adjudication metadata trail" "$(cat "$TMP_ADJ_OUT_DIR/adjudicated.json")" "\"adjudication\""
+
+cat > "$TMP_ADJ_OUT_DIR/adjudication-two-reviewer.json" <<'JSON'
+{
+  "schemaVersion": "eval-adjudication-bundle/v1",
+  "bundleId": "bundle-review-2",
+  "generatedAt": "2026-09-15T10:10:00.000Z",
+  "source": { "runId": "run-adj", "generatedAt": "2026-09-12T10:00:00.000Z" },
+  "rows": [
+    {
+      "id": "bad-1",
+      "suite": "quality",
+      "unresolvedReason": "expectation-mismatch",
+      "currentPassed": false,
+      "reviews": [
+        { "verdict": "pass", "reviewer": "qa-reviewer-1", "note": "Manual replay verified this should pass" },
+        { "verdict": "pass", "reviewer": "qa-reviewer-2", "note": "Confirmed independently" }
+      ]
+    }
+  ]
+}
+JSON
+ADJ_IMPORT_TWO_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/adjudication-two-reviewer.json" --out="$TMP_ADJ_OUT_DIR/adjudicated-two.json" || true)"
+contains_check "adjudicate import default path applies 2-reviewer agreement" "$ADJ_IMPORT_TWO_OUTPUT" "applied=1"
+contains_check "adjudicated (2-reviewer) row includes ground truth verdict" "$(cat "$TMP_ADJ_OUT_DIR/adjudicated-two.json")" "\"groundTruthVerdict\": true"
 
 set +e
 ADJ_MISSING_BUNDLE_OUTPUT="$(run_cli adjudicate import --input="$TMP_ADJ_INPUT_DIR" --bundle="$TMP_ADJ_OUT_DIR/does-not-exist.json" 2>&1)"

@@ -95,10 +95,11 @@ Options (export):
   --include-passed      Include unresolved rows even when passed=true.
 
 Options (import):
-  --input=<dir>         Artifact directory to read. Default: .evals_output
-  --run-id=<id>         Optional run id to merge into (default: bundle source run)
-  --bundle=<path>       Path to adjudication bundle JSON (required)
-  --out=<path>          Output artifact path. Default: eval-report/adjudicated-<run-id>.json
+  --input=<dir>              Artifact directory to read. Default: .evals_output
+  --run-id=<id>              Optional run id to merge into (default: bundle source run)
+  --bundle=<path>            Path to adjudication bundle JSON (required)
+  --out=<path>               Output artifact path. Default: eval-report/adjudicated-<run-id>.json
+  --allow-single-reviewer    Escape hatch: accept a single reviewer verdict per row instead of requiring >=2 (reduced rigor)
 `;
 
 const reportUsage = `eval-dashboards report [options]
@@ -1174,8 +1175,10 @@ const main = async (): Promise<void> => {
       });
     }
 
+    const allowSingleReviewer = optionBoolean(options, 'allow-single-reviewer');
     const merged = mergeAdjudicationBundle(target, bundle, {
       sourceBundlePath: bundlePath,
+      allowSingleReviewer,
     });
     const out = optionString(options, 'out', path.join(reportDir, `adjudicated-${runId}.json`));
     await writeJsonFile(out, merged.report);
@@ -1185,8 +1188,12 @@ const main = async (): Promise<void> => {
           merged.unmatchedRows.length > 5 ? '…' : ''
         }`
         : '';
+    const disagreementNote =
+      merged.disagreementRate !== undefined
+        ? `, disagreementRate=${merged.disagreementRate.toFixed(3)}`
+        : '';
     console.log(
-      `Merged adjudication bundle ${bundle.bundleId} into ${runId}: applied=${merged.applied}, skippedMissingReview=${merged.skippedMissingReview}, skippedInvalidVerdict=${merged.skippedInvalidVerdict}, unmatched=${merged.unmatchedRows.length}${unmatchedNote}. Wrote ${out}`,
+      `Merged adjudication bundle ${bundle.bundleId} into ${runId}: applied=${merged.applied}, skippedMissingReview=${merged.skippedMissingReview}, skippedInvalidVerdict=${merged.skippedInvalidVerdict}, skippedInsufficientReviewers=${merged.skippedInsufficientReviewers}, skippedDisagreement=${merged.skippedDisagreement}, unmatched=${merged.unmatchedRows.length}${unmatchedNote}${disagreementNote}. Wrote ${out}`,
     );
     return;
   }

@@ -37,6 +37,7 @@ export type AdjudicationBundleRow = {
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
   review?: AdjudicationReview;
+  reviews?: AdjudicationReview[];
 };
 
 export type AdjudicationBundleV1 = {
@@ -56,7 +57,15 @@ export type MergeAdjudicationResult = {
   applied: number;
   skippedMissingReview: number;
   skippedInvalidVerdict: number;
+  skippedInsufficientReviewers: number;
+  skippedDisagreement: number;
   unmatchedRows: string[];
+  disagreementRate: number | undefined;
+  adjudicationDisagreements: Array<{
+    suite: string;
+    id: string;
+    verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict }>;
+  }>;
 };
 
 const cloneRow = (row: EvalRow): EvalRow => ({
@@ -139,7 +148,7 @@ export const exportUnresolvedRowsBundle = (
       groundTruthVerdict: row.groundTruthVerdict,
       groundTruthCategory: row.groundTruthCategory,
       groundTruthAnnotation: row.groundTruthAnnotation,
-      review: {},
+      reviews: [{}, {}],
     }));
 
   return {
@@ -154,6 +163,42 @@ export const exportUnresolvedRowsBundle = (
   };
 };
 
+/**
+ * Returns the effective reviews array for a bundle row, treating the legacy
+ * singular `review` field as a 1-element array for backward compatibility.
+ */
+export const rowReviews = (row: AdjudicationBundleRow): AdjudicationReview[] => {
+  if (row.reviews && row.reviews.length > 0) return row.reviews;
+  if (row.review) return [row.review];
+  return [];
+};
+
+export type RowAgreement = {
+  verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict }>;
+  agrees: boolean;
+};
+
+/**
+ * Computes inter-rater agreement for a bundle row when >=2 reviewers with
+ * valid verdicts are present. Returns undefined when fewer than 2 valid
+ * verdicts exist (agreement is not meaningful).
+ */
+export const computeRowAgreement = (row: AdjudicationBundleRow): RowAgreement | undefined => {
+  const reviews = rowReviews(row);
+  const verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict }> = [];
+  for (const review of reviews) {
+    const verdict = normalizeVerdict(review.verdict);
+    if (verdict !== undefined) {
+      verdicts.push({ reviewer: review.reviewer, verdict });
+    }
+  }
+
+  if (verdicts.length < 2) return undefined;
+
+  const agrees = verdicts.every((entry) => entry.verdict === verdicts[0]?.verdict);
+  return { verdicts, agrees };
+};
+
 export const mergeAdjudicationBundle = (
   report: EvalReportV1,
   bundle: AdjudicationBundleV1,
@@ -161,6 +206,7 @@ export const mergeAdjudicationBundle = (
     importedAt?: string;
     sourceBundlePath?: string;
     requireRunMatch?: boolean;
+    allowSingleReviewer?: boolean;
   },
 ): MergeAdjudicationResult => {
   const requireRunMatch = options?.requireRunMatch ?? true;
@@ -177,6 +223,7 @@ export const mergeAdjudicationBundle = (
     );
   }
 
+  const allowSingleReviewer = options?.allowSingleReviewer ?? false;
   const importedAt = options?.importedAt ?? new Date().toISOString();
   const indexByKey = new Map<string, number>();
   const nextRows = report.rows.map((row, index) => {
@@ -187,27 +234,68 @@ export const mergeAdjudicationBundle = (
   let applied = 0;
   let skippedMissingReview = 0;
   let skippedInvalidVerdict = 0;
+  let skippedInsufficientReviewers = 0;
+  let skippedDisagreement = 0;
+  let agreementCount = 0;
+  let disagreementCount = 0;
   const unmatchedRows: string[] = [];
+  const adjudicationDisagreements: MergeAdjudicationResult['adjudicationDisagreements'] = [];
 
   for (const row of bundle.rows) {
-    const review = row.review;
-    if (!review) {
+    const reviews = rowReviews(row);
+    if (reviews.length === 0) {
       skippedMissingReview += 1;
       continue;
     }
 
-    if (review.verdict === undefined) {
+    const validVerdicts: Array<{ review: AdjudicationReview; verdict: ReviewerVerdict }> = [];
+    for (const review of reviews) {
+      const verdict = normalizeVerdict(review.verdict);
+      if (verdict !== undefined) validVerdicts.push({ review, verdict });
+    }
+
+    // Distinguish "no verdicts at all" (missing) from "verdict present but invalid".
+    const hasAnyVerdictField = reviews.some((review) => review.verdict !== undefined);
+    if (!hasAnyVerdictField) {
       skippedMissingReview += 1;
       continue;
     }
-
-    const verdict = normalizeVerdict(review.verdict);
-    if (!verdict) {
+    if (validVerdicts.length === 0) {
       skippedInvalidVerdict += 1;
       continue;
     }
 
     const key = `${row.suite}:${row.id}`;
+
+    if (validVerdicts.length < 2 && !allowSingleReviewer) {
+      skippedInsufficientReviewers += 1;
+      continue;
+    }
+
+    let resolvedVerdict: ReviewerVerdict;
+    let primaryReview: AdjudicationReview;
+
+    if (validVerdicts.length >= 2) {
+      const allAgree = validVerdicts.every((entry) => entry.verdict === validVerdicts[0]?.verdict);
+      if (!allAgree) {
+        disagreementCount += 1;
+        skippedDisagreement += 1;
+        adjudicationDisagreements.push({
+          suite: row.suite,
+          id: row.id,
+          verdicts: validVerdicts.map((entry) => ({ reviewer: entry.review.reviewer, verdict: entry.verdict })),
+        });
+        continue;
+      }
+      agreementCount += 1;
+      resolvedVerdict = validVerdicts[0]!.verdict;
+      primaryReview = validVerdicts[0]!.review;
+    } else {
+      // Single-reviewer legacy path (allowSingleReviewer === true).
+      resolvedVerdict = validVerdicts[0]!.verdict;
+      primaryReview = validVerdicts[0]!.review;
+    }
+
     const index = indexByKey.get(key);
     if (index === undefined) {
       unmatchedRows.push(key);
@@ -217,14 +305,14 @@ export const mergeAdjudicationBundle = (
     const targetRow = nextRows[index];
     if (!targetRow) continue;
 
-    const passed = verdict === 'pass';
+    const passed = resolvedVerdict === 'pass';
     targetRow.passed = passed;
     targetRow.groundTruthVerdict = passed;
-    if (review.category !== undefined) {
-      targetRow.groundTruthCategory = review.category;
+    if (primaryReview.category !== undefined) {
+      targetRow.groundTruthCategory = primaryReview.category;
     }
-    if (review.note !== undefined) {
-      targetRow.groundTruthAnnotation = review.note;
+    if (primaryReview.note !== undefined) {
+      targetRow.groundTruthAnnotation = primaryReview.note;
     }
 
     const metadata = (targetRow.metadata ??= {});
@@ -236,7 +324,7 @@ export const mergeAdjudicationBundle = (
     if (!provenance) {
       metadata.provenance = {
         source: 'production-review',
-        addedBy: review.reviewer,
+        addedBy: primaryReview.reviewer,
         reason: 'Merged reviewer verdict from adjudication bundle',
         sourceRef: bundle.bundleId,
       };
@@ -248,16 +336,23 @@ export const mergeAdjudicationBundle = (
     priorTrail.push({
       bundleId: bundle.bundleId,
       importedAt,
-      reviewer: review.reviewer,
-      verdict,
-      category: review.category,
-      note: review.note,
-      decidedAt: review.decidedAt,
+      reviewers: validVerdicts.map((entry) => entry.review.reviewer),
+      reviewer: primaryReview.reviewer,
+      verdict: resolvedVerdict,
+      category: primaryReview.category,
+      note: primaryReview.note,
+      decidedAt: primaryReview.decidedAt,
+      reviewerCount: validVerdicts.length,
     });
     metadata.adjudicationTrail = priorTrail;
 
     applied += 1;
   }
+
+  const disagreementRate =
+    agreementCount + disagreementCount > 0
+      ? disagreementCount / (agreementCount + disagreementCount)
+      : undefined;
 
   const reportMetadata = { ...(report.metadata ?? {}) };
   const priorImports =
@@ -272,13 +367,22 @@ export const mergeAdjudicationBundle = (
     sourceRunId: bundle.source?.runId,
     importedAt,
     sourceBundlePath: options?.sourceBundlePath,
+    allowSingleReviewer,
     totals: {
       rows: bundle.rows.length,
       applied,
       skippedMissingReview,
       skippedInvalidVerdict,
+      skippedInsufficientReviewers,
+      skippedDisagreement,
       unmatchedRows: unmatchedRows.length,
     },
+    interRaterAgreement: {
+      agreements: agreementCount,
+      disagreements: disagreementCount,
+      disagreementRate,
+    },
+    disagreements: adjudicationDisagreements,
   });
 
   reportMetadata.adjudication = {
@@ -295,9 +399,14 @@ export const mergeAdjudicationBundle = (
     applied,
     skippedMissingReview,
     skippedInvalidVerdict,
+    skippedInsufficientReviewers,
+    skippedDisagreement,
     unmatchedRows,
+    disagreementRate,
+    adjudicationDisagreements,
   };
 };
+
 
 export const validateAdjudicationBundle = (bundle: unknown): string[] => {
   const errors: string[] = [];
