@@ -1164,6 +1164,52 @@ itself. New CLI commands: `eval-dashboards evidence-export
 coverage plus CLI-level export+verify round trip, missing-flag exit 2, and
 hand-edited-bundle detection).
 
+### 4F.12 CI dependency-audit gate (P1, S)
+
+- [ ] Add a `pnpm audit` (or `npm audit`) step to `.github/workflows/ci.yml` that
+      hard-fails the build above a configurable severity threshold (default
+      `high`), not merely a reporting/informational step.
+      Rationale (2026-09-15 competitive scan): verified via direct inspection
+      that this repo's CI currently has **no dependency-vulnerability check at
+      all** — not gating, not even reporting. A competitor repo's own incident
+      writeup (egnaro9/eval-dashboard) documented a worse but related failure
+      mode: audit run non-blocking (`|| true`), README claiming "0
+      vulnerabilities" while real vulns silently accumulated. This repo's gap
+      is currently strictly worse (zero check), which is inconsistent with a
+      package whose entire thesis is "claims must be enforced, not asserted."
+- [ ] Document the severity threshold and an explicit override/waiver path,
+      consistent with the existing bypass-accounting pattern (4F.9) so a
+      justified exception is loggable rather than requiring `|| true`.
+
+Acceptance criteria:
+
+- `.github/workflows/ci.yml` fails a PR that introduces a dependency with a
+  vulnerability at or above the configured threshold.
+- An intentional override is possible but recorded, not silent.
+
+### 4F.13 Client-side compare for the static HTML report (P2, M)
+
+- [ ] Add an optional, fully offline "load another eval-report/v1 file" control
+      to the generated HTML report (`src/reporters/render.ts`/`html.ts`):
+      a file picker/drag-drop reads a second JSON file via `FileReader`
+      client-side (no server call, no new CLI surface required) and renders it
+      alongside or diffed against the currently baked-in report.
+      Rationale (2026-09-15 competitive scan, reinforced by three independent
+      precedents): egnaro9/eval-dashboard's static export supports loading an
+      arbitrary run without rebuilding; Comet Opik has side-by-side experiment
+      comparison; Confident AI has an A/B "Compare Test Results" page picking
+      an arbitrary prior run. This repo's HTML reporter currently bakes one
+      run's data into the page at generation time with no way to point the
+      same static file at a different artifact.
+- [ ] Keep it fully client-side and offline — no schema change, no hosted
+      comparison service, matching the "still out of scope in 4F" non-goals.
+
+Acceptance criteria:
+
+- Opening the generated `index.html` directly from disk (`file://`) still
+  works with no server, and a user can load a second `eval-report/v1` JSON
+  file to compare against the baked-in one, entirely in the browser.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
