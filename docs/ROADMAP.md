@@ -949,12 +949,14 @@ Acceptance criteria:
 
 ### 4F.5 Waiver and exception register (P1, 5-7 d)
 
-- [ ] Support a signed waiver file recording suite/row, justification, risk owner, ticket reference, and expiry date.
-- [ ] `check` honours active waivers, reports them prominently, and fails on expired waivers.
+- [x] Support a waiver file recording suite/row, justification, risk owner, ticket reference, and expiry date (`src/gates/waivers.ts` `WaiverV1`/`loadWaiverRegister`).
+- [x] `check` honours active waivers, reports them prominently, and fails on expired waivers (`src/cli/index.ts` wiring via `applyWaivers`, `--waiver-file`/`waiverFile` config; `test/waivers.test.ts`, `test/cli-check-waivers.test.ts`).
 
 Acceptance criteria:
 
 - A release with a known failure can ship via a recorded, expiring waiver instead of a disabled gate; an expired waiver fails the gate.
+
+Note: waiver files are plain JSON, not signed (the register's own integrity relies on repo/PR review, same trust boundary as gate config); "signed" as literally cryptographically signed is not implemented and would need `sign`/`verify`-style detached signatures layered on top if required later.
 
 ### 4F.6 Threshold-change detection (segregation of duties) (P1, 3-4 d)
 

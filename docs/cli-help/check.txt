@@ -29,6 +29,9 @@ Options:
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
+  --waiver-file=<path>              Path to an eval-waiver-register/v1 JSON file; active
+                                    waivers suppress their matched failures (reported
+                                    prominently) and expired waivers always fail the gate
   --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
   --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
   --notify-slack-webhook=<url>     Slack webhook URL override

@@ -49,4 +49,6 @@ export type EvalReportsConfig = {
   baseline?: BaselineConfig;
   /** Optional gate alerting adapters (Slack/Teams webhook, email via SMTP). */
   notifications?: NotificationsConfig;
+  /** Path to an `eval-waiver-register/v1` JSON file honoured by `check`. */
+  waiverFile?: string;
 };

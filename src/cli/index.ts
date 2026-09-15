@@ -14,6 +14,7 @@ import { readEvalReports, findJsonReports, writeJsonFile, writeTextFile } from '
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
+import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import {
   type StatisticalGateMode,
   validateStatisticalGateConfig,
@@ -153,6 +154,9 @@ Options:
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
+  --waiver-file=<path>              Path to an eval-waiver-register/v1 JSON file; active
+                                    waivers suppress their matched failures (reported
+                                    prominently) and expired waivers always fail the gate
   --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
   --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
   --notify-slack-webhook=<url>     Slack webhook URL override
@@ -269,6 +273,32 @@ type CheckOutputRow = {
   reportAnchor: string;
 };
 
+/** Summarized waiver-register application, embedded in check output so active
+ * exceptions are reported prominently and expired ones are visible in the payload
+ * that failed the gate. */
+type CheckOutputWaiverSummary = {
+  active: Array<{
+    id: string;
+    suite: string;
+    rowId?: string;
+    reason: string;
+    riskOwner: string;
+    ticket: string;
+    expiresAt: string;
+    matchedRowIds: string[];
+  }>;
+  expired: Array<{
+    id: string;
+    suite: string;
+    rowId?: string;
+    reason: string;
+    riskOwner: string;
+    ticket: string;
+    expiresAt: string;
+  }>;
+  unmatched: Array<{ id: string; suite: string; rowId?: string }>;
+};
+
 type CheckOutputPayload = {
   schemaVersion: 'eval-check-result/v1';
   gateRunStatus: 'ran';
@@ -280,6 +310,7 @@ type CheckOutputPayload = {
   baselineCompatibility?: unknown;
   newlyFailingRows: CheckOutputRow[];
   notifications?: NotificationDispatchResult[];
+  waivers?: CheckOutputWaiverSummary;
 };
 
 /** Per-suite dataset/rubric provenance recorded in `eval-check-result/v2`. */
@@ -1508,16 +1539,29 @@ const main = async (): Promise<void> => {
       }
       assertValidStatisticalGateConfig(gateConfig);
       assertValidCalibrationGateConfig(gateConfig);
+
+      const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
+      const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
+      const waiverApplication = applyWaivers(context.current, waiverRegister);
+
       const gateResult = checkGates(
-        context.current,
+        waiverApplication.reportForGating,
         context.comparison,
         gateConfig,
         context.baselineCompatibility,
         context.previous,
       );
       const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
-      const combinedFailures = [...gateResult.failures, ...calibrationChecks.failures];
-      const combinedDiagnostics = [...gateResult.diagnostics, ...calibrationChecks.diagnostics];
+      const combinedFailures = [
+        ...gateResult.failures,
+        ...calibrationChecks.failures,
+        ...waiverApplication.failures,
+      ];
+      const combinedDiagnostics = [
+        ...waiverApplication.diagnostics,
+        ...gateResult.diagnostics,
+        ...calibrationChecks.diagnostics,
+      ];
       const gatePassed = combinedFailures.length === 0;
 
       heartbeatRunId = context.current.run.id;
@@ -1540,6 +1584,39 @@ const main = async (): Promise<void> => {
           reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
         })),
       };
+
+      if (
+        waiverApplication.active.length > 0 ||
+        waiverApplication.expired.length > 0 ||
+        waiverApplication.unmatched.length > 0
+      ) {
+        checkPayload.waivers = {
+          active: waiverApplication.active.map((entry) => ({
+            id: entry.waiver.id,
+            suite: entry.waiver.suite,
+            rowId: entry.waiver.rowId,
+            reason: entry.waiver.reason,
+            riskOwner: entry.waiver.riskOwner,
+            ticket: entry.waiver.ticket,
+            expiresAt: entry.waiver.expiresAt,
+            matchedRowIds: entry.matchedRowIds,
+          })),
+          expired: waiverApplication.expired.map((entry) => ({
+            id: entry.waiver.id,
+            suite: entry.waiver.suite,
+            rowId: entry.waiver.rowId,
+            reason: entry.waiver.reason,
+            riskOwner: entry.waiver.riskOwner,
+            ticket: entry.waiver.ticket,
+            expiresAt: entry.waiver.expiresAt,
+          })),
+          unmatched: waiverApplication.unmatched.map((waiver) => ({
+            id: waiver.id,
+            suite: waiver.suite,
+            rowId: waiver.rowId,
+          })),
+        };
+      }
 
       const baselineBlocked = context.baselineCompatibility?.status === 'blocked';
       const previousBaselineCompatibility = (() => {

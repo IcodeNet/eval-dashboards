@@ -248,6 +248,43 @@ eval-dashboards check --input=.evals_output --require-suite-pass=preflight --new
 eval-dashboards check --input=.evals_output --baseline-strategy=rolling --statistical-mode=bootstrap --confidence-level=0.95 --bootstrap-samples=2000 --min-pass-rate-delta=0
 ```
 
+Waiver and exception register (`--waiver-file`):
+
+- Records specific known failures (or a whole suite) that are allowed to ship despite failing gates, for a bounded time, with an audit trail — not a way to silently disable a gate.
+- File format (`eval-waiver-register/v1`):
+
+```json
+{
+  "schemaVersion": "eval-waiver-register/v1",
+  "waivers": [
+    {
+      "id": "w-2026-09-15-safety-flake",
+      "suite": "safety",
+      "rowId": "prompt-injection-07",
+      "reason": "Known judge miscalibration on this scenario, fix tracked",
+      "riskOwner": "alice@example.com",
+      "ticket": "JIRA-4821",
+      "expiresAt": "2026-10-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+- `rowId` is optional; omit it to waive every currently failing row in `suite`.
+- `--waiver-file=<path>` (or `waiverFile` in the config file) points `check` at the register.
+- Matched, non-expired waivers cause their rows to be treated as passed for gating (`minPassRate`, `zeroCritical`, `requiredPassingSuites`, calibration checks, etc.), and are reported prominently as `ACTIVE WAIVER ...` diagnostics plus a `waivers.active[]` entry in `--json-out`/`--json-v2-out` payloads — an auditor reading only the check result sees exactly which known failures were carried and why.
+- An **expired** waiver always fails the gate (`waivers.expired[]` + a `failures[]` entry), whether or not the underlying row still fails — the point of an expiry is that the risk must be re-reviewed, not silently extended.
+- A waiver that matches no row in the current run (already-fixed or stale) is reported as a diagnostic only (`waivers.unmatched[]`), never a failure.
+- A malformed or unreadable register file fails fast with exit code `2` (invalid config), same as other config errors.
+
+Config file equivalent:
+
+```ts
+export default {
+  waiverFile: 'eval-waivers.json',
+};
+```
+
 Fast preflight lint before expensive eval stages:
 
 ```sh
