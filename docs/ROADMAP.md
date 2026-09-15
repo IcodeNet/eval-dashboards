@@ -1081,9 +1081,72 @@ Acceptance criteria:
 `eval-check-result/v2` provenance, `sign`/`verify` (cosign keyless in CI),
 a waiver register, threshold-loosening detection, and `heartbeat-verify`
 are all real, tested, and merged to main. The honest residual gap is
-narrower now: bypass usage (4F.9) is not yet tracked as a trend, PR-subset
-cost tiering (4F.10) does not exist, and there is no evidence export
-bundle (4F.11) yet.
+narrower now: bypass usage (4F.9) is now tracked as a trend (see 4F.9 —
+done), PR-subset cost tiering (4F.10) does not exist, and there is no
+evidence export bundle (4F.11) yet.
+
+---
+
+## 🚧 Phase 4H: Documentation navigability (NEW)
+
+**Why**: a docs-navigability review (2026-09-15) found `docs/` has grown to
+94 files (29 top-level) with no index, no grouping by audience, and two
+competing "canonical" surfaces (`docs-site/v1/*.html`, 11 curated pages,
+vs. raw `docs/*.md`, 94 files) with no doc stating which one to trust for
+a given question. Multi-perspective findings (new adopter, contract
+contributor, CI/governance engineer, roadmap owner, docs maintainer) all
+converged on the same root cause: no entry point, no grouping, no
+freshness automation. Full findings: see review notes attached to this
+phase's commit message.
+
+### 4H.1 `docs/README.md` index grouped by audience (P1, S)
+
+- [ ] Add `docs/README.md`: groups all 94 files into "Start here"
+      (artifact-format, taxonomy, configuration), "Contract & schema"
+      (artifact-format, taxonomy, schema-taxonomy-decisions), "CI &
+      governance" (gates, publishing, github-approval-gate-pattern, sign/
+      verify/waivers/heartbeat/bypass docs), "Teaching" (teach-curriculum,
+      teach-exercises, teach-labs), "Product & roadmap" (PROPOSITION-*, PRP,
+      STATUS, ROADMAP), "Integrations", "Reference" (cli-help, reporters).
+- [ ] State explicitly in the new index which surface is canonical:
+      raw `docs/*.md` is source of truth; `docs-site/v1/*.html` is a
+      curated, smaller subset for external readers.
+
+### 4H.2 README Documentation Index regrouped (P1, XS)
+
+- [ ] Replace the current flat 20-item bullet list in README.md's
+      "Documentation Index" section with the same audience groups as
+      4H.1, plus a 3-link "Start here" block above the full index for
+      brand-new adopters.
+
+### 4H.3 `docs/teach-exercises/README.md` index (P2, XS)
+
+- [ ] Add an index file for `docs/teach-exercises/` matching the existing
+      pattern in `docs/teach-labs/README.md`, so both curricula are
+      discoverable the same way without requiring `teach-curriculum.md`
+      to be read first.
+
+### 4H.4 `docs/ROADMAP.md` table of contents + phase reorder note (P2, S)
+
+- [ ] Add a table of contents at the top of `docs/ROADMAP.md` linking to
+      each phase heading.
+- [ ] Add a one-line note next to any phase whose section order doesn't
+      match its number (current file has 4A, 4B, 4C, 4E, 4G, 4F, 4D in
+      that physical order) explaining why, or reorder sections to match
+      numbering if it's cheap to do safely (verify no external doc links
+      to a specific line number in ROADMAP.md before reordering).
+
+### 4H.5 Automated stale-embedded-help-text sweep (P1, S)
+
+- [ ] Generalize the ad hoc `docs/publishing` "command block matches
+      publish --help" check in `scripts/verify-cli-init-and-completion.sh`
+      into a loop that finds every doc file with a fenced ```sh block
+      containing a line starting with `eval-dashboards <command> [options]`
+      and diffs it against that command's real `--help` output, so newly
+      embedded help copies are covered automatically instead of requiring
+      a new hand-written check every time. This directly addresses the
+      stale-docs regression class caught 4 separate times in the 4F.1–4F.9
+      shipping session (publish.txt, check.txt, root.txt, publishing.md).
 
 ---
 
