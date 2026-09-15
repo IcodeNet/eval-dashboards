@@ -406,3 +406,43 @@ eval-dashboards history --input=.evals_output --bypass-log=eval-report/bypass-lo
 `org-rollup` then surfaces a per-repo `bypassCount` column and an org-wide
 `totalBypassCount` summary card, so bypass erosion is visible as a trend across
 repos instead of only discoverable by reading CI logs during an audit.
+
+## CI dependency-audit gate (4F.12)
+
+`.github/workflows/ci.yml` (`lint-and-test` job, step "Dependency audit (fails
+on high/critical)") runs `pnpm audit --audit-level=high` as a hard-failing CI
+step — not a reporting/informational step. `pnpm audit` exits non-zero when
+any advisory is at or above the given `--audit-level`, so the CI step fails
+the build the same way `pnpm typecheck`/`pnpm test` do.
+
+- **Severity threshold:** `high` (i.e. `high` and `critical` fail the build;
+  `low`/`moderate` are reported by `pnpm audit` locally but do not fail CI).
+  Change the threshold by editing the `--audit-level` value in
+  `.github/workflows/ci.yml`.
+- **Fixing a real finding:** prefer upgrading the vulnerable package directly.
+  When the vulnerability is in a transitive dependency with no direct upgrade
+  path, pin a patched version via `overrides` in `pnpm-workspace.yaml` (pnpm
+  10+ reads `overrides` from the workspace file, not from `package.json`'s
+  legacy `pnpm.overrides` field) and re-run `pnpm install && pnpm audit
+  --audit-level=high` to confirm the advisory clears.
+- **Intentional override/waiver (consistent with 4F.9 bypass accounting):** if
+  a flagged advisory must be accepted temporarily (e.g. no patched version
+  exists yet, or the vulnerable code path is unreachable in this project's
+  usage), do not silence the step with `|| true`. Instead, record the
+  exception explicitly and keep the gate itself intact:
+  1. Note the advisory id, package, severity, and justification in
+     `docs/ROADMAP.md`/`docs/STATUS.md` (or a dedicated waiver log) so the
+     exception is discoverable in the same repo, not only in a CI log.
+  2. If the advisory affects a package pnpm can override, prefer scoping the
+     override narrowly (exact version range) in `pnpm-workspace.yaml` rather
+     than broadening `--audit-level`, so the gate keeps catching new
+     vulnerabilities in every other dependency.
+  3. Only as a last resort — and only for a specific, named advisory id, never
+     the whole audit — use `pnpm audit --audit-level=high || true` scoped to a
+     follow-up ticket with an expiry date, mirroring the 4F.9 principle that a
+     bypass must be loggable and time-bounded, never a silent, permanent
+     no-op.
+
+This keeps the audit gate's trust model the same as the other gates in this
+document: a clean run means `pnpm audit --audit-level=high` genuinely found no
+high/critical advisories, not that the check was skipped.

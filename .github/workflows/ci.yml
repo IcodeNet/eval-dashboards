@@ -53,6 +53,9 @@ jobs:
       - name: Verify CLI help snapshots and scaffold/completion guards
         run: pnpm verify:cli
 
+      - name: Dependency audit (fails on high/critical)
+        run: pnpm audit --audit-level=high
+
   examples:
     runs-on: ubuntu-latest
     needs: lint-and-test

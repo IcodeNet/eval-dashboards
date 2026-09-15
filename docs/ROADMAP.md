@@ -1166,7 +1166,7 @@ hand-edited-bundle detection).
 
 ### 4F.12 CI dependency-audit gate (P1, S)
 
-- [ ] Add a `pnpm audit` (or `npm audit`) step to `.github/workflows/ci.yml` that
+- [x] Add a `pnpm audit` (or `npm audit`) step to `.github/workflows/ci.yml` that
       hard-fails the build above a configurable severity threshold (default
       `high`), not merely a reporting/informational step.
       Rationale (2026-09-15 competitive scan): verified via direct inspection
@@ -1177,9 +1177,27 @@ hand-edited-bundle detection).
       vulnerabilities" while real vulns silently accumulated. This repo's gap
       is currently strictly worse (zero check), which is inconsistent with a
       package whose entire thesis is "claims must be enforced, not asserted."
-- [ ] Document the severity threshold and an explicit override/waiver path,
+      Evidence: `.github/workflows/ci.yml:56-57` adds a "Dependency audit
+      (fails on high/critical)" step running `pnpm audit --audit-level=high`
+      in the `lint-and-test` job, after the existing CLI/typecheck/build
+      steps, following the same job/step conventions as the rest of the file.
+      Verified locally (2026-09-15): before this change `pnpm audit
+      --audit-level=high` reported 8 high-severity advisories (fast-uri x5,
+      js-yaml x2, nanoid x1, all transitive devDependencies of
+      commitlint/semantic-release/tsup/vitest); fixed by pinning patched
+      versions via `overrides` in `pnpm-workspace.yaml:6-9` (`fast-uri
+      >=3.1.6`, `js-yaml >=4.3.2`, `nanoid >=3.3.18`). After `pnpm install`,
+      `pnpm audit --audit-level=high` exits `0` (3 remaining findings are 1
+      low + 2 moderate, below the `high` threshold, so they correctly do not
+      fail the gate).
+- [x] Document the severity threshold and an explicit override/waiver path,
       consistent with the existing bypass-accounting pattern (4F.9) so a
       justified exception is loggable rather than requiring `|| true`.
+      Evidence: `docs/gates.md:409-448` ("CI dependency-audit gate (4F.12)")
+      documents the `high` threshold, how to fix a real finding via
+      `pnpm-workspace.yaml` overrides, and the recording/scoping requirements
+      for an intentional override, mirroring the 4F.9 principle that a bypass
+      must be loggable and time-bounded rather than a silent `|| true`.
 
 Acceptance criteria:
 
@@ -1187,9 +1205,10 @@ Acceptance criteria:
   vulnerability at or above the configured threshold.
 - An intentional override is possible but recorded, not silent.
 
+
 ### 4F.13 Client-side compare for the static HTML report (P2, M)
 
-- [ ] Add an optional, fully offline "load another eval-report/v1 file" control
+- [x] Add an optional, fully offline "load another eval-report/v1 file" control
       to the generated HTML report (`src/reporters/render.ts`/`html.ts`):
       a file picker/drag-drop reads a second JSON file via `FileReader`
       client-side (no server call, no new CLI surface required) and renders it
@@ -1201,14 +1220,44 @@ Acceptance criteria:
       an arbitrary prior run. This repo's HTML reporter currently bakes one
       run's data into the page at generation time with no way to point the
       same static file at a different artifact.
-- [ ] Keep it fully client-side and offline — no schema change, no hosted
+      Evidence: `src/reporters/render.ts` — a "Compare against another report"
+      collapsible section (added near line 1802) renders a
+      `<input type="file" id="compare-file-input">` picker wired to
+      `onchange="handleCompareFile(...)"`; the current run's suite pass-rate
+      data is baked into `<script id="eval-report-current-summary"
+      type="application/json">` (near line 1830) so the page never needs to
+      re-fetch anything. The inline `<script>` block (from line ~1930) adds
+      `handleCompareFile`, which uses `new FileReader()` /
+      `reader.readAsText(file)` to parse the picked file client-side,
+      validates `schemaVersion === 'eval-report/v1'`, and renders a
+      side-by-side suite pass-rate delta table via `renderCompareResult`.
+      Test: `test/report-compare-client.test.ts` ("renders the file-picker
+      control, its script id, and FileReader logic") asserts on the generated
+      HTML for the input element, the `onchange` wiring, `new FileReader()`,
+      `reader.readAsText(file)`, the baked-in summary script, and the absence
+      of any `<script src=...>` or `type="module"` (so it still works from
+      `file://` with no bundler/server).
+- [x] Keep it fully client-side and offline — no schema change, no hosted
       comparison service, matching the "still out of scope in 4F" non-goals.
+      Evidence: no new CLI flag, no network call, no artifact schema change —
+      `handleCompareFile` in `src/reporters/render.ts` only reads the
+      user-picked file via `FileReader` and renders into the existing DOM;
+      no `fetch`/`XMLHttpRequest`/`import()` is used anywhere in the added
+      code.
 
 Acceptance criteria:
 
 - Opening the generated `index.html` directly from disk (`file://`) still
   works with no server, and a user can load a second `eval-report/v1` JSON
   file to compare against the baked-in one, entirely in the browser.
+  Verified: `test/report-compare-client.test.ts` ("still renders existing
+  report content unchanged with the compare feature present") confirms
+  pre-existing sections (Suite summary, Failing rows, All rows, How to read
+  this report) are unaffected, and a real-CLI-generated report
+  (`report --input=... --reporter=html`) was manually inspected: opening the
+  output `index.html` in a browser shows the new "Compare against another
+  report" section with a working file picker alongside the unchanged
+  existing report content.
 
 ### Still out of scope in 4F
 
