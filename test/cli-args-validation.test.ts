@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+  UnknownFlagError,
   assertKnownFlags,
   knownFlagsByCommand,
+  optionNumber,
   parseArgs,
-  UnknownFlagError,
 } from '../src/cli/args.js';
 
 const helpDir = path.resolve(process.cwd(), 'docs/cli-help');
@@ -66,6 +67,34 @@ describe('assertKnownFlags', () => {
 
   it('does nothing when no command is given', () => {
     expect(() => assertKnownFlags(parseArgs([]))).not.toThrow();
+  });
+});
+
+describe('optionNumber', () => {
+  it('warns on stderr and ignores an unparsable numeric flag rather than silently dropping it', () => {
+    const errors: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((msg: string) => {
+      errors.push(msg);
+    });
+    try {
+      const args = parseArgs(['check', '--min-pass-rate=abc']);
+      const value = optionNumber(args.options, 'min-pass-rate');
+      expect(value).toBeUndefined();
+      expect(errors.some((line) => line.includes('Invalid value for --min-pass-rate'))).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('parses a well-formed numeric flag without warning', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const args = parseArgs(['check', '--min-pass-rate=0.9']);
+      expect(optionNumber(args.options, 'min-pass-rate')).toBe(0.9);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

@@ -75,6 +75,12 @@ eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --max-new-failur
 Step 2 prints `eval-report/index.html` — open it in any browser. Step 3 prints
 `Eval gates passed.` and exits `0`.
 
+> If your project's `package.json` does not have `"type": "module"`, step 1
+> scaffolds `eval-dashboards.config.ts` as an ESM file and every subsequent
+> command will print a harmless Node ESM-load warning to stderr (it falls
+> back to defaults). Either add `"type": "module"` to `package.json`, or
+> rename the scaffolded file to `eval-dashboards.config.mjs`.
+
 Use `--dry-run` to see exactly which files would be written before committing
 to anything, or `--teach` for a guided walkthrough that writes nothing.
 

@@ -308,6 +308,12 @@ export const optionNumber = (
   }
 
   const parsed = Number(value);
+  if (value.trim() !== '' && !Number.isFinite(parsed)) {
+    console.error(
+      `Invalid value for --${name}: "${value}" is not a number. This flag will be ignored, which may silently disable a gate.`,
+    );
+    return undefined;
+  }
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
