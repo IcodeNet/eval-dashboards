@@ -203,8 +203,11 @@ export type EvalRow = {
     spanId?: string;
     traceUrl?: string;
     spanUrl?: string;
+    spanType?: string;
   };
   axisScores?: Record<string, number>;
+  /** Optional per-axis judge reasoning, one explanation string per axis key. */
+  axisReasoning?: Record<string, string>;
   passed: boolean;
   score?: number;
   severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
@@ -239,6 +242,7 @@ Agent and LLM judge reports should use the first-class optional judge fields ins
 - `groundTruthVerdict`, `groundTruthCategory`, and `groundTruthAnnotation`: labelled calibration evidence for judge evals.
 - `trace.traceId`, `trace.spanId`: portable trace/span identifiers when available.
 - `trace.traceUrl`, `trace.spanUrl`: optional deep links to trace evidence that reporters can render as clickable links.
+- `trace.spanType`: optional free-form, runner-defined label for the pipeline stage this span represents (e.g. `"retrieval"`, `"generation"`, `"tool"`, `"agent"`). No enum lock-in; purely a label for grouping evidence by pipeline stage. HTML/markdown reporters show it next to trace links when present; no change when absent.
 - `complianceRefs`: opaque, free-form compliance/regulatory reference ids this row is evidence for (e.g. `"owasp:llm:01"`, `"nist:ai:measure:1.1"`, `"eu:ai-act"`). Not validated against a canonical list — harnesses own classification, this package only stores and groups/filters by whatever strings are provided. `suiteManifests[].complianceFrameworks?: string[]` is the analogous suite-level field. HTML/markdown/JSON reporters render a "Compliance coverage" grouping by these tags only when at least one row or manifest declares one; there is no UI change when both are absent.
 
 When using judge-based groundedness/relevance suites, ensure rubric guidance does not penalize extra details that remain consistent with reference/context.
@@ -258,7 +262,8 @@ For failure triage, prefer carrying both portable IDs and clickable links:
     "traceId": "4f5c7c55f9da4b4a",
     "spanId": "a1e243fbe90c9f5d",
     "traceUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a",
-    "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d"
+    "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d",
+    "spanType": "tool"
   }
 }
 ```

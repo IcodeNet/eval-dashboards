@@ -185,6 +185,7 @@ describe('render html safety and taxonomy scoring', () => {
           rubricId: 'rubric-v1',
           judgeVerdict: false,
           axisScores: { helpfulness: 1 },
+          axisReasoning: { helpfulness: 'Directly answered the user question <script>evil()</script>' },
         },
       ],
     };
@@ -203,6 +204,9 @@ describe('render html safety and taxonomy scoring', () => {
     const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
     expect(html).toContain('All recommended fields present');
     expect(html).not.toContain('Missing fields:\njudgeVerdict');
+    expect(html).toContain('axis-score-reasoning');
+    expect(html).toContain('Directly answered the user question &lt;script&gt;evil()&lt;/script&gt;');
+    expect(html).not.toContain('<script>evil()</script>');
   });
 
   it('renders dataset changelog section when entries are provided', async () => {
@@ -829,6 +833,7 @@ describe('render html safety and taxonomy scoring', () => {
             spanId: 'span-456',
             traceUrl: 'https://traces.example/runs/trace-123',
             spanUrl: 'https://traces.example/runs/trace-123/spans/span-456',
+            spanType: 'tool',
           },
         },
       ],
@@ -850,10 +855,13 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('<a href="https://traces.example/runs/trace-123/spans/span-456" target="_blank" rel="noopener">span</a>');
     expect(html).toContain('Trace ID');
     expect(html).toContain('trace-123');
+    expect(html).toContain('Span type');
+    expect(html).toContain('span-type-tag">tool</span>');
 
     const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
     expect(md).toContain('[trace](https://traces.example/runs/trace-123)');
     expect(md).toContain('[span](https://traces.example/runs/trace-123/spans/span-456)');
+    expect(md).toContain('(tool)');
   });
 
   it('omits Trace column from failing rows table when no trace links are present', async () => {

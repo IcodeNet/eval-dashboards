@@ -342,6 +342,7 @@ const traceLinksHtml = (row: EvalRow): string => {
   const links: string[] = [];
   if (row.trace?.traceUrl) links.push(externalLink(row.trace.traceUrl, 'trace'));
   if (row.trace?.spanUrl) links.push(externalLink(row.trace.spanUrl, 'span'));
+  if (row.trace?.spanType) links.push(`<span class="span-type-tag">${e(row.trace.spanType)}</span>`);
   if (links.length === 0) return '<span class="muted">n/a</span>';
   return links.join(' · ');
 };
@@ -350,6 +351,7 @@ const traceLinksMarkdown = (row: EvalRow): string => {
   const links: string[] = [];
   if (row.trace?.traceUrl && isHttpUrl(row.trace.traceUrl)) links.push(`[trace](${row.trace.traceUrl})`);
   if (row.trace?.spanUrl && isHttpUrl(row.trace.spanUrl)) links.push(`[span](${row.trace.spanUrl})`);
+  if (row.trace?.spanType) links.push(`(${row.trace.spanType})`);
   return links.join(' · ');
 };
 
@@ -877,7 +879,12 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
 
   if (r.axisScores && Object.keys(r.axisScores).length) {
     const chips = Object.entries(r.axisScores)
-      .map(([k, v]) => `<span class="axis-score-chip">${e(k)}: ${typeof v === 'number' ? v.toFixed(2) : e(String(v))}</span>`)
+      .map(([k, v]) => {
+        const reasoning = r.axisReasoning?.[k];
+        const chip = `<span class="axis-score-chip">${e(k)}: ${typeof v === 'number' ? v.toFixed(2) : e(String(v))}</span>`;
+        if (!reasoning) return chip;
+        return `<div class="axis-score-with-reasoning">${chip}<span class="axis-score-reasoning">${e(reasoning)}</span></div>`;
+      })
       .join('');
     fields.push(`<div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
@@ -926,6 +933,8 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
       <span class="detail-field-value mono">${externalLink(r.trace.spanUrl)}</span>
     </div>`);
   }
+
+  field('Span type', r.trace?.spanType, false, false, 'Runner-defined label for the pipeline stage this span represents.');
 
   if (!fields.length) return '';
   return `<tr class="detail-row"><td colspan="${colSpan}"><div class="detail-panel">${fields.join('')}</div></td></tr>`;
@@ -1606,6 +1615,8 @@ ${renderCssVariables(theme)}
     .detail-field.full-width { grid-column: 1 / -1; }
     .axis-scores { display: flex; flex-wrap: wrap; gap: 6px; }
     .axis-score-chip { font-family: var(--font-mono); font-size: 11px; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 7px; }
+    .axis-score-with-reasoning { display: flex; flex-direction: column; gap: 3px; }
+    .axis-score-reasoning { font-size: 11px; color: var(--text-muted); padding-left: 2px; }
 
     /* ── View switcher ── */
     .view-switcher { display: flex; gap: 4px; }

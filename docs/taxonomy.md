@@ -106,6 +106,10 @@ Provide the judge's verdict, reasoning, and axis scores:
     "safety": 1.0,
     "coherence": 0.95
   },
+  "axisReasoning": {
+    "helpfulness": "Directly answers the user's question with the requested detail.",
+    "coherence": "Response is well structured but slightly repeats itself in the closing paragraph."
+  },
   "passed": true
 }
 ```

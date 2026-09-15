@@ -234,6 +234,12 @@ export type TraceReference = {
   traceUrl?: string;
   /** Optional direct URL to a span-level evidence view for this row. */
   spanUrl?: string;
+  /**
+   * Optional free-form, runner-defined label for the pipeline stage this
+   * span represents (e.g. "retrieval", "generation", "tool", "agent").
+   * No enum lock-in; purely a grouping label for evidence display.
+   */
+  spanType?: string;
 };
 
 export type EvalRow = {
@@ -264,6 +270,12 @@ export type EvalRow = {
   turns?: ConversationTurn[];
   toolCalls?: ToolCall[];
   axisScores?: Record<string, number>;
+  /**
+   * Optional per-axis judge reasoning: one explanation string per axis key,
+   * mirroring the keys used in `axisScores`. Sibling to the row-level
+   * `judgeReasoning` field.
+   */
+  axisReasoning?: Record<string, string>;
   trace?: TraceReference;
   passed: boolean;
   /**

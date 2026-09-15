@@ -72,7 +72,8 @@
         "traceId": "4f5c7c55f9da4b4a",
         "spanId": "a1e243fbe90c9f5d",
         "traceUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a",
-        "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d"
+        "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d",
+        "spanType": "tool"
       }
     },
     {

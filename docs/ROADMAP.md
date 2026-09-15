@@ -1284,12 +1284,12 @@ Acceptance criteria:
 
 ### 4F.16 Trace span-type tagging (P2, S)
 
-- [ ] Add optional `spanType?: string` to `TraceReference` (free-form,
+- [x] Add optional `spanType?: string` to `TraceReference` (free-form,
       runner-defined; e.g. `"retrieval"`, `"generation"`, `"tool"`, `"agent"`) —
       no enum lock-in, purely a label for grouping evidence by pipeline stage.
-- [ ] HTML/markdown reporters show the span type next to trace links when
+- [x] HTML/markdown reporters show the span type next to trace links when
       present; no change when absent.
-- [ ] Update `docs/artifact-format.md`; fixture + test.
+- [x] Update `docs/artifact-format.md`; fixture + test.
 
 ### 4F.17 Per-axis judge reasoning (P2, S)
 

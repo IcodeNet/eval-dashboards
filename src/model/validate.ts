@@ -271,6 +271,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['axisReasoning'] !== undefined) {
+        if (!isObject(row['axisReasoning'])) {
+          errors.push(`rows[${index}].axisReasoning must be an object when provided.`);
+        } else {
+          for (const [axis, reasoning] of Object.entries(row['axisReasoning'] as Record<string, unknown>)) {
+            if (!isString(reasoning)) {
+              errors.push(`rows[${index}].axisReasoning.${axis} must be a string.`);
+            }
+          }
+        }
+      }
+
       if (row['groundTruthAxisScores'] !== undefined) {
         if (!isObject(row['groundTruthAxisScores'])) {
           errors.push(`rows[${index}].groundTruthAxisScores must be an object when provided.`);
@@ -287,7 +299,7 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         if (!isObject(row['trace'])) {
           errors.push(`rows[${index}].trace must be an object when provided.`);
         } else {
-          for (const field of ['traceId', 'spanId', 'traceUrl', 'spanUrl']) {
+          for (const field of ['traceId', 'spanId', 'traceUrl', 'spanUrl', 'spanType']) {
             if (row['trace'][field] !== undefined && !isString(row['trace'][field])) {
               errors.push(`rows[${index}].trace.${field} must be a string when provided.`);
             }
