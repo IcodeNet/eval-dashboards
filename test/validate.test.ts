@@ -60,6 +60,69 @@ describe('validateEvalReport', () => {
     );
   });
 
+  it('accepts rows[].complianceRefs and suiteManifests[].complianceFrameworks (4F.14)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'pii', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'pii',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'pii',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: {} },
+          complianceFrameworks: ['owasp:llm', 'nist:ai:measure:1.1', 'eu:ai-act'],
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'pii', passed: true, complianceRefs: ['owasp:llm:01'] }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects non-string rows[].complianceRefs entries', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true, complianceRefs: [42] }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].complianceRefs[0] must be a non-empty string.',
+    );
+  });
+
+  it('rejects non-string suiteManifests[].complianceFrameworks entries', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'pii', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'pii',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'pii',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: {} },
+          complianceFrameworks: [42],
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'pii', passed: true }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'suiteManifests[0].complianceFrameworks[0] must be a non-empty string.',
+    );
+  });
+
   it('accepts a top-level tags record (4F.15)', () => {
     const result = validateEvalReport({
       schemaVersion: 'eval-report/v1',

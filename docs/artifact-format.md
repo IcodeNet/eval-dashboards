@@ -219,6 +219,7 @@ export type EvalRow = {
     model?: string;
   };
   metadata?: Record<string, unknown>;
+  complianceRefs?: string[];
 };
 ```
 
@@ -238,6 +239,7 @@ Agent and LLM judge reports should use the first-class optional judge fields ins
 - `groundTruthVerdict`, `groundTruthCategory`, and `groundTruthAnnotation`: labelled calibration evidence for judge evals.
 - `trace.traceId`, `trace.spanId`: portable trace/span identifiers when available.
 - `trace.traceUrl`, `trace.spanUrl`: optional deep links to trace evidence that reporters can render as clickable links.
+- `complianceRefs`: opaque, free-form compliance/regulatory reference ids this row is evidence for (e.g. `"owasp:llm:01"`, `"nist:ai:measure:1.1"`, `"eu:ai-act"`). Not validated against a canonical list — harnesses own classification, this package only stores and groups/filters by whatever strings are provided. `suiteManifests[].complianceFrameworks?: string[]` is the analogous suite-level field. HTML/markdown/JSON reporters render a "Compliance coverage" grouping by these tags only when at least one row or manifest declares one; there is no UI change when both are absent.
 
 When using judge-based groundedness/relevance suites, ensure rubric guidance does not penalize extra details that remain consistent with reference/context.
 
@@ -302,6 +304,7 @@ export type SuiteManifest = {
   datasetPath?: string; // optional source file/URL
   gate: { mode: 'blocking' | 'report-only'; thresholds: Record<string, number> };
   description?: string;
+  complianceFrameworks?: string[];
 };
 ```
 
@@ -310,6 +313,8 @@ export type SuiteManifest = {
 Use `target: 'agent'` for live agent behavior, tool use, channel, prompt, and version checks. Use `target: 'judge'` for judge calibration suites where the evaluated subject is the judge itself.
 
 For fail-fast live pipelines, define a dedicated `preflight` suite (`target: 'custom'`) with deterministic probe rows and gate it via required suite pass checks.
+
+`complianceFrameworks` (optional): opaque, free-form compliance/regulatory framework tags this suite maps to, e.g. `["owasp:llm", "nist:ai:measure:1.1", "eu:ai-act"]`. Deliberately not a canonical enum — classification is harness territory. Combined with `rows[].complianceRefs`, reporters group/filter a "Compliance coverage" view; both fields are additive and produce no UI change when omitted.
 
 Rubric contracts describe the axes used by judge and human-review rows:
 

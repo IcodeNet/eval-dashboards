@@ -180,9 +180,16 @@ Provide the reviewer's assessment:
   
   // Optional context
   "durationMs": 500,
-  "metadata": { "custom_field": "value" }
+  "metadata": { "custom_field": "value" },
+  "complianceRefs": ["owasp:llm:01", "nist:ai:measure:1.1"]
 }
 ```
+
+### 1.4 Tag Compliance/Regulatory Coverage (Optional)
+
+| Field | Type | Purpose | Example |
+|-------|------|---------|---------|
+| `complianceRefs` | string[] | Opaque, free-form compliance/regulatory reference ids this row is evidence for. Not validated against a canonical enum — the harness owns classification; this package only stores and groups/filters by them. | `["owasp:llm:01", "eu:ai-act"]` |
 
 ---
 
@@ -199,6 +206,7 @@ A suite is a collection of related rows. The **suite manifest** tells `@icodenet
 | `riskArea` | enum | `compliance`, `pii`, `content-safety`, `prompt-safety`, `tone-of-voice`, `factuality`, `response-quality`, `tool-use`, `tool-routing`, `groundedness`, `relevance`, `custom` | Why the suite exists (governance and reporting). |
 | `datasetSource` | enum | `synthetic`, `labelled-synthetic`, `production-sample`, `manual`, `custom` | How the dataset was sourced (affects baseline comparisons). |
 | `datasetVersion` | string | e.g., `"1.0.0"`, `"2024-Q3"`, commit SHA | Stable version for baseline compatibility checks. Change when dataset semantics change. |
+| `complianceFrameworks` | string[] | Opaque, free-form compliance/regulatory framework tags this suite maps to. Not a canonical enum — harness territory. | `["owasp:llm", "nist:ai:measure:1.1", "eu:ai-act"]` |
 
 **Example:**
 ```json

@@ -91,6 +91,78 @@ describe('render html safety and taxonomy scoring', () => {
     expect(markdown).toContain('model=gpt-4o');
   });
 
+  it('groups by compliance-framework tags (4F.14) when present, with no UI change when absent', async () => {
+    const reportDir = await createTempDir();
+    const tagged: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-compliance', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'pii', total: 2, passed: 1, failed: 1 }],
+      suiteManifests: [
+        {
+          name: 'pii',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'pii',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: {} },
+          complianceFrameworks: ['eu:ai-act'],
+        },
+      ],
+      rows: [
+        { id: 'row-1', suite: 'pii', passed: true, complianceRefs: ['owasp:llm:01'] },
+        { id: 'row-2', suite: 'pii', passed: false, complianceRefs: ['nist:ai:measure:1.1'] },
+      ],
+    };
+
+    await renderReports(
+      {
+        current: tagged,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(tagged, undefined),
+        reportDir,
+      },
+      ['html', 'markdown-summary'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('owasp:llm:01');
+    expect(html).toContain('nist:ai:measure:1.1');
+    expect(html).toContain('eu:ai-act');
+
+    const markdown = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(markdown).toContain('Compliance coverage');
+    expect(markdown).toContain('owasp:llm:01');
+    expect(markdown).toContain('eu:ai-act');
+
+    // Absent case: no compliance tags anywhere -> no compliance section rendered.
+    const untaggedReportDir = await createTempDir();
+    const untagged: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-no-compliance', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    };
+
+    await renderReports(
+      {
+        current: untagged,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(untagged, undefined),
+        reportDir: untaggedReportDir,
+      },
+      ['html', 'markdown-summary'],
+    );
+
+    const untaggedHtml = await readFile(path.join(untaggedReportDir, 'index.html'), 'utf8');
+    expect(untaggedHtml).not.toContain('compliance-coverage');
+
+    const untaggedMarkdown = await readFile(path.join(untaggedReportDir, 'summary.md'), 'utf8');
+    expect(untaggedMarkdown).not.toContain('Compliance coverage');
+  });
+
   it('does not mark judgeVerdict as missing when it is false', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

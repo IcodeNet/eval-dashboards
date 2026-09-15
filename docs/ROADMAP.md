@@ -1261,16 +1261,16 @@ Acceptance criteria:
 
 ### 4F.14 Compliance-framework tagging (P1, S)
 
-- [ ] Add optional `rows[].complianceRefs?: string[]` (opaque free-form ids
+- [x] Add optional `rows[].complianceRefs?: string[]` (opaque free-form ids
       like `"owasp:llm:01"`, `"nist:ai:measure:1.1"`, `"eu:ai-act"`) and
       optional `suites[].manifest.complianceFrameworks?: string[]` to the
       `eval-report/v1` model. Keep ids as opaque strings — do NOT hard-code a
       canonical enum of frameworks; that's harness/classification territory.
-- [ ] HTML/markdown/JSON reporters group/filter by these tags when present;
+- [x] HTML/markdown/JSON reporters group/filter by these tags when present;
       no UI change when absent (empty state).
-- [ ] Update `docs/artifact-format.md` and `docs/taxonomy.md` with the new
+- [x] Update `docs/artifact-format.md` and `docs/taxonomy.md` with the new
       optional fields plus 2-3 example ids.
-- [ ] Fixture + test proving round-trip and reporter grouping.
+- [x] Fixture + test proving round-trip and reporter grouping.
 
 ### 4F.15 Free-form run-level tags (P2, S)
 
