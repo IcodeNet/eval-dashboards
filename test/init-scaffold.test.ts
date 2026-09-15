@@ -166,6 +166,59 @@ describe('init scaffold', () => {
     );
   });
 
+  it('includes new guardrail presets with dataset/rubric/gate/scaffold parity', () => {
+    const files = buildAgentQualityScaffoldFiles(defaultProfile);
+
+    const dataset = files.find((file) => file.relativePath === 'eval/datasets/agent-quality-cases.jsonl');
+    expect(dataset?.content).toContain('"suite":"output-handling-safety"');
+    expect(dataset?.content).toContain('"suite":"prompt-leakage-resilience"');
+
+    const rubric = files.find((file) => file.relativePath === 'eval/rubrics/agent-quality-rubrics.json');
+    const rubricParsed = JSON.parse(rubric?.content ?? '{}') as { suites: Record<string, unknown> };
+    expect(rubricParsed.suites).toHaveProperty('output-handling-safety');
+    expect(rubricParsed.suites).toHaveProperty('prompt-leakage-resilience');
+
+    const artifact = files.find((file) => file.relativePath === '.evals_output/run-agent-quality-template.json');
+    const artifactParsed = JSON.parse(artifact?.content ?? '{}') as {
+      suites?: Array<{ id: string }>;
+      rows?: Array<{ id: string; suite: string }>;
+    };
+    const suiteIds = (artifactParsed.suites ?? []).map((suite) => suite.id);
+    expect(suiteIds).toContain('output-handling-safety');
+    expect(suiteIds).toContain('prompt-leakage-resilience');
+    const rowIds = (artifactParsed.rows ?? []).map((row) => row.id);
+    expect(rowIds).toContain('output-handling-safety-001');
+    expect(rowIds).toContain('prompt-leakage-resilience-001');
+  });
+
+  it('scaffold template artifact passes taxonomy lint and validation', async () => {
+    const outDir = await createTempDir();
+    const files = buildAgentQualityScaffoldFiles(defaultProfile);
+
+    await writeScaffoldFiles(outDir, files);
+
+    const artifactRaw = await readFile(
+      path.join(outDir, '.evals_output', 'run-agent-quality-template.json'),
+      'utf8',
+    );
+    const artifact = JSON.parse(artifactRaw) as unknown;
+
+    const validation = validateEvalReport(artifact);
+    expect(validation.ok).toBe(true);
+
+    const lint = lintReportTaxonomy(artifact as Parameters<typeof lintReportTaxonomy>[0]);
+    const errors = lint.issues.filter((issue) => issue.level === 'error');
+    expect(errors).toHaveLength(0);
+  });
+
+  it('splits content-safety into category-specific values', () => {
+    const files = buildAgentQualityScaffoldFiles(defaultProfile);
+    const dataset = files.find((file) => file.relativePath === 'eval/datasets/agent-quality-cases.jsonl');
+
+    expect(dataset?.content).not.toContain('"category":"content-safety"');
+    expect(dataset?.content).toContain('"category":"hate-harassment"');
+  });
+
   it('supports setup filtering and ci target selection', () => {
     const profile = resolveAgentQualityInitProfile({
       setup: 'guardrails,multiturn',

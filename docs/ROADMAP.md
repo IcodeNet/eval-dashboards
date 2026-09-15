@@ -646,8 +646,8 @@ Acceptance criteria:
 
 ### 4E.6 Ship scoped P1 security presets (P1, M)
 
-- [ ] Implement `output-handling-safety` and `prompt-leakage-resilience` presets already scoped in `docs/industry-coverage-audit.md`.
-- [ ] Split `content-safety`-style guidance into category-specific suites (violence, self-harm, hate/harassment) rather than one undifferentiated bucket.
+- [x] Implement `output-handling-safety` and `prompt-leakage-resilience` presets already scoped in `docs/industry-coverage-audit.md`.
+- [x] Split `content-safety`-style guidance into category-specific suites (violence, self-harm, hate/harassment) rather than one undifferentiated bucket.
 
 Acceptance criteria:
 
