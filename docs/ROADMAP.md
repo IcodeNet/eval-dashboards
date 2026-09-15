@@ -718,6 +718,33 @@ Acceptance criteria:
 - Each converted adapter has a fixture, a passing test proving valid `eval-report/v1` output, and correct suite/row totals, matching 4B.3 acceptance criteria.
 - Status: 4 of 4 sources (ragas, langfuse, phoenix, braintrust) meet this bar. Done.
 
+### 4E.11 `eval-ai-library` import adapter (P2, S)
+
+- [ ] Add `--from=eval-ai-library` to `eval-dashboards import`, converting output from the
+      `eval-ai-library` Python package (https://github.com/meshkovQA/eval-ai-library,
+      docs at https://library.eval-ai.com/) into `eval-report/v1`.
+      Rationale (2026-09-15 competitive scan of library.eval-ai.com and the
+      meshkovQA/eval-ai-library repo): it is a harness, not a reporting/gating
+      layer — out of category, not a competitor to replicate — but it is a
+      real upstream source teams may already be using, matching the existing
+      promptfoo/deepeval/ragas/langfuse/phoenix/braintrust/openai-evals adapter
+      pattern (4B.3/4E.9).
+- [ ] Map its named metric/scorer categories (answer_relevancy, faithfulness,
+      contextual_precision/recall, bias, toxicity, goal_achievement,
+      task_success, tools_correctness, jailbreak_detection,
+      prompt_injection_detection, pii_leakage, exact_match, etc.) onto this
+      repo's `category`/`riskArea` taxonomy fields as a documented reference
+      table (`docs/taxonomy.md` or a new interop page), so adopters coming
+      from that library have a direct mapping instead of guessing.
+
+Acceptance criteria:
+
+- Fixture + passing test proving valid `eval-report/v1` output with correct
+  suite/row totals, matching 4B.3/4E.9 acceptance criteria.
+- Metric-to-taxonomy mapping table is committed and cross-linked from
+  `docs/taxonomy.md`.
+- No harness/scoring logic is imported or reimplemented — only artifact
+  conversion, matching the runner-agnostic charter.
 
 ### 4E.10 JSONL import ingress for eval migration paths (P1, S)
 
