@@ -289,6 +289,22 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['usage'] !== undefined) {
+        if (!isObject(row['usage'])) {
+          errors.push(`rows[${index}].usage must be an object when provided.`);
+        } else {
+          const usage = row['usage'] as Record<string, unknown>;
+          for (const field of ['promptTokens', 'completionTokens', 'totalTokens', 'costUsd']) {
+            if (usage[field] !== undefined && usage[field] !== null && !isNumber(usage[field])) {
+              errors.push(`rows[${index}].usage.${field} must be a number when provided.`);
+            }
+          }
+          if (usage['model'] !== undefined && !isString(usage['model'])) {
+            errors.push(`rows[${index}].usage.model must be a string when provided.`);
+          }
+        }
+      }
+
       if (row['metadata'] !== undefined) {
         if (!isObject(row['metadata'])) {
           errors.push(`rows[${index}].metadata must be an object when provided.`);

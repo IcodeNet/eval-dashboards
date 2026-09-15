@@ -1,0 +1,26 @@
+{
+  "results": [
+    {
+      "id": "bt-1",
+      "input": "Summarize the Q1 report.",
+      "output": "Q1 revenue grew 12% YoY driven by enterprise adoption.",
+      "expected": "Q1 revenue grew 12% YoY.",
+      "scores": {
+        "factuality": 0.92,
+        "conciseness": 0.85
+      },
+      "tags": ["reporting"]
+    },
+    {
+      "id": "bt-2",
+      "input": "Summarize the Q2 report.",
+      "output": "Q2 was a great quarter with lots of stuff happening.",
+      "expected": "Q2 revenue declined 4% due to churn.",
+      "scores": {
+        "factuality": 0.2,
+        "conciseness": 0.4
+      },
+      "tags": ["reporting"]
+    }
+  ]
+}

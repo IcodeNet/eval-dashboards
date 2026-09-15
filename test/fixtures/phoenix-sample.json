@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "id": "phoenix-1",
+      "name": "hallucination-check",
+      "question": "What is the return window?",
+      "input": "What is the return window?",
+      "output": "Returns are accepted within 30 days.",
+      "reference_output": "30-day return window.",
+      "label": "correct",
+      "score": 0.97,
+      "explanation": "Output matches reference within tolerance.",
+      "traceId": "trace-abc"
+    },
+    {
+      "id": "phoenix-2",
+      "name": "hallucination-check",
+      "question": "What is the warranty period?",
+      "input": "What is the warranty period?",
+      "output": "Warranty is 10 years.",
+      "reference_output": "1-year warranty.",
+      "label": "incorrect",
+      "score": 0.1,
+      "explanation": "Output contradicts reference.",
+      "traceId": "trace-def"
+    }
+  ]
+}

@@ -204,6 +204,13 @@ export type EvalRow = {
   category?: string;
   reason?: string;
   durationMs?: number;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    costUsd?: number;
+    model?: string;
+  };
   metadata?: Record<string, unknown>;
 };
 ```
@@ -349,7 +356,8 @@ This field is optional and additive. When present, reports can show dataset/rubr
 
 ```ts
 type RowMetadata = {
-  // canonical optional cost field for cost-quality frontier reporting
+  // legacy cost field, tolerated for backward compatibility — prefer
+  // rows[].usage.costUsd (see "Usage Metrics" above) for new emitters
   costUsd?: number;
   // tolerated aliases accepted by reporters/importers for compatibility:
   // costUSD, usdCost, cost.usd, pricing.costUsd
@@ -375,7 +383,30 @@ type RowMetadata = {
 ```
 
 These fields are optional and additive. Existing artifacts remain valid; runners can adopt them incrementally for auditability and dataset stewardship.
-When emitting cost evidence, prefer `metadata.costUsd` as the canonical key.
+
+## Usage Metrics (Tokens/Cost/Latency)
+
+`rows[].usage` (4D.2) is the first-class, schema-validated home for token and
+cost usage. Latency continues to be reported via the sibling `rows[].durationMs`
+field:
+
+```ts
+type RowUsageMetrics = {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  // canonical cost field for cost-quality frontier reporting, in USD
+  costUsd?: number;
+  model?: string;
+};
+```
+
+All fields are optional and additive. Reporters read `usage.costUsd` first and
+fall back to the legacy `metadata.costUsd` (and its aliases) so existing
+artifacts keep working. New emitters should populate `usage` directly instead
+of stashing tokens/cost under `metadata`. The HTML/markdown reporters surface
+per-row usage in the row detail view and artifact-wide totals ("Total cost",
+"Total tokens") in the run metadata section when any row has `usage` data.
 
 ## Human Adjudication Bundle Flow (Optional)
 

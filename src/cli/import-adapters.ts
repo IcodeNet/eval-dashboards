@@ -3,12 +3,19 @@ import path from 'node:path';
 import { writeEvalReportArtifact, type RunnerEvalCaseResult } from '../adapters/runner.js';
 import type { EvalRow } from '../model/eval-report-v1.js';
 
-export type ImportSource = 'promptfoo' | 'deepeval' | 'agentevals' | 'ragas' | 'langfuse';
+export type ImportSource =
+  | 'promptfoo'
+  | 'deepeval'
+  | 'agentevals'
+  | 'ragas'
+  | 'langfuse'
+  | 'phoenix'
+  | 'braintrust';
 
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openevals.
                            openevals is accepted as an alias for agentevals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
@@ -517,6 +524,151 @@ const langfuseRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRes
   });
 };
 
+type PhoenixResult = {
+  id?: string;
+  suite?: string;
+  name?: string;
+  question?: string;
+  input?: unknown;
+  output?: unknown;
+  reference_output?: unknown;
+  expected?: unknown;
+  label?: string;
+  score?: number;
+  explanation?: string;
+  reason?: string;
+  traceId?: string;
+  trace_id?: string;
+  spanId?: string;
+  span_id?: string;
+  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+};
+
+type BraintrustResult = {
+  id?: string;
+  span_id?: string;
+  suite?: string;
+  input?: unknown;
+  output?: unknown;
+  expected?: unknown;
+  scores?: Record<string, number>;
+  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+  tags?: string[];
+};
+
+const PHOENIX_PASS_LABELS = new Set(['correct', 'pass', 'passed', 'true', 'relevant']);
+const PHOENIX_FAIL_LABELS = new Set(['incorrect', 'fail', 'failed', 'false', 'irrelevant']);
+
+const phoenixRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: 'a JSON array',
+    objectLabel: 'Phoenix result',
+    keys: ['results', 'rows', 'evaluations'],
+  });
+
+  return list.map((entry, index) => {
+    const row = entry as PhoenixResult;
+    const suite = row.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const rowLabel = row.id ?? row.traceId ?? row.trace_id ?? `${suite}-${index + 1}`;
+
+    let passed: boolean | undefined;
+    if (typeof row.label === 'string') {
+      const normalized = row.label.trim().toLowerCase();
+      if (PHOENIX_PASS_LABELS.has(normalized)) passed = true;
+      if (PHOENIX_FAIL_LABELS.has(normalized)) passed = false;
+    }
+    if (passed === undefined && typeof row.score === 'number') {
+      passed = row.score >= RAGAS_METRIC_PASS_THRESHOLD;
+    }
+
+    if (passed === undefined) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for phoenix row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 },
+      );
+    }
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      name: row.name,
+      question: row.question,
+      input: stringifyIfObject(row.input ?? row.question),
+      output: stringifyIfObject(row.output),
+      expected: stringifyIfObject(row.reference_output ?? row.expected),
+      score: row.score,
+      severity: row.metadata?.severity,
+      category: row.metadata?.category,
+      reason: row.explanation ?? row.reason,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from Arize Phoenix',
+          sourceRef: 'phoenix',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
+const braintrustRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: 'a JSON array',
+    objectLabel: 'Braintrust result',
+    keys: ['results', 'rows', 'data'],
+  });
+
+  return list.map((entry, index) => {
+    const row = entry as BraintrustResult;
+    const suite = row.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const rowLabel = row.id ?? row.span_id ?? `${suite}-${index + 1}`;
+
+    const scoreEntries = Object.entries(row.scores ?? {}).filter(
+      (pair): pair is [string, number] => typeof pair[1] === 'number',
+    );
+
+    if (scoreEntries.length === 0) {
+      throw Object.assign(
+        new Error(
+          `Unable to infer pass/fail for braintrust row ${rowLabel} (suite: ${suite}): no scores found.`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
+    // Braintrust scorers report 0..1 scores per named scorer with no built-in
+    // pass/fail boolean; treat the row as passed only if every scorer clears
+    // a 0.5 threshold. This is a documented assumption, not a Braintrust convention.
+    const passed = scoreEntries.every(([, value]) => value >= RAGAS_METRIC_PASS_THRESHOLD);
+    const averageScore =
+      scoreEntries.reduce((sum, [, value]) => sum + value, 0) / scoreEntries.length;
+    const reason = scoreEntries.map(([name, value]) => `${name}=${value.toFixed(3)}`).join(', ');
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      input: stringifyIfObject(row.input),
+      output: stringifyIfObject(row.output),
+      expected: stringifyIfObject(row.expected),
+      score: averageScore,
+      severity: row.metadata?.severity,
+      category: row.metadata?.category ?? row.tags?.[0],
+      reason: `Braintrust scores (threshold ${RAGAS_METRIC_PASS_THRESHOLD}): ${reason}`,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from Braintrust',
+          sourceRef: 'braintrust',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
 export const resolveImportSource = (rawSource: string): ImportSource => {
   const normalized = rawSource.trim().toLowerCase();
   if (normalized === 'openevals') {
@@ -527,14 +679,16 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
     normalized === 'deepeval' ||
     normalized === 'agentevals' ||
     normalized === 'ragas' ||
-    normalized === 'langfuse'
+    normalized === 'langfuse' ||
+    normalized === 'phoenix' ||
+    normalized === 'braintrust'
   ) {
     return normalized;
   }
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, openevals.`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openevals.`,
     ),
     { exitCode: 2 },
   );
@@ -558,7 +712,11 @@ export const importFromSource = async (options: {
           ? agentEvalsRows(parsed, fallbackSuite)
           : options.source === 'ragas'
             ? ragasRows(parsed, fallbackSuite)
-            : langfuseRows(parsed, fallbackSuite);
+            : options.source === 'langfuse'
+              ? langfuseRows(parsed, fallbackSuite)
+              : options.source === 'phoenix'
+                ? phoenixRows(parsed, fallbackSuite)
+                : braintrustRows(parsed, fallbackSuite);
 
   await writeEvalReportArtifact(
     options.outPath,

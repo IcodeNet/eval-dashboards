@@ -175,6 +175,14 @@ const renderMarkdown = (context: ReportContext): string => {
     lines.push(`| Max row latency | ${formatDuration(durationStats.maxMs)} |`);
   }
 
+  const usageTotals = calculateUsageTotals(context.current.rows);
+  if (usageTotals.totalCostUsd !== undefined) {
+    lines.push(`| Total cost | $${usageTotals.totalCostUsd.toFixed(4)} |`);
+  }
+  if (usageTotals.totalTokens !== undefined) {
+    lines.push(`| Total tokens | ${usageTotals.totalTokens} |`);
+  }
+
   if (summary.run.branch) lines.push(`| Branch | ${summary.run.branch} |`);
   if (summary.run.commit) lines.push(`| Commit | ${summary.run.commit} |`);
   if (summary.run.buildId) lines.push(`| Build | ${summary.run.buildId} |`);
@@ -380,6 +388,9 @@ const getNestedNumber = (value: unknown, path: string[]): number | undefined => 
 };
 
 const extractCostUsd = (row: EvalRow): number | undefined => {
+  const usageCost = row.usage?.costUsd;
+  if (typeof usageCost === 'number' && Number.isFinite(usageCost) && usageCost >= 0) return usageCost;
+
   const candidates = [
     getNestedNumber(row, ['metadata', 'costUsd']),
     getNestedNumber(row, ['metadata', 'costUSD']),
@@ -453,10 +464,31 @@ const summarizeQualityFrontiers = (rows: EvalRow[]): QualityFrontierSummary | un
   };
 };
 
+const calculateUsageTotals = (
+  rows: EvalRow[],
+): { totalCostUsd?: number; totalTokens?: number; rowsWithUsage: number } => {
+  let totalCostUsd: number | undefined;
+  let totalTokens: number | undefined;
+  let rowsWithUsage = 0;
+
+  for (const row of rows) {
+    const costUsd = extractCostUsd(row);
+    const tokens = row.usage?.totalTokens;
+    if (costUsd !== undefined) totalCostUsd = (totalCostUsd ?? 0) + costUsd;
+    if (typeof tokens === 'number' && Number.isFinite(tokens) && tokens >= 0) {
+      totalTokens = (totalTokens ?? 0) + tokens;
+    }
+    if (costUsd !== undefined || row.usage) rowsWithUsage += 1;
+  }
+
+  return { totalCostUsd, totalTokens, rowsWithUsage };
+};
+
 const metadataCards = (
   run: EvalReportV1['run'],
   totalDurationMs: number,
   durationStats?: DurationStats,
+  usageTotals?: { totalCostUsd?: number; totalTokens?: number; rowsWithUsage: number },
 ): string => {
   const cards: Array<{ label: string; value: string; tip: string }> = [];
   cards.push({ label: 'Generated', value: run.generatedAt, tip: 'When this report run was generated.' });
@@ -496,6 +528,20 @@ const metadataCards = (
       label: 'Max row latency',
       value: formatDuration(durationStats.maxMs),
       tip: 'Maximum row duration in this artifact.',
+    });
+  }
+  if (usageTotals?.totalCostUsd !== undefined) {
+    cards.push({
+      label: 'Total cost',
+      value: `$${usageTotals.totalCostUsd.toFixed(4)}`,
+      tip: 'Sum of row usage cost (row.usage.costUsd or tolerated metadata aliases) across this artifact.',
+    });
+  }
+  if (usageTotals?.totalTokens !== undefined) {
+    cards.push({
+      label: 'Total tokens',
+      value: String(usageTotals.totalTokens),
+      tip: 'Sum of row.usage.totalTokens across this artifact.',
     });
   }
 
@@ -781,6 +827,11 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
 
   field('Turns', r.turns != null ? String(r.turns) : null, false, false, 'Conversation turns captured during the evaluation.');
   field('Duration', r.durationMs != null ? `${r.durationMs} ms` : null, false, false, 'Runtime recorded for this row.');
+  field('Cost', r.usage?.costUsd != null ? `$${r.usage.costUsd.toFixed(4)}` : null, false, false, 'First-class usage cost recorded for this row (row.usage.costUsd).');
+  field('Prompt tokens', r.usage?.promptTokens != null ? String(r.usage.promptTokens) : null, false, false, 'Input/prompt tokens recorded for this row.');
+  field('Completion tokens', r.usage?.completionTokens != null ? String(r.usage.completionTokens) : null, false, false, 'Output/completion tokens recorded for this row.');
+  field('Total tokens', r.usage?.totalTokens != null ? String(r.usage.totalTokens) : null, false, false, 'Total tokens recorded for this row.');
+  field('Usage model', r.usage?.model, false, false, 'Model identifier the usage was measured/billed against.');
   field('Agent version', r.agentVersion, false, false, 'The agent build or version evaluated for this row.');
   field('Prompt version', r.promptVersion, false, false, 'The prompt or instruction version used for this row.');
   field('Rubric ID', r.rubricId, false, false, 'The rubric or scoring identifier used for this row.');
@@ -1579,7 +1630,7 @@ ${renderCssVariables(theme)}
       id: 'run-metadata',
       title: 'Run metadata',
       summary: [run.branch, run.commit, run.buildId].filter(Boolean).join(' • ') || 'Run identity and provenance details',
-      body: metadataCards(run, totalDurationMs, durationStats),
+      body: metadataCards(run, totalDurationMs, durationStats, calculateUsageTotals(context.current.rows)),
     })}
 
     ${renderCollapsibleSection({

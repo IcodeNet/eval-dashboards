@@ -402,6 +402,56 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Latency p95');
   });
 
+  it('renders first-class usage metrics (tokens/cost) totals and row detail', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-usage',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 2, passed: 2, failed: 0 }],
+      rows: [
+        {
+          id: 'r1',
+          suite: 'quality',
+          passed: true,
+          durationMs: 100,
+          usage: { promptTokens: 100, completionTokens: 20, totalTokens: 120, costUsd: 0.01, model: 'gpt-4o' },
+        },
+        {
+          id: 'r2',
+          suite: 'quality',
+          passed: true,
+          durationMs: 200,
+          usage: { totalTokens: 80, costUsd: 0.02 },
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary', 'html'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(md).toContain('| Total cost | $0.0300 |');
+    expect(md).toContain('| Total tokens | 200 |');
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Total cost');
+    expect(html).toContain('$0.0300');
+    expect(html).toContain('Total tokens');
+    expect(html).toContain('Usage model');
+    expect(html).toContain('gpt-4o');
+  });
+
   it('renders cost/latency-quality frontier sections when row metrics are present', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

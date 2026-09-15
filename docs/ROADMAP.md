@@ -710,12 +710,12 @@ Acceptance criteria:
 ### 4E.9 Complete coded import adapters (P2, M)
 
 - [x] Ragas and Langfuse portions: real coded `import` adapters (`--from=ragas`, `--from=langfuse`) with fixtures and passing tests, matching the existing promptfoo/deepeval/openevals pattern.
-- [ ] Phoenix and Braintrust portions: not started. Still docs-only conversion notes, no coded adapter, fixture, or test yet.
+- [x] Phoenix and Braintrust portions: real coded `import` adapters (`--from=phoenix`, `--from=braintrust`) with fixtures and passing tests, matching the existing pattern.
 
 Acceptance criteria:
 
 - Each converted adapter has a fixture, a passing test proving valid `eval-report/v1` output, and correct suite/row totals, matching 4B.3 acceptance criteria.
-- Status: 2 of 4 sources (ragas, langfuse) meet this bar; phoenix and braintrust remain open.
+- Status: 4 of 4 sources (ragas, langfuse, phoenix, braintrust) meet this bar. Done.
 
 
 ### 4E.10 JSONL import ingress for eval migration paths (P1, S)
@@ -1264,9 +1264,9 @@ Acceptance criteria:
 - [x] Schema enum sync from TS + CI drift guard (`pnpm schema:check`). Audit 2026-09-14: `scripts/sync-eval-report-v1-schema.ts` patches enums/consts into a hand-maintained schema; it does not generate the schema from TS types, so a newly added optional field does not trip the guard.
 - [x] Runtime validation hardening with a stable error shape (`ValidationIssue { code, path, message }`). Audit 2026-09-14: validation is hand-rolled in `src/model/validate.ts`, not Ajv — Ajv is not a dependency — and `path` is reverse-parsed from message strings, which is fragile.
 - [x] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
-- [ ] First-class usage metrics path (tokens/cost/latency). Audit 2026-09-14: latency (`durationMs`) and cost (`metadata` alias keys) are read opportunistically by the reporters only. Token metrics are absent entirely and none of the three are schema fields, so the additive-fields acceptance criterion is unmet.
+- [x] First-class usage metrics path (tokens/cost/latency). `rows[].usage` (`promptTokens`/`completionTokens`/`totalTokens`/`costUsd`/`model`) is now a typed, schema-validated field (`src/model/eval-report-v1.ts`, `schemas/eval-report-v1.schema.json`, `src/model/validate.ts`); latency remains the existing `durationMs` field. Reporters read `usage.costUsd` first, falling back to legacy `metadata.costUsd` aliases, and surface per-row usage plus artifact-wide cost/token totals (`src/reporters/render.ts`). Tests: `test/validate.test.ts`, `test/render.test.ts`.
 - [x] Python emitter/adoption path.
-- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs). Audit 2026-09-15: Ragas and Langfuse now have real coded adapters, fixtures, and passing tests (`src/cli/import-adapters.ts`, `test/import-adapters-ragas-langfuse.test.ts`). Phoenix, Braintrust, and OpenAI eval outputs remain docs-only conversion notes with no coded adapter, fixture, or test. Tracked as 4E.9.
+- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs). Audit 2026-09-15: Ragas, Langfuse, Phoenix, and Braintrust now have real coded adapters, fixtures, and passing tests (`src/cli/import-adapters.ts`, `test/import-adapters-ragas-langfuse.test.ts`, `test/import-adapters-phoenix-braintrust.test.ts`). OpenAI eval outputs remain docs-only with no coded adapter, fixture, or test.
 - [x] Judge calibration workflow and measurable agreement reporting.
 - [x] Trace-link evidence hardening guidance (`rows[].trace` deep links). Audit 2026-09-14: OpenTelemetry-specific guidance is still missing — no semantic-convention or span-attribute mapping in `docs/integrations/trace-stacks.md`.
 

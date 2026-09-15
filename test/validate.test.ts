@@ -335,6 +335,52 @@ describe('validateEvalReport', () => {
     );
   });
 
+  it('accepts a first-class row.usage object with tokens/cost/model', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'r',
+          suite: 'q',
+          passed: true,
+          durationMs: 120,
+          usage: { promptTokens: 100, completionTokens: 40, totalTokens: 140, costUsd: 0.002, model: 'gpt-4o' },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a non-object row.usage and non-numeric usage fields', () => {
+    const objectResult = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, usage: 'bad' }],
+    });
+    expect(objectResult.ok).toBe(false);
+    expect((objectResult as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].usage must be an object when provided.',
+    );
+
+    const fieldResult = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, usage: { totalTokens: 'lots', model: 42 } }],
+    });
+    expect(fieldResult.ok).toBe(false);
+    expect((fieldResult as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].usage.totalTokens must be a number when provided.',
+    );
+    expect((fieldResult as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].usage.model must be a string when provided.',
+    );
+  });
+
   it('accepts portable row provenance and lifecycle metadata conventions', () => {
     const result = validateEvalReport({
       schemaVersion: 'eval-report/v1',
