@@ -47,15 +47,36 @@ const CHAIN = [
 ];
 
 /**
- * Labs are self-contained: each runs against tracked fixtures in examples/
- * rather than building up the CHAIN artifact.
- *
- * They are replayed in a scratch dir with examples/ linked in, NOT in the
- * checkout. Their documented steps write to a repo-relative `.tmp/<name>` and
- * `rm -rf` it first; running that in the checkout races with anything else
- * using .tmp (notably the rest of the vitest suite) and makes this check flaky.
+ * Labs regenerate tracked fixtures in examples/ and write to a repo-relative
+ * `.tmp/<name>`, so they must replay in the checkout itself. Consequence: only
+ * one teach:verify may run at a time, and the vitest guard passes
+ * --exercises-only so the suite never mutates the checkout underneath itself.
  */
 const LABS = ['04-release-readiness.md', '05-post-release-monitoring.md'];
+
+/**
+ * Self-contained exercises that build their own inputs in a fresh scratch dir
+ * instead of inheriting the CHAIN artifact.
+ *
+ * `needsExamples` links the repo's examples/ into the scratch dir for exercises
+ * whose documented commands copy a fixture from a repo-root-relative path.
+ *
+ * Isolation matters beyond tidiness: exercise 03 runs `init --write`, which
+ * scaffolds eval/ and .evals_output/ into the working directory. Run from the
+ * repo root it would litter the checkout, so it must never replay there.
+ */
+const STANDALONE_EXERCISES: { file: string; needsExamples: boolean }[] = [
+  { file: '11-diagnose-a-red-run.md', needsExamples: true },
+  { file: '03-first-synthetic-dataset.md', needsExamples: false },
+];
+
+/**
+ * Not covered, deliberately: pm-01-reading-a-report.md and
+ * pm-02-reading-drift.md. Their ```text blocks quote figures rendered into the
+ * HTML report, not CLI stdout, and their steps call `open` to launch a browser.
+ * Both were verified by hand on 2026-09-15 by extracting the text of the
+ * generated index.html. Guarding them needs an HTML-aware assertion mode.
+ */
 
 interface Block {
   lang: string;
@@ -174,16 +195,32 @@ function main(): number {
     // .tmp/<name>, so they must replay in the checkout itself. Consequence: only
     // one teach:verify may run at a time. Do not run it concurrently with itself.
     for (const filename of LABS) {
+      if (exercisesOnly) break;
       assertedCount += verifyDoc(`docs/teach-labs/${filename}`, repoRoot, drifts);
+    }
+    // Standalone exercises bring their own inputs; isolate each in a scratch dir
+    // so scaffolding commands like `init --write` never touch the checkout.
+    for (const { file, needsExamples } of STANDALONE_EXERCISES) {
+      const soloDir = mkdtempSync(path.join(tmpdir(), 'teach-solo-'));
+      try {
+        if (needsExamples) {
+          symlinkSync(path.join(repoRoot, 'examples'), path.join(soloDir, 'examples'));
+        }
+        assertedCount += verifyDoc(`docs/teach-exercises/${file}`, soloDir, drifts);
+      } finally {
+        rmSync(soloDir, { recursive: true, force: true });
+      }
     }
   } finally {
     rmSync(workdir, { recursive: true, force: true });
   }
 
   if (drifts.length === 0) {
+    const labCount = exercisesOnly ? 0 : LABS.length;
     console.log(
       `Teaching docs verified: ${assertedCount} documented output line(s) across ` +
-        `${CHAIN.length} exercises and ${LABS.length} labs match real CLI output.`,
+        `${CHAIN.length + STANDALONE_EXERCISES.length} exercises and ${labCount} labs ` +
+        `match real CLI output.`,
     );
     return 0;
   }
