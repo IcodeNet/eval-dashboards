@@ -87,6 +87,12 @@ const groupRows = (rows: EvalRow[], keyFn: (row: EvalRow) => string): Record<str
   );
 };
 
+/**
+ * Build a chronological run-history timeline from a set of eval reports,
+ * one entry per run with per-suite pass/fail buckets and optional bypass
+ * usage attached. Input order does not matter; entries are sorted by run
+ * timestamp. Used by the `history` CLI command and org-rollup tooling.
+ */
 export const buildHistory = (
   reports: EvalReportV1[],
   options: { bypassUsageByRunId?: Record<string, BypassUsageSummary> } = {},
@@ -136,6 +142,12 @@ export const buildHistory = (
   });
 };
 
+/**
+ * Compare a current eval run against its previous run (if any), classifying
+ * every row as newly failing, newly passing, a persistent failure, or
+ * disappeared, plus a per-row stability history. With no `previous` report,
+ * every failing row in `current` is treated as newly failing.
+ */
 export const compareRuns = (
   current: EvalReportV1,
   previous?: EvalReportV1,

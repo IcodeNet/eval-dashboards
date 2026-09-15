@@ -77,6 +77,12 @@ const provenanceSources = [...ROW_PROVENANCE_SOURCES] as string[];
 const lifecycleStatuses = [...ROW_LIFECYCLE_STATUSES] as string[];
 const datasetChangeTypes = [...DATASET_CHANGE_TYPES] as string[];
 
+/**
+ * Validate an unknown value against the `eval-report/v1` schema/shape,
+ * returning a structured result with `valid: boolean` plus a list of
+ * human-readable error messages. Does not throw; use this to check
+ * artifacts before further processing (reporting, gating, publishing).
+ */
 export const validateEvalReport = (value: unknown): ValidationResult => {
   const errors: string[] = [];
 

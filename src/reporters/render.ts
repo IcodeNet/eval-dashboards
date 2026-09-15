@@ -567,6 +567,11 @@ const inferGroupTarget = (report: EvalReportV1): string => {
   return 'custom';
 };
 
+/**
+ * Render a single "org rollup" HTML index page grouping multiple eval
+ * reports (e.g. one per repo/team) into one dashboard view, with per-report
+ * summary cards linking out to each report's own HTML output.
+ */
 export const renderGroupedIndexHtml = (
   reports: EvalReportV1[],
   locale?: string,

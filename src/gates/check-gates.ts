@@ -103,6 +103,13 @@ const topFailureReasons = (report: EvalReportV1): string[] => {
     .map(([reason, count]) => `${reason}=${count}`);
 };
 
+/**
+ * Evaluate quality gates for a single eval report against configured
+ * thresholds (pass-rate, severity, per-suite overrides, etc.), producing a
+ * pass/fail verdict plus diagnostics (top failing categories, per-suite
+ * breakdown). Used by the `check` CLI command and any programmatic caller
+ * that wants gate evaluation without the CLI's I/O/exit-code plumbing.
+ */
 export const checkGates = (
   report: EvalReportV1,
   comparison: RunComparison,

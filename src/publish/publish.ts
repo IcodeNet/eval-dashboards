@@ -50,6 +50,12 @@ export type PublishResult = {
   url?: string;
 };
 
+/**
+ * Publish a rendered report to a configured target (e.g. `github-pages`,
+ * `s3`, `github-pr-comment`). Defaults to dry-run outside CI for targets
+ * that can perform live network side effects, unless `options.dryRun` is
+ * explicitly set. See `docs/publishing.md` for target-specific options.
+ */
 export const publishReport = async (options: PublishOptions): Promise<PublishResult> => {
   const result = await publishReportInternal(options);
   if (options.redact) {

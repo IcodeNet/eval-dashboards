@@ -15,6 +15,12 @@ export type TaxonomyLintResult = {
 
 const MIN_CATEGORY_COVERAGE = 2;
 
+/**
+ * Lint an eval report for taxonomy completeness — flags rows missing
+ * `kind`/`severity`/`category`, suites missing `riskArea`/gate metadata, and
+ * low taxonomy-field coverage, so teams can improve artifact quality
+ * incrementally rather than only meeting the minimal schema.
+ */
 export function lintReportTaxonomy(report: EvalReportV1): TaxonomyLintResult {
   const issues: TaxonomyLintIssue[] = [];
   const suiteIds = new Set(report.suites.map((suite) => suite.id));

@@ -4,6 +4,12 @@ import type {
     SuiteManifest,
 } from '../model/eval-report-v1.js';
 
+/**
+ * Determine whether a run's suite manifests (dataset/rubric versions) are
+ * compatible with a baseline's, so pass/fail deltas aren't misattributed to
+ * a genuine regression when the underlying dataset or rubric actually
+ * changed. Returns `compatible: boolean` plus specific drift issues.
+ */
 export const assessBaselineCompatibility = (
     candidateManifests: readonly SuiteManifest[] | undefined,
     baselineManifests: readonly SuiteManifest[] | undefined,
