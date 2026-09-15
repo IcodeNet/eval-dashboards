@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "id": "score-1",
+      "name": "correctness",
+      "value": true,
+      "dataType": "BOOLEAN",
+      "source": "EVAL",
+      "comment": "Factually correct",
+      "traceId": "trace-1",
+      "observationId": "obs-1",
+      "trace": {
+        "name": "support-chat-1",
+        "input": "What is the SLA?",
+        "output": "The SLA is 99.9% uptime."
+      }
+    },
+    {
+      "id": "score-2",
+      "name": "hallucination",
+      "value": 0.1,
+      "dataType": "NUMERIC",
+      "source": "EVAL",
+      "comment": "Low hallucination risk but below trust threshold",
+      "traceId": "trace-2",
+      "trace": {
+        "name": "support-chat-2",
+        "input": "Do you support SSO?",
+        "output": "Yes, we made that up."
+      }
+    }
+  ]
+}

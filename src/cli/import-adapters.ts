@@ -3,12 +3,12 @@ import path from 'node:path';
 import { writeEvalReportArtifact, type RunnerEvalCaseResult } from '../adapters/runner.js';
 import type { EvalRow } from '../model/eval-report-v1.js';
 
-export type ImportSource = 'promptfoo' | 'deepeval' | 'agentevals';
+export type ImportSource = 'promptfoo' | 'deepeval' | 'agentevals' | 'ragas' | 'langfuse';
 
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|openevals.
                            openevals is accepted as an alias for agentevals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
@@ -147,6 +147,45 @@ const inferPassFromSignals = (
   }
 
   return signals[0]?.value;
+};
+
+type RagasResult = {
+  id?: string;
+  suite?: string;
+  question?: string;
+  user_input?: string;
+  answer?: string;
+  response?: string;
+  contexts?: unknown;
+  ground_truth?: string;
+  reference?: string;
+  // Common Ragas metric columns (all optional; a given evaluation run typically
+  // only populates the metrics that were actually requested).
+  faithfulness?: number;
+  answer_relevancy?: number;
+  answer_correctness?: number;
+  context_precision?: number;
+  context_recall?: number;
+  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+};
+
+type LangfuseScoreResult = {
+  id?: string;
+  name?: string;
+  value?: number | boolean | string;
+  stringValue?: string;
+  dataType?: 'NUMERIC' | 'BOOLEAN' | 'CATEGORICAL' | 'TEXT' | string;
+  comment?: string;
+  traceId?: string;
+  trace_id?: string;
+  observationId?: string;
+  observation_id?: string;
+  // Some exports flatten trace-level input/output alongside the score.
+  input?: unknown;
+  output?: unknown;
+  trace?: { input?: unknown; output?: unknown; name?: string };
+  suite?: string;
+  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
 };
 
 const resolveRowsContainer = (
@@ -347,17 +386,156 @@ const agentEvalsRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseR
   });
 };
 
+const RAGAS_METRIC_PASS_THRESHOLD = 0.5;
+
+const ragasRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: 'a JSON array',
+    objectLabel: 'Ragas result',
+    keys: ['scores', 'results', 'rows'],
+  });
+
+  return list.map((entry, index) => {
+    const row = entry as RagasResult;
+    const suite = row.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const rowLabel = row.id ?? `${suite}-${index + 1}`;
+
+    const metrics: Array<{ name: string; score: number }> = [];
+    if (typeof row.faithfulness === 'number') metrics.push({ name: 'faithfulness', score: row.faithfulness });
+    if (typeof row.answer_relevancy === 'number') {
+      metrics.push({ name: 'answer_relevancy', score: row.answer_relevancy });
+    }
+    if (typeof row.answer_correctness === 'number') {
+      metrics.push({ name: 'answer_correctness', score: row.answer_correctness });
+    }
+    if (typeof row.context_precision === 'number') {
+      metrics.push({ name: 'context_precision', score: row.context_precision });
+    }
+    if (typeof row.context_recall === 'number') {
+      metrics.push({ name: 'context_recall', score: row.context_recall });
+    }
+
+    if (metrics.length === 0) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for ragas row ${rowLabel} (suite: ${suite}): no known metric columns found.`),
+        { exitCode: 2 },
+      );
+    }
+
+    // Ragas does not emit an explicit pass/fail boolean for score-based metrics;
+    // treat the row as passed only if every reported metric clears a 0.5 threshold.
+    // This is a documented assumption, not a Ragas-defined convention.
+    const passed = metrics.every((metric) => metric.score >= RAGAS_METRIC_PASS_THRESHOLD);
+    const averageScore = metrics.reduce((sum, metric) => sum + metric.score, 0) / metrics.length;
+    const reason = metrics.map((metric) => `${metric.name}=${metric.score.toFixed(3)}`).join(', ');
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      question: row.question ?? row.user_input,
+      input: stringifyIfObject(row.question ?? row.user_input ?? row.contexts),
+      output: row.answer ?? row.response,
+      expected: stringifyIfObject(row.ground_truth ?? row.reference),
+      score: averageScore,
+      severity: row.metadata?.severity,
+      category: row.metadata?.category,
+      reason: `Ragas metrics (threshold ${RAGAS_METRIC_PASS_THRESHOLD}): ${reason}`,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from ragas',
+          sourceRef: 'ragas',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
+const langfuseRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: 'a JSON array',
+    objectLabel: 'Langfuse result',
+    keys: ['data', 'scores', 'results'],
+  });
+
+  return list.map((entry, index) => {
+    const row = entry as LangfuseScoreResult;
+    const suite = row.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const traceId = row.traceId ?? row.trace_id;
+    const rowLabel = row.id ?? traceId ?? `${suite}-${index + 1}`;
+
+    let passed: boolean | undefined;
+    let score: number | undefined;
+
+    if (typeof row.value === 'boolean') {
+      passed = row.value;
+      score = row.value ? 1 : 0;
+    } else if (row.dataType === 'BOOLEAN' && typeof row.value === 'number') {
+      passed = row.value === 1;
+      score = row.value;
+    } else if (typeof row.value === 'number') {
+      score = row.value;
+      passed = row.value >= RAGAS_METRIC_PASS_THRESHOLD;
+    } else if (typeof row.value === 'string' || typeof row.stringValue === 'string') {
+      // Prefer the explicit value/stringValue for categorical scores when present.
+      const categorical = (row.value as string | undefined) ?? row.stringValue;
+      const normalized = categorical?.toLowerCase();
+      if (normalized === 'true' || normalized === 'pass' || normalized === 'correct') passed = true;
+      if (normalized === 'false' || normalized === 'fail' || normalized === 'incorrect') passed = false;
+    }
+
+    if (passed === undefined) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for langfuse row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 },
+      );
+    }
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      name: row.name,
+      question: row.trace?.name,
+      input: stringifyIfObject(row.input ?? row.trace?.input),
+      output: stringifyIfObject(row.output ?? row.trace?.output),
+      score,
+      severity: row.metadata?.severity,
+      category: row.metadata?.category ?? row.name,
+      reason: row.comment,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from langfuse',
+          sourceRef: 'langfuse',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
 export const resolveImportSource = (rawSource: string): ImportSource => {
   const normalized = rawSource.trim().toLowerCase();
   if (normalized === 'openevals') {
     return 'agentevals';
   }
-  if (normalized === 'promptfoo' || normalized === 'deepeval' || normalized === 'agentevals') {
+  if (
+    normalized === 'promptfoo' ||
+    normalized === 'deepeval' ||
+    normalized === 'agentevals' ||
+    normalized === 'ragas' ||
+    normalized === 'langfuse'
+  ) {
     return normalized;
   }
 
   throw Object.assign(
-    new Error(`Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, openevals.`),
+    new Error(
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, openevals.`,
+    ),
     { exitCode: 2 },
   );
 };
@@ -376,7 +554,11 @@ export const importFromSource = async (options: {
       ? promptfooRows(parsed, fallbackSuite)
       : options.source === 'deepeval'
         ? deepEvalRows(parsed, fallbackSuite)
-        : agentEvalsRows(parsed, fallbackSuite);
+        : options.source === 'agentevals'
+          ? agentEvalsRows(parsed, fallbackSuite)
+          : options.source === 'ragas'
+            ? ragasRows(parsed, fallbackSuite)
+            : langfuseRows(parsed, fallbackSuite);
 
   await writeEvalReportArtifact(
     options.outPath,

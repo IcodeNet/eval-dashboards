@@ -679,11 +679,13 @@ Acceptance criteria:
 
 ### 4E.9 Complete coded import adapters (P2, M)
 
-- [ ] Convert Ragas, Langfuse, Phoenix, and Braintrust interoperability guidance from docs-only conversion notes into real coded `import` adapters with fixtures and tests, matching the existing promptfoo/deepeval/openevals pattern.
+- [x] Ragas and Langfuse portions: real coded `import` adapters (`--from=ragas`, `--from=langfuse`) with fixtures and passing tests, matching the existing promptfoo/deepeval/openevals pattern.
+- [ ] Phoenix and Braintrust portions: not started. Still docs-only conversion notes, no coded adapter, fixture, or test yet.
 
 Acceptance criteria:
 
 - Each converted adapter has a fixture, a passing test proving valid `eval-report/v1` output, and correct suite/row totals, matching 4B.3 acceptance criteria.
+- Status: 2 of 4 sources (ragas, langfuse) meet this bar; phoenix and braintrust remain open.
 
 
 ### 4E.10 JSONL import ingress for eval migration paths (P1, S)
@@ -1060,7 +1062,7 @@ Acceptance criteria:
 - [x] CI-native machine outputs (JUnit, SARIF, GitHub annotations).
 - [ ] First-class usage metrics path (tokens/cost/latency). Audit 2026-09-14: latency (`durationMs`) and cost (`metadata` alias keys) are read opportunistically by the reporters only. Token metrics are absent entirely and none of the three are schema fields, so the additive-fields acceptance criterion is unmet.
 - [x] Python emitter/adoption path.
-- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs). Audit 2026-09-14: documentation only. `resolveImportSource` in `src/cli/import-adapters.ts` accepts promptfoo, deepeval and agentevals/openevals and rejects all five named sources; no fixtures or tests exist. Tracked as 4E.9.
+- [ ] Interop adapter expansion (Ragas, Langfuse, Phoenix, Braintrust, OpenAI eval outputs). Audit 2026-09-15: Ragas and Langfuse now have real coded adapters, fixtures, and passing tests (`src/cli/import-adapters.ts`, `test/import-adapters-ragas-langfuse.test.ts`). Phoenix, Braintrust, and OpenAI eval outputs remain docs-only conversion notes with no coded adapter, fixture, or test. Tracked as 4E.9.
 - [x] Judge calibration workflow and measurable agreement reporting.
 - [x] Trace-link evidence hardening guidance (`rows[].trace` deep links). Audit 2026-09-14: OpenTelemetry-specific guidance is still missing — no semantic-convention or span-attribute mapping in `docs/integrations/trace-stacks.md`.
 

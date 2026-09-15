@@ -264,6 +264,8 @@ describe('import adapters', () => {
     expect(resolveImportSource('promptfoo')).toBe('promptfoo');
     expect(resolveImportSource('deepeval')).toBe('deepeval');
     expect(resolveImportSource('agentevals')).toBe('agentevals');
+    expect(resolveImportSource('ragas')).toBe('ragas');
+    expect(resolveImportSource('langfuse')).toBe('langfuse');
     expect(resolveImportSource('openevals')).toBe('agentevals');
     expect(() => resolveImportSource('other')).toThrow('Unknown import source other');
   });
