@@ -54,4 +54,11 @@ Options:
                                     --allow-gate-loosening were used); also configurable via
                                     bypassLogFile in the config file. Feed the same path to
                                     `history --bypass-log=<path>` to count/trend bypass use.
+  --tier=<pr|full>                    Gate only suites tagged for this tier (suiteManifests[].tier;
+                                    untagged suites default to "both" and always participate).
+                                    Filters suites/rows before all other gates run.
+  --max-pr-cost-usd=<number>          Fail if the selected tier's summed row metadata.costUsd
+                                    exceeds this budget (requires --tier)
+  --max-pr-duration-ms=<number>       Fail if the selected tier's summed row durationMs exceeds
+                                    this budget (requires --tier)
 

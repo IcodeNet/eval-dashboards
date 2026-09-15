@@ -1045,11 +1045,24 @@ Acceptance criteria:
 
 ### 4F.10 PR-subset vs full-suite tiering with cost budget (P2, M)
 
-- [ ] Add a first-class concept of a fast PR subset versus a full scheduled suite, with judge cost and runtime reporting per run.
+- [x] Add a first-class concept of a fast PR subset versus a full scheduled suite, with judge cost and runtime reporting per run.
 
 Acceptance criteria:
 
 - A team can keep PR gating under an explicit time and cost budget instead of moving the gate to nightly and losing PR protection entirely.
+
+Shipped: `suiteManifests[].tier` (`pr` | `full` | `both`, default `both` so untagged
+suites are never silently dropped from PR gating) in `src/model/eval-report-v1.ts`;
+`src/gates/pr-tiering.ts` filters a report to a tier's suites/rows and sums
+`durationMs`/`metadata.costUsd` (tolerating the documented cost aliases) into a
+`TierCostSummary`; `check --tier=pr|full` filters before all other gates run,
+and `--max-pr-cost-usd`/`--max-pr-duration-ms` fail the gate when the selected
+tier's totals exceed budget. `check --json-out` always includes a `prTier`
+summary when `--tier` is passed, so "PR gate is under budget" is a verifiable
+number. Tests: `test/pr-tiering.test.ts` (14 unit tests) and
+`test/cli-pr-tiering.test.ts` (3 end-to-end CLI tests covering tier filtering,
+cost-budget failure, and invalid `--tier` rejection).
+
 
 ### 4F.11 Evidence export bundle (P2, 3-4 d)
 
@@ -1074,7 +1087,7 @@ Acceptance criteria:
 7. 4F.7 Heartbeat verifier — done
 8. 4F.8 Static org rollup index — done
 9. 4F.9 Bypass accounting — done
-10. 4F.10 PR-subset tiering with cost budget
+10. 4F.10 PR-subset tiering with cost budget — done
 11. 4F.11 Evidence export bundle
 
 4F.1 through 4F.7 have shipped: `publish --redact`/preflight hard-fail,
@@ -1082,8 +1095,8 @@ Acceptance criteria:
 a waiver register, threshold-loosening detection, and `heartbeat-verify`
 are all real, tested, and merged to main. The honest residual gap is
 narrower now: bypass usage (4F.9) is now tracked as a trend (see 4F.9 —
-done), PR-subset cost tiering (4F.10) does not exist, and there is no
-evidence export bundle (4F.11) yet.
+done), PR-subset cost tiering (4F.10) is now real (see 4F.10 — done), and
+there is no evidence export bundle (4F.11) yet.
 
 ---
 

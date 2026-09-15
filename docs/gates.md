@@ -44,6 +44,34 @@ Initial gates:
 - `statistical.bootstrapSamples`
 - `statistical.minPassRateDelta`
 
+## PR-subset vs full-suite tiering with a cost budget (4F.10)
+
+Tag suites in their manifest with `tier: 'pr' | 'full' | 'both'` (default `both`
+when omitted, so untagged suites always participate — tiering is opt-in per
+suite, never opt-out). Then gate only one tier:
+
+```sh
+eval-dashboards check --input=.evals_output --tier=pr --max-pr-cost-usd=2 --max-pr-duration-ms=300000
+```
+
+- `--tier=pr|full` filters the report to that tier's suites/rows before any
+  other gate runs (pass rate, new-failure count, warnings, etc. are all
+  computed on the filtered subset).
+- `--max-pr-cost-usd` fails the gate when the tier's summed row
+  `metadata.costUsd` (canonical key; `costUSD`/`usdCost`/`cost.usd`/
+  `pricing.costUsd` aliases are also read) exceeds the budget.
+- `--max-pr-duration-ms` fails the gate when the tier's summed row
+  `durationMs` exceeds the budget.
+- `check --json-out`/`--json-v2-out` always includes a `prTier` object
+  (`{ tier, suiteCount, rowCount, totalCostUsd, totalDurationMs,
+  rowsMissingCost }`) whenever `--tier` is passed, so "the PR gate is under
+  budget" is a checkable number rather than an unstated assumption.
+
+Intended workflow: keep a cheap, fast `pr`-tier subset gating every PR under
+an explicit budget, and run the full suite (including `full`-tier suites) on
+a schedule — instead of moving the whole gate to nightly and losing PR-time
+protection.
+
 Example:
 
 ```sh

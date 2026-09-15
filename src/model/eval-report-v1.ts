@@ -107,6 +107,13 @@ export type SuiteManifest = {
   graders: GraderKind[];
   gate: GatePolicy;
   description?: string;
+  /**
+   * 4F.10 — which cost/runtime tier this suite belongs to: `pr` (fast subset
+   * gating every PR), `full` (scheduled/nightly only), or `both` (gates both).
+   * Omitted defaults to `both`, so untagged suites are never silently dropped
+   * from PR gating.
+   */
+  tier?: 'pr' | 'full' | 'both';
 };
 
 export type RegisteredRubric = {

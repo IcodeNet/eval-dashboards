@@ -18,6 +18,7 @@ import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import { detectGateConfigLoosening } from '../gates/threshold-change.js';
+import { filterReportByTier, evaluatePrTierBudget, type TierCostSummary } from '../gates/pr-tiering.js';
 import {
   buildBypassLogEntry,
   parseBypassLog,
@@ -193,6 +194,13 @@ Options:
                                     --allow-gate-loosening were used); also configurable via
                                     bypassLogFile in the config file. Feed the same path to
                                     \`history --bypass-log=<path>\` to count/trend bypass use.
+  --tier=<pr|full>                    Gate only suites tagged for this tier (suiteManifests[].tier;
+                                    untagged suites default to "both" and always participate).
+                                    Filters suites/rows before all other gates run.
+  --max-pr-cost-usd=<number>          Fail if the selected tier's summed row metadata.costUsd
+                                    exceeds this budget (requires --tier)
+  --max-pr-duration-ms=<number>       Fail if the selected tier's summed row durationMs exceeds
+                                    this budget (requires --tier)
 `;
 
 const publishUsage = `eval-dashboards publish [options]
@@ -402,6 +410,13 @@ type CheckOutputPayload = {
     used: string[];
     count: number;
   };
+  /**
+   * 4F.10 — PR-subset vs full-suite tiering: present whenever `--tier` was
+   * passed. Reports which tier was gated and its cost/runtime totals against
+   * any configured budget, so "PR gate is under budget" is a verifiable
+   * number rather than an unstated assumption.
+   */
+  prTier?: TierCostSummary;
 };
 
 /** Per-suite dataset/rubric provenance recorded in `eval-check-result/v2`. */
@@ -1613,6 +1628,26 @@ const main = async (): Promise<void> => {
       assertValidStatisticalGateConfig(gateConfig);
       assertValidCalibrationGateConfig(gateConfig);
 
+      const tierOption = optionString(options, 'tier', '').trim().toLowerCase();
+      if (tierOption && tierOption !== 'pr' && tierOption !== 'full') {
+        throw Object.assign(new Error(`--tier must be "pr" or "full" (got "${tierOption}").`), {
+          exitCode: 2,
+        });
+      }
+      const selectedTier = (tierOption || undefined) as 'pr' | 'full' | undefined;
+      const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
+      const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
+      if (selectedTier) {
+        context.current = filterReportByTier(context.current, selectedTier);
+      }
+      const prTierBudget = selectedTier
+        ? evaluatePrTierBudget(context.current, {
+            tier: selectedTier,
+            maxCostUsd: maxPrCostUsd,
+            maxDurationMs: maxPrDurationMs,
+          })
+        : undefined;
+
       const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
       const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
       const waiverApplication = applyWaivers(context.current, waiverRegister);
@@ -1665,6 +1700,7 @@ const main = async (): Promise<void> => {
         ...calibrationChecks.failures,
         ...waiverApplication.failures,
         ...thresholdChangeFailures,
+        ...(prTierBudget?.failures ?? []),
       ];
       const combinedDiagnostics = [
         ...waiverApplication.diagnostics,
@@ -1674,6 +1710,7 @@ const main = async (): Promise<void> => {
         ...(thresholdChangeResult?.loosened && allowGateLoosening
           ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
           : []),
+        ...(prTierBudget?.diagnostics ?? []),
       ];
       const gatePassed = combinedFailures.length === 0;
 
@@ -1704,6 +1741,7 @@ const main = async (): Promise<void> => {
           reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
         })),
         bypassUsage,
+        prTier: prTierBudget?.summary,
       };
 
       if (bypassLogPath) {

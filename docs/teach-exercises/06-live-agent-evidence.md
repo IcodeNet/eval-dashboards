@@ -83,15 +83,19 @@ npx eval-dashboards lint --input=.evals_output
 
 Example result (verified against a real run)
 ```text
-Eval taxonomy lint passed with warnings (1 warning(s), 0 error(s)):
-WARNING [missing-agent-versioning] [run:...] Agent row mcp-routing:agent-trajectory-001 is missing agentVersion/promptVersion.
+Eval taxonomy lint passed with warnings (3 warning(s), 0 error(s)):
+WARNING [missing-agent-versioning] [run:local-minimal-001] Agent row mcp-routing:agent-trajectory-001 is missing agentVersion/promptVersion.
+WARNING [missing-suite-manifest] [run:local-minimal-001] Suite quality has no matching suite manifest.
+WARNING [missing-suite-manifest] [run:local-minimal-001] Suite mcp-routing has no matching suite manifest.
 ```
 - Exit code `0`.
-- The one warning is expected: this exercise adds `turns`/`toolCalls` but not
-  `agentVersion`/`promptVersion`. Add those two fields to the row if you want
-  a fully clean run — they identify which agent build and prompt version
-  produced this trajectory, which matters once you are comparing runs across
-  releases.
+- The `missing-agent-versioning` warning is expected: this exercise adds
+  `turns`/`toolCalls` but not `agentVersion`/`promptVersion`. Add those two
+  fields to the row if you want a fully clean run — they identify which agent
+  build and prompt version produced this trajectory, which matters once you
+  are comparing runs across releases.
+- The two `missing-suite-manifest` warnings are expected too: this exercise's
+  fixture doesn't declare suite manifests for `quality`/`mcp-routing`.
 
 Definition of done
 - Row exists with both `turns` and `toolCalls`.
