@@ -66,6 +66,7 @@ import {
   sendGateNotifications,
   type NotificationDispatchResult,
 } from '../notifications/notify.js';
+import { signArtifact, verifyArtifact } from '../sign/sign.js';
 
 const usage = `eval-dashboards <command>
 
@@ -82,6 +83,8 @@ Commands:
   completion  Print shell completion script for bash/zsh/fish.
   import   Convert third-party eval output JSON into eval-report/v1.
   adjudicate  Export unresolved rows for human review and merge reviewed verdicts back.
+  sign     Hash and detached-sign a check-result artifact (cosign keyless in CI).
+  verify   Re-validate a check-result artifact's digest and detached signature.
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -229,6 +232,33 @@ const historyUsage = `eval-dashboards history [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --out=<path>             Output history JSON path. Default: eval-report/history.json
+`;
+
+const signUsage = `eval-dashboards sign [options]
+
+Hashes a check-result artifact (e.g. an eval-check-result/v1 or /v2 JSON file) and
+writes a detached eval-check-signature/v1 record next to it. In CI with a Sigstore/
+Fulcio OIDC token available, this shells out to \`cosign sign-blob --yes --bundle\`
+for a real keyless signature. Locally, or wherever cosign is unavailable, the
+signature record is written with method: "unavailable" and a clear reason instead
+of failing or fabricating a signature.
+
+Options:
+  --artifact=<path>        Path to the check-result artifact to hash and sign (required)
+  --out=<path>              Output signature JSON path. Default: <artifact>.sig.json
+`;
+
+const verifyUsage = `eval-dashboards verify [options]
+
+Re-validates a check-result artifact against its recorded sha256 digest and detached
+signature. Fails (exit 1) if the artifact's bytes no longer match the digest recorded
+at signing time, or if the signature is missing/"unavailable"/fails cosign verify-blob.
+
+Options:
+  --artifact=<path>                       Path to the check-result artifact to verify (required)
+  --signature=<path>                       Path to the eval-check-signature/v1 file. Default: <artifact>.sig.json
+  --certificate-identity-regexp=<regexp>   Required cosign certificate identity regexp (cosign-keyless only)
+  --certificate-oidc-issuer=<issuer>       Required cosign certificate OIDC issuer (cosign-keyless only)
 `;
 
 type CheckOutputRow = {
@@ -1712,6 +1742,83 @@ const main = async (): Promise<void> => {
     const out = optionString(options, 'out', 'eval-report/history.json');
     await writeJsonFile(out, buildHistory(reports));
     console.log(out);
+    return;
+  }
+
+  if (command === 'sign') {
+    if (optionBoolean(options, 'help')) {
+      console.log(signUsage);
+      return;
+    }
+
+    const artifactPath = optionString(options, 'artifact', '');
+    if (!artifactPath) {
+      console.error('sign requires --artifact=<path>');
+      process.exitCode = 2;
+      return;
+    }
+    const outPath = optionString(options, 'out', `${artifactPath}.sig.json`);
+
+    let signature;
+    try {
+      signature = await signArtifact({ artifactPath });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to sign ${artifactPath}: ${message}`);
+      process.exitCode = 2;
+      return;
+    }
+
+    await writeJsonFile(outPath, signature);
+
+    if (signature.method === 'unavailable') {
+      console.log(
+        `Wrote ${outPath} (digest sha256:${signature.digest.hex}). Signature unavailable: ${signature.unavailableReason}`,
+      );
+    } else {
+      console.log(`Wrote ${outPath} (digest sha256:${signature.digest.hex}, method: ${signature.method})`);
+    }
+    return;
+  }
+
+  if (command === 'verify') {
+    if (optionBoolean(options, 'help')) {
+      console.log(verifyUsage);
+      return;
+    }
+
+    const artifactPath = optionString(options, 'artifact', '');
+    if (!artifactPath) {
+      console.error('verify requires --artifact=<path>');
+      process.exitCode = 2;
+      return;
+    }
+    const signaturePath = optionString(options, 'signature', `${artifactPath}.sig.json`);
+    const certificateIdentityRegexp = optionString(options, 'certificate-identity-regexp', '') || undefined;
+    const certificateOidcIssuer = optionString(options, 'certificate-oidc-issuer', '') || undefined;
+
+    let result;
+    try {
+      result = await verifyArtifact({
+        artifactPath,
+        signaturePath,
+        certificateIdentityRegexp,
+        certificateOidcIssuer,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to verify ${artifactPath}: ${message}`);
+      process.exitCode = 2;
+      return;
+    }
+
+    if (result.ok) {
+      console.log(`Verified: digest matches and signature (${result.signatureMethod}) is valid.`);
+      return;
+    }
+
+    console.error(`Verification failed:\n${result.reasons.join('\n')}`);
+    process.exitCode = 1;
     return;
   }
 

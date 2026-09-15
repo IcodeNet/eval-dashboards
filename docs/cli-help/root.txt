@@ -13,4 +13,6 @@ Commands:
   completion  Print shell completion script for bash/zsh/fish.
   import   Convert third-party eval output JSON into eval-report/v1.
   adjudicate  Export unresolved rows for human review and merge reviewed verdicts back.
+  sign     Hash and detached-sign a check-result artifact (cosign keyless in CI).
+  verify   Re-validate a check-result artifact's digest and detached signature.
 

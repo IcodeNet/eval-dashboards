@@ -925,12 +925,27 @@ Acceptance criteria:
 
 ### 4F.4 Artifact digest and detached signature (P0, 4-6 d)
 
-- [ ] Hash artifacts and gate results; emit a detached signature using cosign keyless via CI OIDC.
-- [ ] Add a `verify` command that re-validates digest and signature.
+- [x] Hash artifacts and gate results; emit a detached signature using cosign keyless via CI OIDC.
+- [x] Add a `verify` command that re-validates digest and signature.
 
 Acceptance criteria:
 
 - A hand-edited check-result claiming `passed: true` fails `verify`, and a genuine one passes with its producing workflow, repo, and commit identifiable from the signature.
+  - Evidence: `eval-dashboards sign --artifact=<path> [--out=<path>]` hashes (sha256) the
+    artifact and writes an `eval-check-signature/v1` record (`src/sign/sign.ts`). In CI with
+    a Sigstore/Fulcio OIDC token, it shells out to `cosign sign-blob --yes --bundle` for a
+    real keyless signature and embeds the bundle (workflow/repo/commit identifiable via the
+    Fulcio certificate + Rekor entry inside the bundle). cosign is not installed in this
+    sandbox and keyless signing requires a CI OIDC token it cannot obtain locally, so here it
+    gracefully degrades to `method: "unavailable"` with a explicit reason instead of failing
+    or fabricating a signature — never silently claiming a signature that isn't real.
+    `eval-dashboards verify --artifact=<path> [--signature=<path>]` (`src/cli/index.ts`)
+    re-hashes the artifact, fails closed on digest mismatch (hand-edited artifact) and on
+    `method: "unavailable"`/missing signatures, and shells out to `cosign verify-blob` for
+    real `cosign-keyless` bundles. Covered by `test/sign.test.ts` and
+    `test/cli-sign-verify.test.ts` (digest-mismatch rejection, missing-signature rejection,
+    graceful local degradation). CLI help snapshots: `docs/cli-help/sign.txt`,
+    `docs/cli-help/verify.txt`.
 
 ### 4F.5 Waiver and exception register (P1, 5-7 d)
 

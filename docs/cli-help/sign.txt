@@ -1,0 +1,13 @@
+eval-dashboards sign [options]
+
+Hashes a check-result artifact (e.g. an eval-check-result/v1 or /v2 JSON file) and
+writes a detached eval-check-signature/v1 record next to it. In CI with a Sigstore/
+Fulcio OIDC token available, this shells out to `cosign sign-blob --yes --bundle`
+for a real keyless signature. Locally, or wherever cosign is unavailable, the
+signature record is written with method: "unavailable" and a clear reason instead
+of failing or fabricating a signature.
+
+Options:
+  --artifact=<path>        Path to the check-result artifact to hash and sign (required)
+  --out=<path>              Output signature JSON path. Default: <artifact>.sig.json
+

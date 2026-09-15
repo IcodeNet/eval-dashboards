@@ -14,6 +14,8 @@ These files are exact snapshots of live CLI `--help` output.
 - `report-index.txt`
 - `completion.txt`
 - `adjudicate.txt`
+- `sign.txt`
+- `verify.txt`
 - `root.txt`
 
 Verification rule:

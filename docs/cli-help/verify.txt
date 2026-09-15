@@ -1,0 +1,12 @@
+eval-dashboards verify [options]
+
+Re-validates a check-result artifact against its recorded sha256 digest and detached
+signature. Fails (exit 1) if the artifact's bytes no longer match the digest recorded
+at signing time, or if the signature is missing/"unavailable"/fails cosign verify-blob.
+
+Options:
+  --artifact=<path>                       Path to the check-result artifact to verify (required)
+  --signature=<path>                       Path to the eval-check-signature/v1 file. Default: <artifact>.sig.json
+  --certificate-identity-regexp=<regexp>   Required cosign certificate identity regexp (cosign-keyless only)
+  --certificate-oidc-issuer=<issuer>       Required cosign certificate OIDC issuer (cosign-keyless only)
+
