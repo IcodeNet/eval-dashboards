@@ -73,6 +73,12 @@ import {
   validateAdjudicationBundle,
   type AdjudicationBundleV1,
 } from '../adjudication/bundles.js';
+import {
+  buildEvidenceBundle,
+  verifyEvidenceBundle,
+  type EvidenceBundleInput,
+  type EvidenceBundleV1,
+} from '../evidence/bundle.js';
 import type { NewFailureKeyMode } from '../gates/check-gates.js';
 import {
   defaultReportLink,
@@ -101,6 +107,8 @@ Commands:
   verify   Re-validate a check-result artifact's digest and detached signature.
   heartbeat-verify  Assert a fresh gate-run heartbeat exists for a release subject (scheduled check).
   org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
+  evidence-export  Bundle a report, check result, waivers, and signature into one evidence file (4F.11).
+  evidence-verify   Independently re-validate a previously produced evidence bundle.
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -318,6 +326,41 @@ Options:
   --input=<path>   Directory to recursively search for history.json files. Default: org-rollup-input
   --out=<path>     Output HTML path. Default: eval-report/org-rollup.html
   --locale=<tag>   BCP-47 locale for date formatting (e.g. en-US)
+`;
+
+const evidenceExportUsage = `eval-dashboards evidence-export [options]
+
+4F.11 — Produces one self-contained evidence bundle for a release: the eval
+report, the check-result artifact, the active waiver register, an optional
+bypass log, an optional approval trail, and an optional detached signature
+are each hashed (sha256) and embedded verbatim into a single JSON file,
+alongside a top-level digest over all of those digests. Hand the resulting
+file to an examiner and they can independently verify it (see
+eval-dashboards evidence-verify) without needing access to any of the
+original inputs.
+
+Options:
+  --report=<path>            Path to the eval-report/v1 JSON artifact (required)
+  --check-result=<path>      Path to the eval-check-result/v1 or /v2 JSON artifact (required)
+  --waiver-file=<path>       Path to the eval-waiver-register/v1 JSON file
+  --bypass-log=<path>        Path to a bypass-usage JSON-lines log
+  --approval-trail=<path>    Path to a freeform approval-trail JSON/text file
+  --signature=<path>         Path to an eval-check-signature/v1 file (from the "sign" command)
+  --run-id=<id>               runId recorded on the bundle (informational)
+  --baseline-run-id=<id>       baselineRunId recorded on the bundle (informational)
+  --out=<path>                Output bundle JSON path. Default: eval-report/evidence-bundle.json
+`;
+
+const evidenceVerifyUsage = `eval-dashboards evidence-verify [options]
+
+Independently re-validates a previously produced evidence bundle: every
+entry's embedded contents must hash to its recorded digest, and the
+recomputed digest over all entries must match the bundle's top-level
+digest. Needs nothing but the bundle file itself. Fails (exit 1) on any
+mismatch or missing/malformed bundle.
+
+Options:
+  --bundle=<path>   Path to the eval-evidence-bundle/v1 JSON file (required)
 `;
 
 const heartbeatVerifyUsage = `eval-dashboards heartbeat-verify [options]
@@ -2118,6 +2161,87 @@ const main = async (): Promise<void> => {
     }
 
     console.error(`Heartbeat verification failed for ${heartbeatPath}:\n${result.reasons.join('\n')}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'evidence-export') {
+    if (optionBoolean(options, 'help')) {
+      console.log(evidenceExportUsage);
+      return;
+    }
+
+    const reportPath = optionString(options, 'report', '');
+    const checkResultPath = optionString(options, 'check-result', '');
+    if (!reportPath || !checkResultPath) {
+      console.error('evidence-export requires --report=<path> and --check-result=<path>');
+      process.exitCode = 2;
+      return;
+    }
+    const waiverFilePath = optionString(options, 'waiver-file', '');
+    const bypassLogPath = optionString(options, 'bypass-log', '');
+    const approvalTrailPath = optionString(options, 'approval-trail', '');
+    const signaturePath = optionString(options, 'signature', '');
+    const runId = optionString(options, 'run-id', '') || undefined;
+    const baselineRunId = optionString(options, 'baseline-run-id', '') || undefined;
+    const out = optionString(options, 'out', path.join(reportDir, 'evidence-bundle.json'));
+
+    const bundleInputs: EvidenceBundleInput[] = [
+      { role: 'report', path: reportPath },
+      { role: 'checkResult', path: checkResultPath },
+    ];
+    if (waiverFilePath) bundleInputs.push({ role: 'waiverRegister', path: waiverFilePath });
+    if (bypassLogPath) bundleInputs.push({ role: 'bypassLog', path: bypassLogPath });
+    if (approvalTrailPath) bundleInputs.push({ role: 'approvalTrail', path: approvalTrailPath });
+    if (signaturePath) bundleInputs.push({ role: 'signature', path: signaturePath });
+
+    let bundle: EvidenceBundleV1;
+    try {
+      bundle = await buildEvidenceBundle(bundleInputs, { runId, baselineRunId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to build evidence bundle: ${message}`);
+      process.exitCode = 2;
+      return;
+    }
+
+    await writeJsonFile(out, bundle);
+    console.log(
+      `Wrote ${out} (${bundle.entries.length} entr${bundle.entries.length === 1 ? 'y' : 'ies'}: ${bundle.entries.map((entry) => entry.role).join(', ')}; bundleDigest sha256:${bundle.bundleDigest.hex})`,
+    );
+    return;
+  }
+
+  if (command === 'evidence-verify') {
+    if (optionBoolean(options, 'help')) {
+      console.log(evidenceVerifyUsage);
+      return;
+    }
+
+    const bundlePath = optionString(options, 'bundle', '');
+    if (!bundlePath) {
+      console.error('evidence-verify requires --bundle=<path>');
+      process.exitCode = 2;
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await readFile(bundlePath, 'utf8'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Could not read evidence bundle ${bundlePath}: ${message}`);
+      process.exitCode = 2;
+      return;
+    }
+
+    const result = verifyEvidenceBundle(parsed);
+    if (result.ok) {
+      console.log(`Verified: all ${result.roles.length} entries and the bundle digest are intact.`);
+      return;
+    }
+
+    console.error(`Evidence bundle verification failed:\n${result.reasons.join('\n')}`);
     process.exitCode = 1;
     return;
   }

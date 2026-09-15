@@ -1,0 +1,10 @@
+eval-dashboards evidence-verify [options]
+
+Independently re-validates a previously produced evidence bundle: every
+entry's embedded contents must hash to its recorded digest, and the
+recomputed digest over all entries must match the bundle's top-level
+digest. Needs nothing but the bundle file itself. Fails (exit 1) on any
+mismatch or missing/malformed bundle.
+
+Options:
+  --bundle=<path>   Path to the eval-evidence-bundle/v1 JSON file (required)

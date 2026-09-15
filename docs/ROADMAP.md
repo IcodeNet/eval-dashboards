@@ -7,6 +7,36 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 
 ---
 
+## Table of contents
+
+- [Phase 1: Fix consistency & polish the foundation (COMPLETE)](#-phase-1-fix-consistency--polish-the-foundation-complete)
+- [Phase 2A: Strengthen the contract & teach taxonomy (COMPLETE)](#-phase-2a-strengthen-the-contract--teach-taxonomy-complete)
+- [Phase 2B: Improve HTML reporter & grouping (COMPLETE)](#-phase-2b-improve-html-reporter--grouping-complete)
+- [Phase 2C: Complete examples & publishing (COMPLETE)](#-phase-2c-complete-examples--publishing-complete)
+- [Phase 3: Documentation & Discoverability (COMPLETE)](#-phase-3-documentation--discoverability-complete)
+- [Phase 3B: Governance Hardening & Output Safety (COMPLETE)](#-phase-3b-governance-hardening--output-safety-complete)
+- [Phase 3C: Decision-Oriented Reporting UX (COMPLETE)](#-phase-3c-decision-oriented-reporting-ux-complete)
+- [Phase 4 (Core Shipping & Adoption Infrastructure): COMPLETE](#-phase-4-core-shipping--adoption-infrastructure-complete)
+- [Phase 4A: Reference Integration Proving Ground & Setup Layer](#-phase-4a-reference-integration-proving-ground--setup-layer-partially-complete-next-slices-remain)
+- [Phase 4B: CLI Setup Automation for Agent Evals](#-phase-4b-cli-setup-automation-for-agent-evals-expansion-of-existing-init)
+- [Phase 4C: Product Docs Website + Interoperability Guides](#-phase-4c-product-docs-website--interoperability-guides-new)
+- [Phase 4E: Trust hardening for CI gating and eval methodology](#-phase-4e-trust-hardening-for-ci-gating-and-eval-methodology-new)
+- [Phase 4G: Teaching curriculum consistency](#-phase-4g-teaching-curriculum-consistency-new)
+- [Phase 4F: Evidence, confidentiality, and org rollout](#-phase-4f-evidence-confidentiality-and-org-rollout-new)
+- [Phase 4H: Documentation navigability](#-phase-4h-documentation-navigability-new)
+- [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
+
+> **Note on ordering:** sections below are in the order they were added, not
+> strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4D.
+> Phase letters were assigned when each initiative was scoped, and later
+> phases (4E, 4G, 4F, 4H) were slotted into ongoing work ahead of 4D, which
+> was drafted earlier but landed last. Sections are not reordered to match
+> the letters because several docs and commit messages already link to
+> specific phase headings; use the table of contents above to navigate
+> instead of relying on physical position.
+
+---
+
 ## ✅ Phase 1: Fix consistency & polish the foundation (COMPLETE)
 
 - [x] Naming alignment across legacy `eval-reports` references
@@ -1066,11 +1096,29 @@ cost-budget failure, and invalid `--tier` rejection).
 
 ### 4F.11 Evidence export bundle (P2, 3-4 d)
 
-- [ ] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest.
+- [x] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest.
 
 Acceptance criteria:
 
 - A single artifact can be handed to an examiner and independently verified.
+
+Shipped: `src/evidence/bundle.ts` defines `eval-evidence-bundle/v1`:
+`buildEvidenceBundle` reads each referenced input file (eval report,
+check-result artifact, waiver register, optional bypass log, optional
+approval trail, optional `sign` detached signature), hashes it (sha256), and
+embeds its exact bytes verbatim, plus a top-level `bundleDigest` computed
+over all per-entry digests (so tampering with the entry list itself —
+add/remove/reorder/swap — is detectable even if an individual entry's own
+digest still matches its contents). `verifyEvidenceBundle` recomputes both
+and fails closed on any mismatch, needing nothing but the bundle file
+itself. New CLI commands: `eval-dashboards evidence-export
+--report=<path> --check-result=<path> [--waiver-file=<path>]
+[--bypass-log=<path>] [--approval-trail=<path>] [--signature=<path>]
+[--run-id=<id>] [--baseline-run-id=<id>] --out=<path>` and
+`eval-dashboards evidence-verify --bundle=<path>`. Tests:
+`test/cli-evidence-export.test.ts` (10 tests — unit-level digest/tamper
+coverage plus CLI-level export+verify round trip, missing-flag exit 2, and
+hand-edited-bundle detection).
 
 ### Still out of scope in 4F
 
@@ -1088,15 +1136,14 @@ Acceptance criteria:
 8. 4F.8 Static org rollup index — done
 9. 4F.9 Bypass accounting — done
 10. 4F.10 PR-subset tiering with cost budget — done
-11. 4F.11 Evidence export bundle
+11. 4F.11 Evidence export bundle — done
 
-4F.1 through 4F.7 have shipped: `publish --redact`/preflight hard-fail,
+4F.1 through 4F.11 have all shipped: `publish --redact`/preflight hard-fail,
 `eval-check-result/v2` provenance, `sign`/`verify` (cosign keyless in CI),
-a waiver register, threshold-loosening detection, and `heartbeat-verify`
-are all real, tested, and merged to main. The honest residual gap is
-narrower now: bypass usage (4F.9) is now tracked as a trend (see 4F.9 —
-done), PR-subset cost tiering (4F.10) is now real (see 4F.10 — done), and
-there is no evidence export bundle (4F.11) yet.
+a waiver register, threshold-loosening detection, `heartbeat-verify`,
+bypass-usage trend accounting (4F.9), PR-subset cost tiering (4F.10), and
+the evidence export bundle (4F.11, `evidence-export`/`evidence-verify`) are
+all real, tested, and merged to main.
 
 ---
 
@@ -1114,36 +1161,36 @@ phase's commit message.
 
 ### 4H.1 `docs/README.md` index grouped by audience (P1, S)
 
-- [ ] Add `docs/README.md`: groups all 94 files into "Start here"
+- [x] Add `docs/README.md`: groups all 94 files into "Start here"
       (artifact-format, taxonomy, configuration), "Contract & schema"
       (artifact-format, taxonomy, schema-taxonomy-decisions), "CI &
       governance" (gates, publishing, github-approval-gate-pattern, sign/
       verify/waivers/heartbeat/bypass docs), "Teaching" (teach-curriculum,
       teach-exercises, teach-labs), "Product & roadmap" (PROPOSITION-*, PRP,
       STATUS, ROADMAP), "Integrations", "Reference" (cli-help, reporters).
-- [ ] State explicitly in the new index which surface is canonical:
+- [x] State explicitly in the new index which surface is canonical:
       raw `docs/*.md` is source of truth; `docs-site/v1/*.html` is a
       curated, smaller subset for external readers.
 
 ### 4H.2 README Documentation Index regrouped (P1, XS)
 
-- [ ] Replace the current flat 20-item bullet list in README.md's
+- [x] Replace the current flat 20-item bullet list in README.md's
       "Documentation Index" section with the same audience groups as
       4H.1, plus a 3-link "Start here" block above the full index for
       brand-new adopters.
 
 ### 4H.3 `docs/teach-exercises/README.md` index (P2, XS)
 
-- [ ] Add an index file for `docs/teach-exercises/` matching the existing
+- [x] Add an index file for `docs/teach-exercises/` matching the existing
       pattern in `docs/teach-labs/README.md`, so both curricula are
       discoverable the same way without requiring `teach-curriculum.md`
       to be read first.
 
 ### 4H.4 `docs/ROADMAP.md` table of contents + phase reorder note (P2, S)
 
-- [ ] Add a table of contents at the top of `docs/ROADMAP.md` linking to
+- [x] Add a table of contents at the top of `docs/ROADMAP.md` linking to
       each phase heading.
-- [ ] Add a one-line note next to any phase whose section order doesn't
+- [x] Add a one-line note next to any phase whose section order doesn't
       match its number (current file has 4A, 4B, 4C, 4E, 4G, 4F, 4D in
       that physical order) explaining why, or reorder sections to match
       numbering if it's cheap to do safely (verify no external doc links

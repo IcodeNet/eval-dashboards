@@ -495,25 +495,56 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 
 ## Documentation Index
 
-- [Static docs site (v1)](docs-site/v1/index.html) — versioned quickstart + CLI-first onboarding
+Full audience-grouped index: [docs/README.md](docs/README.md). `docs/*.md` is
+the canonical source of truth; [docs-site/v1](docs-site/v1/index.html) is a
+curated subset for external readers.
+
+**Start here:**
+
+- [Artifact format](docs/artifact-format.md) — the `eval-report/v1` contract, field by field
 - [Taxonomy teaching guide](docs/taxonomy.md) — what makes a "complete" eval report
-- [Teach curriculum](docs/teach-curriculum.md) — detailed novice path from synthetic dataset to gates/history
-- [Langfuse 101: Evals Feedback Loop](https://icodenet.github.io/langfuse-101/) — conceptual pre-read before curriculum/labs
-- [Artifact format](docs/artifact-format.md) — field-by-field reference
-- [JSON Schema](schemas/eval-report-v1.schema.json) — for validation and SDK generation
 - [Configuration](docs/configuration.md) — all config options
-- [Reporters](docs/reporters.md) — HTML, text, Markdown, JSON
+
+**Contract & schema:**
+
+- [Artifact format](docs/artifact-format.md)
+- [Taxonomy](docs/taxonomy.md)
+- [JSON Schema](schemas/eval-report-v1.schema.json) — for validation and SDK generation
+- [Schema/taxonomy decision rules](docs/schema-taxonomy-decisions.md)
+- [Benchmark pack templates](docs/benchmark-packs.md) — versioned safety/tool-routing/groundedness suite bundles
+
+**CI & governance:**
+
 - [Gates](docs/gates.md) — quality gates and CI integration
-- [CLI help snapshots](docs/cli-help/) — exact `--help` outputs tracked for truth-sync
 - [Publishing](docs/publishing.md) — GitHub Pages, Azure, custom
-- [Integrations ("Works with" guides)](docs/integrations/README.md) — Promptfoo, DeepEval, OpenAI/AgentEvals, Anthropic methodology, Langfuse, Weave, Phoenix, Braintrust, Ragas, TruLens, Patronus, trace stacks
-- [Benchmark pack templates](docs/benchmark-packs.md) — versioned safety/tool-routing/groundedness suite bundles with eval-report/v1 compatibility guidance
+- [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating
+- [Repo hardening](docs/REPO-HARDENING.md) — sign/verify, waivers, heartbeat, bypass tracking
+- [CLI help snapshots](docs/cli-help/) — exact `--help` outputs tracked for truth-sync
+
+**Teaching:**
+
+- [Teach curriculum](docs/teach-curriculum.md) — detailed novice path from synthetic dataset to gates/history
+- [Teach exercises](docs/teach-exercises/README.md) — foundational hands-on exercises
+- [Teach labs](docs/teach-labs/README.md) — delivery-stage workflow labs
+- [Langfuse 101: Evals Feedback Loop](https://icodenet.github.io/langfuse-101/) — conceptual pre-read before curriculum/labs
+
+**Product & roadmap:**
+
+- [Static docs site (v1)](docs-site/v1/index.html) — versioned quickstart + CLI-first onboarding
+- [Roadmap](docs/ROADMAP.md) — phases and adoption plan
+- [Status](docs/STATUS.md) — done vs. remaining, honest completion ledger
+- [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
 - [Adoption feedback loop](docs/adoption-feedback-loop.md) — weekly page-to-action checks, usage markers, and cadence signals
 - [Docs adoption friction backlog](docs/adoption-friction-backlog.md) — documentation blockers tracked with owner/severity/next action
-- [GitHub approval-gate pattern](docs/github-approval-gate-pattern.md) — reviewer approvals + commit-status gating with GitHub Pages data branch
-- [Roadmap](docs/ROADMAP.md) — phases and adoption plan
-- [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
 - [Case study: adopting eval-dashboards in assistant-ui](docs/case-studies/assistant-ui/README.md) — first real external-repo adoption, with real bugs found and fixed
+
+**Integrations:**
+
+- [Integrations ("Works with" guides)](docs/integrations/README.md) — Promptfoo, DeepEval, OpenAI/AgentEvals, Anthropic methodology, Langfuse, Weave, Phoenix, Braintrust, Ragas, TruLens, Patronus, trace stacks
+
+**Reference:**
+
+- [Reporters](docs/reporters.md) — HTML, text, Markdown, JSON
 
 See [examples/](examples/) for runnable demos.
 

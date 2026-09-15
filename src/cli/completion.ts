@@ -19,6 +19,12 @@ const commands = [
   'completion',
   'import',
   'adjudicate',
+  'sign',
+  'verify',
+  'heartbeat-verify',
+  'org-rollup',
+  'evidence-export',
+  'evidence-verify',
 ] as const;
 
 const rootFlags = ['--help'] as const;

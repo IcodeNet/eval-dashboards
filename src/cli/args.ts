@@ -126,6 +126,18 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
   adjudicate: ['--input', '--run-id', '--out', '--bundle', '--include-passed', '--allow-single-reviewer'],
   'heartbeat-verify': ['--heartbeat', '--max-age-hours'],
   'org-rollup': ['--input', '--out', '--locale'],
+  'evidence-export': [
+    '--report',
+    '--check-result',
+    '--waiver-file',
+    '--bypass-log',
+    '--approval-trail',
+    '--signature',
+    '--run-id',
+    '--baseline-run-id',
+    '--out',
+  ],
+  'evidence-verify': ['--bundle'],
 };
 
 const levenshtein = (a: string, b: string): number => {

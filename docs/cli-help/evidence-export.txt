@@ -1,0 +1,21 @@
+eval-dashboards evidence-export [options]
+
+4F.11 — Produces one self-contained evidence bundle for a release: the eval
+report, the check-result artifact, the active waiver register, an optional
+bypass log, an optional approval trail, and an optional detached signature
+are each hashed (sha256) and embedded verbatim into a single JSON file,
+alongside a top-level digest over all of those digests. Hand the resulting
+file to an examiner and they can independently verify it (see
+eval-dashboards evidence-verify) without needing access to any of the
+original inputs.
+
+Options:
+  --report=<path>            Path to the eval-report/v1 JSON artifact (required)
+  --check-result=<path>      Path to the eval-check-result/v1 or /v2 JSON artifact (required)
+  --waiver-file=<path>       Path to the eval-waiver-register/v1 JSON file
+  --bypass-log=<path>        Path to a bypass-usage JSON-lines log
+  --approval-trail=<path>    Path to a freeform approval-trail JSON/text file
+  --signature=<path>         Path to an eval-check-signature/v1 file (from the "sign" command)
+  --run-id=<id>               runId recorded on the bundle (informational)
+  --baseline-run-id=<id>       baselineRunId recorded on the bundle (informational)
+  --out=<path>                Output bundle JSON path. Default: eval-report/evidence-bundle.json

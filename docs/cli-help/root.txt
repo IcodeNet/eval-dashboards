@@ -17,4 +17,6 @@ Commands:
   verify   Re-validate a check-result artifact's digest and detached signature.
   heartbeat-verify  Assert a fresh gate-run heartbeat exists for a release subject (scheduled check).
   org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
+  evidence-export  Bundle a report, check result, waivers, and signature into one evidence file (4F.11).
+  evidence-verify   Independently re-validate a previously produced evidence bundle.
 
