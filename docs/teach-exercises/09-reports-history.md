@@ -101,12 +101,21 @@ Example result (verified against a real run)
 ```text
 Eval gates failed:
 New failures 1 exceed allowed 0 (key=row, raw=1).
+Critical failures 1 exceed allowed 0.
 Diagnostics:
-Top failing categories: regression=1
+Top failing categories: regression=2
 Lint warning breakdown: missing-suite-manifest=3, missing-agent-versioning=1, low-category-coverage=1
 ```
 - Exit code `1` in this demo, because `run-002.json`'s only changed row
   (`case-001`) flips from pass to fail relative to baseline `local-minimal-001`.
+- Two gates trip here, not one. `New failures` is the gate this exercise is
+  teaching. `Critical failures 1` is `case-002`, the deliberately-critical row
+  you added in Exercise 08 — it is still in the artifact and still red. That is
+  the carry-forward Exercise 08's last "common mistake" warned about, and this
+  is where you feel it.
+- `regression=2` for the same reason: `case-001` (new, this exercise) plus
+  `case-002` (inherited from Exercise 08). The baseline gate counts only the
+  new one; the category diagnostic counts both.
 
 Definition of done
 - `run-001.json` and `run-002.json` both exist.

@@ -1,4 +1,5 @@
 import { type EvalReportV1, type EvalRow, rowKey, summarizeReport } from '../model/eval-report-v1.js';
+import type { BypassUsageSummary } from '../gates/bypass-accounting.js';
 
 export type BaselineStrategy = 'rolling' | 'champion';
 
@@ -32,6 +33,14 @@ export type RunHistoryEntry = ReturnType<typeof summarizeReport> & {
    * These counts are not limited to rows present in only the current run.
    */
   rowStability: RowStabilityCounts;
+  /**
+   * 4F.9 — bypass accounting: which gate escape hatches were used for this run,
+   * when a bypass log entry for the run's id was supplied to `buildHistory`.
+   * Undefined means "no bypass data available for this run", not "no bypasses
+   * were used" — callers that want a hard zero should treat `undefined` the
+   * same as "unknown" rather than "clean".
+   */
+  bypassUsage?: BypassUsageSummary;
 };
 
 export type RowStability = 'stable' | 'flaky' | 'persistent-failure';
@@ -78,7 +87,10 @@ const groupRows = (rows: EvalRow[], keyFn: (row: EvalRow) => string): Record<str
   );
 };
 
-export const buildHistory = (reports: EvalReportV1[]): RunHistoryEntry[] => {
+export const buildHistory = (
+  reports: EvalReportV1[],
+  options: { bypassUsageByRunId?: Record<string, BypassUsageSummary> } = {},
+): RunHistoryEntry[] => {
   const ordered = [...reports].sort(
     (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt),
   );
@@ -119,6 +131,7 @@ export const buildHistory = (reports: EvalReportV1[]): RunHistoryEntry[] => {
         disappeared: comparison.disappeared.length,
       },
       rowStability,
+      bypassUsage: options.bypassUsageByRunId?.[report.run.id],
     };
   });
 };

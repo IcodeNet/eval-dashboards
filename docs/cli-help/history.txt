@@ -3,4 +3,8 @@ eval-dashboards history [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --out=<path>             Output history JSON path. Default: eval-report/history.json
+  --bypass-log=<path>      Path to a JSON-lines bypass-usage log (written by `check`/`publish`
+                           --bypass-log); when set, each run's history entry gets a
+                           `bypassUsage` field counting gate escape hatches used for that run
+                           id, so erosion shows up as a trend instead of only in CI logs.
 

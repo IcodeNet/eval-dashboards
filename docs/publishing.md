@@ -29,6 +29,9 @@ Options:
   --allow-sensitive-publish  Override the publish preflight hard-fail that triggers when
                            unredacted sensitive evidence fields are present in the payload.
                            Use of this override is always recorded in publish-run-record.json.
+  --bypass-log=<path>      Append a JSON-lines bypass-usage record when --allow-sensitive-publish
+                           was actually needed (i.e. sensitive fields were present); also
+                           configurable via bypassLogFile in the config file.
 
 Publish preflight:
   Publishing fails (exit code 2) when the report being published still contains

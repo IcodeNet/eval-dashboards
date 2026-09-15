@@ -49,4 +49,9 @@ Options:
   --calibration-preflight            Force-enable calibration preflight checks
   --allow-stale-calibration          Escape hatch: warn instead of fail when calibration evidence is missing/stale
   --no-calibration-preflight         Disable calibration preflight checks
+  --bypass-log=<path>                Append a JSON-lines bypass-usage record for this run
+                                    (which of --allow-blocked-baseline/--allow-stale-calibration/
+                                    --allow-gate-loosening were used); also configurable via
+                                    bypassLogFile in the config file. Feed the same path to
+                                    `history --bypass-log=<path>` to count/trend bypass use.
 

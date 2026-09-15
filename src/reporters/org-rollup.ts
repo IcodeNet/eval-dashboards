@@ -77,6 +77,7 @@ const rowHtml = (row: OrgRollupRow, locale?: string): string => {
     <td class="num ${row.criticalFailures > 0 ? 'fail' : ''}">${row.criticalFailures}</td>
     <td class="num ${row.newlyFailing > 0 ? 'fail' : ''}">${row.newlyFailing}</td>
     <td class="num ${row.persistentFailures > 0 ? 'warn' : ''}">${row.persistentFailures}</td>
+    <td class="num ${row.bypassCount > 0 ? 'warn' : ''}">${row.bypassCount}</td>
     <td class="num">${row.runCount}</td>
     <td class="muted">${row.generatedAt ? e(formatDate(row.generatedAt, locale)) : 'n/a'}</td>
   </tr>`;
@@ -132,6 +133,7 @@ export const renderOrgRollupHtml = (summary: OrgRollupSummary, locale?: string):
     <div class="summary-cards">
       <div class="summary-card"><div class="label">Repos tracked</div><div class="value">${summary.totalRepos}</div></div>
       <div class="summary-card"><div class="label">Regressed this run</div><div class="value ${summary.regressedCount > 0 ? 'fail' : ''}">${summary.regressedCount}</div></div>
+      <div class="summary-card"><div class="label">Gate bypasses used</div><div class="value ${summary.totalBypassCount > 0 ? 'fail' : ''}">${summary.totalBypassCount}</div></div>
     </div>
 
     <div class="section">
@@ -144,6 +146,7 @@ export const renderOrgRollupHtml = (summary: OrgRollupSummary, locale?: string):
           <th class="num">Critical fails</th>
           <th class="num">New failures</th>
           <th class="num">Persistent fails</th>
+          <th class="num">Bypasses used</th>
           <th class="num">Runs</th>
           <th>Latest run</th>
         </tr></thead>

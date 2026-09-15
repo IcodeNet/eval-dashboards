@@ -350,3 +350,31 @@ Exit codes:
 - `1`: gates failed.
 - `2`: invalid config or artifact.
 - `3`: no usable reports found.
+
+## Bypass accounting (4F.9)
+
+`--allow-blocked-baseline`, `--allow-stale-calibration`, `--allow-gate-loosening`,
+and `--allow-sensitive-publish` (on `publish`) are legitimate, auditable escape
+hatches — but a flag passed on every run for months quietly turns a gate into a
+no-op. `check` and `publish` support `--bypass-log=<path>` (or `bypassLogFile` in
+the config file) to append one `eval-bypass-log-entry/v1` JSON-lines record per
+invocation naming which flags were used:
+
+```sh
+eval-dashboards check --input=.evals_output --allow-blocked-baseline --bypass-log=eval-report/bypass-log.jsonl
+```
+
+`check --json-out`/`--json-v2-out` always includes a `bypassUsage` field
+(`{ flags, used, count }`) — a clean run reports a verifiable `count: 0` rather
+than omitting the field.
+
+Feed the same log path to `history` to join bypass usage into each run's history
+entry by run id:
+
+```sh
+eval-dashboards history --input=.evals_output --bypass-log=eval-report/bypass-log.jsonl --out=eval-report/history.json
+```
+
+`org-rollup` then surfaces a per-repo `bypassCount` column and an org-wide
+`totalBypassCount` summary card, so bypass erosion is visible as a trend across
+repos instead of only discoverable by reading CI logs during an audit.

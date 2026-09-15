@@ -74,9 +74,10 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--waiver-file',
     '--baseline-gate-config',
     '--allow-gate-loosening',
+    '--bypass-log',
   ],
   merge: ['--input', '--out'],
-  history: ['--input', '--out'],
+  history: ['--input', '--out', '--bypass-log'],
   publish: [
     '--target',
     '--report-dir',
@@ -91,6 +92,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--app-name',
     '--account',
     '--container',
+    '--bypass-log',
   ],
   teach: [
     '--preset',

@@ -57,4 +57,11 @@ export type EvalReportsConfig = {
    * gate on any unapproved loosening (see `gates.allowLoosening`).
    */
   baselineGateConfigFile?: string;
+  /**
+   * 4F.9 — path to a JSON-lines bypass usage log. `check` and `publish`
+   * append one record per invocation when this (or `--bypass-log`) is set,
+   * recording which gate escape hatches were used, so usage can be counted
+   * and trended over time instead of only discovered by reading CI logs.
+   */
+  bypassLogFile?: string;
 };

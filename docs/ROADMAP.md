@@ -1019,11 +1019,29 @@ Acceptance criteria:
 
 ### 4F.9 Bypass accounting (P1, S)
 
-- [ ] Count and report use of `--allow-blocked-baseline`, `--allow-stale-calibration`, and `--allow-sensitive-publish` as a first-class org metric in history and rollup views.
+- [x] Count and report use of `--allow-blocked-baseline`, `--allow-stale-calibration`, and `--allow-sensitive-publish` as a first-class org metric in history and rollup views.
 
 Acceptance criteria:
 
 - Gate erosion over time is visible as a trend rather than discovered during an audit.
+  - Evidence: `check --bypass-log=<path>` and `publish --bypass-log=<path>` (also
+    `bypassLogFile` in the config file) append one `eval-bypass-log-entry/v1`
+    JSON-lines record per invocation recording which of
+    `--allow-blocked-baseline`/`--allow-stale-calibration`/`--allow-gate-loosening`/
+    `--allow-sensitive-publish` were used (`src/gates/bypass-accounting.ts`).
+    `check --json-out`/`--json-v2-out` always includes a `bypassUsage` field
+    (`{ flags, used, count }`) so a clean run is a verifiable `count: 0`, not an
+    absent field. `history --bypass-log=<path>` joins the log by run id into each
+    `RunHistoryEntry.bypassUsage` (`src/history/history.ts`), and `org-rollup`
+    surfaces a per-repo `bypassCount` column plus a `totalBypassCount` summary
+    card (`src/history/org-rollup.ts`, `src/reporters/org-rollup.ts`) so bypass
+    use is visible per-run, per-repo, and org-wide without reading CI logs.
+    Tests: `test/bypass-accounting.test.ts` (8 tests — usage summarizing,
+    JSON-lines round-trip, aggregation, run-id join with retry union) and
+    `test/cli-bypass-accounting.test.ts` (3 tests — `check --json-out` reports
+    `bypassUsage.count: 0` cleanly, `check --bypass-log` appends a record with
+    the flag used, `history --bypass-log` joins it into the run's history
+    entry). 304/304 total tests passing; `pnpm typecheck` and `pnpm build` clean.
 
 ### 4F.10 PR-subset vs full-suite tiering with cost budget (P2, M)
 
@@ -1047,19 +1065,25 @@ Acceptance criteria:
 
 ### 4F execution order
 
-1. 4F.1 Two-tier artifact split
-2. 4F.2 Redaction profile and publish preflight
-3. 4F.3 `eval-check-result/v2` provenance fields
-4. 4F.4 Artifact digest and detached signature
-5. 4F.5 Waiver and exception register
-6. 4F.6 Threshold-change detection
+1. 4F.1 Two-tier artifact split — done
+2. 4F.2 Redaction profile and publish preflight — done
+3. 4F.3 `eval-check-result/v2` provenance fields — done
+4. 4F.4 Artifact digest and detached signature — done
+5. 4F.5 Waiver and exception register — done
+6. 4F.6 Threshold-change detection — done
 7. 4F.7 Heartbeat verifier — done
 8. 4F.8 Static org rollup index — done
-9. 4F.9 Bypass accounting
+9. 4F.9 Bypass accounting — done
 10. 4F.10 PR-subset tiering with cost budget
 11. 4F.11 Evidence export bundle
 
-Until 4F.1 through 4F.4 ship, the honest guidance is: do not publish reports produced from production data.
+4F.1 through 4F.7 have shipped: `publish --redact`/preflight hard-fail,
+`eval-check-result/v2` provenance, `sign`/`verify` (cosign keyless in CI),
+a waiver register, threshold-loosening detection, and `heartbeat-verify`
+are all real, tested, and merged to main. The honest residual gap is
+narrower now: bypass usage (4F.9) is not yet tracked as a trend, PR-subset
+cost tiering (4F.10) does not exist, and there is no evidence export
+bundle (4F.11) yet.
 
 ---
 

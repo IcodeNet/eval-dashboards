@@ -35,5 +35,15 @@
       }
     ]
   },
-  "newlyFailingRows": []
+  "newlyFailingRows": [],
+  "bypassUsage": {
+    "flags": {
+      "allowBlockedBaseline": false,
+      "allowStaleCalibration": false,
+      "allowGateLoosening": false,
+      "allowSensitivePublish": false
+    },
+    "used": [],
+    "count": 0
+  }
 }

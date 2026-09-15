@@ -95,9 +95,26 @@ Why no `--max-new-failures` here:
 
 Example result (verified against a real run)
 ```text
-Eval gates passed.
+Eval gates failed:
+Pass rate 0.800 is below required 0.900.
+Critical failures 1 exceed allowed 0.
+Diagnostics:
+Top failing categories: regression=1
+Lint warning breakdown: missing-suite-manifest=3, missing-agent-versioning=1, low-category-coverage=1
 ```
-- Exit code `0`.
+- Exit code `1` — and this is the most important thing in the exercise.
+- **Your fix worked. The gate still failed.** `case-001` is green now; nothing
+  in this output disagrees with that. The gate is red because `case-002`, the
+  deliberately-critical row from Exercise 08, was never in scope for this fix
+  and is still failing.
+- Read the failure lines against your change, not as one verdict. "Did my fix
+  land?" and "is the release shippable?" are different questions with different
+  answers here. Confusing them is how people either panic over an unrelated red
+  or, worse, widen their "fix" until the whole run goes green.
+- To watch this exercise's fix in isolation, remove `case-002` first, or gate
+  only on the new-failure count as in Exercise 09. Do not raise
+  `--min-pass-rate` or drop `--zero-critical` to get a green — that is changing
+  the question to suit the answer.
 - `check` cannot tell a legitimate rubric fix from a hand-edited pass — the
   change note in step 2 is the only thing that makes this defensible. If you
   cannot write a real, specific reason a row's rubric was wrong, you should
@@ -109,6 +126,9 @@ Definition of done
 - You can explain, out loud, why this exercise's method (hand-edit + note) is
   not the same as fixing the underlying agent and would be indefensible
   without the note.
+- You can say which of the two failing gate lines relates to your change and
+  which does not, without re-running anything.
+- You never relaxed a threshold to turn this run green.
 
 Common mistakes
 - Flipping `passed` to `true` without writing (or reading) the change note —

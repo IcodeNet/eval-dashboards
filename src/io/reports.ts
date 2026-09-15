@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { EvalReportV1 } from '../model/eval-report-v1.js';
 import { validateEvalReport } from '../model/validate.js';
@@ -142,4 +142,10 @@ export const writeJsonFile = async (filePath: string, value: unknown): Promise<v
 export const writeTextFile = async (filePath: string, value: string): Promise<void> => {
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, value, 'utf8');
+};
+
+/** Append text to a file, creating it (and parent dirs) if it doesn't exist yet. */
+export const appendTextFile = async (filePath: string, value: string): Promise<void> => {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await appendFile(filePath, value, 'utf8');
 };

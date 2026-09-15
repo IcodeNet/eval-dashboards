@@ -13,3 +13,4 @@ Options:
   --input=<path>   Directory to recursively search for history.json files. Default: org-rollup-input
   --out=<path>     Output HTML path. Default: eval-report/org-rollup.html
   --locale=<tag>   BCP-47 locale for date formatting (e.g. en-US)
+

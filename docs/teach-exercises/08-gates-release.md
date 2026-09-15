@@ -36,7 +36,7 @@ npx eval-dashboards report --input=.evals_output --reporter=html --reporter=json
 Example result (verified against a real run)
 ```text
 Gate diagnostics:
-Lint warning breakdown: missing-suite-manifest=2, low-category-coverage=1
+Lint warning breakdown: missing-suite-manifest=3, missing-agent-versioning=1, low-category-coverage=1
 Eval gates passed.
 ```
 - Exit code `0`.
@@ -85,12 +85,17 @@ npx eval-dashboards check --input=.evals_output --min-pass-rate=0.9 --zero-criti
 Example result (verified against a real run)
 ```text
 Eval gates failed:
-Pass rate 0.750 is below required 0.900.
+Pass rate 0.800 is below required 0.900.
 Critical failures 1 exceed allowed 0.
 Diagnostics:
 Top failing categories: regression=1
+Lint warning breakdown: missing-suite-manifest=3, missing-agent-versioning=1, low-category-coverage=1
 ```
 - Exit code `1`.
+- Pass rate is `0.800` because the artifact now holds 5 rows (one each from
+  Exercises 02/04, 06, and both from 07) and exactly one fails: 4/5 = 0.800.
+  If you see a different number, count your rows — a skipped exercise changes
+  the denominator, not the lesson.
 - Two independent gates tripped from one bad row: the pass-rate floor
   (`--min-pass-rate=0.9`) and the critical-failure ceiling (`--zero-critical`).
   Either one alone would have failed the release.

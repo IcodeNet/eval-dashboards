@@ -38,6 +38,8 @@ export type OrgRollupRow = {
   persistentFailures: number;
   trend: OrgRollupTrend;
   generatedAt?: string;
+  /** 4F.9 — count of gate escape-hatch flags used on the latest recorded run, if known. */
+  bypassCount: number;
 };
 
 export type OrgRollupSummary = {
@@ -45,6 +47,8 @@ export type OrgRollupSummary = {
   rows: OrgRollupRow[];
   regressedCount: number;
   totalRepos: number;
+  /** 4F.9 — sum of bypassCount across all repos' latest runs, for an org-wide erosion signal. */
+  totalBypassCount: number;
 };
 
 const REGRESSION_PASS_RATE_DROP = 0.02;
@@ -144,6 +148,7 @@ const rowForRepo = (history: RepoHistory): OrgRollupRow => {
     persistentFailures: latest?.rowStability.persistentFailure ?? 0,
     trend,
     generatedAt: latest?.run.generatedAt,
+    bypassCount: latest?.bypassUsage?.count ?? 0,
   };
 };
 
@@ -165,5 +170,6 @@ export const buildOrgRollup = (histories: RepoHistory[]): OrgRollupSummary => {
     rows,
     regressedCount: rows.filter((row) => row.trend === 'regressed').length,
     totalRepos: rows.length,
+    totalBypassCount: rows.reduce((sum, row) => sum + row.bypassCount, 0),
   };
 };

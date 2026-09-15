@@ -12,12 +12,20 @@ import {
 } from '../history/history.js';
 import { buildOrgRollup, repoHistoryFromPayload, type RepoHistory } from '../history/org-rollup.js';
 import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
-import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile } from '../io/reports.js';
+import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile, appendTextFile } from '../io/reports.js';
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import { detectGateConfigLoosening } from '../gates/threshold-change.js';
+import {
+  buildBypassLogEntry,
+  parseBypassLog,
+  bypassUsageForRun,
+  summarizeBypassUsage,
+  serializeBypassLogEntry,
+  type BypassLogEntryV1,
+} from '../gates/bypass-accounting.js';
 import {
   type StatisticalGateMode,
   validateStatisticalGateConfig,
@@ -180,6 +188,11 @@ Options:
   --calibration-preflight            Force-enable calibration preflight checks
   --allow-stale-calibration          Escape hatch: warn instead of fail when calibration evidence is missing/stale
   --no-calibration-preflight         Disable calibration preflight checks
+  --bypass-log=<path>                Append a JSON-lines bypass-usage record for this run
+                                    (which of --allow-blocked-baseline/--allow-stale-calibration/
+                                    --allow-gate-loosening were used); also configurable via
+                                    bypassLogFile in the config file. Feed the same path to
+                                    \`history --bypass-log=<path>\` to count/trend bypass use.
 `;
 
 const publishUsage = `eval-dashboards publish [options]
@@ -197,6 +210,9 @@ Options:
   --allow-sensitive-publish  Override the publish preflight hard-fail that triggers when
                            unredacted sensitive evidence fields are present in the payload.
                            Use of this override is always recorded in publish-run-record.json.
+  --bypass-log=<path>      Append a JSON-lines bypass-usage record when --allow-sensitive-publish
+                           was actually needed (i.e. sensitive fields were present); also
+                           configurable via bypassLogFile in the config file.
 
 Publish preflight:
   Publishing fails (exit code 2) when the report being published still contains
@@ -246,6 +262,10 @@ const historyUsage = `eval-dashboards history [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --out=<path>             Output history JSON path. Default: eval-report/history.json
+  --bypass-log=<path>      Path to a JSON-lines bypass-usage log (written by \`check\`/\`publish\`
+                           --bypass-log); when set, each run's history entry gets a
+                           \`bypassUsage\` field counting gate escape hatches used for that run
+                           id, so erosion shows up as a trend instead of only in CI logs.
 `;
 
 const signUsage = `eval-dashboards sign [options]
@@ -365,6 +385,22 @@ type CheckOutputPayload = {
       direction: 'loosened' | 'tightened' | 'unchanged';
       description: string;
     }>;
+  };
+  /**
+   * 4F.9 — bypass accounting: which gate escape hatches were used for this
+   * invocation (`--allow-blocked-baseline`, `--allow-stale-calibration`,
+   * `--allow-gate-loosening`). Always present so a clean run is a verifiable
+   * `count: 0`, not an absent field indistinguishable from "not measured".
+   */
+  bypassUsage: {
+    flags: {
+      allowBlockedBaseline: boolean;
+      allowStaleCalibration: boolean;
+      allowGateLoosening: boolean;
+      allowSensitivePublish: boolean;
+    };
+    used: string[];
+    count: number;
   };
 };
 
@@ -1644,6 +1680,13 @@ const main = async (): Promise<void> => {
       heartbeatRunId = context.current.run.id;
       heartbeatBaselineRunId = context.previous?.run.id;
 
+      const bypassLogPath = optionString(options, 'bypass-log', '') || config.bypassLogFile || '';
+      const bypassUsage = summarizeBypassUsage({
+        allowBlockedBaseline,
+        allowStaleCalibration: gateConfig.calibration?.allowBlockingWithoutRecentMatch === true,
+        allowGateLoosening: Boolean(thresholdChangeResult?.loosened && allowGateLoosening),
+      });
+
       const checkPayload: CheckOutputPayload = {
         schemaVersion: 'eval-check-result/v1',
         gateRunStatus: 'ran',
@@ -1660,7 +1703,13 @@ const main = async (): Promise<void> => {
           severity: row.severity,
           reportAnchor: `#${rowAnchorId(row.suite, row.id)}`,
         })),
+        bypassUsage,
       };
+
+      if (bypassLogPath) {
+        const entry = buildBypassLogEntry('check', bypassUsage, { runId: context.current.run.id });
+        await appendTextFile(bypassLogPath, serializeBypassLogEntry(entry));
+      }
 
       if (
         waiverApplication.active.length > 0 ||
@@ -1902,7 +1951,26 @@ const main = async (): Promise<void> => {
 
     const reports = await readEvalReports(input);
     const out = optionString(options, 'out', 'eval-report/history.json');
-    await writeJsonFile(out, buildHistory(reports));
+    const bypassLogPath = optionString(options, 'bypass-log', '') || config.bypassLogFile || '';
+    let bypassUsageByRunId: Record<string, ReturnType<typeof summarizeBypassUsage>> | undefined;
+    if (bypassLogPath) {
+      try {
+        const raw = await readFile(bypassLogPath, 'utf8');
+        const entries: BypassLogEntryV1[] = parseBypassLog(raw);
+        const runIds = new Set(reports.map((report) => report.run.id));
+        bypassUsageByRunId = {};
+        for (const runId of runIds) {
+          const usage = bypassUsageForRun(entries, runId);
+          if (usage) {
+            bypassUsageByRunId[runId] = usage;
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`Warning: could not read bypass log ${bypassLogPath}: ${message}`);
+      }
+    }
+    await writeJsonFile(out, buildHistory(reports, { bypassUsageByRunId }));
     console.log(out);
     return;
   }
@@ -2121,6 +2189,15 @@ const main = async (): Promise<void> => {
       url: result.url,
     };
     await writeJsonFile(path.join(reportDir, 'publish-run-record.json'), runRecord);
+
+    const publishBypassLogPath = optionString(options, 'bypass-log', '') || config.bypassLogFile || '';
+    if (publishBypassLogPath) {
+      const bypassUsage = summarizeBypassUsage({
+        allowSensitivePublish: sensitiveFieldsFound.length > 0 && allowSensitivePublish,
+      });
+      const entry = buildBypassLogEntry('publish', bypassUsage, { runId: context.current.run.id });
+      await appendTextFile(publishBypassLogPath, serializeBypassLogEntry(entry));
+    }
 
     if (sensitiveFieldsFound.length > 0 && allowSensitivePublish) {
       console.warn(
