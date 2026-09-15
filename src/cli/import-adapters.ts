@@ -10,12 +10,13 @@ export type ImportSource =
   | 'ragas'
   | 'langfuse'
   | 'phoenix'
-  | 'braintrust';
+  | 'braintrust'
+  | 'openai-evals';
 
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|openevals.
                            openevals is accepted as an alias for agentevals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
@@ -669,6 +670,101 @@ const braintrustRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseR
   });
 };
 
+// OpenAI evals (`oaieval`) writes a JSONL "events" log: one `{"spec": ...}`
+// header event, per-sample result events (commonly `type: "match"` from the
+// basic Match eval, but other eval classes emit other type names such as
+// "metrics" or "sampling"), and a trailing `{"final_report": {...}}` summary
+// event. See https://github.com/openai/evals — evals/record.py RecorderBase.
+type OpenAiEvalsEvent = {
+  run_id?: string;
+  event_id?: number;
+  sample_id?: string;
+  type?: string;
+  data?: {
+    correct?: boolean;
+    expected?: unknown;
+    picked?: unknown;
+    sampled?: unknown;
+    prompt?: unknown;
+    score?: number;
+    reason?: string;
+  };
+  spec?: { eval_name?: string; base_eval?: string };
+  final_report?: Record<string, number>;
+};
+
+const OPENAI_EVALS_RESULT_EVENT_TYPES = new Set(['match', 'metrics', 'sampling']);
+
+const openAiEvalsRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const events = resolveRowsContainer(source, {
+    arrayLabel: 'a JSONL array of oaieval events',
+    objectLabel: 'OpenAI evals result',
+    keys: ['events'],
+  }) as OpenAiEvalsEvent[];
+
+  let suite = fallbackSuite;
+  const specEvent = events.find((event) => typeof event?.spec?.eval_name === 'string');
+  if (specEvent?.spec?.eval_name) {
+    suite = specEvent.spec.eval_name;
+  }
+
+  const resultEvents = events.filter(
+    (event) =>
+      event &&
+      typeof event === 'object' &&
+      typeof event.type === 'string' &&
+      OPENAI_EVALS_RESULT_EVENT_TYPES.has(event.type) &&
+      event.data !== undefined,
+  );
+
+  if (resultEvents.length === 0) {
+    throw Object.assign(
+      new Error(
+        `No OpenAI evals sample result events found (expected events with type in ${[...OPENAI_EVALS_RESULT_EVENT_TYPES].join('|')} and a data payload).`,
+      ),
+      { exitCode: 2 },
+    );
+  }
+
+  return resultEvents.map((event, index) => {
+    const data = event.data ?? {};
+    const rowLabel = event.sample_id ?? `${suite}-${index + 1}`;
+
+    let passed: boolean | undefined;
+    if (typeof data.correct === 'boolean') {
+      passed = data.correct;
+    } else if (typeof data.score === 'number') {
+      passed = data.score >= RAGAS_METRIC_PASS_THRESHOLD;
+    }
+
+    if (passed === undefined) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for openai-evals row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 },
+      );
+    }
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      input: stringifyIfObject(data.prompt),
+      output: stringifyIfObject(data.sampled ?? data.picked),
+      expected: stringifyIfObject(data.expected),
+      score: typeof data.score === 'number' ? data.score : passed ? 1 : 0,
+      reason: data.reason,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from OpenAI evals (oaieval)',
+          sourceRef: 'openai-evals',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
 export const resolveImportSource = (rawSource: string): ImportSource => {
   const normalized = rawSource.trim().toLowerCase();
   if (normalized === 'openevals') {
@@ -681,14 +777,15 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
     normalized === 'ragas' ||
     normalized === 'langfuse' ||
     normalized === 'phoenix' ||
-    normalized === 'braintrust'
+    normalized === 'braintrust' ||
+    normalized === 'openai-evals'
   ) {
     return normalized;
   }
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openevals.`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, openevals.`,
     ),
     { exitCode: 2 },
   );
@@ -716,7 +813,9 @@ export const importFromSource = async (options: {
               ? langfuseRows(parsed, fallbackSuite)
               : options.source === 'phoenix'
                 ? phoenixRows(parsed, fallbackSuite)
-                : braintrustRows(parsed, fallbackSuite);
+                : options.source === 'braintrust'
+                  ? braintrustRows(parsed, fallbackSuite)
+                  : openAiEvalsRows(parsed, fallbackSuite);
 
   await writeEvalReportArtifact(
     options.outPath,

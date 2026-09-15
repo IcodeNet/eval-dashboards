@@ -1,0 +1,4 @@
+{"spec": {"completion_fns": ["gpt-4"], "eval_name": "match_return_policy.test.v1", "base_eval": "match_return_policy", "split": "test"}, "run_id": "run-openai-evals-sample", "created_at": "2026-09-14 00:00:00.000000+00:00"}
+{"run_id": "run-openai-evals-sample", "event_id": 1, "sample_id": "match_return_policy.test.1", "type": "match", "data": {"correct": true, "expected": "30 days", "picked": "30 days", "sampled": "Returns are accepted within 30 days.", "prompt": "What is the return window?"}, "created_at": "2026-09-14 00:00:01.000000+00:00"}
+{"run_id": "run-openai-evals-sample", "event_id": 2, "sample_id": "match_return_policy.test.2", "type": "match", "data": {"correct": false, "expected": "1 year", "picked": "10 years", "sampled": "Warranty is 10 years.", "prompt": "What is the warranty period?"}, "created_at": "2026-09-14 00:00:02.000000+00:00"}
+{"final_report": {"accuracy": 0.5}}
