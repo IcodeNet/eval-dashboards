@@ -79,6 +79,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--input',
     '--out-dir',
     '--dry-run',
+    '--redact',
     '--repo',
     '--branch',
     '--token',

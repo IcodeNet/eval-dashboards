@@ -10,6 +10,10 @@ export type PublishOptions = {
   reportDir: string;
   outDir?: string;
   dryRun?: boolean;
+  /** When true, the caller has already redacted sensitive evidence text
+   * from the rendered report before invoking publish (4F.1 two-tier split).
+   * Recorded in the publish result message for auditability. */
+  redact?: boolean;
   /** owner/repo, e.g. "icodenet/eval-dashboards" */
   repo?: string;
   /** Branch to push to. Default: gh-pages */
@@ -36,6 +40,14 @@ export type PublishResult = {
 };
 
 export const publishReport = async (options: PublishOptions): Promise<PublishResult> => {
+  const result = await publishReportInternal(options);
+  if (options.redact) {
+    return { ...result, message: `${result.message} (public tier only; sensitive evidence redacted)` };
+  }
+  return result;
+};
+
+const publishReportInternal = async (options: PublishOptions): Promise<PublishResult> => {
   if (options.target === 'dir') {
     const outDir = options.outDir ?? 'published-eval-report';
 

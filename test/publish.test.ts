@@ -27,4 +27,15 @@ describe('publishReport', () => {
       }),
     ).rejects.toThrow('azure-static-webapp non-dry-run publish is not implemented yet');
   });
+
+  it('annotates the result message when redact is applied', async () => {
+    const result = await publishReport({
+      target: 'azure-static-webapp',
+      reportDir: 'eval-report',
+      appName: 'demo-app',
+      dryRun: true,
+      redact: true,
+    });
+    expect(result.message).toContain('public tier only; sensitive evidence redacted');
+  });
 });

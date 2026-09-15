@@ -42,6 +42,7 @@ const publishFlags = [
   '--input',
   '--out-dir',
   '--dry-run',
+  '--redact',
   '--repo',
   '--branch',
   '--token',

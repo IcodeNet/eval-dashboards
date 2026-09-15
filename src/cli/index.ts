@@ -18,6 +18,7 @@ import {
   validateStatisticalGateConfig,
 } from '../gates/statistical.js';
 import { publishReport, type PublishTarget } from '../publish/publish.js';
+import { redactEvalReport } from '../model/redact.js';
 import {
   renderGroupedIndexHtml,
   renderReports,
@@ -167,6 +168,10 @@ Options:
   --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
   --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
   --dry-run                Preview target actions without writing remote state
+  --redact                 Strip sensitive evidence text (prompts, outputs, judge/agent reasoning,
+                           tool call args/results, questions) before rendering and publishing;
+                           only the public tier (ids, counts, rates, categories, severities,
+                           verdicts, versions) is emitted.
 
 GitHub Pages target options:
   --repo=<owner/repo>      Required for --target=github-pages
@@ -1575,12 +1580,18 @@ const main = async (): Promise<void> => {
     }
 
     const context = await loadContext(input, reportDir);
+    const redact = optionBoolean(options, 'redact');
+    if (redact) {
+      context.current = redactEvalReport(context.current);
+      if (context.previous) context.previous = redactEvalReport(context.previous);
+    }
     await renderReports(context, ['html', 'json-summary']);
     const result = await publishReport({
       target: optionString(options, 'target', 'dir') as PublishTarget,
       reportDir,
       outDir: optionString(options, 'out-dir', 'published-eval-report'),
       dryRun: optionBoolean(options, 'dry-run'),
+      redact,
       repo: typeof options.repo === 'string' ? options.repo : undefined,
       branch: typeof options.branch === 'string' ? options.branch : undefined,
       token: typeof options.token === 'string' ? options.token : undefined,

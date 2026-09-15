@@ -892,8 +892,8 @@ Consensus blockers: cross-agent rollup does not exist; published reports have no
 
 ### 4F.1 Two-tier artifact split (P0, 5-8 d)
 
-- [ ] Split emitted artifacts into a public tier (counts, rates, ids, categories, severities, verdicts, versions) and a sensitive tier (prompts, model outputs, retrieved chunks, judge reasoning).
-- [ ] Publish targets consume the public tier by default; the sensitive tier stays in the controlled store.
+- [x] Split emitted artifacts into a public tier (counts, rates, ids, categories, severities, verdicts, versions) and a sensitive tier (prompts, model outputs, retrieved chunks, judge reasoning).
+- [x] Publish targets consume the public tier by default; the sensitive tier stays in the controlled store.
 
 Acceptance criteria:
 
