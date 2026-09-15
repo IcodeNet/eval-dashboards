@@ -1482,6 +1482,17 @@ ${renderCssVariables(theme)}
     .sev-medium { background: var(--warn-soft); color: var(--warn); }
     .sev-high, .sev-critical { background: var(--fail-soft); color: var(--fail); }
 
+    /* ── Client-side compare (4F.13) ── */
+    .compare-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 20px; }
+    .compare-picker input[type="file"] { font-size: 13px; color: var(--muted); }
+    .compare-status { font-size: 13px; color: var(--muted); }
+    .compare-status.compare-error { color: var(--fail); font-weight: 600; }
+    .compare-status.compare-ok { color: var(--pass); font-weight: 600; }
+    .compare-result { padding: 0 20px 16px; }
+    .delta-pos { color: var(--pass); font-weight: 700; }
+    .delta-neg { color: var(--fail); font-weight: 700; }
+    .delta-zero { color: var(--muted); }
+
     /* ── Kind badges ── */
     .kind-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: var(--surface-muted); color: var(--muted); }
     .kind-deterministic { background: var(--accent-soft); color: var(--accent); }
@@ -1791,6 +1802,21 @@ ${renderCssVariables(theme)}
     }
 
     ${renderCollapsibleSection({
+      id: 'compare',
+      title: 'Compare against another report',
+      summary: 'Client-side only — load a second eval-report/v1 JSON file, nothing leaves the browser',
+      collapsed: true,
+      body: `
+      <div class="compare-picker">
+        <label for="compare-file-input"><strong>Load eval-report/v1 JSON to compare:</strong></label>
+        <input type="file" id="compare-file-input" accept="application/json,.json" onchange="handleCompareFile(this.files && this.files[0])">
+        <span id="compare-status" class="compare-status"></span>
+      </div>
+      <div id="compare-result" class="compare-result"></div>
+    `,
+    })}
+
+    ${renderCollapsibleSection({
       id: 'how-to-read',
       title: 'How to read this report',
       summary: 'Reference guide for interpreting scores, gates, and trend shifts',
@@ -1803,6 +1829,19 @@ ${renderCssVariables(theme)}
   </div>
 
   <div id="eval-tooltip" role="tooltip"></div>
+
+  <script id="eval-report-current-summary" type="application/json">${JSON.stringify({
+    runId: run.id,
+    suites: current.suites.map((s) => ({
+      id: s.id,
+      name: s.name ?? s.id,
+      total: s.total,
+      passed: s.passed,
+      failed: s.failed,
+      passRate: s.total > 0 ? s.passed / s.total : 0,
+    })),
+    rows: current.rows.map((r) => ({ id: r.id, suite: r.suite, passed: r.passed })),
+  }).replaceAll('</', '<\\/')}</script>
 
   <script>
     function toggleSection(btn) {
@@ -1879,6 +1918,105 @@ ${renderCssVariables(theme)}
         tip.style.top  = y + 'px';
       }
     })();
+
+    /* ── 4F.13: client-side compare, fully offline, no server call ── */
+    function escapeCompareHtml(s) {
+      return String(s == null ? '' : s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+    function compareCurrentSummary() {
+      var el = document.getElementById('eval-report-current-summary');
+      return el ? JSON.parse(el.textContent) : { runId: '', suites: [], rows: [] };
+    }
+    function summarizeOtherReport(data) {
+      if (!data || data.schemaVersion !== 'eval-report/v1' || !Array.isArray(data.suites)) {
+        throw new Error('Not a recognizable eval-report/v1 file (missing schemaVersion or suites).');
+      }
+      var suites = data.suites.map(function (s) {
+        var total = s.total || 0;
+        var passed = s.passed || 0;
+        return {
+          id: s.id,
+          name: s.name || s.id,
+          total: total,
+          passed: passed,
+          failed: s.failed || 0,
+          passRate: total > 0 ? passed / total : 0,
+        };
+      });
+      return { runId: (data.run && data.run.id) || 'unknown', suites: suites, rows: Array.isArray(data.rows) ? data.rows : [] };
+    }
+    function formatComparePassRate(x) {
+      return (x * 100).toFixed(1) + '%';
+    }
+    function deltaClass(delta) {
+      if (delta > 0.0001) return 'delta-pos';
+      if (delta < -0.0001) return 'delta-neg';
+      return 'delta-zero';
+    }
+    function formatCompareDelta(delta) {
+      var pct = (delta * 100);
+      var sign = pct > 0 ? '+' : '';
+      return sign + pct.toFixed(1) + 'pp';
+    }
+    function renderCompareResult(current, other) {
+      var byId = {};
+      current.suites.forEach(function (s) { byId[s.id] = { current: s }; });
+      other.suites.forEach(function (s) {
+        byId[s.id] = byId[s.id] || {};
+        byId[s.id].other = s;
+      });
+      var ids = Object.keys(byId).sort();
+      var rows = ids.map(function (id) {
+        var pair = byId[id];
+        var c = pair.current;
+        var o = pair.other;
+        var label = (c && c.name) || (o && o.name) || id;
+        var cRate = c ? c.passRate : null;
+        var oRate = o ? o.passRate : null;
+        var delta = cRate != null && oRate != null ? cRate - oRate : null;
+        return '<tr>' +
+          '<td>' + escapeCompareHtml(label) + '</td>' +
+          '<td class="num">' + (c ? formatComparePassRate(cRate) + ' (' + c.passed + '/' + c.total + ')' : '—') + '</td>' +
+          '<td class="num">' + (o ? formatComparePassRate(oRate) + ' (' + o.passed + '/' + o.total + ')' : '—') + '</td>' +
+          '<td class="num ' + (delta != null ? deltaClass(delta) : '') + '">' + (delta != null ? formatCompareDelta(delta) : '—') + '</td>' +
+          '</tr>';
+      }).join('');
+      return '<div class="table-wrap"><table>' +
+        '<thead><tr><th>Suite</th><th>Current (' + escapeCompareHtml(current.runId) + ')</th>' +
+        '<th>Loaded (' + escapeCompareHtml(other.runId) + ')</th><th>Δ pass rate (current − loaded)</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+    }
+    function handleCompareFile(file) {
+      var status = document.getElementById('compare-status');
+      var result = document.getElementById('compare-result');
+      if (!file) return;
+      status.textContent = 'Reading ' + file.name + '…';
+      status.className = 'compare-status';
+      result.innerHTML = '';
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result));
+          var other = summarizeOtherReport(data);
+          var current = compareCurrentSummary();
+          result.innerHTML = renderCompareResult(current, other);
+          status.textContent = 'Comparing against ' + file.name + ' — all done in your browser, no data was uploaded.';
+          status.className = 'compare-status compare-ok';
+        } catch (err) {
+          status.textContent = 'Could not compare: ' + (err && err.message ? err.message : String(err));
+          status.className = 'compare-status compare-error';
+        }
+      };
+      reader.onerror = function () {
+        status.textContent = 'Could not read file.';
+        status.className = 'compare-status compare-error';
+      };
+      reader.readAsText(file);
+    }
   </script>
 </body>
 </html>`;
