@@ -679,6 +679,17 @@ Acceptance criteria:
 
 - Each converted adapter has a fixture, a passing test proving valid `eval-report/v1` output, and correct suite/row totals, matching 4B.3 acceptance criteria.
 
+
+### 4E.10 JSONL import ingress for eval migration paths (P1, S)
+
+- [ ] Allow `eval-dashboards import` to accept newline-delimited JSON (`.jsonl`) inputs in addition to JSON objects/arrays, so teams can ingest line-oriented exports without pre-conversion.
+
+Acceptance criteria:
+
+- A JSONL fixture imports through at least one adapter path and emits a valid `eval-report/v1` artifact with correct row/suite totals.
+
+Rationale: OpenAI's eval workflow documentation explicitly uses uploaded JSONL datasets and teams migrating off hosted eval surfaces increasingly handle line-oriented artifacts first (`https://developers.openai.com/api/docs/guides/evals`).
+
 ### Non-goals for this phase
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase.
@@ -715,13 +726,17 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
 
 ### P0 — broken commands (a learner following instructions exactly hits these)
 
-- [ ] 4G.1 Fix `07-judge-calibration.md`: the exercise's own row fails `lint` with
+- [x] 4G.1 Fix `07-judge-calibration.md`: the exercise's own row fails `lint` with
       `missing-row-lifecycle` and `missing-row-provenance` (exit 1) while the doc
       claims "Commands run without schema errors" (`docs/teach-exercises/07-judge-calibration.md:89-90`).
       Root cause is cross-file: Ex05 adds `suiteManifests`, promoting the suites to
       dataset-governed, which makes provenance/lifecycle mandatory in Ex07. Either
       add the required fields or teach the error as the lesson. Acceptance: the
       exercise runs clean, or the failure is the documented teaching point.
+      Fixed by adding `metadata.lifecycle.status`/`metadata.provenance.source` to
+      both new rows and explaining why Ex05's manifest requires them. Verified by
+      running Ex02→04→05→07 verbatim from the doc in a clean scratch dir: exit 0,
+      warnings only.
 - [x] 4G.2 `history --history-dir` was a non-existent flag, silently ignored, that
       wrote to the default path while appearing to work. Fixed two ways: the doc now
       uses `--out` (`docs/teach-exercises/11-diagnose-a-red-run.md:66`), and the CLI
