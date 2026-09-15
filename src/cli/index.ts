@@ -15,6 +15,7 @@ import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
+import { detectGateConfigLoosening } from '../gates/threshold-change.js';
 import {
   type StatisticalGateMode,
   validateStatisticalGateConfig,
@@ -157,6 +158,10 @@ Options:
   --waiver-file=<path>              Path to an eval-waiver-register/v1 JSON file; active
                                     waivers suppress their matched failures (reported
                                     prominently) and expired waivers always fail the gate
+  --baseline-gate-config=<path>     Path to a recorded GateConfig JSON file; fails the gate
+                                    if the resolved gate config loosens any threshold vs it
+  --allow-gate-loosening            Escape hatch: acknowledge a detected loosening instead of
+                                    failing the gate (still surfaced in diagnostics/json-out)
   --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
   --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
   --notify-slack-webhook=<url>     Slack webhook URL override
@@ -311,6 +316,18 @@ type CheckOutputPayload = {
   newlyFailingRows: CheckOutputRow[];
   notifications?: NotificationDispatchResult[];
   waivers?: CheckOutputWaiverSummary;
+  /** 4F.6 threshold-change detection: present whenever a baseline gate config was supplied. */
+  thresholdChanges?: {
+    loosened: boolean;
+    allowed: boolean;
+    changes: Array<{
+      field: string;
+      baselineValue: unknown;
+      resolvedValue: unknown;
+      direction: 'loosened' | 'tightened' | 'unchanged';
+      description: string;
+    }>;
+  };
 };
 
 /** Per-suite dataset/rubric provenance recorded in `eval-check-result/v2`. */
@@ -1544,6 +1561,37 @@ const main = async (): Promise<void> => {
       const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
       const waiverApplication = applyWaivers(context.current, waiverRegister);
 
+      const baselineGateConfigPath =
+        optionString(options, 'baseline-gate-config', '') || config.baselineGateConfigFile || '';
+      const allowGateLoosening =
+        optionBoolean(options, 'allow-gate-loosening') || gateConfig.allowLoosening === true;
+      let thresholdChangeResult:
+        | ReturnType<typeof detectGateConfigLoosening>
+        | undefined;
+      if (baselineGateConfigPath) {
+        let baselineGateConfigRaw: string;
+        try {
+          baselineGateConfigRaw = await readFile(baselineGateConfigPath, 'utf8');
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw Object.assign(
+            new Error(`Could not read baseline gate config ${baselineGateConfigPath}: ${message}`),
+            { exitCode: 2 },
+          );
+        }
+        let baselineGateConfig: GateConfig;
+        try {
+          baselineGateConfig = JSON.parse(baselineGateConfigRaw) as GateConfig;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw Object.assign(
+            new Error(`Baseline gate config ${baselineGateConfigPath} is not valid JSON: ${message}`),
+            { exitCode: 2 },
+          );
+        }
+        thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
+      }
+
       const gateResult = checkGates(
         waiverApplication.reportForGating,
         context.comparison,
@@ -1552,15 +1600,24 @@ const main = async (): Promise<void> => {
         context.previous,
       );
       const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
+      const thresholdChangeFailures =
+        thresholdChangeResult && thresholdChangeResult.loosened && !allowGateLoosening
+          ? thresholdChangeResult.failures
+          : [];
       const combinedFailures = [
         ...gateResult.failures,
         ...calibrationChecks.failures,
         ...waiverApplication.failures,
+        ...thresholdChangeFailures,
       ];
       const combinedDiagnostics = [
         ...waiverApplication.diagnostics,
         ...gateResult.diagnostics,
         ...calibrationChecks.diagnostics,
+        ...(thresholdChangeResult?.diagnostics ?? []),
+        ...(thresholdChangeResult?.loosened && allowGateLoosening
+          ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
+          : []),
       ];
       const gatePassed = combinedFailures.length === 0;
 
@@ -1615,6 +1672,14 @@ const main = async (): Promise<void> => {
             suite: waiver.suite,
             rowId: waiver.rowId,
           })),
+        };
+      }
+
+      if (thresholdChangeResult) {
+        checkPayload.thresholdChanges = {
+          loosened: thresholdChangeResult.loosened,
+          allowed: thresholdChangeResult.loosened && allowGateLoosening,
+          changes: thresholdChangeResult.changes,
         };
       }
 

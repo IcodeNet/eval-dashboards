@@ -285,6 +285,20 @@ export default {
 };
 ```
 
+Threshold-change detection / segregation of duties (`--baseline-gate-config`):
+
+- Detects when the *resolved* gate configuration for this run (after config-file/CLI merge — exactly what `checkGates` enforces) is looser than a recorded baseline `GateConfig` JSON file, and fails the gate on any unapproved loosening. This prevents a PR from lowering its own bar (e.g. `minPassRate`) while introducing failures and passing on its own authority.
+- `--baseline-gate-config=<path>` (or `baselineGateConfigFile` in the config file) points `check` at a plain `GateConfig`-shaped JSON file (e.g. checked into the repo and updated only via reviewed PR):
+
+```json
+{ "minPassRate": 0.9, "zeroCritical": true, "requiredPassingSuites": ["safety"] }
+```
+
+- Compared fields: `minPassRate`, `minMatchedExpectationRate`, `maxNewFailures`, `maxWarnings`, `maxWarningsByCode` (including budget removal), `zeroCritical`, `failOnBaselineBlocked`, `requiredPassingSuites` (removing a required suite is a loosening), `failOnWarningCodes` (removing a code is a loosening), `statistical.minPassRateDelta`, `statistical.confidenceLevel`, `calibration.enabled`, `calibration.maxAgeHours`, `calibration.allowBlockingWithoutRecentMatch`.
+- A field present in only one of baseline/resolved config is not compared (no prior threshold to judge against).
+- Any detected loosening fails the gate (`failures[]`) unless explicitly approved via `--allow-gate-loosening` (or `gates.allowLoosening: true` in the config file) — a reviewed, intentional relaxation — in which case it is still surfaced as a diagnostic instead of a failure.
+- Always surfaced in `check --json-out`/`--json-v2-out` as `thresholdChanges: { loosened, allowed, changes[] }`, listing every changed field (loosened, tightened, or unchanged) with its baseline/resolved values, so the diff is visible in both console diagnostics and the machine-readable artifact even when a loosening was approved.
+
 Fast preflight lint before expensive eval stages:
 
 ```sh

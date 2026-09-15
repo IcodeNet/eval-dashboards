@@ -32,6 +32,10 @@ Options:
   --waiver-file=<path>              Path to an eval-waiver-register/v1 JSON file; active
                                     waivers suppress their matched failures (reported
                                     prominently) and expired waivers always fail the gate
+  --baseline-gate-config=<path>     Path to a recorded GateConfig JSON file; fails the gate
+                                    if the resolved gate config loosens any threshold vs it
+  --allow-gate-loosening            Escape hatch: acknowledge a detected loosening instead of
+                                    failing the gate (still surfaced in diagnostics/json-out)
   --notify=<channel>               Notify on gate failure/baseline blocked: slack|teams|email (repeatable/csv)
   --notify-webhook=<url>           Shared webhook URL fallback for Slack or Teams
   --notify-slack-webhook=<url>     Slack webhook URL override

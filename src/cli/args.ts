@@ -72,6 +72,8 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--allow-stale-calibration',
     '--no-calibration-preflight',
     '--waiver-file',
+    '--baseline-gate-config',
+    '--allow-gate-loosening',
   ],
   merge: ['--input', '--out'],
   history: ['--input', '--out'],

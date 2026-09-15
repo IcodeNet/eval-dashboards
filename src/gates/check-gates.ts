@@ -34,6 +34,14 @@ export type GateConfig = {
   failOnWarningCodes?: string[];
   newFailureKey?: NewFailureKeyMode;
   requiredPassingSuites?: string[];
+  /**
+   * Escape hatch for 4F.6 threshold-change detection: explicitly approve a
+   * loosening of thresholds relative to the recorded baseline gate config
+   * (e.g. a reviewed, intentional relaxation) instead of failing the gate.
+   * Detection itself still runs and is still surfaced in diagnostics/
+   * `check --json-out`; this only suppresses the failure.
+   */
+  allowLoosening?: boolean;
   statistical?: StatisticalGateConfig;
   calibration?: {
     /** Enable/disable pre-gate calibration evidence checks. Default: auto (on when calibration suite manifest is present). */

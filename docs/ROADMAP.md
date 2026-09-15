@@ -960,8 +960,8 @@ Note: waiver files are plain JSON, not signed (the register's own integrity reli
 
 ### 4F.6 Threshold-change detection (segregation of duties) (P1, 3-4 d)
 
-- [ ] Detect when resolved gate configuration loosens relative to the baseline; fail the gate or require CODEOWNER approval.
-- [ ] Surface the loosening in `check --json-out` so it is visible in both the diff and the artifact.
+- [x] Detect when resolved gate configuration loosens relative to the baseline; fail the gate or require CODEOWNER approval.
+- [x] Surface the loosening in `check --json-out` so it is visible in both the diff and the artifact.
 
 Acceptance criteria:
 

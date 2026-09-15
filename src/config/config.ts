@@ -51,4 +51,10 @@ export type EvalReportsConfig = {
   notifications?: NotificationsConfig;
   /** Path to an `eval-waiver-register/v1` JSON file honoured by `check`. */
   waiverFile?: string;
+  /**
+   * Path to a recorded baseline `GateConfig` JSON file. `check` compares
+   * the resolved gate configuration for this run against it and fails the
+   * gate on any unapproved loosening (see `gates.allowLoosening`).
+   */
+  baselineGateConfigFile?: string;
 };
