@@ -14,10 +14,10 @@ Can you prove local changes are understood through artifacts before CI is involv
 
 Lab outline
 
-1. Regenerate deterministic artifacts.
-2. Confirm the core evidence files exist.
-3. Read progress and row-level comparison signals.
-4. Validate both pass and fail gate outputs.
+1. Regenerate deterministic artifacts. (evidence class: all four)
+2. Confirm the core evidence files exist. (evidence class: history, progress, gate, row detail)
+3. Read progress and row-level comparison signals. (evidence class: progress, row detail)
+4. Validate both pass and fail gate outputs. (evidence class: gate decision)
 
 ## Steps
 
@@ -76,10 +76,17 @@ print('fail_reasons:', fail_doc['failures'])
 PY
 ```
 
-## Expected outputs
+## Expected outputs (verified against a real run)
 
 - `history.json` contains 2 runs.
 - `summary.json` includes `comparison.previousRunId`, `persistentFailures`, and `disappeared`.
+- `disappeared=4` here, with `newlyPassing=[]`. That is 4 rows present in the
+  baseline (`agent-v3-2026-07-30`) that are absent from this run
+  (`agent-v4-2026-07-31`) — real ids: `rq-fail-2`, `rq-fail-4`, `tu-fail-1`,
+  `tu-fail-2`. This is **not** four fixed bugs. Rows disappear when a dataset
+  or suite changes shape between runs (renamed/removed cases), not only when
+  an agent improves. Read it together with `persistentFailures` (2 rows still
+  failing) before concluding anything got better.
 - `check-pass.json` has `passed: true`.
 - `check-fail.json` has `passed: false` with a threshold reason.
 - `index.html` opens locally for human triage.

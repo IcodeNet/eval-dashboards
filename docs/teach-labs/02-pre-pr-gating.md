@@ -14,10 +14,21 @@ Can you justify merge-eligible vs blocked with explicit thresholds and row evide
 
 Lab outline
 
-1. Refresh deterministic artifacts.
-2. Run check with two threshold settings.
-3. Produce a decision record from machine JSON.
-4. Link decision back to persistent failing rows.
+1. Refresh deterministic artifacts. (evidence class: all four)
+2. Run check with two threshold settings. (evidence class: gate decision)
+3. Produce a decision record from machine JSON. (evidence class: gate decision)
+4. Link decision back to persistent failing rows. (evidence class: row detail)
+
+Why these two thresholds
+
+This lab's fixture run passes at 97.33%. `0.95` and `0.99` were picked to
+straddle it deliberately: `0.95` sits below the actual pass rate (gate
+passes), `0.99` sits above it (gate fails). This is not a real team's
+threshold — a threshold is a negotiated risk position your team sets based
+on what a regression at that suite actually costs, not a number copied from
+this lab. The point of running both is to see the same evidence produce
+opposite decisions, so you internalize that the artifact doesn't decide
+anything by itself — the threshold does.
 
 ## Steps
 

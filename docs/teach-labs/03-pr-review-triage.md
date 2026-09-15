@@ -14,10 +14,10 @@ Can you produce a reviewer-ready triage note from run-to-run evidence?
 
 Lab outline
 
-1. Refresh artifacts.
-2. Read history and run comparison context.
-3. Extract persistent, disappeared, and newly passing rows.
-4. Confirm the gate status used by reviewers.
+1. Refresh artifacts. (evidence class: all four)
+2. Read history and run comparison context. (evidence class: history, progress)
+3. Extract persistent, disappeared, and newly passing rows. (evidence class: row detail)
+4. Confirm the gate status used by reviewers. (evidence class: gate decision)
 
 ## Steps
 
@@ -73,14 +73,26 @@ print('diagnostics=', gate.get('diagnostics', []))
 PY
 ```
 
-## Expected outputs
+## Expected outputs (verified against a real run)
 
 - History confirms cross-run comparison context.
 - Progress data identifies run-to-run movement.
 - Row-level details identify remaining risk, id churn/removals, and resolved issues.
 - Gate output provides binary reviewer decision signal.
-- In this fixture, `newlyPassing` can be empty because improvements can appear under `disappeared` when row IDs changed between runs.
+- In this fixture, `newlyPassing=[]` and `disappeared` has 4 rows
+  (`rq-fail-2`, `rq-fail-4`, `tu-fail-1`, `tu-fail-2`). **Do not read that as
+  4 improvements.** `disappeared` means those row ids are no longer present
+  in the current run's dataset — the row was removed, renamed, or the
+  suite changed shape. It is evidence of change, not evidence of a fix. Only
+  `newlyPassing` (same row id, was failing, now passing) is a confirmed
+  improvement. A reviewer who reports "4 issues resolved" from this fixture
+  would be wrong; the correct note is "2 persistent failures unchanged, 4
+  rows absent from this run — confirm with the dataset owner whether they
+  were intentionally removed before counting them as progress."
 
 ## Definition of done
 
-You can explain the concept of comparison triage and produce a short PR note with gate decision, top persistent failures, and improvements.
+You can explain the concept of comparison triage and produce a short PR note
+with gate decision, top persistent failures, and a `disappeared` count that
+is explicitly *not* claimed as improvements unless corroborated by
+`newlyPassing` or a dataset-owner confirmation.

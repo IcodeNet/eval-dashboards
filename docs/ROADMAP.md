@@ -828,16 +828,33 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
       thin ones: what this teaches (numbered ideas), why this matters, question this
       answers, named prerequisites, where to run it, per-step rationale, verbatim
       expected output, how-to-read-it table, common mistakes, definition of done.
-- [ ] 4G.13 Teach `disappeared` properly. Three separate labs print `disappeared= 4`
+- [x] 4G.13 Teach `disappeared` properly. Three separate labs print `disappeared= 4`
       and none explains that it is ID churn rather than four fixed bugs — a reviewer
       reading the fixture cold concludes "nothing changed", which is wrong.
-- [ ] 4G.14 Teach where thresholds come from. Lab 02 uses 0.95 and 0.99 against a
+      Fixed in Labs 01 and 03 (05 already handled this correctly from an earlier
+      batch): named the real ids (`rq-fail-2`, `rq-fail-4`, `tu-fail-1`,
+      `tu-fail-2`), stated explicitly that `disappeared` != improvement, and
+      that only `newlyPassing` is a confirmed fix.
+- [x] 4G.14 Teach where thresholds come from. Lab 02 uses 0.95 and 0.99 against a
       fixture at 0.973 without saying the thresholds were chosen to straddle it. A
       threshold is a negotiated risk position, not a constant.
-- [ ] 4G.15 Use the "four evidence classes" spine (history / progress / gate /
+      Added a "Why these two thresholds" section to Lab 02 stating the actual
+      pass rate (97.33%) and that 0.95/0.99 were chosen to straddle it on
+      purpose, plus the explicit warning not to copy these numbers as a real
+      policy. Re-verified both `check` invocations still pass/fail as before.
+- [x] 4G.15 Use the "four evidence classes" spine (history / progress / gate /
       row detail) from labs/README to label every lab step. Declared once, never used.
-- [ ] 4G.16 Surface `--min-matched-expectation-rate`. Ex03 introduces `expectation`
+      Labeled every numbered step in Labs 01, 02, 03 with its evidence class(es).
+- [x] 4G.16 Surface `--min-matched-expectation-rate`. Ex03 introduces `expectation`
       as "one extra field" and never mentions the gate that consumes it.
+      Clarified that the dataset's `expectation` field is distinct from the
+      artifact's `expectedOutcome` field the gate actually reads; added a new
+      step 4 that converts the 4 rows into an artifact with one deliberate
+      mismatch and runs `check --min-matched-expectation-rate=1.0`. Also fixed
+      a real bug found while verifying: the scaffold JSONL has no trailing
+      newline, so a plain `cat >>` corrupts the file by gluing lines together —
+      added `printf '\n' >>` before the append. Verified end-to-end from a
+      clean scratch dir: exact matched-expectation-rate 0.750, exit 1.
 
 ---
 
