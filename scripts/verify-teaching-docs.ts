@@ -41,6 +41,13 @@ const CHAIN = [
   '10-iteration-loop.md',
 ];
 
+/**
+ * Labs differ from exercises: each is self-contained and runs from the repo
+ * root against tracked fixtures in examples/, rather than building up a private
+ * artifact in a scratch dir. They are replayed independently, in the repo.
+ */
+const LABS = ['04-release-readiness.md', '05-post-release-monitoring.md'];
+
 interface Block {
   lang: string;
   body: string;
@@ -106,44 +113,57 @@ interface Drift {
   context: string;
 }
 
+/** Replay one doc's shell blocks and diff its ```text blocks against reality. */
+function verifyDoc(
+  docRelPath: string,
+  cwd: string,
+  drifts: Drift[],
+): number {
+  const markdown = readFileSync(path.join(repoRoot, docRelPath), 'utf8');
+  const blocks = extractBlocks(markdown);
+  let asserted = 0;
+
+  let captured = '';
+  for (const block of blocks) {
+    if (block.lang !== 'sh') continue;
+    const { stdout } = runShellBlock(block.body, cwd);
+    captured += stdout;
+  }
+
+  if (printMode) {
+    process.stdout.write(`\n=== ${docRelPath} ===\n${captured}`);
+  }
+
+  for (const block of blocks) {
+    if (block.lang !== 'text') continue;
+    for (const expected of assertableLines(block.body)) {
+      asserted += 1;
+      if (!captured.includes(expected)) {
+        drifts.push({
+          file: docRelPath,
+          line: block.startLine,
+          documented: expected,
+          context: captured.trim().split('\n').slice(-6).join('\n'),
+        });
+      }
+    }
+  }
+  return asserted;
+}
+
 function main(): number {
   const workdir = mkdtempSync(path.join(tmpdir(), 'teach-verify-'));
   const drifts: Drift[] = [];
   let assertedCount = 0;
 
   try {
+    // Exercises share one artifact, so they must replay in order in one dir.
     for (const filename of CHAIN) {
-      const docPath = path.join(repoRoot, 'docs', 'teach-exercises', filename);
-      const markdown = readFileSync(docPath, 'utf8');
-      const blocks = extractBlocks(markdown);
-
-      // Replay every shell step in this exercise, accumulating its output.
-      let captured = '';
-      for (const block of blocks) {
-        if (block.lang !== 'sh') continue;
-        const { stdout } = runShellBlock(block.body, workdir);
-        captured += stdout;
-      }
-
-      if (printMode) {
-        process.stdout.write(`\n=== ${filename} ===\n${captured}`);
-      }
-
-      // Every documented output line must appear in what the CLI really printed.
-      for (const block of blocks) {
-        if (block.lang !== 'text') continue;
-        for (const expected of assertableLines(block.body)) {
-          assertedCount += 1;
-          if (!captured.includes(expected)) {
-            drifts.push({
-              file: `docs/teach-exercises/${filename}`,
-              line: block.startLine,
-              documented: expected,
-              context: captured.trim().split('\n').slice(-6).join('\n'),
-            });
-          }
-        }
-      }
+      assertedCount += verifyDoc(`docs/teach-exercises/${filename}`, workdir, drifts);
+    }
+    // Labs are self-contained and run from the repo root against examples/.
+    for (const filename of LABS) {
+      assertedCount += verifyDoc(`docs/teach-labs/${filename}`, repoRoot, drifts);
     }
   } finally {
     rmSync(workdir, { recursive: true, force: true });
@@ -151,7 +171,8 @@ function main(): number {
 
   if (drifts.length === 0) {
     console.log(
-      `Teaching docs verified: ${assertedCount} documented output line(s) across ${CHAIN.length} exercises match real CLI output.`,
+      `Teaching docs verified: ${assertedCount} documented output line(s) across ` +
+        `${CHAIN.length} exercises and ${LABS.length} labs match real CLI output.`,
     );
     return 0;
   }

@@ -9,6 +9,12 @@ Use this ledger before declaring any task finished.
 - Confirm schema/docs/examples are updated together when contract fields change.
 - Confirm docs truth-sync across `README.md`, `docs/ROADMAP.md`, `docs/STATUS.md`, `docs/publishing.md`, and `docs/examples.md`.
 - Confirm command-help snapshots in `docs/cli-help/*.txt` match live CLI output for: `report`, `check`, `publish`, `import`, `teach`, `init`.
+- Confirm teaching-doc output blocks still match the CLI by running `pnpm teach:verify`.
+  Every fenced ```text block in `docs/teach-exercises/` and the replayable labs is asserted
+  line-by-line against a real replay. Never hand-edit an expected-output block to make it
+  look right: run the exercise and paste what the CLI actually printed. A 2026-09-15 audit
+  found four exercises documenting output the CLI never produced, one of which claimed a
+  gate passed when it exits `1`.
 - Confirm each integration guide links `docs/integrations/risk-register.md` and uses it as a completion gate.
 
 ## 1a) Docs Consistency Checklist (completion-claim gate)
@@ -52,6 +58,7 @@ naming the evidence gap, so the next reader sees why rather than only a flipped 
 - `pnpm test`
 - `pnpm typecheck`
 - `pnpm build`
+- `pnpm teach:verify` (whenever gate diagnostics, lint rules, or teaching docs change)
 
 If CLI/report/publish behavior changed, also run at least one focused command that proves behavior:
 
