@@ -40,11 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Breaking: calibration preflight now requires independent evidence for blocking suites (same-run calibration rows no longer satisfy blocking checks) and validates calibration rubric metadata before gate evaluation.
 - Benchmark pack fixtures now use valid `datasetSource` enum values and suite-manifest thresholds aligned with implemented gate semantics.
 - Pack compatibility test now validates templates through `validateEvalReport` using `suiteManifests`, not string-shape checks only.
 - Pack JSON templates are now included in npm package `files` for downstream consumers.
 - `report --reporter` now exits 2 on unknown reporter values instead of silently skipping output generation; `markdown` is accepted as an alias for `markdown-summary`.
-- Breaking: calibration preflight now requires independent evidence for blocking suites (same-run calibration rows no longer satisfy blocking checks) and validates calibration rubric metadata before gate evaluation.
 - Automatic baseline selection (`--baseline-strategy`) now excludes runs with `run.kind: "calibration"` so calibration-only artifacts do not become report/check baselines.
 - The GitHub Action now installs the CLI via `npx --package` for tarball installs instead of a bare `npx` invocation.
 
