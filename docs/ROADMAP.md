@@ -969,11 +969,25 @@ Acceptance criteria:
 
 ### 4F.7 Heartbeat verifier (P1, 2-3 d)
 
-- [ ] Add a scheduled verification path asserting that every release subject has a fresh heartbeat within N hours; absence raises an alert.
+- [x] Add a scheduled verification path asserting that every release subject has a fresh heartbeat within N hours; absence raises an alert.
+      Shipped `eval-dashboards heartbeat-verify --heartbeat=<path> --max-age-hours=<n>`
+      (`src/cli/index.ts` command handler; `src/gates/heartbeat.ts` `verifyHeartbeatFile`/
+      `verifyHeartbeatFreshness`). Reads an `eval-check-heartbeat/v1` file independently of
+      the release pipeline that produced it: a missing file, malformed JSON, stale
+      `generatedAt` (beyond `--max-age-hours`), or `gateRunStatus` of `skipped`/`errored`
+      all fail closed (exit 1) with an explicit message naming the deleted/skipped-gate
+      possibility; a healthy fresh heartbeat exits 0. Missing/invalid flags exit 2.
 
 Acceptance criteria:
 
 - Deleting or skipping the gate step on a release produces an alert rather than silent success. Absence of evidence becomes detectable.
+  - Evidence: `test/heartbeat-verify.test.ts` — `verifyHeartbeatFile` and the
+    `heartbeat-verify` CLI command both fail (exit 1) when the heartbeat file at the
+    expected path does not exist at all (the direct analogue of a deleted/skipped gate
+    step never writing one), when it is stale beyond the freshness window, and when
+    `gateRunStatus` is `skipped`/`errored`; pass (exit 0) only for a fresh `ran` heartbeat.
+    Documented with a scheduled-job wiring example in `docs/gates.md`. 14 new tests,
+    277/277 total passing; `pnpm typecheck` and `pnpm build` clean.
 
 ### 4F.8 Static org rollup index (P1, M)
 
@@ -1020,7 +1034,7 @@ Acceptance criteria:
 4. 4F.4 Artifact digest and detached signature
 5. 4F.5 Waiver and exception register
 6. 4F.6 Threshold-change detection
-7. 4F.7 Heartbeat verifier
+7. 4F.7 Heartbeat verifier — done
 8. 4F.8 Static org rollup index
 9. 4F.9 Bypass accounting
 10. 4F.10 PR-subset tiering with cost budget

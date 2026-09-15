@@ -69,6 +69,7 @@ import {
   type NotificationDispatchResult,
 } from '../notifications/notify.js';
 import { signArtifact, verifyArtifact } from '../sign/sign.js';
+import { verifyHeartbeatFile, gateRunStatusFromExitCode, type CheckHeartbeatPayload as ImportedCheckHeartbeatPayload } from '../gates/heartbeat.js';
 
 const usage = `eval-dashboards <command>
 
@@ -87,6 +88,7 @@ Commands:
   adjudicate  Export unresolved rows for human review and merge reviewed verdicts back.
   sign     Hash and detached-sign a check-result artifact (cosign keyless in CI).
   verify   Re-validate a check-result artifact's digest and detached signature.
+  heartbeat-verify  Assert a fresh gate-run heartbeat exists for a release subject (scheduled check).
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -270,6 +272,22 @@ Options:
   --certificate-oidc-issuer=<issuer>       Required cosign certificate OIDC issuer (cosign-keyless only)
 `;
 
+const heartbeatVerifyUsage = `eval-dashboards heartbeat-verify [options]
+
+Scheduled 4F.7 verifier: asserts a fresh, healthy gate-run heartbeat exists for a
+release subject, independent of the release pipeline that is supposed to produce it.
+This is what makes deleting or skipping the eval gate step on a release detectable —
+if the heartbeat file is missing, stale, or reports gateRunStatus!="ran", this command
+fails and alerts, rather than the absence passing silently. Run it on its own schedule
+(e.g. a periodic CI job unrelated to the release workflow) pointed at the heartbeat
+path each release is expected to publish (e.g. alongside \`--heartbeat-out\` from
+\`eval-dashboards check\`, copied/published somewhere this job can read it).
+
+Options:
+  --heartbeat=<path>       Path to the eval-check-heartbeat/v1 JSON file (required)
+  --max-age-hours=<n>      Maximum allowed heartbeat age in hours (required, must be > 0)
+`;
+
 type CheckOutputRow = {
   id: string;
   suite: string;
@@ -443,25 +461,7 @@ const buildArtifactDigests = async (filePaths: string[]): Promise<CheckOutputArt
   return digests.sort((left, right) => left.path.localeCompare(right.path));
 };
 
-type CheckHeartbeatPayload = {
-  schemaVersion: 'eval-check-heartbeat/v1';
-  gateRunStatus: 'ran' | 'skipped' | 'errored';
-  generatedAt: string;
-  exitCode: number;
-  runId?: string;
-  baselineRunId?: string;
-  message?: string;
-};
-
-const gateRunStatusFromExitCode = (exitCode: number): CheckHeartbeatPayload['gateRunStatus'] => {
-  if (exitCode === 0 || exitCode === 1) {
-    return 'ran';
-  }
-  if (exitCode === 3) {
-    return 'skipped';
-  }
-  return 'errored';
-};
+type CheckHeartbeatPayload = ImportedCheckHeartbeatPayload;
 
 const NOTIFICATION_CHANNELS: NotificationChannel[] = ['slack', 'teams', 'email'];
 
@@ -1960,6 +1960,38 @@ const main = async (): Promise<void> => {
     }
 
     console.error(`Verification failed:\n${result.reasons.join('\n')}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'heartbeat-verify') {
+    if (optionBoolean(options, 'help')) {
+      console.log(heartbeatVerifyUsage);
+      return;
+    }
+
+    const heartbeatPath = optionString(options, 'heartbeat', '');
+    if (!heartbeatPath) {
+      console.error('heartbeat-verify requires --heartbeat=<path>');
+      process.exitCode = 2;
+      return;
+    }
+    const maxAgeHours = optionNumber(options, 'max-age-hours');
+    if (maxAgeHours === undefined || !Number.isFinite(maxAgeHours) || maxAgeHours <= 0) {
+      console.error('heartbeat-verify requires --max-age-hours=<n> with n > 0');
+      process.exitCode = 2;
+      return;
+    }
+
+    const result = await verifyHeartbeatFile(heartbeatPath, { maxAgeHours });
+
+    if (result.ok) {
+      const ageNote = result.ageHours !== undefined ? ` (age: ${result.ageHours.toFixed(2)}h)` : '';
+      console.log(`Heartbeat OK: ${heartbeatPath}${ageNote}.`);
+      return;
+    }
+
+    console.error(`Heartbeat verification failed for ${heartbeatPath}:\n${result.reasons.join('\n')}`);
     process.exitCode = 1;
     return;
   }

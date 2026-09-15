@@ -1,0 +1,15 @@
+eval-dashboards heartbeat-verify [options]
+
+Scheduled 4F.7 verifier: asserts a fresh, healthy gate-run heartbeat exists for a
+release subject, independent of the release pipeline that is supposed to produce it.
+This is what makes deleting or skipping the eval gate step on a release detectable —
+if the heartbeat file is missing, stale, or reports gateRunStatus!="ran", this command
+fails and alerts, rather than the absence passing silently. Run it on its own schedule
+(e.g. a periodic CI job unrelated to the release workflow) pointed at the heartbeat
+path each release is expected to publish (e.g. alongside `--heartbeat-out` from
+`eval-dashboards check`, copied/published somewhere this job can read it).
+
+Options:
+  --heartbeat=<path>       Path to the eval-check-heartbeat/v1 JSON file (required)
+  --max-age-hours=<n>      Maximum allowed heartbeat age in hours (required, must be > 0)
+

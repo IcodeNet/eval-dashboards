@@ -79,6 +79,25 @@ Heartbeat payload contract (`eval-check-heartbeat/v1`):
 - `--github-annotations-out` emits a simple annotations JSON payload (`level`, `title`, `message`) that workflow helpers can translate into GitHub log annotations.
 - `--heartbeat-out` emits gate-run heartbeat JSON (`eval-check-heartbeat/v1`) with `gateRunStatus`, `exitCode`, and optional error message.
 
+### 4F.7 Heartbeat verifier (scheduled absence detection)
+
+`--heartbeat-out` (above) only proves the gate ran *this run*. It cannot detect a
+release where the gate step itself was deleted or skipped from the pipeline
+entirely — in that case nothing ever writes the heartbeat file, and nothing on the
+release path notices. `eval-dashboards heartbeat-verify` closes that gap: run it on
+its own schedule, independent of the release pipeline, pointed at wherever each
+release's heartbeat is published:
+
+```sh
+eval-dashboards heartbeat-verify --heartbeat=eval-report/check-heartbeat.json --max-age-hours=24
+```
+
+- Exit `0`: a heartbeat file exists, is valid JSON, reports `gateRunStatus: "ran"`, and its `generatedAt` is within `--max-age-hours`.
+- Exit `1`: the heartbeat is missing, unparseable, stale, or reports `gateRunStatus` of `skipped`/`errored` — this is the alert signal for a deleted/skipped gate step.
+- Exit `2`: required flags (`--heartbeat`, `--max-age-hours`) are missing or invalid.
+
+Wire it as its own scheduled workflow (e.g. a periodic GitHub Actions cron job, unrelated to the release workflow) that reads the heartbeat published/copied out of the release pipeline (e.g. as a build artifact, or committed/published alongside the report). A non-zero exit from this job is the alert: absence of evidence becomes detectable instead of silently passing.
+
 Notification adapters (opt-in):
 
 - `--notify=<channel>` enables one or more channels (`slack`, `teams`, `email`) when a blocking gate fails or baseline compatibility is blocked.
