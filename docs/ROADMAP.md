@@ -1282,6 +1282,33 @@ Acceptance criteria:
       `--json-out`.
 - [x] Update `docs/artifact-format.md`; fixture + test.
 
+### 4F.16 Trace span-type tagging (P2, S)
+
+- [ ] Add optional `spanType?: string` to `TraceReference` (free-form,
+      runner-defined; e.g. `"retrieval"`, `"generation"`, `"tool"`, `"agent"`) —
+      no enum lock-in, purely a label for grouping evidence by pipeline stage.
+- [ ] HTML/markdown reporters show the span type next to trace links when
+      present; no change when absent.
+- [ ] Update `docs/artifact-format.md`; fixture + test.
+
+### 4F.17 Per-axis judge reasoning (P2, S)
+
+- [ ] Add optional `axisReasoning?: Record<string, string>` sibling to the
+      existing `axisScores?: Record<string, number>` field — one explanation
+      string per axis, mirrors the existing row-level `judgeReasoning`.
+- [ ] HTML reporter shows per-axis reasoning inline with each axis score when
+      present.
+- [ ] Update `docs/artifact-format.md` and `docs/taxonomy.md`; fixture + test.
+
+### 4F.18 Declared score scale on a suite (P2, S)
+
+- [ ] Add optional `scoreScale?: { min: number; max: number }` to the suite
+      manifest (not per-row) so non-normalized scores (e.g. a 0-3 Likert
+      rubric) render correctly instead of being assumed 0-1.
+- [ ] HTML reporter uses the declared scale when rendering score bars/gauges
+      for that suite; falls back to 0-1 assumption when absent.
+- [ ] Update `docs/artifact-format.md`; fixture + test.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
