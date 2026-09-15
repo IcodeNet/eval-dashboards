@@ -13,6 +13,8 @@ This fixture demonstrates:
 - ✅ **Rubric contracts:** Axis definitions for reference
 - ✅ **Baseline compatibility:** Even if empty, shows the shape
 - ✅ **Run metadata:** Project, team, branch, commit, buildId for context
+- ✅ **Run-level tags:** `tags` for ad hoc CI context (PR number, model, environment)
+- ✅ **Compliance tagging:** `complianceRefs` (row-level) and `complianceFrameworks` (suite-level) opaque framework ids (OWASP LLM Top 10, NIST AI RMF, EU AI Act, GDPR)
 
 ## Use This As a Template
 
