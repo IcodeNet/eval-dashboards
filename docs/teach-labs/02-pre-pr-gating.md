@@ -4,6 +4,16 @@ Concept
 
 A gate is a policy decision over evidence, not a generic test failure.
 
+## What this lab teaches
+
+1. **A gate threshold is a policy choice, not a property of the run.** The same
+   97.33% pass rate is "merge-eligible" at one threshold and "blocked" at
+   another — the artifact never changes.
+2. **Gate JSON must carry a baseline reference.** Without `baselineRunId`, a
+   "pass" or "fail" verdict cannot be audited against what it was compared to.
+3. **A gate decision is incomplete without row-level evidence.** "Blocked"
+   alone doesn't tell a reviewer what to fix; the persistent-failure rows do.
+
 Why this matters
 
 Teams often block or merge PRs using intuition. This lab teaches how to make the same decision deterministically from machine outputs and baseline context.
@@ -79,6 +89,17 @@ PY
 - Gate decision changes when threshold changes.
 - Baseline run id is explicit in gate output.
 - Persistent failing rows are listed with IDs and categories.
+
+## Common mistakes
+
+- **Copying `0.95`/`0.99` into a real team's config.** These values were picked
+  to straddle this fixture's 97.33% pass rate for teaching purposes, not
+  because they represent a sound risk threshold for any real suite.
+- **Treating "blocked" as self-explanatory.** A blocked decision without the
+  attached persistent-failure rows gives a reviewer nothing actionable.
+- **Forgetting `|| true` on the intentionally-failing command.** Without it,
+  the failing `check` call aborts the script instead of producing the JSON
+  you need for step 3.
 
 ## Definition of done
 

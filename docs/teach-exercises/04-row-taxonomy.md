@@ -1,5 +1,20 @@
 # Exercise 04: Upgrade one row to taxonomy-complete
 
+## What this exercise teaches
+
+1. "Minimal valid" and "taxonomy-complete" are different bars — the second
+   one is what makes a row debuggable by someone else.
+2. A complete row answers five questions at once: what kind of check, how
+   bad, which dataset/rubric governs it, what the evidence was, and why it
+   passed or failed.
+3. Adding these fields directly removes specific lint warnings for that row
+   (`missing-kind`, `missing-severity`, `missing-category`).
+
+## Question this answers
+
+What is the minimum set of fields that turns a bare pass/fail row into
+something a teammate can debug without asking you questions?
+
 Goal
 - Take one minimal row and make it taxonomy-complete.
 - Verify lint warnings decrease for that row.
@@ -70,9 +85,12 @@ for k in ['id','suite','passed','kind','severity','category','datasetId','scenar
 PY
 ```
 
-Example result
+Example result (verified against a real run)
 - Row `case-001` now has classification + governance + evidence fields.
-- Lint shows fewer taxonomy missing-field warnings for this row.
+- Lint passes with no issues for this artifact (`Eval taxonomy lint passed
+  with no issues.`), because the three warnings from Exercise 02
+  (`missing-kind`, `missing-severity`, `missing-category`) are exactly the
+  fields this exercise adds.
 
 Definition of done
 - You can explain each added field in one sentence.

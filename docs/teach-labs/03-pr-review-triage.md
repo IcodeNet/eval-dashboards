@@ -4,6 +4,17 @@ Concept
 
 PR triage is comparison analysis: what got worse, what stayed broken, and what improved.
 
+## What this lab teaches
+
+1. **Triage is a comparison, not a snapshot.** You need the previous run's
+   result alongside the current one to say anything about regression or
+   improvement.
+2. **`disappeared` and `newlyPassing` mean different things.** Conflating them
+   turns "4 rows vanished from the dataset" into a false "4 issues fixed"
+   claim in a PR comment.
+3. **A reviewer-ready note cites row IDs, not just counts.** "2 failures" is
+   not actionable; `rq-fail-1`, `rq-fail-3` with reasons is.
+
 Why this matters
 
 Without structured comparison, reviewers focus on loud failures and miss persistence, regressions, or ID churn that affects confidence.
@@ -89,6 +100,15 @@ PY
   would be wrong; the correct note is "2 persistent failures unchanged, 4
   rows absent from this run — confirm with the dataset owner whether they
   were intentionally removed before counting them as progress."
+
+## Common mistakes
+
+- **Reporting `disappeared` rows as resolved issues.** This fixture's 4
+  disappeared rows are absent from the dataset, not confirmed fixed.
+- **Skipping the history/baseline pull.** Without `previousRunId`, "improved"
+  or "regressed" has no reference point and is just an opinion.
+- **Quoting only the gate's pass/fail bit in a review comment.** Reviewers
+  need the row-level reasons, not just the binary verdict.
 
 ## Definition of done
 

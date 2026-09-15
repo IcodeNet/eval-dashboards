@@ -1,5 +1,13 @@
 # Exercise 10: Complete one iteration loop
 
+What this exercise teaches
+1. A legitimate "fix" to a failing row requires a documented reason (rubric was wrong), not just flipping `passed` to `true`.
+2. Hand-editing an artifact to make a row pass is fabricated evidence unless it's paired with a real, specific change note a reviewer can check.
+3. `check` cannot distinguish a legitimate rubric fix from a fabricated pass on its own — the audit trail (change note) is what makes the difference, not the tool.
+
+Question this answers
+- What separates a real iteration-loop fix from silently editing a failing row to green?
+
 Goal
 - Fix one failing row.
 - Record why the change was made.
@@ -101,3 +109,14 @@ Definition of done
 - You can explain, out loud, why this exercise's method (hand-edit + note) is
   not the same as fixing the underlying agent and would be indefensible
   without the note.
+
+Common mistakes
+- Flipping `passed` to `true` without writing (or reading) the change note —
+  at that point it is indistinguishable from fabricating a pass.
+- Forgetting that `case-002`, the critical row added in Exercise 08, is still
+  in the artifact at this point: running `check --zero-critical` here still
+  fails on that unrelated row, which can look like this exercise's fix didn't
+  work when it actually did (only `case-001` was in scope for this fix).
+- Treating this exercise's hand-edit pattern as a template for real failures
+  — in a real pipeline you re-run the suite after the underlying fix; you do
+  not hand-edit a production artifact.

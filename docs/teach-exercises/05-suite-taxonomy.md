@@ -1,5 +1,13 @@
 # Exercise 05: Add suite governance metadata
 
+What this exercise teaches
+1. Suite-level metadata (`suiteManifests[]`) is separate from row-level fields.
+2. A manifest can name a suite id that does not exist yet without lint complaining — only the reverse (a suite with no manifest) warns.
+3. Attaching a manifest to a suite with existing un-governed rows raises the bar for every row already in it (lifecycle/provenance become required).
+
+Question this answers
+- How do you declare gate intent and dataset/rubric versions for a whole suite, not just one row?
+
 Goal
 - Add `suiteManifests[]` for one safety suite and one quality suite.
 
@@ -80,3 +88,15 @@ Definition of done
 - You have one report-only manifest (`answer-quality`) with explicit dataset
   and rubric versions.
 - Lint still passes with only `missing-suite-manifest` warnings, no errors.
+
+Common mistakes
+- Naming the manifest after a suite id that doesn't match what you add later
+  (e.g. `answer_quality` vs `answer-quality`) — the manifest then silently
+  never applies to any row, and lint gives no warning to tell you.
+- Setting `gate.mode: 'blocking'` on a suite before you have enough rows to
+  trust its pass rate — a report-only suite should graduate to blocking only
+  after real coverage exists.
+- Manifesting a suite that already has rows without adding the required
+  `metadata.lifecycle.status` / `metadata.provenance.source` to those
+  existing rows first — this immediately turns previously-clean rows into
+  lint errors.

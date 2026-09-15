@@ -42,10 +42,16 @@ That means every decision (ship, block, triage, monitor) must be backed by concr
 
 The four evidence classes used repeatedly are:
 
-- history
-- progress
-- gate decision
-- row-level detail analysis
+- **history** — the sequence of past runs (`history.json`), showing how many
+  data points back a trend claim can honestly draw on.
+- **progress** — run-to-run comparison (`summary.json` `comparison` section):
+  what regressed, what stayed broken, what improved.
+- **gate decision** — the binary policy verdict (`check-*.json`) produced by
+  applying a threshold to the current run; it is a policy choice, not a
+  quality score.
+- **row-level detail analysis** — the individual failing/passing rows with
+  IDs, reasons, and categories, which is what turns a gate verdict into
+  something a reviewer can act on.
 
 ## Shared fixture and artifact set
 

@@ -1,5 +1,20 @@
 # Exercise 03: Add first synthetic dataset rows
 
+## What this exercise teaches
+
+1. A dataset's `expectation` field and an artifact row's `expectedOutcome`
+   field are two different things, one step apart — the gate only reads the
+   second one.
+2. A small dataset (happy path + edge case + safety cases) is enough to
+   exercise a real gate, `--min-matched-expectation-rate`.
+3. Stable dataset IDs written now (`aq-extra-001` etc.) are what makes later
+   history and triage exercises usable.
+
+## Question this answers
+
+Where does the "expected pass/fail" label I write in a dataset actually get
+checked, and what happens when a run doesn't match it?
+
 Goal
 - Generate starter dataset files.
 - Add 4 new rows: 2 expected-pass, 2 expected-fail.
@@ -119,3 +134,12 @@ Definition of done
 - You can explain the difference between the dataset's `expectation` field
   and the artifact's `expectedOutcome` field, and you have seen
   `--min-matched-expectation-rate` fail on a real mismatch.
+
+Common mistakes
+- Assuming `check --min-matched-expectation-rate` reads the dataset JSONL
+  directly — it only reads `expectedOutcome` on artifact rows; the dataset's
+  `expectation` is just planning input, never consumed by the CLI.
+- Using `cat >>` on the scaffold file without the leading `printf '\n'` first,
+  which glues the new JSONL line onto the last line and corrupts the file.
+- Forgetting to remove `run-agent-quality-template.json` after `init --write`,
+  so later exercises accidentally lint/gate against a stray extra artifact.

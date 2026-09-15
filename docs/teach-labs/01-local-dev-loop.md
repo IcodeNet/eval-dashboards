@@ -4,6 +4,17 @@ Concept
 
 Local development should produce decision-ready evidence, not only a pass/fail feeling.
 
+## What this lab teaches
+
+1. **Regenerating artifacts locally is cheap and mandatory.** A one-line script
+   produces the same four evidence classes CI and release stages rely on, so
+   there is no excuse for discovering an issue only in a PR.
+2. **History, progress, gate, and row detail are separate files for a reason.**
+   Each answers a different question; conflating them (e.g. reading only the
+   pass rate) hides real problems.
+3. **A passing gate and a healthy dataset are not the same thing.** `disappeared`
+   rows can make a run look better than it is even when the gate is green.
+
 Why this matters
 
 If developers do not learn to read history, progress, gates, and row details during local work, teams discover evaluation issues too late in PR or release stages.
@@ -90,6 +101,15 @@ PY
 - `check-pass.json` has `passed: true`.
 - `check-fail.json` has `passed: false` with a threshold reason.
 - `index.html` opens locally for human triage.
+
+## Common mistakes
+
+- **Reading `pass_rate` alone and stopping.** It says nothing about which rows
+  failed or whether failures are new or persistent.
+- **Counting `disappeared` rows as fixes.** They are absent from the current
+  run, not confirmed passing — see step 3's output.
+- **Skipping the fail-gate check.** Only ever running `check-pass.json` means
+  you never learn what a threshold breach actually looks like in the JSON.
 
 ## Definition of done
 

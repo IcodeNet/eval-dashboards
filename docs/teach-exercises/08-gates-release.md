@@ -1,5 +1,13 @@
 # Exercise 08: Run gates for release decisions
 
+What this exercise teaches
+1. Gates run in a fixed order for a reason: lint (shape) -> check (thresholds) -> report (output), each catching different classes of problem.
+2. A single bad row can trip two independent gates at once (pass-rate floor and critical-failure ceiling); either alone would have blocked release.
+3. "Gates pass" only means the thresholds you set were met — it is not proof the artifact has good coverage (a clean but tiny/manifest-incomplete artifact still passes).
+
+Question this answers
+- What is the correct order to run lint/check/report, and what does a real gate failure look like versus a real gate pass?
+
 Goal
 - Run lint, check, and report in order.
 
@@ -91,3 +99,14 @@ Definition of done
 - You can explain why each command runs in this order.
 - You have seen `check` both pass (clean artifact) and fail (one critical row
   added), and can read the diagnostics line that names which threshold tripped.
+
+Common mistakes
+- Running `check` before `lint` and missing a taxonomy problem that made the
+  pass-rate/critical numbers meaningless in the first place.
+- Assuming a passing `check` means the suite is well-covered — it only means
+  your configured thresholds (pass rate, zero-critical) were met, not that
+  the artifact has enough rows or manifests to trust the number.
+- Forgetting that the critical row added in step 2 stays in the artifact for
+  later exercises (09, 10) unless explicitly fixed or removed — carrying an
+  intentional red row forward without tracking it causes confusing gate
+  failures downstream that look unrelated to the exercise you're on.

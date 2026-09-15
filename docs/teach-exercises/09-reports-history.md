@@ -1,6 +1,32 @@
 # Exercise 09: Build history from two runs
 
+## What this exercise teaches
+
+1. History requires at least two runs with an explicit, stable baseline
+   `run.id` — `--baseline-run-id` only works if you set it yourself.
+2. `history` and `check --baseline-run-id` read the same `.evals_output`
+   directory but answer different questions: one records trend, the other
+   gates on it.
+3. A regression is not automatic — you must intentionally flip a row's
+   `passed`/`severity`/`reason` to see what a real new-failure gate failure
+   looks like.
+
+## Question this answers
+
+Given two runs in the same folder, how do I produce a persisted history file
+and a gate result that tells me whether the second run introduced a new
+failure versus the first?
+
 Goal
+
+How to read the check output
+| Field | Meaning |
+| --- | --- |
+| `New failures 1 exceed allowed 0` | A row that passed in the baseline run now fails; the count, not the row id, drives the gate |
+| `Top failing categories` | Groups the new/current failures by `category` so you see the shape, not just a count |
+| `Lint warning breakdown` | Taxonomy completeness warnings from the same run, shown for context, not blocking the gate |
+| `exit=1` | The process exit code the gate itself returns; anything non-zero fails CI |
+
 - Create at least two run files.
 - Generate report and history outputs.
 
@@ -68,12 +94,31 @@ npx eval-dashboards history --input=.evals_output --out=eval-dashboard/history.j
 npx eval-dashboards check --input=.evals_output --baseline-run-id=local-minimal-001 --max-new-failures=0 --zero-critical
 ```
 
-Example result
-- `history.json` contains at least two run entries.
-- Baseline-aware check reports one new failure and exits with code `1` in this demo.
+Example result (verified against a real run)
+- `history.json` contains 2 run entries.
+- Baseline-aware check reports:
+
+```text
+Eval gates failed:
+New failures 1 exceed allowed 0 (key=row, raw=1).
+Diagnostics:
+Top failing categories: regression=1
+Lint warning breakdown: missing-suite-manifest=3, missing-agent-versioning=1, low-category-coverage=1
+```
+- Exit code `1` in this demo, because `run-002.json`'s only changed row
+  (`case-001`) flips from pass to fail relative to baseline `local-minimal-001`.
 
 Definition of done
 - `run-001.json` and `run-002.json` both exist.
 - `eval-dashboard/history.json` has multiple entries.
 - Baseline-aware new-failure check runs with an explicit baseline id.
 - In this intentional-regression demo, this check can fail with exit code `1` (expected).
+
+Common mistakes
+- Omitting `--baseline-run-id` and expecting `check` to guess which run is
+  the baseline — without it, there is no "new failure" comparison at all.
+- Forgetting to recompute suite `total`/`passed`/`failed` after flipping a
+  row's `passed` field, so the suite summary silently disagrees with the
+  rows underneath it.
+- Reading a nonzero exit code from `check` here as a bug — it is the
+  expected outcome of the intentional regression this exercise creates.

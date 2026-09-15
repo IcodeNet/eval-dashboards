@@ -1,5 +1,13 @@
 # Exercise 06: Capture live agent evidence
 
+What this exercise teaches
+1. Agent rows need trajectory evidence (`turns[]`, `toolCalls[]`), not just a final `output`.
+2. `toolCalls[]` should record args, result, error state, and duration — not just the tool name.
+3. Lint treats missing `agentVersion`/`promptVersion` as a warning, not an error, so an agent row can pass lint while still being under-versioned for cross-release comparison.
+
+Question this answers
+- What evidence do you need to debug an agent row when the final answer looked fine but the path there was wrong or expensive?
+
 Goal
 - Add one row with `turns[]` and `toolCalls[]`.
 
@@ -88,3 +96,13 @@ WARNING [missing-agent-versioning] [run:...] Agent row mcp-routing:agent-traject
 Definition of done
 - Row exists with both `turns` and `toolCalls`.
 - Lint accepts the artifact (exit `0`).
+
+Common mistakes
+- Recording only the final tool result and dropping intermediate `turns`,
+  which makes it impossible to tell whether the agent retried, backtracked,
+  or called tools in a risky order.
+- Leaving `resultIsError` unset on a failed tool call instead of `true` —
+  this hides real tool failures inside what looks like a normal trajectory.
+- Never adding `agentVersion`/`promptVersion` because lint only warns, then
+  losing the ability to tell which agent build a regression came from once
+  you compare runs across releases.

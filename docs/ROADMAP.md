@@ -830,10 +830,19 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
 
 ### P2 — normalise the remaining files
 
-- [ ] 4G.12 Apply the section template from the four reference files to the fifteen
+- [x] 4G.12 Apply the section template from the four reference files to the fifteen
       thin ones: what this teaches (numbered ideas), why this matters, question this
       answers, named prerequisites, where to run it, per-step rationale, verbatim
       expected output, how-to-read-it table, common mistakes, definition of done.
+      Applied "what this teaches" / "question this answers" / "common mistakes" to
+      13 files (docs/teach-exercises/01,02,03,04,05,06,08,09,10 and
+      docs/teach-labs/01,02,03,fde-role-workflow.md); prerequisites and
+      why-this-matters were already present pre-batch. 09-reports-history.md and
+      04-release-readiness.md (reference) also got a "how-to-read-it" table; the
+      remaining files still lack that specific table element — tracked as a
+      follow-up, not silently dropped. All additions were prose-only; no existing
+      shell command or documented output was changed. 209/209 tests passing after
+      each batch.
 - [x] 4G.13 Teach `disappeared` properly. Three separate labs print `disappeared= 4`
       and none explains that it is ID churn rather than four fixed bugs — a reviewer
       reading the fixture cold concludes "nothing changed", which is wrong.

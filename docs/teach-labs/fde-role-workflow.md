@@ -4,6 +4,17 @@ Concept
 
 An FDE should operate as an evidence translator between product risk and engineering action.
 
+## What this lab teaches
+
+1. **The FDE role maps to concrete artifacts at every delivery stage.** Each
+   stage (onboarding, gating, triage, release, monitoring) has a named
+   required evidence output, not just a vague responsibility.
+2. **Onboarding a customer means mapping their runner into `eval-report/v1`,
+   not rewriting their runner.** Runner-agnostic is a hard constraint.
+3. **The end-to-end loop is runnable from a scratch directory.** `init --write`
+   plus a handful of CLI calls produces every artifact the role needs, without
+   touching a real customer repo.
+
 Why this matters
 
 Customers and internal teams need confidence decisions they can audit. The FDE role is not only to run tools, but to connect business risk, eval evidence, and remediation priority using a repeatable artifact loop.
@@ -104,6 +115,17 @@ print('history_runs=', len(history))
 print('persistent_failure_ids=', [r['id'] for r in summary['comparison'].get('persistentFailures', [])])
 PY
 ```
+
+## Common mistakes
+
+- **Running the loop against a real customer repo or this checkout.** It must
+  run from a scratch directory, per `docs/teach-curriculum.md` "Exercise rules".
+- **Rewriting the customer's runner instead of mapping its output.** The
+  onboarding stage integrates existing runner output into `eval-report/v1`;
+  it does not replace the runner.
+- **Handing over a gate decision without the paired history/summary files.**
+  A confidence packet needs baseline, progress, and row detail together, not
+  the check result alone.
 
 ## Definition of done
 
