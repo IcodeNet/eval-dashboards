@@ -24,6 +24,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4G: Teaching curriculum consistency](#-phase-4g-teaching-curriculum-consistency-new)
 - [Phase 4F: Evidence, confidentiality, and org rollout](#-phase-4f-evidence-confidentiality-and-org-rollout-new)
 - [Phase 4H: Documentation navigability](#-phase-4h-documentation-navigability-new)
+- [Phase 4I: GitHub PR-native visibility](#-phase-4i-github-pr-native-visibility-new)
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 
 > **Note on ordering:** sections below are in the order they were added, not
@@ -1229,6 +1230,47 @@ phase's commit message.
 - If a true first-ever release presentation is required, publish under a new package name/scope instead of attempting to reset existing npm history.
 
 ---
+
+## 🚧 Phase 4I: GitHub PR-native visibility (NEW)
+
+**Why**: a 2026-09-15 competitive scan (Promptfoo, DeepEval, Braintrust,
+LangSmith, Langfuse, Phoenix, RAGAS, Patronus, TruLens, W&B Weave) found this
+repo's CI-gating rigor (calibration preflight, multi-reviewer adjudication,
+waivers, bypass accounting, signed evidence bundles, org rollup) already
+matches or exceeds every competitor — none of them have cryptographic signing,
+waiver registers, or bypass-accounting telemetry. The one visible-diff gap
+found: Braintrust's `eval-action` auto-posts a live, update-in-place PR
+comment with a score-table diff; this repo only emits static JSON/HTML/
+markdown files that a workflow author must wire into a PR comment manually.
+Source: research summary attached to this phase's introducing commit.
+
+### 4I.1 GitHub PR-comment publish adapter (P0, M)
+
+- [ ] Add a `publish` target (e.g. `--target=github-pr-comment`) that posts
+      the markdown-summary reporter output as a PR comment via `GITHUB_TOKEN`,
+      updating the same comment in place on repeat runs (matching Braintrust's
+      `eval-action` UX) rather than creating a new comment every run.
+- [ ] Dry-run mode by default in local/non-CI contexts; never log the token.
+- [ ] Document required permissions (`pull-requests: write`) and a
+      copy-paste GitHub Actions snippet.
+
+Acceptance criteria:
+
+- A fixture PR (in a scratch/test repo or via a mocked GitHub API in tests)
+  shows one comment created, then updated (not duplicated) on a second run.
+- No secrets appear in logs or dry-run output.
+
+### 4I.2 Versioned, marketplace-listed composite GitHub Action (P1, S)
+
+- [ ] Package the existing example workflow YAML as a versioned composite
+      Action (`uses: icodenet/eval-dashboards-action@v1`) instead of a
+      copy-paste snippet, lowering adoption friction to match competitor
+      packaging.
+
+Acceptance criteria:
+
+- `action.yml` exists, is referenced from README/docs, and a real workflow run
+  using `uses: ./` (local composite action path) succeeds in CI.
 
 ## 🚧 Phase 4D: Trusted confidence reports and adoption execution (NEW)
 
