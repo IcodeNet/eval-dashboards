@@ -1259,6 +1259,29 @@ Acceptance criteria:
   report" section with a working file picker alongside the unchanged
   existing report content.
 
+### 4F.14 Compliance-framework tagging (P1, S)
+
+- [ ] Add optional `rows[].complianceRefs?: string[]` (opaque free-form ids
+      like `"owasp:llm:01"`, `"nist:ai:measure:1.1"`, `"eu:ai-act"`) and
+      optional `suites[].manifest.complianceFrameworks?: string[]` to the
+      `eval-report/v1` model. Keep ids as opaque strings — do NOT hard-code a
+      canonical enum of frameworks; that's harness/classification territory.
+- [ ] HTML/markdown/JSON reporters group/filter by these tags when present;
+      no UI change when absent (empty state).
+- [ ] Update `docs/artifact-format.md` and `docs/taxonomy.md` with the new
+      optional fields plus 2-3 example ids.
+- [ ] Fixture + test proving round-trip and reporter grouping.
+
+### 4F.15 Free-form run-level tags (P2, S)
+
+- [ ] Add optional top-level `tags?: Record<string,string>` to the
+      `eval-report/v1` artifact (e.g. `{"pr": "42", "model": "gpt-4o"}`) for
+      ad hoc CI context beyond the existing fixed `branch`/`commit`/`build`
+      fields. Purely descriptive — no gating semantics.
+- [ ] Echo `tags` in the HTML report's metadata header card and in
+      `--json-out`.
+- [ ] Update `docs/artifact-format.md`; fixture + test.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
