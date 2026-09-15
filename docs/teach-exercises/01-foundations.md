@@ -1,5 +1,12 @@
 # Exercise 01: Foundations (plain language)
 
+What this exercise teaches
+1. An eval starts as a plain-English claim, not a JSON file.
+2. If you can't state failure concretely, you can't build a useful eval.
+
+Question this answers
+- What real behavior are we protecting, and what does failure look like in production?
+
 Goal
 - Describe one real behavior you care about.
 - Describe what failure means in production.
@@ -46,3 +53,7 @@ Definition of done
 If you get stuck
 - Keep the behavior narrow (one user task, not many).
 - Keep failure concrete (what bad outcome happens).
+
+Common mistakes
+- Writing a behavior so broad it covers the whole product ("the assistant should be good") instead of one narrow user task.
+- Describing failure as a code error ("it crashed") instead of a business outcome (what the user or company loses).

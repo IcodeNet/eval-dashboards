@@ -655,21 +655,27 @@ Acceptance criteria:
 
 ### 4E.7 "Diagnose a red run" exercise (P1, S)
 
-- [ ] Add an 11th teach-exercise workbook (`docs/teach-exercises/11-diagnose-a-red-run.md`) built around a pre-authored failing artifact combining a blocked baseline, a statistical gate failure, and flaky rows.
-- [ ] Walk the learner through root-causing each failure type distinctly, not just re-running until green.
+- [x] Add an 11th teach-exercise workbook (`docs/teach-exercises/11-diagnose-a-red-run.md`) built around a pre-authored failing artifact combining a blocked baseline, a statistical gate failure, and flaky rows.
+- [x] Walk the learner through root-causing each failure type distinctly, not just re-running until green.
 
 Acceptance criteria:
 
 - The exercise ships its own fixture artifact and expected diagnostic conclusions the learner can check their answer against.
+  Shipped: `docs/teach-exercises/11-diagnose-a-red-run.md` (150 lines), linked from
+  `docs/teach-curriculum.md:54`, ships its own fixture and walks blocked-baseline,
+  statistical-gate, and flaky-row failures as distinct root causes.
 
 ### 4E.8 Product-owner / non-engineer reading track (P1, S)
 
-- [ ] Add a 2-exercise mini-track for reading the HTML dashboard: interpreting severity, taxonomy-completeness score, and a baseline-blocked banner — no CLI/JSON authoring required.
-- [ ] Link this track from `docs/teach-curriculum.md` as an alternate on-ramp for product managers and reviewers.
+- [x] Add a 2-exercise mini-track for reading the HTML dashboard: interpreting severity, taxonomy-completeness score, and a baseline-blocked banner — no CLI/JSON authoring required.
+- [x] Link this track from `docs/teach-curriculum.md` as an alternate on-ramp for product managers and reviewers.
 
 Acceptance criteria:
 
 - A non-engineer can complete the track using only a browser and a provided sample report, reaching correct conclusions about pass/fail and drift status.
+  Shipped: `docs/teach-exercises/pm-01-reading-a-report.md` (116 lines) and
+  `docs/teach-exercises/pm-02-reading-drift.md` (113 lines), both linked from
+  `docs/teach-curriculum.md:57-58` under a "Non-engineer reading tracks" section.
 
 ### 4E.9 Complete coded import adapters (P2, M)
 
