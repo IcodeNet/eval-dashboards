@@ -96,6 +96,8 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--account',
     '--container',
     '--bypass-log',
+    '--pr-number',
+    '--comment-marker',
   ],
   teach: [
     '--preset',

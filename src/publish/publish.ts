@@ -1,9 +1,10 @@
 import { cp, mkdir, readdir, readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { Octokit } from '@octokit/rest';
 
-export type PublishTarget = 'dir' | 'github-pages' | 'azure-static-webapp' | 'azure-storage';
+export type PublishTarget = 'dir' | 'github-pages' | 'azure-static-webapp' | 'azure-storage' | 'github-pr-comment';
 
 export type PublishOptions = {
   target: PublishTarget;
@@ -30,6 +31,16 @@ export type PublishOptions = {
   account?: string;
   /** Storage container. Default: $web (static website hosting) */
   container?: string;
+  /** Pull request number for --target=github-pr-comment. Falls back to
+   * parsing GITHUB_EVENT_PATH (pull_request/pull_request_target events) or
+   * PR_NUMBER env var when omitted. */
+  prNumber?: number;
+  /** Markdown body to post as the PR comment (e.g. markdown-summary reporter
+   * output) for --target=github-pr-comment. */
+  commentBody?: string;
+  /** Hidden marker used to find-and-update the same comment across runs
+   * instead of creating a new one each time. Default: a stable per-package marker. */
+  commentMarker?: string;
 };
 
 export type PublishResult = {
@@ -198,8 +209,128 @@ const publishReportInternal = async (options: PublishOptions): Promise<PublishRe
     };
   }
 
+  if (options.target === 'github-pr-comment') {
+    if (!options.repo) throw new Error('github-pr-comment publishing requires --repo (owner/repo).');
+
+    const [owner, repo] = options.repo.split('/');
+    if (!owner || !repo) throw new Error('--repo must be in owner/repo format.');
+
+    const prNumber = options.prNumber ?? detectPullRequestNumber();
+    const marker = options.commentMarker ?? DEFAULT_PR_COMMENT_MARKER;
+    const body = options.commentBody ?? (await tryReadSummaryMarkdown(options.reportDir));
+
+    if (!prNumber) {
+      throw new Error(
+        'github-pr-comment publishing requires a pull request number. Pass --pr-number, ' +
+          'set PR_NUMBER, or run inside a GitHub Actions pull_request(_target) event.',
+      );
+    }
+    if (!body) {
+      throw new Error(
+        'github-pr-comment publishing requires --comment-body or a summary.md file produced by the ' +
+          'markdown-summary reporter in --report-dir.',
+      );
+    }
+
+    // Dry-run by default outside CI; explicit true/false always wins.
+    const inCi = process.env['CI'] === 'true' || process.env['GITHUB_ACTIONS'] === 'true';
+    const dryRun = options.dryRun ?? !inCi;
+
+    const commentBodyWithMarker = `${marker}\n${body}`;
+
+    if (dryRun) {
+      return {
+        target: options.target,
+        dryRun: true,
+        message:
+          `Would post/update a PR comment on ${options.repo}#${prNumber} ` +
+          `(${commentBodyWithMarker.length} char body, marker ${marker}).`,
+      };
+    }
+
+    const token = options.token ?? process.env['GITHUB_TOKEN'];
+    if (!token) throw new Error('github-pr-comment publishing requires GITHUB_TOKEN env var or --token.');
+
+    const octokit = new Octokit({ auth: token });
+
+    // Find an existing comment carrying our hidden marker so repeat runs
+    // update in place instead of creating a new comment each time.
+    let existingCommentId: number | undefined;
+    for await (const { data: comments } of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+      owner,
+      repo,
+      issue_number: prNumber,
+      per_page: 100,
+    })) {
+      const found = comments.find((comment) => typeof comment.body === 'string' && comment.body.includes(marker));
+      if (found) {
+        existingCommentId = found.id;
+        break;
+      }
+    }
+
+    if (existingCommentId) {
+      await octokit.rest.issues.updateComment({
+        owner,
+        repo,
+        comment_id: existingCommentId,
+        body: commentBodyWithMarker,
+      });
+      return {
+        target: options.target,
+        dryRun: false,
+        message: `Updated existing PR comment ${existingCommentId} on ${options.repo}#${prNumber}.`,
+        url: `https://github.com/${owner}/${repo}/pull/${prNumber}#issuecomment-${existingCommentId}`,
+      };
+    }
+
+    const { data: created } = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: prNumber,
+      body: commentBodyWithMarker,
+    });
+
+    return {
+      target: options.target,
+      dryRun: false,
+      message: `Created PR comment ${created.id} on ${options.repo}#${prNumber}.`,
+      url: created.html_url,
+    };
+  }
+
   throw new Error(`Unknown publish target: ${options.target}`);
 };
+
+/** Stable marker used to find-and-update the same PR comment across runs. */
+const DEFAULT_PR_COMMENT_MARKER = '<!-- eval-dashboards:pr-comment -->';
+
+/** Best-effort PR number detection from CI env, never throws. */
+function detectPullRequestNumber(): number | undefined {
+  const envNumber = process.env['PR_NUMBER'];
+  if (envNumber && /^\d+$/.test(envNumber)) return Number(envNumber);
+
+  const eventPath = process.env['GITHUB_EVENT_PATH'];
+  if (!eventPath) return undefined;
+
+  try {
+    const event = JSON.parse(readFileSync(eventPath, 'utf8')) as {
+      pull_request?: { number?: number };
+      number?: number;
+    };
+    return event.pull_request?.number ?? event.number;
+  } catch {
+    return undefined;
+  }
+}
+
+async function tryReadSummaryMarkdown(reportDir: string): Promise<string | undefined> {
+  try {
+    return await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+  } catch {
+    return undefined;
+  }
+}
 
 async function collectFiles(
   dir: string,

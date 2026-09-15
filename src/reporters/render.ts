@@ -144,7 +144,7 @@ const statisticalContextSummary = (context: ReportContext): string | undefined =
 
 const mdTableCell = (value: string): string => value.replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
 
-const renderMarkdown = (context: ReportContext): string => {
+export const renderMarkdown = (context: ReportContext): string => {
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
   const durationStats = calculateDurationStats(context.current.rows);

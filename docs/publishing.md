@@ -8,6 +8,7 @@ Supported targets:
 - `github-pages`
 - `azure-static-webapp`
 - `azure-storage`
+- `github-pr-comment`
 
 The command supports both live publish and preview mode (`--dry-run`).
 
@@ -19,7 +20,7 @@ eval-dashboards publish [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --report-dir=<path>      Generated report directory. Default: eval-report
-  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
+  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage|github-pr-comment
   --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
   --dry-run                Preview target actions without writing remote state
   --redact                 Strip sensitive evidence text (prompts, outputs, judge/agent reasoning,
@@ -51,6 +52,26 @@ Azure Static Web App target options:
 Azure Storage target options:
   --account=<name>         Required for --target=azure-storage
   --container=<name>       Blob container. Default: $web
+
+GitHub PR-comment target options:
+  --pr-number=<n>          PR number to comment on. Falls back to GITHUB_EVENT_PATH
+                           (pull_request/pull_request_target payload) or PR_NUMBER env var.
+  --comment-marker=<text>  Hidden HTML-comment marker used to find and update the same
+                           comment on repeat runs instead of creating duplicates.
+                           Default: "<!-- eval-dashboards:pr-comment -->"
+  Requires --repo=<owner/repo>. Posts the markdown-summary reporter output
+  (report-dir/summary.md) as the comment body. Dry-run by default outside CI
+  (no GITHUB_ACTIONS/CI env). Requires GITHUB_TOKEN with `pull-requests: write`
+  permission. Never logs the token.
+
+  Example GitHub Actions step:
+    permissions:
+      pull-requests: write
+    steps:
+      - run: npx eval-dashboards publish --input=.evals_output --report-dir=eval-report \
+              --target=github-pr-comment --repo=${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Operational notes
@@ -59,6 +80,14 @@ Azure Storage target options:
 - `github-pages` needs `--repo` and a GitHub token (`GITHUB_TOKEN` or `--token`).
 - `azure-storage` requires authenticated Azure CLI and access to the target resource.
 - `azure-static-webapp` currently supports dry-run validation only; non-dry-run returns a clear not-implemented error until a verified execution path lands.
+- `github-pr-comment` posts (or updates in place) a PR comment containing the
+  `markdown-summary` reporter output. It requires `--repo` and a resolvable PR
+  number (`--pr-number`, `PR_NUMBER`, or a GitHub Actions `pull_request`/
+  `pull_request_target` event payload). It defaults to dry-run outside CI
+  (no `CI`/`GITHUB_ACTIONS` env vars) so local runs never post; in CI it
+  requires `GITHUB_TOKEN` with `pull-requests: write` permission and never
+  logs the token. Repeat runs update the same comment (matched via a hidden
+  HTML-comment marker) instead of creating duplicates.
 
 ## Examples
 
@@ -73,6 +102,10 @@ eval-dashboards publish --target=azure-static-webapp --dry-run --app-name=eval-d
 
 eval-dashboards publish --target=azure-storage --dry-run --account=myevalreports --container='$web'
 eval-dashboards publish --target=azure-storage --account=myevalreports --container='$web'
+
+eval-dashboards publish --target=github-pr-comment --dry-run --repo=IcodeNet/eval-dashboards --pr-number=123
+# In CI (GITHUB_ACTIONS=true), with GITHUB_TOKEN set and a pull_request event:
+eval-dashboards publish --target=github-pr-comment --repo=IcodeNet/eval-dashboards
 ```
 
 GitHub reviewer-gated merge pattern:

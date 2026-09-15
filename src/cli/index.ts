@@ -216,7 +216,7 @@ const publishUsage = `eval-dashboards publish [options]
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
   --report-dir=<path>      Generated report directory. Default: eval-report
-  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
+  --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage|github-pr-comment
   --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
   --dry-run                Preview target actions without writing remote state
   --redact                 Strip sensitive evidence text (prompts, outputs, judge/agent reasoning,
@@ -248,6 +248,26 @@ Azure Static Web App target options:
 Azure Storage target options:
   --account=<name>         Required for --target=azure-storage
   --container=<name>       Blob container. Default: $web
+
+GitHub PR-comment target options:
+  --pr-number=<n>          PR number to comment on. Falls back to GITHUB_EVENT_PATH
+                           (pull_request/pull_request_target payload) or PR_NUMBER env var.
+  --comment-marker=<text>  Hidden HTML-comment marker used to find and update the same
+                           comment on repeat runs instead of creating duplicates.
+                           Default: "<!-- eval-dashboards:pr-comment -->"
+  Requires --repo=<owner/repo>. Posts the markdown-summary reporter output
+  (report-dir/summary.md) as the comment body. Dry-run by default outside CI
+  (no GITHUB_ACTIONS/CI env). Requires GITHUB_TOKEN with \`pull-requests: write\`
+  permission. Never logs the token.
+
+  Example GitHub Actions step:
+    permissions:
+      pull-requests: write
+    steps:
+      - run: npx eval-dashboards publish --input=.evals_output --report-dir=eval-report \\
+              --target=github-pr-comment --repo=\${{ github.repository }}
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
 `;
 
 const reportIndexUsage = `eval-dashboards report-index [options]
@@ -2324,12 +2344,18 @@ const main = async (): Promise<void> => {
       );
     }
 
-    await renderReports(context, ['html', 'json-summary']);
+    await renderReports(context, ['html', 'json-summary', 'markdown-summary']);
+    const target = optionString(options, 'target', 'dir') as PublishTarget;
+    // dryRun stays undefined (not false) when --dry-run wasn't passed, so
+    // github-pr-comment's own "dry-run outside CI" default can take effect;
+    // optionBoolean() always returns a concrete boolean and would otherwise
+    // force dryRun:false for every unset flag, defeating that fallback.
+    const dryRunFlagPassed = Object.prototype.hasOwnProperty.call(options, 'dry-run');
     const result = await publishReport({
-      target: optionString(options, 'target', 'dir') as PublishTarget,
+      target,
       reportDir,
       outDir: optionString(options, 'out-dir', 'published-eval-report'),
-      dryRun: optionBoolean(options, 'dry-run'),
+      dryRun: dryRunFlagPassed ? optionBoolean(options, 'dry-run') : undefined,
       redact,
       repo: typeof options.repo === 'string' ? options.repo : undefined,
       branch: typeof options.branch === 'string' ? options.branch : undefined,
@@ -2337,6 +2363,8 @@ const main = async (): Promise<void> => {
       appName: typeof options['app-name'] === 'string' ? options['app-name'] : undefined,
       account: typeof options.account === 'string' ? options.account : undefined,
       container: typeof options.container === 'string' ? options.container : undefined,
+      prNumber: typeof options['pr-number'] === 'string' && /^\d+$/.test(options['pr-number']) ? Number(options['pr-number']) : undefined,
+      commentMarker: typeof options['comment-marker'] === 'string' ? options['comment-marker'] : undefined,
     });
 
     const runRecord = {

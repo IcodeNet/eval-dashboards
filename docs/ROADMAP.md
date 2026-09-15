@@ -1246,19 +1246,24 @@ Source: research summary attached to this phase's introducing commit.
 
 ### 4I.1 GitHub PR-comment publish adapter (P0, M)
 
-- [ ] Add a `publish` target (e.g. `--target=github-pr-comment`) that posts
+- [x] Add a `publish` target (e.g. `--target=github-pr-comment`) that posts
       the markdown-summary reporter output as a PR comment via `GITHUB_TOKEN`,
       updating the same comment in place on repeat runs (matching Braintrust's
       `eval-action` UX) rather than creating a new comment every run.
-- [ ] Dry-run mode by default in local/non-CI contexts; never log the token.
-- [ ] Document required permissions (`pull-requests: write`) and a
+- [x] Dry-run mode by default in local/non-CI contexts; never log the token.
+- [x] Document required permissions (`pull-requests: write`) and a
       copy-paste GitHub Actions snippet.
 
 Acceptance criteria:
 
 - A fixture PR (in a scratch/test repo or via a mocked GitHub API in tests)
   shows one comment created, then updated (not duplicated) on a second run.
-- No secrets appear in logs or dry-run output.
+  Done: `test/publish.test.ts` mocks the Octokit client and asserts
+  `createComment` fires once then `updateComment` fires on the second run
+  against the same comment id.
+- No secrets appear in logs or dry-run output. Done: dry-run messages never
+  include the token; `GITHUB_TOKEN`/`--token` are only read when actually
+  making an API call.
 
 ### 4I.2 Versioned, marketplace-listed composite GitHub Action (P1, S)
 
