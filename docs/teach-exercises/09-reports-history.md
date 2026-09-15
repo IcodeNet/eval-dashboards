@@ -18,17 +18,16 @@ and a gate result that tells me whether the second run introduced a new
 failure versus the first?
 
 Goal
+- Create at least two run files.
+- Generate report and history outputs.
 
 How to read the check output
 | Field | Meaning |
 | --- | --- |
-| `New failures 1 exceed allowed 0` | A row that passed in the baseline run now fails; the count, not the row id, drives the gate |
+| `New failures 1 exceed allowed 0 (key=row, raw=1).` | A row that passed in the baseline run now fails; the count, not the row id, drives the gate. `key=row` is what the gate counted by, `raw` is the pre-dedup count |
 | `Top failing categories` | Groups the new/current failures by `category` so you see the shape, not just a count |
 | `Lint warning breakdown` | Taxonomy completeness warnings from the same run, shown for context, not blocking the gate |
 | `exit=1` | The process exit code the gate itself returns; anything non-zero fails CI |
-
-- Create at least two run files.
-- Generate report and history outputs.
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".

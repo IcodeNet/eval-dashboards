@@ -19,9 +19,13 @@ Why this matters
 - `lint` catches shape and taxonomy issues early.
 - `check` enforces quality bars.
 - `report` produces human + machine output for review.
-- Gates only fail when the artifact actually has a failing or critical row.
-  Everything you built in Exercises 02–07 passes, so `check` passes too —
-  seeing it pass is not a mistake, it is the correct outcome for clean data.
+- With the flags used here (`--min-pass-rate`, `--zero-critical`), gates fail
+  only when the artifact actually has a failing or critical row. Everything you
+  built in Exercises 02–07 passes, so `check` passes too — seeing it pass is not
+  a mistake, it is the correct outcome for clean data. Other flags can fail a
+  run for different reasons: Exercise 09 adds `--max-new-failures` with a
+  baseline, which fails on rows that *regressed* against a previous run even
+  when nothing new was added.
 
 Steps
 

@@ -126,8 +126,10 @@ Definition of done
 - You can explain, out loud, why this exercise's method (hand-edit + note) is
   not the same as fixing the underlying agent and would be indefensible
   without the note.
-- You can say which of the two failing gate lines relates to your change and
-  which does not, without re-running anything.
+- You can say why *neither* failing gate line is about your change: both the
+  pass-rate line and the zero-critical line are produced by `case-002` alone,
+  and `case-001` — the row you fixed — is green. Say it without re-running
+  anything.
 - You never relaxed a threshold to turn this run green.
 
 Common mistakes
