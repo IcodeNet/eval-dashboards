@@ -1293,12 +1293,12 @@ Acceptance criteria:
 
 ### 4F.17 Per-axis judge reasoning (P2, S)
 
-- [ ] Add optional `axisReasoning?: Record<string, string>` sibling to the
+- [x] Add optional `axisReasoning?: Record<string, string>` sibling to the
       existing `axisScores?: Record<string, number>` field — one explanation
       string per axis, mirrors the existing row-level `judgeReasoning`.
-- [ ] HTML reporter shows per-axis reasoning inline with each axis score when
+- [x] HTML reporter shows per-axis reasoning inline with each axis score when
       present.
-- [ ] Update `docs/artifact-format.md` and `docs/taxonomy.md`; fixture + test.
+- [x] Update `docs/artifact-format.md` and `docs/taxonomy.md`; fixture + test.
 
 ### 4F.18 Declared score scale on a suite (P2, S)
 
