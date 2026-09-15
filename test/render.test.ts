@@ -58,6 +58,39 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('[redacted]');
   });
 
+  it('echoes top-level tags (4F.15) in html and markdown reports', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-tags',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      tags: { pr: '42', model: 'gpt-4o' },
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html', 'markdown-summary', 'json-summary'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('pr=42');
+    expect(html).toContain('model=gpt-4o');
+
+    const markdown = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(markdown).toContain('pr=42');
+    expect(markdown).toContain('model=gpt-4o');
+  });
+
   it('does not mark judgeVerdict as missing when it is false', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

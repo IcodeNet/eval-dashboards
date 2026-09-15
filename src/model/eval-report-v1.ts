@@ -135,6 +135,14 @@ export type SuiteManifest = {
    * from PR gating.
    */
   tier?: 'pr' | 'full' | 'both';
+  /**
+   * 4F.14 — opaque, free-form compliance/regulatory framework tags this
+   * suite maps to (e.g. `"owasp:llm"`, `"nist:ai:measure:1.1"`,
+   * `"eu:ai-act"`). Deliberately not a canonical enum — classification is
+   * harness territory; this package only stores and groups/filters by the
+   * strings it's given.
+   */
+  complianceFrameworks?: string[];
 };
 
 export type RegisteredRubric = {
@@ -276,6 +284,13 @@ export type EvalRow = {
    */
   usage?: RowUsageMetrics;
   metadata?: RowMetadata;
+  /**
+   * 4F.14 — opaque, free-form compliance/regulatory reference ids this row
+   * is evidence for (e.g. `"owasp:llm:01"`, `"nist:ai:measure:1.1"`,
+   * `"eu:ai-act"`). Not validated against a canonical list; harnesses own
+   * classification, this package only stores and groups/filters by them.
+   */
+  complianceRefs?: string[];
 };
 
 export type EvalReportV1 = {
@@ -288,6 +303,13 @@ export type EvalReportV1 = {
   baselineCompatibility?: BaselineCompatibilityResult;
   datasetChangelog?: DatasetChangelogEntry[];
   metadata?: Record<string, unknown>;
+  /**
+   * 4F.15 — free-form run-level tags for ad hoc CI context (e.g.
+   * `{ "pr": "42", "model": "gpt-4o" }`) beyond the fixed `run.branch` /
+   * `run.commit` / `run.buildId` fields. Purely descriptive; string values
+   * only, no gating semantics attach to this field.
+   */
+  tags?: Record<string, string>;
 };
 
 export type EvalSummary = {

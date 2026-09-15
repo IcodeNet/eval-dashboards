@@ -60,6 +60,34 @@ describe('validateEvalReport', () => {
     );
   });
 
+  it('accepts a top-level tags record (4F.15)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      tags: { pr: '42', model: 'gpt-4o' },
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.report.tags).toEqual({ pr: '42', model: 'gpt-4o' });
+    }
+  });
+
+  it('rejects tags with non-string values', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      tags: { pr: 42 },
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain('tags.pr must be a string.');
+  });
+
   it('accepts first-class LLM judge row fields', () => {
     const result = validateEvalReport({
       schemaVersion: 'eval-report/v1',

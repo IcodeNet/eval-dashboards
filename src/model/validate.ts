@@ -311,6 +311,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['complianceRefs'] !== undefined) {
+        if (!Array.isArray(row['complianceRefs'])) {
+          errors.push(`rows[${index}].complianceRefs must be an array when provided.`);
+        } else {
+          (row['complianceRefs'] as unknown[]).forEach((ref, refIndex) => {
+            if (!isString(ref) || ref.length === 0) {
+              errors.push(`rows[${index}].complianceRefs[${refIndex}] must be a non-empty string.`);
+            }
+          });
+        }
+      }
+
       if (row['metadata'] !== undefined) {
         if (!isObject(row['metadata'])) {
           errors.push(`rows[${index}].metadata must be an object when provided.`);
@@ -445,6 +457,20 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
 
+        if (manifest.complianceFrameworks !== undefined) {
+          if (!Array.isArray(manifest.complianceFrameworks)) {
+            errors.push(`suiteManifests[${index}].complianceFrameworks must be an array when provided.`);
+          } else {
+            manifest.complianceFrameworks.forEach((framework, frameworkIndex) => {
+              if (!isString(framework) || framework.length === 0) {
+                errors.push(
+                  `suiteManifests[${index}].complianceFrameworks[${frameworkIndex}] must be a non-empty string.`,
+                );
+              }
+            });
+          }
+        }
+
         const hasLlMJudgeGrader =
           Array.isArray(manifest.graders) && manifest.graders.some((grader) => grader === 'llm-judge');
         const isBlockingGate = isObject(manifest.gate) && manifest.gate.mode === 'blocking';
@@ -540,6 +566,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
       });
+    }
+  }
+
+  if (value.tags !== undefined) {
+    if (!isObject(value.tags)) {
+      errors.push('tags must be an object when provided.');
+    } else {
+      for (const [key, tagValue] of Object.entries(value.tags as Record<string, unknown>)) {
+        if (!isString(tagValue)) {
+          errors.push(`tags.${key} must be a string.`);
+        }
+      }
     }
   }
 

@@ -1274,13 +1274,13 @@ Acceptance criteria:
 
 ### 4F.15 Free-form run-level tags (P2, S)
 
-- [ ] Add optional top-level `tags?: Record<string,string>` to the
+- [x] Add optional top-level `tags?: Record<string,string>` to the
       `eval-report/v1` artifact (e.g. `{"pr": "42", "model": "gpt-4o"}`) for
       ad hoc CI context beyond the existing fixed `branch`/`commit`/`build`
       fields. Purely descriptive — no gating semantics.
-- [ ] Echo `tags` in the HTML report's metadata header card and in
+- [x] Echo `tags` in the HTML report's metadata header card and in
       `--json-out`.
-- [ ] Update `docs/artifact-format.md`; fixture + test.
+- [x] Update `docs/artifact-format.md`; fixture + test.
 
 ### Still out of scope in 4F
 

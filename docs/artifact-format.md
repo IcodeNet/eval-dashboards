@@ -140,6 +140,7 @@ export type EvalReportV1 = {
   baselineCompatibility?: BaselineCompatibilityResult;
   datasetChangelog?: DatasetChangelogEntry[];
   metadata?: Record<string, unknown>;
+  tags?: Record<string, string>;
 };
 ```
 
@@ -147,6 +148,12 @@ export type EvalReportV1 = {
 
 - `calibration`: marks a calibration-evidence artifact (for example, `judge-calibration` rows) and excludes that run from automatic baseline selection (`--baseline-strategy`) so calibration-only artifacts do not become report/check baselines.
 - Other values are currently free-form and tool-specific.
+
+`tags` (top-level, optional): free-form `Record<string, string>` for ad hoc CI
+context beyond the fixed `run.branch` / `run.commit` / `run.buildId` fields —
+e.g. `{ "pr": "42", "model": "gpt-4o" }`. Purely descriptive; no gate reads
+this field. Echoed in the HTML report's run-metadata card, in the markdown
+report's metadata table, and in `--json-out`.
 
 Rows are runner-agnostic:
 

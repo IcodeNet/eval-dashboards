@@ -186,6 +186,11 @@ export const renderMarkdown = (context: ReportContext): string => {
   if (summary.run.branch) lines.push(`| Branch | ${summary.run.branch} |`);
   if (summary.run.commit) lines.push(`| Commit | ${summary.run.commit} |`);
   if (summary.run.buildId) lines.push(`| Build | ${summary.run.buildId} |`);
+  if (context.current.tags && Object.keys(context.current.tags).length > 0) {
+    lines.push(
+      `| Tags | ${Object.entries(context.current.tags).map(([key, val]) => `${key}=${val}`).join(', ')} |`,
+    );
+  }
 
   lines.push('');
 
@@ -242,7 +247,51 @@ export const renderMarkdown = (context: ReportContext): string => {
     lines.push('## Diff vs previous run', '', 'No row flips detected.', '');
   }
 
+  const complianceCoverage = summarizeComplianceCoverage(context.current);
+  if (complianceCoverage.length > 0) {
+    lines.push(`## Compliance coverage`, '');
+    lines.push('| Framework/ref | Rows | Failing |');
+    lines.push('| --- | ---: | ---: |');
+    for (const entry of complianceCoverage) {
+      lines.push(`| ${mdTableCell(entry.tag)} | ${entry.total} | ${entry.failed} |`);
+    }
+    lines.push('');
+  }
+
   return lines.join('\n');
+};
+
+type ComplianceCoverageEntry = { tag: string; total: number; failed: number };
+
+/**
+ * 4F.14 — group rows by opaque compliance tag (row.complianceRefs plus the
+ * owning suite manifest's complianceFrameworks, when present) so reporters
+ * can show coverage without hard-coding any canonical framework list. Empty
+ * array when no report content declares compliance tags — reporters must
+ * render nothing (not an empty-state table) in that case.
+ */
+const summarizeComplianceCoverage = (report: EvalReportV1): ComplianceCoverageEntry[] => {
+  const manifestFrameworksBySuite = new Map(
+    (report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest.complianceFrameworks ?? []]),
+  );
+  const counts = new Map<string, { total: number; failed: number }>();
+
+  for (const row of report.rows) {
+    const tags = new Set<string>([
+      ...(row.complianceRefs ?? []),
+      ...(manifestFrameworksBySuite.get(row.suite) ?? []),
+    ]);
+    for (const tag of tags) {
+      const entry = counts.get(tag) ?? { total: 0, failed: 0 };
+      entry.total += 1;
+      if (!row.passed) entry.failed += 1;
+      counts.set(tag, entry);
+    }
+  }
+
+  return Array.from(counts.entries())
+    .map(([tag, { total, failed }]) => ({ tag, total, failed }))
+    .sort((a, b) => a.tag.localeCompare(b.tag));
 };
 
 const reportProvenance = (
@@ -320,6 +369,7 @@ const gatePolicyTable = (report: EvalReportV1): string => {
       ${th('Rubric', 'Rubric version declared in suite manifest.')}
       ${th('Rubric sources', 'Registered rubric source files for this suite when provided.')}
       ${th('Risk area', 'Governance risk area for this suite.')}
+      ${th('Compliance', 'Opaque compliance/regulatory framework tags this suite maps to, when provided.')}
       ${th('Gate', 'Gate mode for this suite.')}
       ${th('Thresholds', 'Blocking/report-only threshold keys for this suite.')}
     </tr></thead>
@@ -334,6 +384,9 @@ const gatePolicyTable = (report: EvalReportV1): string => {
             .map((rubric) => (rubric.sourcePath ? sourceLink(rubric.sourcePath) : e(rubric.axis)))
             .join('<br>') ??
           '<span class="muted">n/a</span>';
+        const complianceFrameworks = manifest.complianceFrameworks?.length
+          ? manifest.complianceFrameworks.map((framework) => e(framework)).join('<br>')
+          : '<span class="muted">n/a</span>';
 
         return `<tr>
           <td>${e(manifest.name)}</td>
@@ -342,6 +395,7 @@ const gatePolicyTable = (report: EvalReportV1): string => {
           <td>${e(manifest.rubricVersion ?? 'n/a')}</td>
           <td>${rubricSources}</td>
           <td>${e(manifest.riskArea)}</td>
+          <td>${complianceFrameworks}</td>
           <td>${e(manifest.gate.mode)}</td>
           <td class="reason">${e(thresholds || 'n/a')}</td>
         </tr>`;
@@ -489,6 +543,7 @@ const metadataCards = (
   totalDurationMs: number,
   durationStats?: DurationStats,
   usageTotals?: { totalCostUsd?: number; totalTokens?: number; rowsWithUsage: number },
+  tags?: Record<string, string>,
 ): string => {
   const cards: Array<{ label: string; value: string; tip: string }> = [];
   cards.push({ label: 'Generated', value: run.generatedAt, tip: 'When this report run was generated.' });
@@ -496,6 +551,13 @@ const metadataCards = (
   if (run.branch) cards.push({ label: 'Branch', value: run.branch, tip: 'Git branch recorded by the eval runner.' });
   if (run.commit) cards.push({ label: 'Commit', value: run.commit, tip: 'Git commit recorded by the eval runner.' });
   if (run.sourceUrl) cards.push({ label: 'Source', value: run.sourceUrl, tip: 'Source CI/job URL for this run when available.' });
+  if (tags && Object.keys(tags).length > 0) {
+    cards.push({
+      label: 'Tags',
+      value: Object.entries(tags).map(([key, val]) => `${key}=${val}`).join(', '),
+      tip: 'Free-form ad hoc CI context tags (e.g. pr, model) attached to this report.',
+    });
+  }
   if (totalDurationMs > 0) {
     cards.push({
       label: 'Reported duration',
@@ -827,6 +889,13 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
     fields.push(`<div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Tool calls made while evaluating this row.">Tool calls</span>
       <div class="axis-scores">${r.toolCalls.map((t) => `<span class="axis-score-chip">${e(t.name)}</span>`).join('')}</div>
+    </div>`);
+  }
+
+  if (r.complianceRefs?.length) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Opaque compliance/regulatory reference ids this row is evidence for (e.g. owasp:llm:01, nist:ai:measure:1.1, eu:ai-act).">Compliance refs</span>
+      <div class="axis-scores">${r.complianceRefs.map((ref) => `<span class="axis-score-chip">${e(ref)}</span>`).join('')}</div>
     </div>`);
   }
 
@@ -1348,6 +1417,7 @@ const renderHtml = (context: ReportContext): string => {
   const judgeCalibration = summarizeJudgeCalibration(rows);
   const failingRows = rows.filter((r) => !r.passed);
   const guardrailSummary = summarizeGuardrailRows(current);
+  const complianceCoverage = summarizeComplianceCoverage(current);
   const guardrailProfileEnabled = context.profile === 'guardrail';
   const statisticalSummary = statisticalContextSummary(context);
   const compatStatus = compat?.status ?? 'not compared';
@@ -1646,7 +1716,7 @@ ${renderCssVariables(theme)}
       id: 'run-metadata',
       title: 'Run metadata',
       summary: [run.branch, run.commit, run.buildId].filter(Boolean).join(' • ') || 'Run identity and provenance details',
-      body: metadataCards(run, totalDurationMs, durationStats, calculateUsageTotals(context.current.rows)),
+      body: metadataCards(run, totalDurationMs, durationStats, calculateUsageTotals(context.current.rows), context.current.tags),
     })}
 
     ${renderCollapsibleSection({
@@ -1656,6 +1726,26 @@ ${renderCssVariables(theme)}
       body: gatePolicyTable(current),
       summaryTone: compatibilityTone,
     })}
+
+    ${complianceCoverage.length > 0
+      ? renderCollapsibleSection({
+        id: 'compliance-coverage',
+        title: 'Compliance coverage',
+        summary: `${pluralize(complianceCoverage.length, 'framework/ref')}`,
+        body: `<div class="table-wrap"><table>
+          <thead><tr>
+            ${th('Framework/ref', 'Opaque compliance/regulatory tag from row.complianceRefs or the suite manifest complianceFrameworks.')}
+            ${th('Rows', 'Rows tagged with this framework/ref.')}
+            ${th('Failing', 'Failing rows tagged with this framework/ref.')}
+          </tr></thead>
+          <tbody>${complianceCoverage
+            .map(
+              (entry) => `<tr><td>${e(entry.tag)}</td><td>${entry.total}</td><td>${entry.failed}</td></tr>`,
+            )
+            .join('')}</tbody>
+        </table></div>`,
+      })
+      : ''}
 
     ${statisticalSummary
       ? renderCollapsibleSection({
