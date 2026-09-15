@@ -720,7 +720,7 @@ Acceptance criteria:
 
 ### 4E.11 `eval-ai-library` import adapter (P2, S)
 
-- [ ] Add `--from=eval-ai-library` to `eval-dashboards import`, converting output from the
+- [x] Add `--from=eval-ai-library` to `eval-dashboards import`, converting output from the
       `eval-ai-library` Python package (https://github.com/meshkovQA/eval-ai-library,
       docs at https://library.eval-ai.com/) into `eval-report/v1`.
       Rationale (2026-09-15 competitive scan of library.eval-ai.com and the
@@ -729,22 +729,38 @@ Acceptance criteria:
       real upstream source teams may already be using, matching the existing
       promptfoo/deepeval/ragas/langfuse/phoenix/braintrust/openai-evals adapter
       pattern (4B.3/4E.9).
-- [ ] Map its named metric/scorer categories (answer_relevancy, faithfulness,
+      Evidence: `src/cli/import-adapters.ts:768` (`evalAiLibraryRows`) plus
+      `resolveImportSource`/dispatch wiring for `'eval-ai-library'`; verified
+      by `test/import-adapters-eval-ai-library.test.ts` (all 3 tests pass).
+- [x] Map its named metric/scorer categories (answer_relevancy, faithfulness,
       contextual_precision/recall, bias, toxicity, goal_achievement,
       task_success, tools_correctness, jailbreak_detection,
       prompt_injection_detection, pii_leakage, exact_match, etc.) onto this
       repo's `category`/`riskArea` taxonomy fields as a documented reference
       table (`docs/taxonomy.md` or a new interop page), so adopters coming
       from that library have a direct mapping instead of guessing.
+      Evidence: `docs/import-eval-ai-library-taxonomy.md` (full mapping
+      table), cross-linked from `docs/taxonomy.md` section "6. Import Adapter
+      Metric Mappings"; mapping table also lives in code as
+      `EVAL_AI_LIBRARY_METRIC_TAXONOMY` in `src/cli/import-adapters.ts`.
 
 Acceptance criteria:
 
 - Fixture + passing test proving valid `eval-report/v1` output with correct
   suite/row totals, matching 4B.3/4E.9 acceptance criteria.
+  Verified: `test/fixtures/eval-ai-library-sample.json` +
+  `test/import-adapters-eval-ai-library.test.ts` ("imports eval-ai-library
+  test case results into a valid eval-report/v1 artifact" — 2 rows, 1
+  passed/1 failed, suite totals `{ total: 2, passed: 1, failed: 1 }`).
 - Metric-to-taxonomy mapping table is committed and cross-linked from
   `docs/taxonomy.md`.
+  Verified: `docs/taxonomy.md:481-486` links to
+  `docs/import-eval-ai-library-taxonomy.md`.
 - No harness/scoring logic is imported or reimplemented — only artifact
   conversion, matching the runner-agnostic charter.
+  Verified: `evalAiLibraryRows` in `src/cli/import-adapters.ts` only reads
+  pre-computed `metrics_data`/`success` fields from the input JSON; no
+  eval-ai-library package is a dependency (see `package.json`).
 
 ### 4E.10 JSONL import ingress for eval migration paths (P1, S)
 

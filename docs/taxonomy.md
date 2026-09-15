@@ -478,7 +478,16 @@ A: The team responsible for the eval suite (e.g., safety team, product team). Th
 
 ---
 
-## 6. Further Reading
+## 6. Import Adapter Metric Mappings
+
+- [eval-ai-library metric-to-taxonomy mapping](./import-eval-ai-library-taxonomy.md) — reference
+  table mapping `eval-ai-library`'s named metrics (`answer_relevancy`, `faithfulness`,
+  `jailbreak_detection`, etc.) onto this repo's `category`/`riskArea` taxonomy fields, used
+  by `eval-dashboards import --from=eval-ai-library`.
+
+---
+
+## 7. Further Reading
 
 - [Artifact Format](./artifact-format.md) — Full JSON schema reference
 - [Gates](./gates.md) — How gate policies are enforced
