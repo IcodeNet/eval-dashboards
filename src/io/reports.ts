@@ -52,6 +52,46 @@ export const findJsonReports = async (input: string): Promise<string[]> => {
   return results.sort();
 };
 
+/**
+ * Recursively find files under `input` whose basename matches `fileName`
+ * (e.g. "history.json" published by each repo alongside its own report).
+ * Used by `org-rollup` (4F.8), which reads already-published static
+ * artifacts rather than raw eval-report/v1 files.
+ */
+export const findFilesByName = async (input: string, fileName: string): Promise<string[]> => {
+  const results: string[] = [];
+
+  const visit = async (target: string): Promise<void> => {
+    const entries = await readdir(target, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.join(target, entry.name);
+
+      if (entry.isDirectory()) {
+        await visit(entryPath);
+      } else if (entry.isFile() && entry.name === fileName) {
+        results.push(entryPath);
+      }
+    }
+  };
+
+  try {
+    await visit(input);
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as NodeJS.ErrnoException).code === 'ENOENT'
+    ) {
+      return [];
+    }
+    throw error;
+  }
+
+  return results.sort();
+};
+
 export const readEvalReport = async (filePath: string): Promise<EvalReportV1> => {
   const raw = await readFile(filePath, 'utf8');
   const parsed = JSON.parse(raw) as unknown;

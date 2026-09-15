@@ -10,7 +10,9 @@ import {
   selectRun,
   type BaselineStrategy,
 } from '../history/history.js';
-import { readEvalReports, findJsonReports, writeJsonFile, writeTextFile } from '../io/reports.js';
+import { buildOrgRollup, repoHistoryFromPayload, type RepoHistory } from '../history/org-rollup.js';
+import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
+import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile } from '../io/reports.js';
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
@@ -89,6 +91,7 @@ Commands:
   sign     Hash and detached-sign a check-result artifact (cosign keyless in CI).
   verify   Re-validate a check-result artifact's digest and detached signature.
   heartbeat-verify  Assert a fresh gate-run heartbeat exists for a release subject (scheduled check).
+  org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -270,6 +273,23 @@ Options:
   --signature=<path>                       Path to the eval-check-signature/v1 file. Default: <artifact>.sig.json
   --certificate-identity-regexp=<regexp>   Required cosign certificate identity regexp (cosign-keyless only)
   --certificate-oidc-issuer=<issuer>       Required cosign certificate OIDC issuer (cosign-keyless only)
+`;
+
+const orgRollupUsage = `eval-dashboards org-rollup [options]
+
+Renders one static, offline HTML overview from N already-published per-repo
+history.json artifacts (the same file \`eval-dashboards history\` or
+\`report --reporter=html\` already writes). Answers "which agent regressed
+this week" without opening each repo's own report site. Purely a static
+reader over local files: no ingestion API, no auth, no server, no
+cross-repo network calls — copy each repo's published history.json under
+one directory first (e.g. via your existing CI publish step), then run
+this against that directory.
+
+Options:
+  --input=<path>   Directory to recursively search for history.json files. Default: org-rollup-input
+  --out=<path>     Output HTML path. Default: eval-report/org-rollup.html
+  --locale=<tag>   BCP-47 locale for date formatting (e.g. en-US)
 `;
 
 const heartbeatVerifyUsage = `eval-dashboards heartbeat-verify [options]
@@ -1993,6 +2013,54 @@ const main = async (): Promise<void> => {
 
     console.error(`Heartbeat verification failed for ${heartbeatPath}:\n${result.reasons.join('\n')}`);
     process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'org-rollup') {
+    if (optionBoolean(options, 'help')) {
+      console.log(orgRollupUsage);
+      return;
+    }
+
+    const rollupInput = optionString(options, 'input', 'org-rollup-input');
+    const out = optionString(options, 'out', 'eval-report/org-rollup.html');
+    const locale = optionString(options, 'locale', '') || undefined;
+
+    const historyFiles = await findFilesByName(rollupInput, 'history.json');
+
+    if (historyFiles.length === 0) {
+      console.error(
+        [
+          `No history.json files found under ${rollupInput}.`,
+          'What to do next:',
+          '  1) Publish each repo\'s history.json (from `eval-dashboards history` or `report --reporter=html`) into a shared directory.',
+          '  2) Point --input at that directory.',
+        ].join('\n'),
+      );
+      process.exitCode = 3;
+      return;
+    }
+
+    const histories: RepoHistory[] = [];
+    for (const filePath of historyFiles) {
+      try {
+        const raw = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+        histories.push(repoHistoryFromPayload(filePath, raw));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`Skipping invalid history file ${filePath}: ${message}`);
+      }
+    }
+
+    if (histories.length === 0) {
+      console.error(`Found ${historyFiles.length} history.json file(s) under ${rollupInput}, but none parsed successfully.`);
+      process.exitCode = 2;
+      return;
+    }
+
+    const summary = buildOrgRollup(histories);
+    await writeTextFile(out, renderOrgRollupHtml(summary, locale));
+    console.log(`${out} (${summary.totalRepos} repo(s), ${summary.regressedCount} regressed)`);
     return;
   }
 

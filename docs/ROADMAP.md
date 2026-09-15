@@ -991,12 +991,31 @@ Acceptance criteria:
 
 ### 4F.8 Static org rollup index (P1, M)
 
-- [ ] Render a single offline overview from N published history artifacts across repos: pass rate, critical failures, and baseline drift per agent over time.
-- [ ] Remains a static, offline-first output — no server, no ingestion API, no auth system.
+- [x] Render a single offline overview from N published history artifacts across repos: pass rate, critical failures, and baseline drift per agent over time.
+      Shipped `eval-dashboards org-rollup --input=<dir> --out=<path>`
+      (`src/cli/index.ts` command handler; `src/history/org-rollup.ts`
+      `buildOrgRollup`/`repoHistoryFromPayload`; `src/reporters/org-rollup.ts`
+      `renderOrgRollupHtml`). Recursively finds `history.json` files already
+      published by each repo's own `history`/`report --reporter=html` run,
+      derives a per-repo trend (regressed/improved/stable/new) from pass-rate
+      delta, new critical failures, and new failures, and renders one static
+      HTML page sorted regressed-first.
+- [x] Remains a static, offline-first output — no server, no ingestion API, no auth system.
+      The command only recursively reads local JSON files under `--input` and
+      writes one HTML file to `--out`; it has no listener, no auth, and makes
+      no network calls of its own.
 
 Acceptance criteria:
 
 - With three or more agent repos publishing history, one generated page answers "which agent regressed this week" without opening each repo's site.
+  - Evidence: `test/org-rollup.test.ts` (10 tests — payload parsing, repo-label
+    derivation, regression/critical-failure/new-repo trend classification,
+    regressed-first sort) and `test/cli-org-rollup.test.ts` (5 tests — CLI
+    renders from multiple published `history.json` files, guides the user
+    when none are found (exit 3), skips malformed files while still
+    rendering the valid ones, rejects unknown flags, and prints `--help`).
+    16 new tests, 293/293 total passing; `pnpm typecheck` and `pnpm build`
+    clean.
 
 ### 4F.9 Bypass accounting (P1, S)
 
@@ -1035,7 +1054,7 @@ Acceptance criteria:
 5. 4F.5 Waiver and exception register
 6. 4F.6 Threshold-change detection
 7. 4F.7 Heartbeat verifier — done
-8. 4F.8 Static org rollup index
+8. 4F.8 Static org rollup index — done
 9. 4F.9 Bypass accounting
 10. 4F.10 PR-subset tiering with cost budget
 11. 4F.11 Evidence export bundle

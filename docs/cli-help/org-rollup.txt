@@ -1,0 +1,15 @@
+eval-dashboards org-rollup [options]
+
+Renders one static, offline HTML overview from N already-published per-repo
+history.json artifacts (the same file `eval-dashboards history` or
+`report --reporter=html` already writes). Answers "which agent regressed
+this week" without opening each repo's own report site. Purely a static
+reader over local files: no ingestion API, no auth, no server, no
+cross-repo network calls — copy each repo's published history.json under
+one directory first (e.g. via your existing CI publish step), then run
+this against that directory.
+
+Options:
+  --input=<path>   Directory to recursively search for history.json files. Default: org-rollup-input
+  --out=<path>     Output HTML path. Default: eval-report/org-rollup.html
+  --locale=<tag>   BCP-47 locale for date formatting (e.g. en-US)

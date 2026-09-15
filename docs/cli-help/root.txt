@@ -16,4 +16,5 @@ Commands:
   sign     Hash and detached-sign a check-result artifact (cosign keyless in CI).
   verify   Re-validate a check-result artifact's digest and detached signature.
   heartbeat-verify  Assert a fresh gate-run heartbeat exists for a release subject (scheduled check).
+  org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
 
