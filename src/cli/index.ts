@@ -18,7 +18,7 @@ import {
   validateStatisticalGateConfig,
 } from '../gates/statistical.js';
 import { publishReport, type PublishTarget } from '../publish/publish.js';
-import { redactEvalReport } from '../model/redact.js';
+import { redactEvalReport, findSensitiveFields } from '../model/redact.js';
 import {
   renderGroupedIndexHtml,
   renderReports,
@@ -172,6 +172,16 @@ Options:
                            tool call args/results, questions) before rendering and publishing;
                            only the public tier (ids, counts, rates, categories, severities,
                            verdicts, versions) is emitted.
+  --allow-sensitive-publish  Override the publish preflight hard-fail that triggers when
+                           unredacted sensitive evidence fields are present in the payload.
+                           Use of this override is always recorded in publish-run-record.json.
+
+Publish preflight:
+  Publishing fails (exit code 2) when the report being published still contains
+  sensitive evidence fields (question, input, output, expected, reason,
+  judgeReasoning, agentReasoning, groundTruthAnnotation, turn content, tool
+  call results) and --allow-sensitive-publish was not passed. Pass --redact to
+  strip these fields, or pass --allow-sensitive-publish to publish anyway.
 
 GitHub Pages target options:
   --repo=<owner/repo>      Required for --target=github-pages
@@ -1581,10 +1591,28 @@ const main = async (): Promise<void> => {
 
     const context = await loadContext(input, reportDir);
     const redact = optionBoolean(options, 'redact');
+    const allowSensitivePublish = optionBoolean(options, 'allow-sensitive-publish');
     if (redact) {
       context.current = redactEvalReport(context.current);
       if (context.previous) context.previous = redactEvalReport(context.previous);
     }
+
+    // 4F.2 — publish preflight: hard-fail when unredacted sensitive evidence
+    // fields are present in the payload being published, unless the caller
+    // has explicitly opted in with --allow-sensitive-publish. The override's
+    // use is always recorded in the publish run record for auditability.
+    const sensitiveFieldsFound = findSensitiveFields(context.current);
+    if (sensitiveFieldsFound.length > 0 && !allowSensitivePublish) {
+      throw Object.assign(
+        new Error(
+          `Publish preflight failed: unredacted sensitive evidence field(s) present in the payload ` +
+            `(${sensitiveFieldsFound.join(', ')}). Pass --redact to strip them, or pass ` +
+            `--allow-sensitive-publish to publish anyway (this will be recorded in the run record).`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
     await renderReports(context, ['html', 'json-summary']);
     const result = await publishReport({
       target: optionString(options, 'target', 'dir') as PublishTarget,
@@ -1599,6 +1627,27 @@ const main = async (): Promise<void> => {
       account: typeof options.account === 'string' ? options.account : undefined,
       container: typeof options.container === 'string' ? options.container : undefined,
     });
+
+    const runRecord = {
+      schemaVersion: 'eval-publish-run-record/v1',
+      generatedAt: new Date().toISOString(),
+      target: result.target,
+      dryRun: result.dryRun,
+      redactionProfile: redact ? (context.current.metadata?.redactionProfile ?? 'default') : 'none',
+      sensitiveFieldsFoundBeforeRedaction: sensitiveFieldsFound,
+      allowSensitivePublish,
+      message: result.message,
+      url: result.url,
+    };
+    await writeJsonFile(path.join(reportDir, 'publish-run-record.json'), runRecord);
+
+    if (sensitiveFieldsFound.length > 0 && allowSensitivePublish) {
+      console.warn(
+        `Warning: publishing with unredacted sensitive evidence field(s) present ` +
+          `(${sensitiveFieldsFound.join(', ')}) due to --allow-sensitive-publish. Recorded in the run record.`,
+      );
+    }
+
     console.log(result.url ? `${result.message}\n${result.url}` : result.message);
     return;
   }

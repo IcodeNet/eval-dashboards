@@ -901,9 +901,9 @@ Acceptance criteria:
 
 ### 4F.2 Redaction profile and publish preflight (P0, 4-6 d)
 
-- [ ] Add a `--redact` deny-by-default profile: evidence text fields are dropped unless explicitly allow-listed per suite. Regex/entity PII detection is a secondary net, never the primary control.
-- [ ] Publish preflight hard-fails when evidence fields are present in the payload, with an explicit `--allow-sensitive-publish` override recorded in the run record.
-- [ ] Record the applied `redactionProfile` in the run record.
+- [x] Add a `--redact` deny-by-default profile: evidence text fields are dropped unless explicitly allow-listed per suite. Regex/entity PII detection is a secondary net, never the primary control.
+- [x] Publish preflight hard-fails when evidence fields are present in the payload, with an explicit `--allow-sensitive-publish` override recorded in the run record.
+- [x] Record the applied `redactionProfile` in the run record.
 
 Acceptance criteria:
 

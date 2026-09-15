@@ -80,6 +80,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--out-dir',
     '--dry-run',
     '--redact',
+    '--allow-sensitive-publish',
     '--repo',
     '--branch',
     '--token',
