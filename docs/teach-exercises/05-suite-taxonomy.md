@@ -9,9 +9,18 @@ Prerequisite
 Why this matters
 - Suite metadata explains gate intent.
 - It also improves baseline compatibility checks.
+- Manifest names must match real suite ids in the artifact for the manifest
+  to mean anything. This exercise manifests `answer-quality`, the suite
+  Exercise 07 adds next — lint does not warn about a manifest with no
+  matching suite yet, only the reverse (a suite with no manifest).
+- Manifesting a suite that already has un-governed rows (like `quality`) is a
+  bigger step: it makes every existing row in that suite require
+  `metadata.lifecycle.status` and `metadata.provenance.source`, or lint hard
+  fails. That upgrade is deferred to a later exercise once you are adding
+  metadata to rows anyway.
 
 Steps
-1) Add two manifests.
+1) Add a manifest for a suite you are about to add in Exercise 07.
 
 ```sh
 python3 - <<'PY'
@@ -20,16 +29,6 @@ from pathlib import Path
 p = Path('.evals_output/run-minimal.json')
 doc = json.loads(p.read_text())
 doc['suiteManifests'] = [
-  {
-    'name': 'refusal-safety',
-    'target': 'agent',
-    'riskArea': 'prompt-safety',
-    'datasetSource': 'synthetic',
-    'datasetVersion': 'safety-v1',
-    'rubricVersion': 'safety-rubric-v1',
-    'graders': ['deterministic-assertions'],
-    'gate': {'mode': 'blocking', 'thresholds': {'passRate': 1.0, 'zeroCritical': 0}}
-  },
   {
     'name': 'answer-quality',
     'target': 'conversation',
@@ -58,10 +57,25 @@ for x in m:
 PY
 ```
 
-Example result
-- Commands run without schema errors.
-- Artifact is updated as described in the goal.
+3) Validate with lint.
+
+```sh
+npx eval-dashboards lint --input=.evals_output
+```
+
+Example result (verified against a real run)
+```text
+Eval taxonomy lint passed with warnings (1 warning(s), 0 error(s)):
+WARNING [missing-suite-manifest] [run:...] Suite quality has no matching suite manifest.
+```
+- Exit code `0`.
+- `quality` still warns because it has no manifest yet. `answer-quality`
+  produces no warning of its own here — lint only warns about suites that
+  lack a manifest, not manifests that lack a suite — so writing the manifest
+  ahead of the suite is silent until Exercise 07 adds the `answer-quality`
+  suite itself.
 
 Definition of done
-- You have one blocking safety suite and one report-only quality suite.
-- Dataset and rubric versions are explicit.
+- You have one report-only manifest (`answer-quality`) with explicit dataset
+  and rubric versions.
+- Lint still passes with only `missing-suite-manifest` warnings, no errors.

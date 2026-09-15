@@ -39,6 +39,11 @@ Exercise workbook files
 - [08 Gates and release](teach-exercises/08-gates-release.md)
 - [09 Reports and history](teach-exercises/09-reports-history.md)
 - [10 Iteration loop](teach-exercises/10-iteration-loop.md)
+- [11 Diagnose a red run](teach-exercises/11-diagnose-a-red-run.md)
+
+Non-engineer reading tracks (no CLI/JSON authoring required)
+- [PM-01: is this release safe?](teach-exercises/pm-01-reading-a-report.md)
+- [PM-02: comparing two reports over time](teach-exercises/pm-02-reading-drift.md)
 
 Delivery-stage labs (artifact-first operations)
 - [Teach labs index](teach-labs/README.md)

@@ -742,29 +742,49 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
       uses `--out` (`docs/teach-exercises/11-diagnose-a-red-run.md:66`), and the CLI
       now rejects unknown flags with exit 2 (`src/cli/args.ts` `assertKnownFlags`,
       19 tests in `test/cli-args-validation.test.ts`). Commit `e562b1f`.
-- [ ] 4G.3 Fix `08-gates-release.md`: the doc primes the learner to expect a failing
+- [x] 4G.3 Fix `08-gates-release.md`: the doc primes the learner to expect a failing
       `check` (exit 1) but the minimal artifact has one passing row, so the gate
       passes and exits 0. Either change the fixture or change the text.
-- [ ] 4G.4 Fix `05-suite-taxonomy.md`: it adds manifests for `refusal-safety` and
+      Fixed by keeping the real pass (exit 0) as step 1 and adding step 2: append
+      one critical failing row and show the real exit-1 output, so the learner sees
+      both outcomes instead of a false claim. Verified against a real run in both
+      states.
+- [x] 4G.4 Fix `05-suite-taxonomy.md`: it adds manifests for `refusal-safety` and
       `answer-quality`, neither of which exists in the artifact, while the one suite
       that does exist (`quality`) gets none — so lint goes from clean to
       `missing-suite-manifest`. Doing the exercise correctly makes lint worse and the
       doc says nothing. Also the origin of the Ex05 → Ex07 trap in 4G.1.
-- [ ] 4G.5 Fix the dangling `pm-02-reading-drift.md` link in `pm-01-reading-a-report.md`:
+      Fixed by dropping the invented `refusal-safety` manifest and keeping only
+      `answer-quality` (the real suite Ex07 adds next), with an explicit note that
+      manifesting an existing suite like `quality` retroactively would make its rows
+      require lifecycle/provenance metadata — deferred, not silently triggered.
+      Verified the full Ex02→04→05→06→07 chain end-to-end from the actual doc
+      scripts: exit 0 throughout, output matches what each file now documents.
+- [x] 4G.5 Fix the dangling `pm-02-reading-drift.md` link in `pm-01-reading-a-report.md`:
       write the file or drop the reference. "Reading track A" also implies a track B
       that does not exist.
+      Wrote `docs/teach-exercises/pm-02-reading-drift.md`: a two-report comparison
+      (run-003 healthy 92.3% vs run-004 red 61.5%) teaching that a pass-rate delta
+      is not the same as a confirmed regression count when the baseline is blocked.
+      Verified both header strips and baseline chips against real generated HTML
+      (`Baseline compatible` / `Baseline blocked`) before writing them into the doc.
 - [ ] 4G.6 Fix `fde-role-workflow.md`: steps 1-5 run `npx eval-dashboards` against a
       hypothetical customer repo, so none of them are runnable as written.
 
 ### P1 — the curriculum contradicts its own best work
 
-- [ ] 4G.7 Index the two best exercises. `docs/teach-curriculum.md` does not
+- [x] 4G.7 Index the two best exercises. `docs/teach-curriculum.md` does not
       reference `11-diagnose-a-red-run.md` or `pm-01-reading-a-report.md` at all
       (verified: zero matches), so they are unreachable from the curriculum index.
-- [ ] 4G.8 Replace the placeholder expected-result string. "Commands run without
+      Added both, plus the new `pm-02-reading-drift.md`, to `docs/teach-curriculum.md`
+      under a new "Non-engineer reading tracks" section.
+- [x] 4G.8 Replace the placeholder expected-result string. "Commands run without
       schema errors. Artifact is updated as described in the goal." appears verbatim
       in four exercises and is factually false in Ex07. Replace each with verbatim
       real output, as Labs 04/05 do. Acceptance: no file contains the placeholder.
+      Fixed in all four files (05, 06, 07, 10) with real verified command output.
+      Confirmed zero remaining matches across `docs/teach-exercises/` and
+      `docs/teach-labs/`.
 - [ ] 4G.9 State the prerequisite chain. Every exercise carries identical
       boilerplate that never names its real dependency. The actual chain
       (Ex02 → Ex04 → Ex05 → Ex06 → Ex07 → Ex09 → Ex10) mutates one shared artifact,
@@ -773,10 +793,15 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
       never the repo root. Ex03 runs `init --write`, dropping five files including a
       workflow snippet into the working directory, and labs/README tells learners to
       work inside the checkout. Reviewers and learners both polluted the repo this way.
-- [ ] 4G.11 Reframe `10-iteration-loop.md`. Its "fix" is editing `passed: false` to
+- [x] 4G.11 Reframe `10-iteration-loop.md`. Its "fix" is editing `passed: false` to
       `passed: true` in the artifact — falsifying evidence, the exact behaviour this
       package exists to prevent. Needs a loud framing that this simulates a rubric
       change and is never done to a real run. Highest-risk content in the set.
+      Added an explicit warning before the steps: this method is legitimate only
+      when the underlying rubric was wrong and is being hand-edited solely because
+      the exercise has no live runner; a real pipeline re-runs the suite instead.
+      Verified `check --min-pass-rate=0.9 --zero-critical` still exits 0 after the
+      edit and change note, from a clean scratch dir.
 
 ### P2 — normalise the remaining files
 

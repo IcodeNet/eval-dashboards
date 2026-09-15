@@ -72,10 +72,18 @@ PY
 npx eval-dashboards lint --input=.evals_output
 ```
 
-Example result
-- Commands run without schema errors.
-- Artifact is updated as described in the goal.
+Example result (verified against a real run)
+```text
+Eval taxonomy lint passed with warnings (1 warning(s), 0 error(s)):
+WARNING [missing-agent-versioning] [run:...] Agent row mcp-routing:agent-trajectory-001 is missing agentVersion/promptVersion.
+```
+- Exit code `0`.
+- The one warning is expected: this exercise adds `turns`/`toolCalls` but not
+  `agentVersion`/`promptVersion`. Add those two fields to the row if you want
+  a fully clean run — they identify which agent build and prompt version
+  produced this trajectory, which matters once you are comparing runs across
+  releases.
 
 Definition of done
 - Row exists with both `turns` and `toolCalls`.
-- Lint accepts the artifact.
+- Lint accepts the artifact (exit `0`).
