@@ -53,6 +53,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--min-pass-rate-delta',
     '--min-matched-expectation-rate',
     '--json-out',
+    '--json-v2-out',
     '--junit-out',
     '--sarif-out',
     '--github-annotations-out',

@@ -6,6 +6,20 @@ Options:
   --target=<name>          Publish target: dir|github-pages|azure-static-webapp|azure-storage
   --out-dir=<path>         Output directory for --target=dir. Default: published-eval-report
   --dry-run                Preview target actions without writing remote state
+  --redact                 Strip sensitive evidence text (prompts, outputs, judge/agent reasoning,
+                           tool call args/results, questions) before rendering and publishing;
+                           only the public tier (ids, counts, rates, categories, severities,
+                           verdicts, versions) is emitted.
+  --allow-sensitive-publish  Override the publish preflight hard-fail that triggers when
+                           unredacted sensitive evidence fields are present in the payload.
+                           Use of this override is always recorded in publish-run-record.json.
+
+Publish preflight:
+  Publishing fails (exit code 2) when the report being published still contains
+  sensitive evidence fields (question, input, output, expected, reason,
+  judgeReasoning, agentReasoning, groundTruthAnnotation, turn content, tool
+  call results) and --allow-sensitive-publish was not passed. Pass --redact to
+  strip these fields, or pass --allow-sensitive-publish to publish anyway.
 
 GitHub Pages target options:
   --repo=<owner/repo>      Required for --target=github-pages

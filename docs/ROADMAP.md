@@ -911,11 +911,17 @@ Acceptance criteria:
 
 ### 4F.3 `eval-check-result/v2` provenance fields (P0, 3-4 d)
 
-- [ ] Extend the check-result payload with: fully resolved gate configuration, per-suite `datasetVersion` and `rubricVersion`, sha256 digests of every input artifact, subject (commit SHA / release / image digest), and CI environment (provider, run id, run URL, actor).
+- [x] Extend the check-result payload with: fully resolved gate configuration, per-suite `datasetVersion` and `rubricVersion`, sha256 digests of every input artifact, subject (commit SHA / release / image digest), and CI environment (provider, run id, run URL, actor).
 
 Acceptance criteria:
 
 - An auditor can read a single check-result file and determine which thresholds were in force, against which dataset and rubric versions, for which commit — without reading workflow YAML at that commit.
+  - Evidence: `eval-dashboards check --json-v2-out=<path>` writes `eval-check-result/v2`
+    (`src/cli/index.ts:251-373` builds `resolvedGateConfig`, `suiteProvenance`, `artifactDigests`,
+    `subject`, `ciEnvironment`; `src/cli/index.ts:1575-1591` wires it into the `check` command).
+    `--json-out`/`eval-check-result/v1` is unchanged (same object, `Omit<..., 'schemaVersion'>`
+    base type). Covered by `test/cli-check-json-v2-output.test.ts`. Documented in
+    `docs/artifact-format.md` and `docs/cli-help/check.txt`.
 
 ### 4F.4 Artifact digest and detached signature (P0, 4-6 d)
 

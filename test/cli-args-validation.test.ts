@@ -13,7 +13,7 @@ const helpDir = path.resolve(process.cwd(), 'docs/cli-help');
 
 const flagsInHelpSnapshot = async (command: string): Promise<string[]> => {
   const text = await readFile(path.join(helpDir, `${command}.txt`), 'utf8');
-  const matches = text.matchAll(/^\s+(--[a-z][a-z-]*)/gm);
+  const matches = text.matchAll(/^\s+(--[a-z][a-z0-9-]*)/gm);
   return [...new Set([...matches].map((match) => match[1] as string))].sort();
 };
 

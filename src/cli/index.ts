@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
 import {
@@ -9,7 +10,7 @@ import {
   selectRun,
   type BaselineStrategy,
 } from '../history/history.js';
-import { readEvalReports, writeJsonFile, writeTextFile } from '../io/reports.js';
+import { readEvalReports, findJsonReports, writeJsonFile, writeTextFile } from '../io/reports.js';
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, type GateConfig } from '../gates/check-gates.js';
@@ -140,7 +141,11 @@ Options:
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
-  --json-out=<path>                Write machine-readable gate result JSON
+  --json-out=<path>                Write machine-readable gate result JSON (eval-check-result/v1)
+  --json-v2-out=<path>             Write eval-check-result/v2 JSON with full audit provenance
+                                    (resolved gate config, per-suite dataset/rubric versions,
+                                    sha256 digests of input artifacts, subject commit/release,
+                                    and CI environment); v1 output/consumers are unaffected
   --junit-out=<path>               Write JUnit XML for CI test-report ingestion
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
@@ -245,6 +250,119 @@ type CheckOutputPayload = {
   baselineCompatibility?: unknown;
   newlyFailingRows: CheckOutputRow[];
   notifications?: NotificationDispatchResult[];
+};
+
+/** Per-suite dataset/rubric provenance recorded in `eval-check-result/v2`. */
+type CheckOutputSuiteProvenance = {
+  suite: string;
+  datasetVersion?: string;
+  rubricVersion?: string;
+};
+
+/** sha256 digest of an input artifact file, recorded in `eval-check-result/v2`. */
+type CheckOutputArtifactDigest = {
+  path: string;
+  sha256: string;
+};
+
+/** Subject under test: commit SHA / release / image digest, if known. */
+type CheckOutputSubject = {
+  commit?: string;
+  release?: string;
+  imageDigest?: string;
+};
+
+/** CI environment provenance, auto-detected from common CI env vars. */
+type CheckOutputCiEnvironment = {
+  provider?: string;
+  runId?: string;
+  runUrl?: string;
+  actor?: string;
+};
+
+/**
+ * `eval-check-result/v2` extends v1 with full audit provenance: an auditor
+ * should be able to read a single check-result file and determine which
+ * thresholds were in force, against which dataset/rubric versions, for which
+ * commit, without reading workflow YAML at that commit. v1 consumers are
+ * unaffected: v2 is emitted only via `--json-v2-out`, never in place of v1.
+ */
+type CheckOutputPayloadV2 = Omit<CheckOutputPayload, 'schemaVersion'> & {
+  schemaVersion: 'eval-check-result/v2';
+  resolvedGateConfig: GateConfig;
+  suiteProvenance: CheckOutputSuiteProvenance[];
+  artifactDigests: CheckOutputArtifactDigest[];
+  subject: CheckOutputSubject;
+  ciEnvironment: CheckOutputCiEnvironment;
+};
+
+const sha256Hex = (contents: string): string => createHash('sha256').update(contents, 'utf8').digest('hex');
+
+const detectCiEnvironment = (env: NodeJS.ProcessEnv): CheckOutputCiEnvironment => {
+  if (env.GITHUB_ACTIONS === 'true') {
+    const serverUrl = env.GITHUB_SERVER_URL ?? 'https://github.com';
+    const repository = env.GITHUB_REPOSITORY;
+    const runId = env.GITHUB_RUN_ID;
+    const runUrl = repository && runId ? `${serverUrl}/${repository}/actions/runs/${runId}` : undefined;
+    return {
+      provider: 'github-actions',
+      runId,
+      runUrl,
+      actor: env.GITHUB_ACTOR,
+    };
+  }
+
+  if (env.TF_BUILD === 'True' || env.TF_BUILD === 'true') {
+    const collectionUri = env.SYSTEM_COLLECTIONURI;
+    const project = env.SYSTEM_TEAMPROJECT;
+    const buildId = env.BUILD_BUILDID;
+    const runUrl =
+      collectionUri && project && buildId
+        ? `${collectionUri}${project}/_build/results?buildId=${buildId}`
+        : undefined;
+    return {
+      provider: 'azure-pipelines',
+      runId: buildId,
+      runUrl,
+      actor: env.BUILD_REQUESTEDFOR,
+    };
+  }
+
+  if (env.CI === 'true') {
+    return { provider: 'unknown-ci' };
+  }
+
+  return {};
+};
+
+const detectSubject = (env: NodeJS.ProcessEnv, currentRun: EvalReportV1['run']): CheckOutputSubject => {
+  const commit =
+    currentRun.commit ||
+    env.GITHUB_SHA ||
+    env.BUILD_SOURCEVERSION ||
+    env.GIT_COMMIT ||
+    undefined;
+  return {
+    commit,
+    release: currentRun.buildId,
+  };
+};
+
+const buildSuiteProvenance = (suiteManifests?: SuiteManifest[]): CheckOutputSuiteProvenance[] =>
+  (suiteManifests ?? []).map((manifest) => ({
+    suite: manifest.name,
+    datasetVersion: manifest.datasetVersion,
+    rubricVersion: manifest.rubricVersion,
+  }));
+
+const buildArtifactDigests = async (filePaths: string[]): Promise<CheckOutputArtifactDigest[]> => {
+  const digests = await Promise.all(
+    filePaths.map(async (filePath) => {
+      const contents = await readFile(filePath, 'utf8');
+      return { path: filePath, sha256: sha256Hex(contents) };
+    }),
+  );
+  return digests.sort((left, right) => left.path.localeCompare(right.path));
 };
 
 type CheckHeartbeatPayload = {
@@ -1267,6 +1385,7 @@ const main = async (): Promise<void> => {
     }
 
     const jsonOut = optionString(options, 'json-out', '');
+    const jsonV2Out = optionString(options, 'json-v2-out', '');
     const junitOut = optionString(options, 'junit-out', '');
     const sarifOut = optionString(options, 'sarif-out', '');
     const githubAnnotationsOut = optionString(options, 'github-annotations-out', '');
@@ -1453,6 +1572,19 @@ const main = async (): Promise<void> => {
 
       if (jsonOut) {
         await writeJsonFile(jsonOut, checkPayload);
+      }
+      if (jsonV2Out) {
+        const artifactFiles = await findJsonReports(input);
+        const checkPayloadV2: CheckOutputPayloadV2 = {
+          ...checkPayload,
+          schemaVersion: 'eval-check-result/v2',
+          resolvedGateConfig: gateConfig,
+          suiteProvenance: buildSuiteProvenance(context.current.suiteManifests),
+          artifactDigests: await buildArtifactDigests(artifactFiles),
+          subject: detectSubject(process.env, context.current.run),
+          ciEnvironment: detectCiEnvironment(process.env),
+        };
+        await writeJsonFile(jsonV2Out, checkPayloadV2);
       }
       if (junitOut) {
         await writeTextFile(junitOut, toJunitXml(checkPayload));

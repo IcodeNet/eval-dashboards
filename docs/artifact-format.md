@@ -71,6 +71,42 @@ When `eval-dashboards check` is run with `--heartbeat-out=<path>`, it writes a m
 - A sanitized `run.configSnapshot` block that never contains secrets.
 - Judge/rubric identity fields (`judgeModel`, `rubricId`, `promptVersion`, `rubricContracts`).
 
+## Check result output contract (`eval-check-result/v1` and `/v2`)
+
+`eval-dashboards check --json-out=<path>` writes `eval-check-result/v1`: `schemaVersion`,
+`gateRunStatus`, `runId`, `baselineRunId?`, `passed`, `failures[]`, `diagnostics[]`,
+`baselineCompatibility?`, `newlyFailingRows[]`, `notifications?`. This shape is unchanged and
+remains the default for existing consumers.
+
+`eval-dashboards check --json-v2-out=<path>` additionally writes `eval-check-result/v2`: every
+v1 field, plus full audit provenance so an auditor can read a single file and determine which
+thresholds were in force, against which dataset/rubric versions, for which commit, without
+reading workflow YAML at that commit:
+
+```json
+{
+  "schemaVersion": "eval-check-result/v2",
+  "gateRunStatus": "ran",
+  "runId": "run-002",
+  "passed": true,
+  "failures": [],
+  "diagnostics": [],
+  "newlyFailingRows": [],
+  "resolvedGateConfig": { "minPassRate": 0.9 },
+  "suiteProvenance": [
+    { "suite": "answer-quality", "datasetVersion": "1.2.0", "rubricVersion": "agent-quality-v1" }
+  ],
+  "artifactDigests": [
+    { "path": "examples/basic-json/run-002.json", "sha256": "..." }
+  ],
+  "subject": { "commit": "abc123", "release": "build-42" },
+  "ciEnvironment": { "provider": "github-actions", "runId": "12345", "runUrl": "https://github.com/org/repo/actions/runs/12345", "actor": "octocat" }
+}
+```
+
+`--json-v2-out` is additive: it is written alongside (not instead of) `--json-out`, and existing
+v1 consumers/pipelines are unaffected whether or not `--json-v2-out` is passed.
+
 ## How To Emit It Safely
 
 - Put probe outcomes in `rows[]` rather than only CI logs.
