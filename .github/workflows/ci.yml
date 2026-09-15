@@ -53,6 +53,9 @@ jobs:
       - name: Verify CLI help snapshots and scaffold/completion guards
         run: pnpm verify:cli
 
+      - name: Verify teaching docs match real CLI output
+        run: pnpm teach:verify
+
       - name: Dependency audit (fails on high/critical)
         run: pnpm audit --audit-level=high
 
