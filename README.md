@@ -331,14 +331,18 @@ Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot 
 | `eval-dashboards report-index` | Generate grouped multi-report HTML index from discovered artifacts |
 | `eval-dashboards lint` | Run fast semantic/taxonomy preflight checks before expensive eval runs |
 | `eval-dashboards check` | Enforce pass-rate, new-failure, critical-severity, and suite-manifest gates |
-| `eval-dashboards publish` | Publish dashboard to dir, github-pages, or Azure Storage (Azure Static Web Apps: dry-run validation only) |
+| `eval-dashboards publish` | Publish dashboard to dir, github-pages, or Azure Storage (Azure Static Web Apps: dry-run validation only). Hard-fails on unredacted sensitive evidence unless `--redact` or `--allow-sensitive-publish` is set |
 | `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |
 | `eval-dashboards merge` | Merge multiple artifacts into one |
 | `eval-dashboards teach` | Guided onboarding walkthrough (alias of `init --preset=agent-quality --teach`) |
 | `eval-dashboards init` | Print a starter config, or scaffold preset files with `--preset=agent-quality --write` |
 | `eval-dashboards completion` | Print or install shell completion for bash, zsh, or fish |
-| `eval-dashboards import` | Convert third-party eval output JSON to `eval-report/v1` (Promptfoo, DeepEval, AgentEvals; `openevals` alias supported) |
+| `eval-dashboards import` | Convert third-party eval output JSON to `eval-report/v1` (Promptfoo, DeepEval, AgentEvals, Ragas, Langfuse; `openevals` alias supported) |
 | `eval-dashboards adjudicate` | Export unresolved rows for reviewer adjudication bundles and merge reviewer verdicts back into artifacts |
+| `eval-dashboards sign` | Hash a check-result artifact and write a detached signature (cosign keyless in CI with OIDC; honest `unavailable` fallback locally) |
+| `eval-dashboards verify` | Re-validate a check-result artifact's digest and signature; fails closed on tampering, staleness, or a missing/unavailable signature |
+| `eval-dashboards heartbeat-verify` | Scheduled check that a fresh, healthy gate-run heartbeat exists — makes a deleted/skipped gate step on a release detectable |
+| `eval-dashboards org-rollup` | Render one static offline HTML overview from N published per-repo `history.json` artifacts (pass rate, critical failures, drift trend) |
 
 Help quick checks (truth-sync targets):
 
