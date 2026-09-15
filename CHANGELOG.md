@@ -18,6 +18,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs-site assistant-ui reference integration page with reproducible lint/check/report/publish command flow.
 - Independent calibration evidence fixture `examples/agent-quality-preset/artifacts/run-agent-quality-calibration.json` (`run.kind: "calibration"`) for runnable blocking-preflight examples.
 - Calibration preflight controls: `--calibration-preflight`, `--no-calibration-preflight`, and `gates.calibration.enabled` for explicit force-enable/disable behavior.
+- Dataset governance lint checks for coverage/versioning gaps (4E.5).
+- JSONL input support for `import`, in addition to JSON (4E.10).
+- Ragas and Langfuse coded import adapters (4E.9 partial), plus an OpenAI eval-outputs import adapter (4E.9 complete) and an eval-ai-library import adapter (4F.11 docs / 4E.11).
+- Two-reviewer-by-default adjudication requirement (4E.4).
+- `init` presets for output-handling-safety and prompt-leakage-resilience suites (4E.6).
+- `publish --redact` for two-tier (redacted/full) artifact splits (4F.1), with a hard-fail preflight when evidence isn't redacted (4F.2).
+- `eval-check-result/v2` audit-provenance output from `check` (4F.3).
+- `sign`/`verify` CLI for artifact digest signing, including cosign keyless mode (4F.4).
+- Waiver/exception register for gate bypasses (4F.5), plus detection of gate config loosening vs baseline (4F.6).
+- `heartbeat-verify` command (4F.7) and a static offline org rollup view in `history` (4F.8).
+- Bypass accounting for gate escape hatches (4F.9), and PR-subset vs full-suite gate tiering with a cost budget (4F.10).
+- `evidence-export`/`evidence-verify` bundle command (4F.11).
+- First-class usage metrics path for tokens/cost/latency (4D.2).
+- `github-pr-comment` publish target with in-place comment updates (4I.1), and a versioned composite GitHub Action packaging the CLI (4I.2).
+- Hard-fail CI gate on `pnpm audit` high/critical vulnerabilities (4F.12).
+- Offline client-side compare view in the HTML report (4F.13).
+- Optional top-level `tags` on `eval-report/v1` (4F.15) and compliance-framework tagging fields (4F.14).
+- Optional `trace.spanType` tagging on rows (4F.16), optional per-axis `axisReasoning` alongside `axisScores` (4F.17), and optional suite `scoreScale` for non-normalized scores (4F.18).
+- Generalized stale embedded help-text sweep in the CLI-help verification tooling (4H.5).
 
 ### Changed
 
@@ -27,11 +46,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `report --reporter` now exits 2 on unknown reporter values instead of silently skipping output generation; `markdown` is accepted as an alias for `markdown-summary`.
 - Breaking: calibration preflight now requires independent evidence for blocking suites (same-run calibration rows no longer satisfy blocking checks) and validates calibration rubric metadata before gate evaluation.
 - Automatic baseline selection (`--baseline-strategy`) now excludes runs with `run.kind: "calibration"` so calibration-only artifacts do not become report/check baselines.
+- The GitHub Action now installs the CLI via `npx --package` for tarball installs instead of a bare `npx` invocation.
 
 ### Fixed
 
 - Frontier markdown table rendering now escapes `|` and newline cell content.
 - Frontier extraction now treats `score` and `durationMs` as strict numeric fields (no coercion of `null`/string to `0`).
+- CLI now rejects unknown flags instead of silently ignoring them.
+- CLI now warns instead of silently ignoring an unparsable numeric flag, and warns on a typo'd `--max-warning-code`.
+- Gates now fail closed on a broken config file instead of silently falling back, and warn on typo'd threshold keys.
+- `config`/CLI now fail closed on a broken `package.json` instead of silently continuing.
+- The npm package no longer ships a repo-only artifact-regeneration script.
 
 ---
 
