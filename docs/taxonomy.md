@@ -253,7 +253,7 @@ Then provide a **rubric contract** in `rubricContracts[]`:
     "mode": "blocking",
     "thresholds": {
       "passRate": 0.95,
-      "zeroCritical": 0
+      "maxCriticalFailures": 0
     }
   }
 }
@@ -441,7 +441,7 @@ eval-dashboards history --input=.evals_output --out=eval-report/history.json
       "graders": ["deterministic-assertions"],
       "gate": {
         "mode": "blocking",
-        "thresholds": { "passRate": 1.0, "zeroCritical": 0 }
+        "thresholds": { "passRate": 1.0, "maxCriticalFailures": 0 }
       }
     }
   ],

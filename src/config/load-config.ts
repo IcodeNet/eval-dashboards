@@ -10,15 +10,32 @@ const CONFIG_FILENAMES = [
   'eval-dashboards.config.cjs',
 ];
 
-/** Try to load a config file, returning undefined if none is found. */
-const tryImportConfig = async (filePath: string): Promise<EvalReportsConfig | undefined> => {
+type ImportConfigResult =
+  | { found: false }
+  | { found: true; config: EvalReportsConfig; error?: Error };
+
+/**
+ * Try to load a config file. Returns `{ found: false }` only when the file
+ * genuinely does not exist, so the caller can fall through to the next
+ * candidate filename. Any other load failure (syntax error, a throw inside
+ * the config module, a bad transform) means the file exists but is broken,
+ * and must NOT be treated the same as "no config" — that would silently
+ * drop configured gates and let a misconfigured run pass CI green.
+ */
+const tryImportConfig = async (filePath: string): Promise<ImportConfigResult> => {
   try {
     const mod = await import(pathToFileURL(filePath).href);
     const config: unknown = mod.default ?? mod;
-    if (config && typeof config === 'object') return config as EvalReportsConfig;
-    return undefined;
-  } catch {
-    return undefined;
+    if (config && typeof config === 'object') return { found: true, config: config as EvalReportsConfig };
+    return { found: false };
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException & { code?: string };
+    const isMissingFile =
+      err?.code === 'ERR_MODULE_NOT_FOUND' ||
+      err?.code === 'MODULE_NOT_FOUND' ||
+      err?.code === 'ENOENT';
+    if (isMissingFile) return { found: false };
+    return { found: true, config: {}, error: error as Error };
   }
 };
 
@@ -43,8 +60,15 @@ const tryPackageJsonConfig = async (cwd: string): Promise<EvalReportsConfig | un
 export const loadConfig = async (cwd = process.cwd()): Promise<EvalReportsConfig> => {
   for (const filename of CONFIG_FILENAMES) {
     const resolved = path.resolve(cwd, filename);
-    const config = await tryImportConfig(resolved);
-    if (config) return config;
+    const result = await tryImportConfig(resolved);
+    if (result.found && result.error) {
+      throw new Error(
+        `Failed to load config file ${resolved}: ${result.error.message}\n` +
+          'Fix the syntax/runtime error in this file, or remove it, before running eval-dashboards. ' +
+          'A broken config file is never treated as "no config", because that would silently drop configured gates.',
+      );
+    }
+    if (result.found) return result.config;
   }
 
   return (await tryPackageJsonConfig(cwd)) ?? {};

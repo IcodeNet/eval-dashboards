@@ -162,6 +162,28 @@ describe('checkGates', () => {
     expect(result.failures[0]).toMatch(/quality.*pass rate.*blocking threshold/);
   });
 
+  it('fails loudly on a typo\'d blocking suite manifest threshold key instead of silently ignoring it', () => {
+    const reportWithTypoThreshold: EvalReportV1 = {
+      ...current,
+      suiteManifests: [
+        {
+          name: 'quality',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: '1.0.0',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          gate: { mode: 'blocking', thresholds: { minAcceptablePass: 0.9 } },
+        },
+      ],
+    };
+
+    const result = checkGates(reportWithTypoThreshold, compareRuns(reportWithTypoThreshold, previous), {});
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.some((f) => f.includes('unrecognized gate.thresholds key "minAcceptablePass"'))).toBe(true);
+  });
+
   it('ignores report-only suite manifest thresholds', () => {
     const reportWithManifest: EvalReportV1 = {
       ...current,

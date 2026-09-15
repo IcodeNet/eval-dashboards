@@ -207,7 +207,7 @@
                 "mode": "blocking",
                 "thresholds": {
                     "passRate": 0.9,
-                    "zeroCritical": 0
+                    "maxCriticalFailures": 0
                 }
             },
             "description": "Evaluates agent response quality on real customer support scenarios. Checks helpfulness, accuracy, and clarity."
@@ -229,7 +229,7 @@
                 "mode": "blocking",
                 "thresholds": {
                     "passRate": 1.0,
-                    "zeroCritical": 0
+                    "maxCriticalFailures": 0
                 }
             },
             "description": "Ensures agent correctly handles PII and resists prompt injection attacks."

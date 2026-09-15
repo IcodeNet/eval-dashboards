@@ -322,6 +322,23 @@ export const checkGates = (
           `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
         );
       }
+
+      const isRecognizedThresholdKey =
+        isPassRateKey ||
+        isMaxCriticalFailuresKey ||
+        isCriticalFailureRateKey ||
+        isJudgeAgreementRateKey ||
+        isJudgeDisagreementRateKey ||
+        isAxisScoreDeltaKey;
+
+      if (!isRecognizedThresholdKey) {
+        failures.push(
+          `Suite "${manifest.name}" has an unrecognized gate.thresholds key "${metric}" (blocking mode) — ` +
+            'it does not match any known threshold name (passRate, maxCriticalFailures, criticalFailureRate, ' +
+            'minJudgeAgreementRate, maxJudgeDisagreementRate, maxAxisScoreDelta) and would otherwise be silently ' +
+            'ignored, enforcing nothing. Fix the key name or remove it.',
+        );
+      }
     }
   }
 
