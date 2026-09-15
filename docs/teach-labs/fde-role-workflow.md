@@ -38,6 +38,11 @@ Principles
 
 ## End-to-end task loop
 
+Run this from a scratch directory (see `docs/teach-curriculum.md` "Exercise
+rules"), not a real customer repo or this checkout: `init --write` creates
+6 real files in the current directory, and every step below was verified to
+run end-to-end against that fixture.
+
 1) Onboard customer repo (no runner rewrite)
 
 ```sh

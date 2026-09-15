@@ -768,8 +768,14 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
       is not the same as a confirmed regression count when the baseline is blocked.
       Verified both header strips and baseline chips against real generated HTML
       (`Baseline compatible` / `Baseline blocked`) before writing them into the doc.
-- [ ] 4G.6 Fix `fde-role-workflow.md`: steps 1-5 run `npx eval-dashboards` against a
+- [x] 4G.6 Fix `fde-role-workflow.md`: steps 1-5 run `npx eval-dashboards` against a
       hypothetical customer repo, so none of them are runnable as written.
+      Re-verified all 5 steps plus the practical-lab fixture script end-to-end in a
+      clean scratch dir: every command actually runs and exits 0 against the real
+      `init --preset=agent-quality --write` fixture — the commands were already
+      correct. The real gap was hygiene: nothing told the reader to run this
+      outside a real customer repo or this checkout. Added an explicit note before
+      the task loop pointing at the scratch-directory rule.
 
 ### P1 — the curriculum contradicts its own best work
 
