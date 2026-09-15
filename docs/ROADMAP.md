@@ -1267,7 +1267,7 @@ Acceptance criteria:
 
 ### 4I.2 Versioned, marketplace-listed composite GitHub Action (P1, S)
 
-- [ ] Package the existing example workflow YAML as a versioned composite
+- [x] Package the existing example workflow YAML as a versioned composite
       Action (`uses: icodenet/eval-dashboards-action@v1`) instead of a
       copy-paste snippet, lowering adoption friction to match competitor
       packaging.
@@ -1276,6 +1276,9 @@ Acceptance criteria:
 
 - `action.yml` exists, is referenced from README/docs, and a real workflow run
   using `uses: ./` (local composite action path) succeeds in CI.
+  Done: `action.yml` (composite action: report → check gates → optional
+  publish); `.github/workflows/action-smoke-test.yml` exercises `uses: ./`
+  against `examples/basic-json` and asserts outputs; README links the action.
 
 ## 🚧 Phase 4D: Trusted confidence reports and adoption execution (NEW)
 

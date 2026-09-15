@@ -462,6 +462,7 @@ for the full procedure.
 - [LangChain Evaluators](examples/langchain-evals/README.md) — wrap LangChain's built-in evaluators (QA, criteria, embedding) to emit taxonomy-complete rows
 
 **CI/CD:**
+- [Versioned composite GitHub Action](action.yml) — `uses: icodenet/eval-dashboards-action@v1` (report + gate + optional publish in one step)
 - [GitHub Actions](examples/github-actions/eval-quality.yml)
 - [GitHub Actions approval gate](examples/github-actions/eval-approval-gate.yml)
 - [GitHub Actions PR cleanup](examples/github-actions/cleanup-pr-eval-results.yml)

@@ -1,0 +1,130 @@
+name: 'eval-dashboards'
+description: >-
+  Generate an eval-dashboards HTML/JSON report from an eval-report/v1
+  artifact directory and enforce quality gates in CI.
+author: 'icodenet'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  input-dir:
+    description: 'Directory containing eval-report/v1 JSON artifact(s).'
+    required: false
+    default: '.evals_output'
+  output-dir:
+    description: 'Directory to write generated reports and gate outputs.'
+    required: false
+    default: 'eval-report'
+  min-pass-rate:
+    description: 'Minimum overall pass rate required (0-1). Empty disables the check.'
+    required: false
+    default: '0.9'
+  max-new-failures:
+    description: 'Maximum newly-introduced failures allowed vs baseline.'
+    required: false
+    default: '0'
+  zero-critical:
+    description: 'Fail the gate if any critical-severity row is present.'
+    required: false
+    default: 'true'
+  node-version:
+    description: 'Node.js version to use for running eval-dashboards.'
+    required: false
+    default: '20'
+  package-spec:
+    description: >-
+      npm package spec used to invoke the CLI via npx, e.g.
+      @icodenet/eval-dashboards or @icodenet/eval-dashboards@1.2.3.
+    required: false
+    default: '@icodenet/eval-dashboards'
+  publish-target:
+    description: >-
+      Optional publish target (e.g. github-pages, github-pr-comment). Leave
+      empty to skip publishing.
+    required: false
+    default: ''
+  publish-args:
+    description: 'Extra raw CLI args appended to the publish command, if publish-target is set.'
+    required: false
+    default: ''
+  github-token:
+    description: 'Token used for publish targets that talk to the GitHub API.'
+    required: false
+    default: ''
+
+outputs:
+  passed:
+    description: "'true'/'false' — whether gates passed, read from check-result.json."
+    value: ${{ steps.check-result.outputs.passed }}
+  report-dir:
+    description: 'Directory containing the generated report and gate outputs.'
+    value: ${{ inputs.output-dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Generate eval dashboard
+      shell: bash
+      run: |
+        npx --yes "${{ inputs.package-spec }}" report \
+          --input="${{ inputs.input-dir }}" \
+          --report-dir="${{ inputs.output-dir }}" \
+          --reporter=html --reporter=json-summary
+
+    - name: Check eval gates
+      id: check
+      shell: bash
+      continue-on-error: true
+      run: |
+        gate_flags=()
+        if [ -n "${{ inputs.min-pass-rate }}" ]; then
+          gate_flags+=(--min-pass-rate="${{ inputs.min-pass-rate }}")
+        fi
+        if [ -n "${{ inputs.max-new-failures }}" ]; then
+          gate_flags+=(--max-new-failures="${{ inputs.max-new-failures }}")
+        fi
+        if [ "${{ inputs.zero-critical }}" = "true" ]; then
+          gate_flags+=(--zero-critical)
+        fi
+
+        npx --yes "${{ inputs.package-spec }}" check \
+          --input="${{ inputs.input-dir }}" \
+          "${gate_flags[@]}" \
+          --json-out="${{ inputs.output-dir }}/check-result.json" \
+          --heartbeat-out="${{ inputs.output-dir }}/check-heartbeat.json"
+
+        exit_code=$?
+        echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+
+    - name: Read gate result
+      id: check-result
+      shell: bash
+      run: |
+        if [ ! -f "${{ inputs.output-dir }}/check-result.json" ]; then
+          echo "Eval check result output missing: ${{ inputs.output-dir }}/check-result.json"
+          echo "passed=false" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+        passed=$(jq -r '.passed' "${{ inputs.output-dir }}/check-result.json")
+        echo "passed=${passed}" >> "$GITHUB_OUTPUT"
+        if [ "${passed}" != "true" ]; then
+          echo "Eval gates failed. See ${{ inputs.output-dir }}/check-result.json"
+          exit 1
+        fi
+
+    - name: Publish dashboard
+      if: inputs.publish-target != ''
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        npx --yes "${{ inputs.package-spec }}" publish \
+          --target="${{ inputs.publish-target }}" \
+          ${{ inputs.publish-args }}

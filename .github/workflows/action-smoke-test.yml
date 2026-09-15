@@ -1,0 +1,55 @@
+name: Composite action smoke test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  composite-action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and pack package (so the action can install it locally)
+        id: pack
+        run: |
+          pnpm build
+          out_dir="$(mktemp -d)"
+          pnpm pack --pack-destination "$out_dir"
+          tgz="$(ls "$out_dir"/*.tgz)"
+          echo "tarball=$tgz" >> "$GITHUB_OUTPUT"
+
+      - name: Run eval-dashboards composite action (local ./ path)
+        id: eval
+        uses: ./
+        with:
+          input-dir: examples/basic-json
+          output-dir: eval-report
+          min-pass-rate: '0'
+          max-new-failures: ''
+          zero-critical: 'false'
+          package-spec: ${{ steps.pack.outputs.tarball }}
+
+      - name: Assert action outputs
+        run: |
+          echo "passed=${{ steps.eval.outputs.passed }}"
+          test "${{ steps.eval.outputs.passed }}" = "true" || test "${{ steps.eval.outputs.passed }}" = "false"
+          test -f eval-report/index.html
+          test -f eval-report/check-result.json
