@@ -6,6 +6,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 02; this exercise edits the artifact it created.
 
 Plain-English theory
 - "Minimal valid" means the row can load.

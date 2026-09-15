@@ -6,6 +6,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 01 (foundations).
 
 Why this matters
 - The artifact is the contract.

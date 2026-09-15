@@ -24,9 +24,21 @@ Exercise rules
 - Every exercise has copy-paste commands.
 - Every exercise has expected results and a definition of done.
 - Commands assume you are at your project root.
+- Work inside a scratch directory, never the repo root of a real project you
+  care about. `init --write` and the JSON-editing steps below create/modify
+  files in the current directory; a stray run in a real checkout leaves
+  behind fixture files and stray `eval/` folders that don't belong in your
+  commit history. Create one, e.g. `mkdir -p /tmp/eval-dashboards-exercises
+  && cd /tmp/eval-dashboards-exercises`, and run every exercise from there.
 - Setup once before exercises: `pnpm add -D @icodenet/eval-dashboards`
 - Run commands as `npx eval-dashboards ...`
 - Some exercises use `python3` for quick JSON edits.
+- Exercises 02, 04, 05, 06, 07, 08, 09, 10 share one mutating artifact in
+  `.evals_output/` — each one edits or gates the output of the previous
+  exercise, in that exact order. Skipping or reordering one breaks a later
+  one (for example, Ex05's suite manifest changes what Ex07's lint run
+  requires). Exercises 01, 03, 11 and the PM track can be done independently
+  (11 needs its own fixture, documented in that file).
 
 Exercise workbook files
 - [01 Foundations](teach-exercises/01-foundations.md)

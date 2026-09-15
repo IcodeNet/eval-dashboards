@@ -6,6 +6,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 09; this exercise edits run-002.json.
 
 Why this matters
 - Evals are useful only if they help you improve safely.

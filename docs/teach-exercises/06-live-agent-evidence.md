@@ -5,6 +5,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 05; this exercise edits that artifact further.
 
 Why this matters
 - Final answer alone hides many failures.

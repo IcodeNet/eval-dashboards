@@ -5,6 +5,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 07; this exercise gates the artifact built by 02-07.
 
 Why this matters
 - `lint` catches shape and taxonomy issues early.

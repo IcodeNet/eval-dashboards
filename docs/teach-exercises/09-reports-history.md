@@ -6,6 +6,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 08; this exercise renames that artifact into run-001/run-002.
 
 Why this matters
 - You cannot reason about regression from one run only.

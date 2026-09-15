@@ -6,6 +6,7 @@ Goal
 
 Prerequisite
 - Complete setup in `docs/teach-curriculum.md` section "Exercise rules".
+- Finish Exercise 06; this exercise edits that artifact further, and Exercise 05's suite manifest changes what this exercise's rows require.
 
 Why this matters
 - Judge output without calibration can be misleading.

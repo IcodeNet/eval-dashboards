@@ -785,14 +785,19 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
       Fixed in all four files (05, 06, 07, 10) with real verified command output.
       Confirmed zero remaining matches across `docs/teach-exercises/` and
       `docs/teach-labs/`.
-- [ ] 4G.9 State the prerequisite chain. Every exercise carries identical
+- [x] 4G.9 State the prerequisite chain. Every exercise carries identical
       boilerplate that never names its real dependency. The actual chain
       (Ex02 → Ex04 → Ex05 → Ex06 → Ex07 → Ex09 → Ex10) mutates one shared artifact,
       which is why Ex05 silently breaks Ex07. Name the real prerequisite per file.
-- [ ] 4G.10 Add an artifact-hygiene rule: exercises run in a scratch directory,
+      Added a specific "Finish Exercise N" line per file (02, 04-10) naming its
+      real predecessor and what it inherits, plus a chain summary in
+      teach-curriculum.md's "Exercise rules".
+- [x] 4G.10 Add an artifact-hygiene rule: exercises run in a scratch directory,
       never the repo root. Ex03 runs `init --write`, dropping five files including a
       workflow snippet into the working directory, and labs/README tells learners to
       work inside the checkout. Reviewers and learners both polluted the repo this way.
+      Added a scratch-directory rule to teach-curriculum.md's "Exercise rules"
+      with a concrete `mkdir -p /tmp/... && cd ...` example.
 - [x] 4G.11 Reframe `10-iteration-loop.md`. Its "fix" is editing `passed: false` to
       `passed: true` in the artifact — falsifying evidence, the exact behaviour this
       package exists to prevent. Needs a loud framing that this simulates a rubric
