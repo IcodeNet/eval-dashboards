@@ -101,18 +101,67 @@ contains_check "publish --help includes target matrix" "$PUBLISH_HELP" "dir|gith
 contains_check "publish --help includes token override" "$PUBLISH_HELP" "--token=<token>"
 exact_match_check "publish help snapshot matches docs/cli-help/publish.txt" "$PUBLISH_HELP" "$(cat docs/cli-help/publish.txt)"
 
-DOC_PUBLISH_HELP="$(awk '
-  BEGIN { in_block=0 }
-  /^```sh$/ && in_block==0 { in_block=1; next }
-  in_block==1 && /^```$/ { exit }
-  in_block==1 { print }
-' docs/publishing.md)"
+printf '\n== stale embedded help-text sweep ==\n'
+SWEEP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/evd-help-sweep-XXXXXX")"
+DOC_FILES="$(find docs README.md -type f -name '*.md' 2>/dev/null | sort)"
 
-if [ "$DOC_PUBLISH_HELP" = "$PUBLISH_HELP" ]; then
-  pass "docs/publishing command block matches publish --help"
+sweep_block_count=0
+while IFS= read -r doc_file; do
+  [ -z "$doc_file" ] && continue
+
+  block_index=0
+  in_block=0
+  block_file=""
+  while IFS= read -r line; do
+    if [ "$in_block" -eq 0 ]; then
+      if [ "$line" = '```sh' ]; then
+        in_block=1
+        block_index=$((block_index + 1))
+        block_file="$SWEEP_DIR/block-$(printf '%s' "$doc_file" | tr '/.' '__')-$block_index.txt"
+        : > "$block_file"
+      fi
+      continue
+    fi
+    if [ "$line" = '```' ]; then
+      in_block=0
+      continue
+    fi
+    printf '%s\n' "$line" >> "$block_file"
+  done < "$doc_file"
+done <<EOF
+$DOC_FILES
+EOF
+
+for block_file in "$SWEEP_DIR"/block-*.txt; do
+  [ -e "$block_file" ] || continue
+  first_line="$(head -n 1 "$block_file")"
+  case "$first_line" in
+    "eval-dashboards "*" [options]")
+      command_name="$(printf '%s' "$first_line" | sed -E 's/^eval-dashboards ([A-Za-z0-9_-]+) \[options\]$/\1/')"
+      [ -n "$command_name" ] || continue
+      sweep_block_count=$((sweep_block_count + 1))
+      block_content="$(cat "$block_file")"
+      # Trailing blank lines inside a fenced block are not semantically
+      # meaningful; trim them before comparing so incidental formatting
+      # differences don't produce false failures.
+      block_content_trimmed="$(printf '%s' "$block_content" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')"
+      live_help="$(run_cli "$command_name" --help || true)"
+      if [ "$block_content_trimmed" = "$live_help" ]; then
+        pass "embedded help in $block_file matches '$command_name --help'"
+      else
+        fail "embedded help in $block_file matches '$command_name --help'"
+      fi
+      ;;
+  esac
+done
+
+if [ "$sweep_block_count" -eq 0 ]; then
+  fail "stale-help sweep found at least one embedded help block"
 else
-  fail "docs/publishing command block matches publish --help"
+  pass "stale-help sweep found at least one embedded help block ($sweep_block_count checked)"
 fi
+
+rm -rf "$SWEEP_DIR"
 
 IMPORT_HELP="$(run_cli import --help || true)"
 contains_check "import --help usage header" "$IMPORT_HELP" "eval-dashboards import --from=<source> --input=<path> [options]"

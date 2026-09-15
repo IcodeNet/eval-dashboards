@@ -1136,15 +1136,16 @@ phase's commit message.
       numbering if it's cheap to do safely (verify no external doc links
       to a specific line number in ROADMAP.md before reordering).
 
-### 4H.5 Automated stale-embedded-help-text sweep (P1, S)
+### 4H.5 Automated stale-embedded-help-text sweep (P1, S) — DONE
 
-- [ ] Generalize the ad hoc `docs/publishing` "command block matches
+- [x] Generalized the ad hoc `docs/publishing` "command block matches
       publish --help" check in `scripts/verify-cli-init-and-completion.sh`
-      into a loop that finds every doc file with a fenced ```sh block
-      containing a line starting with `eval-dashboards <command> [options]`
-      and diffs it against that command's real `--help` output, so newly
-      embedded help copies are covered automatically instead of requiring
-      a new hand-written check every time. This directly addresses the
+      into a loop that scans every `docs/**/*.md` and `README.md` file for
+      fenced ```sh blocks whose first line matches
+      `eval-dashboards <command> [options]`, and diffs the block body
+      against that command's live `--help` output, so newly embedded help
+      copies are covered automatically instead of requiring a new
+      hand-written check every time. This directly addresses the
       stale-docs regression class caught 4 separate times in the 4F.1–4F.9
       shipping session (publish.txt, check.txt, root.txt, publishing.md).
 
