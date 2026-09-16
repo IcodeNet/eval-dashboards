@@ -129,13 +129,35 @@ function extractBlocks(markdown: string): Block[] {
 
 /**
  * Lines inside a ```text block that are real CLI output worth asserting.
- * Skips elided lines (`...`) and blank lines, which are illustrative only.
+ *
+ * Only blank lines and standalone elision markers (a line that is just dots)
+ * are skipped. Lines containing `...` mid-text are kept and matched as
+ * wildcards by {@link matchesReality}: dropping every line containing an
+ * ellipsis let an author neutralise a wrong figure by adding one, and the only
+ * symptom was the asserted count quietly dropping.
  */
 function assertableLines(body: string): string[] {
   return body
     .split('\n')
     .map((l) => l.trimEnd())
-    .filter((l) => l.length > 0 && !l.includes('...'));
+    .filter((l) => l.length > 0 && !/^\s*\.{3,}\s*$/.test(l));
+}
+
+/**
+ * Does `expected` (one documented line) appear in `reality`?
+ *
+ * `...` inside a documented line is an elision the author wrote deliberately —
+ * `[run:...]` or a truncated tail — so it matches any run of characters within
+ * that line. Everything either side must match exactly, modulo whitespace.
+ */
+function matchesReality(expected: string, reality: string): boolean {
+  const normalized = normalizeForMatch(expected);
+  if (!normalized.includes('...')) return reality.includes(normalized);
+  const pattern = normalized
+    .split(/\.{3,}/)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('[^\\n]*');
+  return new RegExp(pattern).test(reality);
 }
 
 function runShellBlock(script: string, cwd: string): { stdout: string; code: number } {
@@ -179,12 +201,19 @@ function htmlToText(html: string): string {
 }
 
 /**
- * Collapse runs of whitespace so a documented figure matches regardless of how
- * the renderer split it across elements: `Passed 8/13` becomes `Passed 8 /13`
- * once tags are stripped, and header strips wrap arbitrarily.
+ * Normalize text for matching: collapse whitespace runs to a single space, and
+ * close the gaps the renderer leaves around `/` when it splits a fraction
+ * across elements (`Passed 8/13` reaches the page as `Passed 8 /13`).
+ *
+ * Whitespace is collapsed, not deleted. Deleting it removed line and word
+ * boundaries too, so a documented figure reflowed across two lines — or
+ * truncated mid-token — still matched as one long run of characters.
  */
 function normalizeForMatch(text: string): string {
-  return text.replace(/\s+/g, '');
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\/\s*/g, '/')
+    .trim();
 }
 
 interface Drift {
@@ -289,7 +318,7 @@ function verifyDoc(
 
     for (const expected of assertableLines(block.body)) {
       asserted += 1;
-      if (!haystack.includes(normalizeForMatch(expected))) {
+      if (!matchesReality(expected, haystack)) {
         drifts.push({
           file: docRelPath,
           line: block.startLine,
