@@ -41,6 +41,10 @@ jobs:
 
       - name: Run eval-dashboards composite action (local ./ path)
         id: eval
+        # examples/basic-json intentionally contains one failing row so the
+        # composite action's "gate failed" path gets smoke-tested too; a
+        # non-zero exit here is an expected outcome, not a CI failure.
+        continue-on-error: true
         uses: ./
         with:
           input-dir: examples/basic-json
