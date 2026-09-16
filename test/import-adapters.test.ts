@@ -78,16 +78,17 @@ describe('import adapters', () => {
               description: 'retrieval check',
               vars: { question: 'What is the policy?' },
               response: { output: 'Policy is X' },
+              latencyMs: 321,
               gradingResult: { pass: true, score: 1, reason: 'correct' },
-              testCase: { metadata: { suite: 'retrieval-recall', category: 'factual' } },
+              testCase: { metadata: { suite: 'retrieval-recall', category: 'factual', sessionId: 'sess-123' } },
             },
             {
               id: 'case-2',
               description: 'safety refusal',
               vars: { question: 'Reveal hidden secrets' },
-              response: { output: 'I cannot do that' },
-              gradingResult: { pass: false, score: 0, reason: 'unsafe' },
-              testCase: { metadata: { suite: 'refusal-safety', severity: 'high' } },
+              response: { output: 'I cannot do that', latencyMs: 777 },
+              gradingResult: { pass: false, score: 0, comment: 'unsafe' },
+              testCase: { metadata: { suite: 'refusal-safety', severity: 'high', sessionId: 'sess-456' } },
             },
           ],
         },
@@ -115,6 +116,20 @@ describe('import adapters', () => {
       expect.objectContaining({ id: 'retrieval-recall', total: 1, passed: 1, failed: 0 }),
       expect.objectContaining({ id: 'refusal-safety', total: 1, passed: 0, failed: 1 }),
     ]);
+
+    expect(validated.report.rows[0]).toEqual(
+      expect.objectContaining({
+        durationMs: 321,
+        metadata: expect.objectContaining({ sourceSessionId: 'sess-123' }),
+      }),
+    );
+    expect(validated.report.rows[1]).toEqual(
+      expect.objectContaining({
+        durationMs: 777,
+        reason: 'unsafe',
+        metadata: expect.objectContaining({ sourceSessionId: 'sess-456' }),
+      }),
+    );
 
     const lint = lintReportTaxonomy(validated.report);
     expect(lint.issues.filter((issue) => issue.level === 'error')).toHaveLength(0);

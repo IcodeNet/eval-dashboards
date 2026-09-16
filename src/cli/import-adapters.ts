@@ -38,16 +38,23 @@ type PromptfooResult = {
   prompt?: string;
   expected?: string;
   output?: string;
-  response?: { output?: string; text?: string };
-  gradingResult?: { pass?: boolean; score?: number; reason?: string; verdict?: string };
+  latencyMs?: number;
+  response?: { output?: string; text?: string; latencyMs?: number };
+  gradingResult?: {
+    pass?: boolean;
+    score?: number;
+    reason?: string;
+    comment?: string;
+    verdict?: string;
+  };
   vars?: Record<string, unknown>;
   testCase?: {
     id?: string;
     vars?: Record<string, unknown>;
     assert?: Array<{ value?: unknown; metric?: string }>;
-    metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+    metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
   };
-  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+  metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
 };
 
 type DeepEvalResult = {
@@ -258,6 +265,12 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
 
     const expectedFromAssert = row.testCase?.assert?.[0]?.value;
 
+    const sessionId =
+      (typeof row.testCase?.metadata?.sessionId === 'string'
+        ? row.testCase.metadata.sessionId
+        : undefined) ??
+      (typeof row.metadata?.sessionId === 'string' ? row.metadata.sessionId : undefined);
+
     return {
       id: rowLabel,
       suite,
@@ -270,7 +283,8 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       score: typeof row.score === 'number' ? row.score : row.gradingResult?.score,
       severity: row.testCase?.metadata?.severity ?? row.metadata?.severity,
       category: row.testCase?.metadata?.category ?? row.metadata?.category,
-      reason: row.gradingResult?.reason,
+      reason: row.gradingResult?.reason ?? row.gradingResult?.comment,
+      durationMs: row.latencyMs ?? row.response?.latencyMs,
       metadata: {
         provenance: {
           source: 'custom',
@@ -278,6 +292,7 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
           sourceRef: 'promptfoo',
         },
         lifecycle: { status: 'active' },
+        ...(sessionId ? { sourceSessionId: sessionId } : {}),
       },
     };
   });
@@ -993,6 +1008,7 @@ export const importFromSource = async (options: {
         score: caseResult.score,
         category: caseResult.category,
         reason: caseResult.reason,
+        durationMs: caseResult.durationMs,
         metadata: caseResult.metadata,
       }),
     },
