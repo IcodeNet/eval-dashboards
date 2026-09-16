@@ -55,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI now rejects unknown flags instead of silently ignoring them.
 - CLI now warns instead of silently ignoring an unparsable numeric flag, and warns on a typo'd `--max-warning-code`.
 - Gates now fail closed on a broken config file instead of silently falling back, and warn on typo'd threshold keys.
+- `report`/`check`/`publish` no longer mistake previously-generated output (`summary.json`, `history.json`, etc. under `--report-dir`) for input artifacts on a rerun against the same `--input` directory; the resolved report directory is now excluded from the recursive artifact scan.
+- README/ROADMAP corrected: the GitHub Action's documented `uses:` reference pointed at a non-existent `icodenet/eval-dashboards-action@v1` repo/tag; fixed to the real `IcodeNet/eval-dashboards@v0.7.0`.
+- `ci.yml`, `action-smoke-test.yml`, and `pr-title-lint.yml` now declare an explicit least-privilege `permissions: contents: read` block.
 - `config`/CLI now fail closed on a broken `package.json` instead of silently continuing.
 - The npm package no longer ships a repo-only artifact-regeneration script.
 

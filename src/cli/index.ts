@@ -820,7 +820,7 @@ const loadContext = async (
   reportDir: string,
   options?: LoadContextOptions,
 ) => {
-  const reports = await readEvalReports(input);
+  const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
 
   if (reports.length === 0) {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
@@ -1518,7 +1518,7 @@ const main = async (): Promise<void> => {
       );
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const target = selectRun(reports, runId);
     if (!target) {
       throw Object.assign(new Error(`Run ID ${runId} was not found under ${input}.`), {
@@ -1588,7 +1588,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const locale = optionString(options, 'locale', '') || config.locale;
     const out = optionString(options, 'out', path.join(reportDir, 'overview.html'));
     await writeTextFile(out, renderGroupedIndexHtml(reports, locale));
@@ -1922,7 +1922,7 @@ const main = async (): Promise<void> => {
         await writeJsonFile(jsonOut, checkPayload);
       }
       if (jsonV2Out) {
-        const artifactFiles = await findJsonReports(input);
+        const artifactFiles = await findJsonReports(input, { excludeDirs: [reportDir] });
         const checkPayloadV2: CheckOutputPayloadV2 = {
           ...checkPayload,
           schemaVersion: 'eval-check-result/v2',
@@ -1993,7 +1993,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const result = lintReportsTaxonomy(reports);
     const strict = optionBoolean(options, 'strict');
     const lintFailOnWarningCodes = new Set(optionStrings(options, 'fail-on-warning-code', []));
@@ -2043,7 +2043,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const out = optionString(options, 'out', 'eval-report/merged.json');
     await writeJsonFile(out, { schemaVersion: 'eval-report-merged/v1', reports });
     console.log(out);
@@ -2056,7 +2056,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const out = optionString(options, 'out', 'eval-report/history.json');
     const bypassLogPath = optionString(options, 'bypass-log', '') || config.bypassLogFile || '';
     let bypassUsageByRunId: Record<string, ReturnType<typeof summarizeBypassUsage>> | undefined;
