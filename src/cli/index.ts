@@ -1297,7 +1297,7 @@ const main = async (): Promise<void> => {
       minMatchedExpectationRate:
         optionNumber(options, 'min-matched-expectation-rate') ?? fileConfig.gates?.minMatchedExpectationRate,
       maxNewFailures: optionNumber(options, 'max-new-failures') ?? fileConfig.gates?.maxNewFailures,
-      zeroCritical: optionBoolean(options, 'zero-critical') ?? fileConfig.gates?.zeroCritical,
+      zeroCritical: (optionBoolean(options, 'zero-critical') || undefined) ?? fileConfig.gates?.zeroCritical,
       maxWarnings: optionNumber(options, 'max-warnings') ?? fileConfig.gates?.maxWarnings,
       maxWarningsByCode: fileConfig.gates?.maxWarningsByCode,
       failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
