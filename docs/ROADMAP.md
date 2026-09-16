@@ -1370,6 +1370,22 @@ Acceptance criteria:
       Document in `docs/gates.md`. Small CLI/config addition, not a new engine —
       the gate still only reads fields already in the artifact.
 
+### 4F.24 Structured per-row assertion evidence (P1, M)
+
+- [ ] Add optional `rows[].checks?: Array<{ type: string; expected?: unknown;
+      actual?: unknown; threshold?: number; pass: boolean; weight?: number }>`
+      to `EvalRow`. Promptfoo-style gap scan (2026-09-16): today `graders` is
+      only a free-text category on the *suite*, and a row collapses straight to
+      a single boolean `passed` — there's no way to record which named check
+      ran, its expected/actual/threshold, or a per-check weight for a
+      weighted-assertion-set row. Purely additive: validate leniently, render
+      as a per-row checks table/badges near existing pass/fail evidence, and
+      let `docs/gates.md` mention (documentation only, no new engine) that
+      `check.type` values are free-form strings a runner defines, not a fixed
+      enum — this repo doesn't own an assertion DSL, it only stores the result.
+      Not adopting promptfoo's YAML assertion syntax; only the taxonomy of
+      "a check has a type/expected/actual/threshold/weight" is in scope.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
