@@ -146,18 +146,26 @@ function assertableLines(body: string): string[] {
 /**
  * Does `expected` (one documented line) appear in `reality`?
  *
+ * `reality` is a list of individual lines, and a documented line must match
+ * within ONE of them. Matching against the whole document as a single string
+ * let a figure reflowed across two lines — or truncated mid-token — pass as two
+ * unrelated fragments.
+ *
  * `...` inside a documented line is an elision the author wrote deliberately —
  * `[run:...]` or a truncated tail — so it matches any run of characters within
  * that line. Everything either side must match exactly, modulo whitespace.
  */
-function matchesReality(expected: string, reality: string): boolean {
+function matchesReality(expected: string, reality: string[]): boolean {
   const normalized = normalizeForMatch(expected);
-  if (!normalized.includes('...')) return reality.includes(normalized);
+  if (!normalized.includes('...')) {
+    return reality.some((line) => line.includes(normalized));
+  }
   const pattern = normalized
     .split(/\.{3,}/)
     .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('[^\\n]*');
-  return new RegExp(pattern).test(reality);
+    .join('.*');
+  const re = new RegExp(pattern);
+  return reality.some((line) => re.test(line));
 }
 
 function runShellBlock(script: string, cwd: string): { stdout: string; code: number } {
@@ -181,14 +189,20 @@ function runShellBlock(script: string, cwd: string): { stdout: string; code: num
 }
 
 /**
- * Reduce an HTML document to its visible text, so documented figures can be
- * matched against what a reader actually sees on the page.
+ * Reduce an HTML document to visible text segments matched against documented
+ * figures.
  *
  * Script and style bodies are dropped first: they contain the report's own data
  * as JSON, which would otherwise satisfy assertions the rendered page does not.
+ *
+ * Segmentation is deliberately coarse — one segment per report. The header
+ * strip is a grid of sibling tiles with no element boundary a reader perceives,
+ * and structural tags cut through the middle of it, so splitting finer breaks
+ * every documented figure. Cross-report leakage is prevented by attribution
+ * instead; a figure's exact text must still appear verbatim in its own report.
  */
-function htmlToText(html: string): string {
-  return html
+function htmlToSegments(html: string): string[] {
+  const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
@@ -198,6 +212,7 @@ function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&amp;/g, '&');
+  return [text];
 }
 
 /**
@@ -246,9 +261,9 @@ function verifyDoc(
     captured += stdout;
   }
 
-  // Per-report text, so a figure documented for one report cannot be satisfied
+  // Per-report lines, so a figure documented for one report cannot be satisfied
   // by another. Keyed by the path the CLI printed, e.g. eval-dashboard/index.html.
-  const byReport = new Map<string, string>();
+  const byReport = new Map<string, string[]>();
 
   if (source === 'html') {
     // The CLI prints each report's path; read back what it actually rendered.
@@ -266,16 +281,20 @@ function verifyDoc(
       return 0;
     }
     for (const rel of reports) {
-      byReport.set(rel, htmlToText(readFileSync(path.join(cwd, rel), 'utf8')));
+      byReport.set(rel, htmlToSegments(readFileSync(path.join(cwd, rel), 'utf8')));
     }
-    captured = [...byReport.values()].join('\n');
   }
 
   if (printMode) {
     process.stdout.write(`\n=== ${docRelPath} ===\n${captured}`);
   }
 
-  const allText = normalizeForMatch(captured);
+  // stdout is genuinely line-oriented, so each line is its own haystack. HTML
+  // reports are one segment each (see htmlToSegments) and must not be re-split.
+  const allLines =
+    source === 'html'
+      ? [...byReport.values()].flat().map(normalizeForMatch).filter(Boolean)
+      : captured.split('\n').map(normalizeForMatch).filter(Boolean);
 
   for (const block of blocks) {
     if (block.lang !== 'text') continue;
@@ -283,7 +302,7 @@ function verifyDoc(
     // When a doc names the report a block came from, assert against that report
     // alone. pm-02 contrasts a good run with a red one; matching against the
     // union would let the two sets of figures satisfy each other's assertions.
-    let haystack = allText;
+    let haystack = allLines;
     let scope = '';
     if (source === 'html') {
       // With one rendered report there is nothing to confuse, so prose need not
@@ -311,7 +330,7 @@ function verifyDoc(
           });
           continue;
         }
-        haystack = normalizeForMatch(match[1]);
+        haystack = match[1].map(normalizeForMatch).filter(Boolean);
         scope = match[0];
       }
     }
