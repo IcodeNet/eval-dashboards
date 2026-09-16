@@ -146,6 +146,19 @@ export type EvalReportV1 = {
 };
 ```
 
+`EvalSuiteSummary` (per-suite roll-up counts, one entry per suite name present in `rows[]`; `id` is required and must match `rows[].suite` / `suiteManifests[].name`):
+
+```ts
+export type EvalSuiteSummary = {
+  id: string;
+  name?: string;
+  total: number;
+  passed: number;
+  failed: number;
+  passRate?: number;
+};
+```
+
 `run.experimentId` / `run.variantLabel` (both optional strings, validated
 leniently with no format constraint): a grouping key for clustering 3+
 variant runs (e.g. prompt v1/v2/v3) for side-by-side comparison, beyond the
