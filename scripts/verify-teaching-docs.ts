@@ -17,7 +17,7 @@
  *   pnpm teach:verify --print  # also print captured stdout per exercise
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -71,12 +71,14 @@ const STANDALONE_EXERCISES: { file: string; needsExamples: boolean }[] = [
 ];
 
 /**
- * Not covered, deliberately: pm-01-reading-a-report.md and
- * pm-02-reading-drift.md. Their ```text blocks quote figures rendered into the
- * HTML report, not CLI stdout, and their steps call `open` to launch a browser.
- * Both were verified by hand on 2026-09-15 by extracting the text of the
- * generated index.html. Guarding them needs an HTML-aware assertion mode.
+ * Reading-track exercises for non-engineers. Unlike every other doc, their
+ * ```text blocks quote figures rendered into the HTML report rather than CLI
+ * stdout, so they are verified against the text of the generated index.html.
+ *
+ * Their steps also call `open` to launch a browser, which is stripped before
+ * replay (see runShellBlock) so CI never spawns a GUI.
  */
+const HTML_EXERCISES = ['pm-01-reading-a-report.md', 'pm-02-reading-drift.md'];
 
 interface Block {
   lang: string;
@@ -122,7 +124,9 @@ function runShellBlock(script: string, cwd: string): { stdout: string; code: num
   // Exercises are written for the published CLI; point them at this checkout.
   const rewritten = script
     .replace(/npx eval-dashboards/g, `"${tsxBin}" "${cliEntry}"`)
-    .replace(/pnpm cli:dev/g, `"${tsxBin}" "${cliEntry}"`);
+    .replace(/pnpm cli:dev/g, `"${tsxBin}" "${cliEntry}"`)
+    // Reading-track docs tell a human to open the report; never spawn a GUI in CI.
+    .replace(/^\s*open\s+.*$/gm, ':');
   try {
     const stdout = execFileSync('bash', ['-c', rewritten], {
       cwd,
@@ -136,6 +140,35 @@ function runShellBlock(script: string, cwd: string): { stdout: string; code: num
   }
 }
 
+/**
+ * Reduce an HTML document to its visible text, so documented figures can be
+ * matched against what a reader actually sees on the page.
+ *
+ * Script and style bodies are dropped first: they contain the report's own data
+ * as JSON, which would otherwise satisfy assertions the rendered page does not.
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+/**
+ * Collapse runs of whitespace so a documented figure matches regardless of how
+ * the renderer split it across elements: `Passed 8/13` becomes `Passed 8 /13`
+ * once tags are stripped, and header strips wrap arbitrarily.
+ */
+function normalizeForMatch(text: string): string {
+  return text.replace(/\s+/g, '');
+}
+
 interface Drift {
   file: string;
   line: number;
@@ -143,11 +176,17 @@ interface Drift {
   context: string;
 }
 
-/** Replay one doc's shell blocks and diff its ```text blocks against reality. */
+/**
+ * Replay one doc's shell blocks and diff its ```text blocks against reality.
+ *
+ * `source` selects what "reality" means: 'stdout' asserts against what the CLI
+ * printed, 'html' against the visible text of every report the block rendered.
+ */
 function verifyDoc(
   docRelPath: string,
   cwd: string,
   drifts: Drift[],
+  source: 'stdout' | 'html' = 'stdout',
 ): number {
   const markdown = readFileSync(path.join(repoRoot, docRelPath), 'utf8');
   const blocks = extractBlocks(markdown);
@@ -160,15 +199,37 @@ function verifyDoc(
     captured += stdout;
   }
 
+  if (source === 'html') {
+    // The CLI prints each report's path; read back what it actually rendered.
+    const reports = captured
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.endsWith('index.html'));
+    if (reports.length === 0) {
+      drifts.push({
+        file: docRelPath,
+        line: 1,
+        documented: '(expected this doc to render at least one HTML report)',
+        context: captured.trim().split('\n').slice(-6).join('\n'),
+      });
+      return 0;
+    }
+    captured = reports
+      .map((rel) => htmlToText(readFileSync(path.join(cwd, rel), 'utf8')))
+      .join('\n');
+  }
+
   if (printMode) {
     process.stdout.write(`\n=== ${docRelPath} ===\n${captured}`);
   }
+
+  const haystack = normalizeForMatch(captured);
 
   for (const block of blocks) {
     if (block.lang !== 'text') continue;
     for (const expected of assertableLines(block.body)) {
       asserted += 1;
-      if (!captured.includes(expected)) {
+      if (!haystack.includes(normalizeForMatch(expected))) {
         drifts.push({
           file: docRelPath,
           line: block.startLine,
@@ -211,15 +272,30 @@ function main(): number {
         rmSync(soloDir, { recursive: true, force: true });
       }
     }
+    // Reading-track exercises assert against rendered HTML, not stdout. They
+    // copy examples/ in so the docs' relative fixture paths resolve unmodified.
+    for (const file of HTML_EXERCISES) {
+      const htmlDir = mkdtempSync(path.join(tmpdir(), 'teach-html-'));
+      try {
+        cpSync(path.join(repoRoot, 'examples'), path.join(htmlDir, 'examples'), {
+          recursive: true,
+        });
+        assertedCount += verifyDoc(`docs/teach-exercises/${file}`, htmlDir, drifts, 'html');
+      } finally {
+        rmSync(htmlDir, { recursive: true, force: true });
+      }
+    }
   } finally {
     rmSync(workdir, { recursive: true, force: true });
   }
 
   if (drifts.length === 0) {
     const labCount = exercisesOnly ? 0 : LABS.length;
+    const exerciseCount =
+      CHAIN.length + STANDALONE_EXERCISES.length + HTML_EXERCISES.length;
     console.log(
       `Teaching docs verified: ${assertedCount} documented output line(s) across ` +
-        `${CHAIN.length + STANDALONE_EXERCISES.length} exercises and ${labCount} labs ` +
+        `${exerciseCount} exercises and ${labCount} labs ` +
         `match real CLI output.`,
     );
     return 0;
