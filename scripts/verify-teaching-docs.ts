@@ -104,8 +104,11 @@ function extractBlocks(markdown: string): Block[] {
       } else {
         // Docs introduce a block by naming the file it came from, e.g.
         // `eval-dashboard-good/index.html`: — remember the most recent one.
-        const named = line.match(/`([^`]*index\.html)`/);
-        if (named) lastAttribution = named[1];
+        // Only prose counts: the `open <report>/index.html` commands inside sh
+        // fences are instructions to the reader, not attributions, and treating
+        // them as such would silently attribute every later block.
+        const named = line.match(/^\s*`([^`]*index\.html)`\s*:?\s*$/);
+        lastAttribution = named ? named[1] : lastAttribution;
       }
       continue;
     }
@@ -253,9 +256,32 @@ function verifyDoc(
     // union would let the two sets of figures satisfy each other's assertions.
     let haystack = allText;
     let scope = '';
-    if (source === 'html' && block.attributedTo) {
-      const match = [...byReport.entries()].find(([rel]) => rel.endsWith(block.attributedTo!));
-      if (match) {
+    if (source === 'html') {
+      // With one rendered report there is nothing to confuse, so prose need not
+      // name it. With several, attribution is mandatory: falling back to the
+      // union lets one report's figures satisfy another's assertions, which is
+      // precisely the drift pm-02 exists to teach. Fail loudly instead.
+      if (!block.attributedTo && byReport.size > 1) {
+        drifts.push({
+          file: docRelPath,
+          line: block.startLine,
+          documented:
+            '(this doc renders several reports, so name the one this block came from above it, e.g. `eval-dashboard-red/index.html`:)',
+          context: `(rendered reports: ${[...byReport.keys()].join(', ')})`,
+        });
+        continue;
+      }
+      if (block.attributedTo) {
+        const match = [...byReport.entries()].find(([rel]) => rel.endsWith(block.attributedTo!));
+        if (!match) {
+          drifts.push({
+            file: docRelPath,
+            line: block.startLine,
+            documented: `(block attributed to ${block.attributedTo}, which this doc never rendered)`,
+            context: `(rendered reports: ${[...byReport.keys()].join(', ')})`,
+          });
+          continue;
+        }
         haystack = normalizeForMatch(match[1]);
         scope = match[0];
       }
