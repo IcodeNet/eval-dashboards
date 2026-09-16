@@ -45,6 +45,7 @@ Baseline compatibility is blocked due to dataset/rubric version drift.
 Suite "answer-quality" pass rate 0.500 is below blocking threshold passRate=0.900.
 Diagnostics:
 Top failing categories: incomplete-answer=5
+Lint warning breakdown: missing-agent-evidence=13
 Statistical gate (bootstrap, confidence=0.95, samples=2000): observed ΔpassRate=-0.308, CI=[-0.615, 0.000], required min Δ=0.000.
 ```
 

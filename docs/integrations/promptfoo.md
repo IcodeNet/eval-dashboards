@@ -26,4 +26,10 @@ eval-dashboards check --input=.evals_output
 eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report
 ```
 
+
+The importer preserves key Promptfoo evidence fields when present:
+- `gradingResult.reason` / `gradingResult.comment` -> `rows[].reason`
+- `latencyMs` (or `response.latencyMs`) -> `rows[].durationMs`
+- `metadata.sessionId` -> `rows[].metadata.sourceSessionId`
+
 Related risks: [integration risk register](./risk-register.md)

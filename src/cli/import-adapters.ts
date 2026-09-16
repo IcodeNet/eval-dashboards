@@ -11,12 +11,13 @@ export type ImportSource =
   | 'langfuse'
   | 'phoenix'
   | 'braintrust'
-  | 'openai-evals';
+  | 'openai-evals'
+  | 'eval-ai-library';
 
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|openevals.
                            openevals is accepted as an alias for agentevals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
@@ -37,16 +38,23 @@ type PromptfooResult = {
   prompt?: string;
   expected?: string;
   output?: string;
-  response?: { output?: string; text?: string };
-  gradingResult?: { pass?: boolean; score?: number; reason?: string; verdict?: string };
+  latencyMs?: number;
+  response?: { output?: string; text?: string; latencyMs?: number };
+  gradingResult?: {
+    pass?: boolean;
+    score?: number;
+    reason?: string;
+    comment?: string;
+    verdict?: string;
+  };
   vars?: Record<string, unknown>;
   testCase?: {
     id?: string;
     vars?: Record<string, unknown>;
     assert?: Array<{ value?: unknown; metric?: string }>;
-    metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+    metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
   };
-  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+  metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
 };
 
 type DeepEvalResult = {
@@ -257,6 +265,12 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
 
     const expectedFromAssert = row.testCase?.assert?.[0]?.value;
 
+    const sessionId =
+      (typeof row.testCase?.metadata?.sessionId === 'string'
+        ? row.testCase.metadata.sessionId
+        : undefined) ??
+      (typeof row.metadata?.sessionId === 'string' ? row.metadata.sessionId : undefined);
+
     return {
       id: rowLabel,
       suite,
@@ -269,7 +283,8 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       score: typeof row.score === 'number' ? row.score : row.gradingResult?.score,
       severity: row.testCase?.metadata?.severity ?? row.metadata?.severity,
       category: row.testCase?.metadata?.category ?? row.metadata?.category,
-      reason: row.gradingResult?.reason,
+      reason: row.gradingResult?.reason ?? row.gradingResult?.comment,
+      durationMs: row.latencyMs ?? row.response?.latencyMs,
       metadata: {
         provenance: {
           source: 'custom',
@@ -277,6 +292,7 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
           sourceRef: 'promptfoo',
         },
         lifecycle: { status: 'active' },
+        ...(sessionId ? { sourceSessionId: sessionId } : {}),
       },
     };
   });
@@ -765,6 +781,150 @@ const openAiEvalsRows = (source: unknown, fallbackSuite: string): RunnerEvalCase
   });
 };
 
+// eval-ai-library (https://github.com/meshkovQA/eval-ai-library,
+// docs https://library.eval-ai.com/) emits `TestCaseResult` objects with a
+// `metrics_data: MetricResult[]` array. Each `MetricResult` has:
+//   { name, score, threshold, success, reason, evaluation_model, evaluation_cost, evaluation_log }
+// (see library.eval-ai.com/advanced/api-reference). We only convert this
+// shape into eval-report/v1 rows/suites here — no scoring/harness logic.
+type EvalAiLibraryMetricResult = {
+  name?: string;
+  score?: number;
+  threshold?: number;
+  success?: boolean;
+  reason?: string;
+  evaluation_model?: string;
+  evaluation_cost?: number | null;
+};
+
+type EvalAiLibraryTestCaseResult = {
+  id?: string;
+  suite?: string;
+  name?: string;
+  input?: string;
+  actual_output?: string;
+  expected_output?: string | null;
+  retrieval_context?: string[] | null;
+  success?: boolean;
+  metrics_data?: EvalAiLibraryMetricResult[];
+  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+};
+
+// Maps eval-ai-library's named metrics onto this repo's `category`/`riskArea`
+// taxonomy fields. See docs/taxonomy.md#eval-ai-library-metric-mapping for the
+// documented reference table cross-linked from docs/taxonomy.md. `riskArea`
+// values are drawn from the suite-manifest `riskArea` enum in docs/taxonomy.md
+// section 2.1; `category` is free-text row-level taxonomy per section 1.2.
+export const EVAL_AI_LIBRARY_METRIC_TAXONOMY: Record<
+  string,
+  { category: string; riskArea: string }
+> = {
+  answer_relevancy: { category: 'relevance', riskArea: 'relevance' },
+  answer_precision: { category: 'relevance', riskArea: 'relevance' },
+  faithfulness: { category: 'groundedness', riskArea: 'groundedness' },
+  contextual_relevancy: { category: 'retrieval-quality', riskArea: 'relevance' },
+  contextual_precision: { category: 'retrieval-quality', riskArea: 'relevance' },
+  contextual_recall: { category: 'retrieval-quality', riskArea: 'groundedness' },
+  bias: { category: 'bias', riskArea: 'content-safety' },
+  toxicity: { category: 'toxicity', riskArea: 'content-safety' },
+  restricted_refusal: { category: 'over-refusal', riskArea: 'response-quality' },
+  tool_correctness: { category: 'tool-use', riskArea: 'tool-use' },
+  task_success_rate: { category: 'task-completion', riskArea: 'response-quality' },
+  goal_achievement_rate: { category: 'task-completion', riskArea: 'response-quality' },
+  conversational_flow_rate: { category: 'conversation-quality', riskArea: 'response-quality' },
+  repetitive_pattern_detection: { category: 'repetition', riskArea: 'response-quality' },
+  failure_rate: { category: 'reliability', riskArea: 'response-quality' },
+  role_adherence: { category: 'role-adherence', riskArea: 'tone-of-voice' },
+  knowledge_retention: { category: 'knowledge-retention', riskArea: 'factuality' },
+  tools_error: { category: 'tool-use', riskArea: 'tool-use' },
+  prompt_injection_detection: { category: 'prompt-injection', riskArea: 'prompt-safety' },
+  jailbreak_detection: { category: 'jailbreak', riskArea: 'prompt-safety' },
+  pii_leakage: { category: 'pii-leakage', riskArea: 'pii' },
+  harmful_content: { category: 'harmful-content', riskArea: 'content-safety' },
+  prompt_injection_resistance: { category: 'prompt-injection', riskArea: 'prompt-safety' },
+  jailbreak_resistance: { category: 'jailbreak', riskArea: 'prompt-safety' },
+  policy_compliance: { category: 'policy-compliance', riskArea: 'compliance' },
+  exact_match: { category: 'correctness', riskArea: 'factuality' },
+  semantic_similarity: { category: 'correctness', riskArea: 'factuality' },
+  reference_match: { category: 'correctness', riskArea: 'factuality' },
+};
+
+const evalAiLibraryRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: 'a JSON array',
+    objectLabel: 'eval-ai-library result',
+    keys: ['results', 'test_cases', 'rows'],
+  });
+
+  return list.map((entry, index) => {
+    const row = entry as EvalAiLibraryTestCaseResult;
+    const suite = row.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const rowLabel = row.id ?? `${suite}-${index + 1}`;
+
+    const metrics = (row.metrics_data ?? []).filter(
+      (metric): metric is EvalAiLibraryMetricResult & { name: string; score: number } =>
+        typeof metric?.name === 'string' && typeof metric?.score === 'number',
+    );
+
+    let passed: boolean | undefined;
+    if (typeof row.success === 'boolean') {
+      passed = row.success;
+    } else if (metrics.length > 0) {
+      passed = metrics.every((metric) =>
+        typeof metric.success === 'boolean'
+          ? metric.success
+          : metric.score >= (metric.threshold ?? RAGAS_METRIC_PASS_THRESHOLD),
+      );
+    }
+
+    if (passed === undefined) {
+      throw Object.assign(
+        new Error(
+          `Unable to infer pass/fail for eval-ai-library row ${rowLabel} (suite: ${suite}): no success flag or metrics_data found.`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
+    const averageScore =
+      metrics.length > 0
+        ? metrics.reduce((sum, metric) => sum + metric.score, 0) / metrics.length
+        : passed
+          ? 1
+          : 0;
+    const reason =
+      metrics.map((metric) => `${metric.name}=${metric.score.toFixed(3)}`).join(', ') ||
+      row.metrics_data?.[0]?.reason;
+
+    const firstMappedMetric = metrics.find((metric) => EVAL_AI_LIBRARY_METRIC_TAXONOMY[metric.name]);
+    const taxonomy = firstMappedMetric
+      ? EVAL_AI_LIBRARY_METRIC_TAXONOMY[firstMappedMetric.name]
+      : undefined;
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      name: row.name,
+      input: stringifyIfObject(row.input),
+      output: stringifyIfObject(row.actual_output),
+      expected: stringifyIfObject(row.expected_output),
+      score: averageScore,
+      severity: row.metadata?.severity,
+      category: row.metadata?.category ?? taxonomy?.category,
+      reason,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from eval-ai-library',
+          sourceRef: 'eval-ai-library',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
 export const resolveImportSource = (rawSource: string): ImportSource => {
   const normalized = rawSource.trim().toLowerCase();
   if (normalized === 'openevals') {
@@ -778,14 +938,15 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
     normalized === 'langfuse' ||
     normalized === 'phoenix' ||
     normalized === 'braintrust' ||
-    normalized === 'openai-evals'
+    normalized === 'openai-evals' ||
+    normalized === 'eval-ai-library'
   ) {
     return normalized;
   }
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, openevals.`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, openevals.`,
     ),
     { exitCode: 2 },
   );
@@ -815,7 +976,9 @@ export const importFromSource = async (options: {
                 ? phoenixRows(parsed, fallbackSuite)
                 : options.source === 'braintrust'
                   ? braintrustRows(parsed, fallbackSuite)
-                  : openAiEvalsRows(parsed, fallbackSuite);
+                  : options.source === 'openai-evals'
+                    ? openAiEvalsRows(parsed, fallbackSuite)
+                    : evalAiLibraryRows(parsed, fallbackSuite);
 
   await writeEvalReportArtifact(
     options.outPath,
@@ -845,6 +1008,7 @@ export const importFromSource = async (options: {
         score: caseResult.score,
         category: caseResult.category,
         reason: caseResult.reason,
+        durationMs: caseResult.durationMs,
         metadata: caseResult.metadata,
       }),
     },

@@ -170,6 +170,12 @@ const validateCreatedReport = (report: EvalReportV1): EvalReportV1 => {
   return result.report;
 };
 
+/**
+ * Convert a runner-agnostic result (a list of case results plus optional
+ * run/suite metadata) into a valid `eval-report/v1` artifact. This is the
+ * primary integration point for adapting a custom eval harness's output
+ * into the shared schema without depending on any specific runner.
+ */
 export const createEvalReportArtifact = <CaseResult extends RunnerEvalCaseResult>(
   result: RunnerEvalResult<CaseResult>,
   options: CreateEvalReportArtifactOptions<CaseResult> = {},

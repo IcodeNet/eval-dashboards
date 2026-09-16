@@ -106,6 +106,10 @@ Provide the judge's verdict, reasoning, and axis scores:
     "safety": 1.0,
     "coherence": 0.95
   },
+  "axisReasoning": {
+    "helpfulness": "Directly answers the user's question with the requested detail.",
+    "coherence": "Response is well structured but slightly repeats itself in the closing paragraph."
+  },
   "passed": true
 }
 ```
@@ -123,6 +127,32 @@ Provide the reviewer's assessment:
     "correctness": 1.0
   },
   "passed": true
+}
+```
+
+Multiple independent reviewers can be captured per row via `humanReviews`
+(array of `{ reviewer, verdict, category?, note?, decidedAt? }`) plus an
+optional `reviewAgreement` (0-1) summarizing inter-rater agreement — distinct
+from the singular `groundTruthVerdict`/`groundTruthAnnotation` fields above:
+
+```json
+{
+  "humanReviews": [
+    { "reviewer": "alice", "verdict": "pass", "category": "acceptable" },
+    { "reviewer": "bob", "verdict": "pass", "note": "Agrees with alice." }
+  ],
+  "reviewAgreement": 1.0
+}
+```
+
+When a judge is run multiple times to absorb non-determinism instead of
+collapsing straight to a single boolean, rows can record the aggregation via
+`repeated: { runs, passes, aggregation }` where `aggregation` is one of
+`'mean' | 'majority' | 'all'`:
+
+```json
+{
+  "repeated": { "runs": 5, "passes": 4, "aggregation": "majority" }
 }
 ```
 
@@ -180,9 +210,16 @@ Provide the reviewer's assessment:
   
   // Optional context
   "durationMs": 500,
-  "metadata": { "custom_field": "value" }
+  "metadata": { "custom_field": "value" },
+  "complianceRefs": ["owasp:llm:01", "nist:ai:measure:1.1"]
 }
 ```
+
+### 1.4 Tag Compliance/Regulatory Coverage (Optional)
+
+| Field | Type | Purpose | Example |
+|-------|------|---------|---------|
+| `complianceRefs` | string[] | Opaque, free-form compliance/regulatory reference ids this row is evidence for. Not validated against a canonical enum — the harness owns classification; this package only stores and groups/filters by them. | `["owasp:llm:01", "eu:ai-act"]` |
 
 ---
 
@@ -199,6 +236,7 @@ A suite is a collection of related rows. The **suite manifest** tells `@icodenet
 | `riskArea` | enum | `compliance`, `pii`, `content-safety`, `prompt-safety`, `tone-of-voice`, `factuality`, `response-quality`, `tool-use`, `tool-routing`, `groundedness`, `relevance`, `custom` | Why the suite exists (governance and reporting). |
 | `datasetSource` | enum | `synthetic`, `labelled-synthetic`, `production-sample`, `manual`, `custom` | How the dataset was sourced (affects baseline comparisons). |
 | `datasetVersion` | string | e.g., `"1.0.0"`, `"2024-Q3"`, commit SHA | Stable version for baseline compatibility checks. Change when dataset semantics change. |
+| `complianceFrameworks` | string[] | Opaque, free-form compliance/regulatory framework tags this suite maps to. Not a canonical enum — harness territory. | `["owasp:llm", "nist:ai:measure:1.1", "eu:ai-act"]` |
 
 **Example:**
 ```json
@@ -245,7 +283,7 @@ Then provide a **rubric contract** in `rubricContracts[]`:
     "mode": "blocking",
     "thresholds": {
       "passRate": 0.95,
-      "zeroCritical": 0
+      "maxCriticalFailures": 0
     }
   }
 }
@@ -313,6 +351,7 @@ When emitting `eval-report/v1`, include:
 - ✅ `suiteManifests[*]` with `name`, `target`, `riskArea`, `datasetSource`, `datasetVersion`, `gate`
 - ✅ `rubricContracts[*]` if using LLM judges or rubric axes
 - ✅ `run` metadata (project, team, branch, commit, buildId)
+- ✅ `run.experimentId` / `run.variantLabel` when clustering 3+ variant runs (e.g. prompt v1/v2/v3) for comparison
 
 ### For Teams Using `@icodenet/eval-dashboards`
 
@@ -433,7 +472,7 @@ eval-dashboards history --input=.evals_output --out=eval-report/history.json
       "graders": ["deterministic-assertions"],
       "gate": {
         "mode": "blocking",
-        "thresholds": { "passRate": 1.0, "zeroCritical": 0 }
+        "thresholds": { "passRate": 1.0, "maxCriticalFailures": 0 }
       }
     }
   ],
@@ -478,7 +517,16 @@ A: The team responsible for the eval suite (e.g., safety team, product team). Th
 
 ---
 
-## 6. Further Reading
+## 6. Import Adapter Metric Mappings
+
+- [eval-ai-library metric-to-taxonomy mapping](./import-eval-ai-library-taxonomy.md) — reference
+  table mapping `eval-ai-library`'s named metrics (`answer_relevancy`, `faithfulness`,
+  `jailbreak_detection`, etc.) onto this repo's `category`/`riskArea` taxonomy fields, used
+  by `eval-dashboards import --from=eval-ai-library`.
+
+---
+
+## 7. Further Reading
 
 - [Artifact Format](./artifact-format.md) — Full JSON schema reference
 - [Gates](./gates.md) — How gate policies are enforced

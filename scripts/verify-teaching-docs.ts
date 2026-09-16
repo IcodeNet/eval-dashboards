@@ -17,7 +17,7 @@
  *   pnpm teach:verify --print  # also print captured stdout per exercise
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -25,6 +25,11 @@ const repoRoot = process.cwd();
 const cliEntry = path.join(repoRoot, 'src', 'cli', 'index.ts');
 const tsxBin = path.join(repoRoot, 'node_modules', '.bin', 'tsx');
 const printMode = process.argv.includes('--print');
+/**
+ * Skip the labs. They regenerate tracked fixtures and write to the repo's
+ * .tmp/, which is unsafe to do from inside a concurrent test run.
+ */
+const exercisesOnly = process.argv.includes('--exercises-only');
 
 /**
  * The artifact-mutating chain, in order. 01 and 03 only write notes/datasets,
@@ -42,16 +47,45 @@ const CHAIN = [
 ];
 
 /**
- * Labs differ from exercises: each is self-contained and runs from the repo
- * root against tracked fixtures in examples/, rather than building up a private
- * artifact in a scratch dir. They are replayed independently, in the repo.
+ * Labs regenerate tracked fixtures in examples/ and write to a repo-relative
+ * `.tmp/<name>`, so they must replay in the checkout itself. Consequence: only
+ * one teach:verify may run at a time, and the vitest guard passes
+ * --exercises-only so the suite never mutates the checkout underneath itself.
  */
 const LABS = ['04-release-readiness.md', '05-post-release-monitoring.md'];
+
+/**
+ * Self-contained exercises that build their own inputs in a fresh scratch dir
+ * instead of inheriting the CHAIN artifact.
+ *
+ * `needsExamples` links the repo's examples/ into the scratch dir for exercises
+ * whose documented commands copy a fixture from a repo-root-relative path.
+ *
+ * Isolation matters beyond tidiness: exercise 03 runs `init --write`, which
+ * scaffolds eval/ and .evals_output/ into the working directory. Run from the
+ * repo root it would litter the checkout, so it must never replay there.
+ */
+const STANDALONE_EXERCISES: { file: string; needsExamples: boolean }[] = [
+  { file: '11-diagnose-a-red-run.md', needsExamples: true },
+  { file: '03-first-synthetic-dataset.md', needsExamples: false },
+];
+
+/**
+ * Reading-track exercises for non-engineers. Unlike every other doc, their
+ * ```text blocks quote figures rendered into the HTML report rather than CLI
+ * stdout, so they are verified against the text of the generated index.html.
+ *
+ * Their steps also call `open` to launch a browser, which is stripped before
+ * replay (see runShellBlock) so CI never spawns a GUI.
+ */
+const HTML_EXERCISES = ['pm-01-reading-a-report.md', 'pm-02-reading-drift.md'];
 
 interface Block {
   lang: string;
   body: string;
   startLine: number;
+  /** Nearest preceding inline-code path, e.g. `eval-dashboard-red/index.html`. */
+  attributedTo?: string;
 }
 
 /** Extract fenced code blocks with their 1-indexed opening line number. */
@@ -59,16 +93,32 @@ function extractBlocks(markdown: string): Block[] {
   const lines = markdown.split('\n');
   const blocks: Block[] = [];
   let open: { lang: string; startLine: number; buf: string[] } | null = null;
+  let lastAttribution: string | undefined;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const fence = line.match(/^```(\w*)\s*$/);
     if (!fence) {
-      if (open) open.buf.push(line);
+      if (open) {
+        open.buf.push(line);
+      } else {
+        // Docs introduce a block by naming the file it came from, e.g.
+        // `eval-dashboard-good/index.html`: — remember the most recent one.
+        // Only prose counts: the `open <report>/index.html` commands inside sh
+        // fences are instructions to the reader, not attributions, and treating
+        // them as such would silently attribute every later block.
+        const named = line.match(/^\s*`([^`]*index\.html)`\s*:?\s*$/);
+        lastAttribution = named ? named[1] : lastAttribution;
+      }
       continue;
     }
     if (open) {
-      blocks.push({ lang: open.lang, body: open.buf.join('\n'), startLine: open.startLine });
+      blocks.push({
+        lang: open.lang,
+        body: open.buf.join('\n'),
+        startLine: open.startLine,
+        attributedTo: lastAttribution,
+      });
       open = null;
     } else {
       open = { lang: fence[1] || '', startLine: i + 1, buf: [] };
@@ -92,7 +142,9 @@ function runShellBlock(script: string, cwd: string): { stdout: string; code: num
   // Exercises are written for the published CLI; point them at this checkout.
   const rewritten = script
     .replace(/npx eval-dashboards/g, `"${tsxBin}" "${cliEntry}"`)
-    .replace(/pnpm cli:dev/g, `"${tsxBin}" "${cliEntry}"`);
+    .replace(/pnpm cli:dev/g, `"${tsxBin}" "${cliEntry}"`)
+    // Reading-track docs tell a human to open the report; never spawn a GUI in CI.
+    .replace(/^\s*open\s+.*$/gm, ':');
   try {
     const stdout = execFileSync('bash', ['-c', rewritten], {
       cwd,
@@ -106,6 +158,35 @@ function runShellBlock(script: string, cwd: string): { stdout: string; code: num
   }
 }
 
+/**
+ * Reduce an HTML document to its visible text, so documented figures can be
+ * matched against what a reader actually sees on the page.
+ *
+ * Script and style bodies are dropped first: they contain the report's own data
+ * as JSON, which would otherwise satisfy assertions the rendered page does not.
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+/**
+ * Collapse runs of whitespace so a documented figure matches regardless of how
+ * the renderer split it across elements: `Passed 8/13` becomes `Passed 8 /13`
+ * once tags are stripped, and header strips wrap arbitrarily.
+ */
+function normalizeForMatch(text: string): string {
+  return text.replace(/\s+/g, '');
+}
+
 interface Drift {
   file: string;
   line: number;
@@ -113,11 +194,17 @@ interface Drift {
   context: string;
 }
 
-/** Replay one doc's shell blocks and diff its ```text blocks against reality. */
+/**
+ * Replay one doc's shell blocks and diff its ```text blocks against reality.
+ *
+ * `source` selects what "reality" means: 'stdout' asserts against what the CLI
+ * printed, 'html' against the visible text of every report the block rendered.
+ */
 function verifyDoc(
   docRelPath: string,
   cwd: string,
   drifts: Drift[],
+  source: 'stdout' | 'html' = 'stdout',
 ): number {
   const markdown = readFileSync(path.join(repoRoot, docRelPath), 'utf8');
   const blocks = extractBlocks(markdown);
@@ -130,20 +217,86 @@ function verifyDoc(
     captured += stdout;
   }
 
+  // Per-report text, so a figure documented for one report cannot be satisfied
+  // by another. Keyed by the path the CLI printed, e.g. eval-dashboard/index.html.
+  const byReport = new Map<string, string>();
+
+  if (source === 'html') {
+    // The CLI prints each report's path; read back what it actually rendered.
+    const reports = captured
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.endsWith('index.html'));
+    if (reports.length === 0) {
+      drifts.push({
+        file: docRelPath,
+        line: 1,
+        documented: '(expected this doc to render at least one HTML report)',
+        context: captured.trim().split('\n').slice(-6).join('\n'),
+      });
+      return 0;
+    }
+    for (const rel of reports) {
+      byReport.set(rel, htmlToText(readFileSync(path.join(cwd, rel), 'utf8')));
+    }
+    captured = [...byReport.values()].join('\n');
+  }
+
   if (printMode) {
     process.stdout.write(`\n=== ${docRelPath} ===\n${captured}`);
   }
 
+  const allText = normalizeForMatch(captured);
+
   for (const block of blocks) {
     if (block.lang !== 'text') continue;
+
+    // When a doc names the report a block came from, assert against that report
+    // alone. pm-02 contrasts a good run with a red one; matching against the
+    // union would let the two sets of figures satisfy each other's assertions.
+    let haystack = allText;
+    let scope = '';
+    if (source === 'html') {
+      // With one rendered report there is nothing to confuse, so prose need not
+      // name it. With several, attribution is mandatory: falling back to the
+      // union lets one report's figures satisfy another's assertions, which is
+      // precisely the drift pm-02 exists to teach. Fail loudly instead.
+      if (!block.attributedTo && byReport.size > 1) {
+        drifts.push({
+          file: docRelPath,
+          line: block.startLine,
+          documented:
+            '(this doc renders several reports, so name the one this block came from above it, e.g. `eval-dashboard-red/index.html`:)',
+          context: `(rendered reports: ${[...byReport.keys()].join(', ')})`,
+        });
+        continue;
+      }
+      if (block.attributedTo) {
+        const match = [...byReport.entries()].find(([rel]) => rel.endsWith(block.attributedTo!));
+        if (!match) {
+          drifts.push({
+            file: docRelPath,
+            line: block.startLine,
+            documented: `(block attributed to ${block.attributedTo}, which this doc never rendered)`,
+            context: `(rendered reports: ${[...byReport.keys()].join(', ')})`,
+          });
+          continue;
+        }
+        haystack = normalizeForMatch(match[1]);
+        scope = match[0];
+      }
+    }
+
     for (const expected of assertableLines(block.body)) {
       asserted += 1;
-      if (!captured.includes(expected)) {
+      if (!haystack.includes(normalizeForMatch(expected))) {
         drifts.push({
           file: docRelPath,
           line: block.startLine,
           documented: expected,
-          context: captured.trim().split('\n').slice(-6).join('\n'),
+          context: scope
+            ? `(asserted against ${scope})`
+            : captured.trim().split('\n').slice(-6).join('\n'),
         });
       }
     }
@@ -161,18 +314,51 @@ function main(): number {
     for (const filename of CHAIN) {
       assertedCount += verifyDoc(`docs/teach-exercises/${filename}`, workdir, drifts);
     }
-    // Labs are self-contained and run from the repo root against examples/.
+    // Labs regenerate tracked fixtures in examples/ and write to a repo-relative
+    // .tmp/<name>, so they must replay in the checkout itself. Consequence: only
+    // one teach:verify may run at a time. Do not run it concurrently with itself.
     for (const filename of LABS) {
+      if (exercisesOnly) break;
       assertedCount += verifyDoc(`docs/teach-labs/${filename}`, repoRoot, drifts);
+    }
+    // Standalone exercises bring their own inputs; isolate each in a scratch dir
+    // so scaffolding commands like `init --write` never touch the checkout.
+    for (const { file, needsExamples } of STANDALONE_EXERCISES) {
+      const soloDir = mkdtempSync(path.join(tmpdir(), 'teach-solo-'));
+      try {
+        if (needsExamples) {
+          symlinkSync(path.join(repoRoot, 'examples'), path.join(soloDir, 'examples'));
+        }
+        assertedCount += verifyDoc(`docs/teach-exercises/${file}`, soloDir, drifts);
+      } finally {
+        rmSync(soloDir, { recursive: true, force: true });
+      }
+    }
+    // Reading-track exercises assert against rendered HTML, not stdout. They
+    // copy examples/ in so the docs' relative fixture paths resolve unmodified.
+    for (const file of HTML_EXERCISES) {
+      const htmlDir = mkdtempSync(path.join(tmpdir(), 'teach-html-'));
+      try {
+        cpSync(path.join(repoRoot, 'examples'), path.join(htmlDir, 'examples'), {
+          recursive: true,
+        });
+        assertedCount += verifyDoc(`docs/teach-exercises/${file}`, htmlDir, drifts, 'html');
+      } finally {
+        rmSync(htmlDir, { recursive: true, force: true });
+      }
     }
   } finally {
     rmSync(workdir, { recursive: true, force: true });
   }
 
   if (drifts.length === 0) {
+    const labCount = exercisesOnly ? 0 : LABS.length;
+    const exerciseCount =
+      CHAIN.length + STANDALONE_EXERCISES.length + HTML_EXERCISES.length;
     console.log(
       `Teaching docs verified: ${assertedCount} documented output line(s) across ` +
-        `${CHAIN.length} exercises and ${LABS.length} labs match real CLI output.`,
+        `${exerciseCount} exercises and ${labCount} labs ` +
+        `match real CLI output.`,
     );
     return 0;
   }

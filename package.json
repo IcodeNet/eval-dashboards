@@ -72,8 +72,15 @@
     "reports",
     "llm-evals",
     "testing",
-    "quality-gates"
+    "quality-gates",
+    "ci-gate",
+    "agent-eval",
+    "github-actions",
+    "artifact-schema",
+    "eval-report",
+    "llm-observability"
   ],
+  "homepage": "https://github.com/IcodeNet/eval-dashboards#readme",
   "license": "MIT",
   "publishConfig": {
     "access": "public"

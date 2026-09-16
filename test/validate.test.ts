@@ -50,14 +50,194 @@ describe('validateEvalReport', () => {
           },
         },
       },
-      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
-      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      suites: [],
+      rows: [],
     });
 
     expect(result.ok).toBe(false);
     expect((result as { ok: false; errors: string[] }).errors).toContain(
       'run.configSnapshot.values.bad must be a string, number, boolean, or null.',
     );
+  });
+
+  it('accepts run.experimentId and run.variantLabel as plain optional strings', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-07-31T10:00:00.000Z',
+        experimentId: 'prompt-tuning-2026-07',
+        variantLabel: 'v3-cot',
+      },
+      suites: [],
+      rows: [],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects non-string run.experimentId / run.variantLabel', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-07-31T10:00:00.000Z',
+        experimentId: 42,
+        variantLabel: { label: 'v3' },
+      },
+      suites: [],
+      rows: [],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'run.experimentId must be a string when provided.',
+    );
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'run.variantLabel must be a string when provided.',
+    );
+  });
+
+  it('accepts rows[].complianceRefs and suiteManifests[].complianceFrameworks (4F.14)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'pii', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'pii',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'pii',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: {} },
+          complianceFrameworks: ['owasp:llm', 'nist:ai:measure:1.1', 'eu:ai-act'],
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'pii', passed: true, complianceRefs: ['owasp:llm:01'] }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts suiteManifests[].scoreScale (4F.18)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'likert', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'likert',
+          target: 'judge',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          rubricVersion: 'v1',
+          gate: { mode: 'report-only', thresholds: {} },
+          scoreScale: { min: 0, max: 3 },
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'likert', passed: true, score: 2 }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an invalid suiteManifests[].scoreScale (4F.18)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'likert', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'likert',
+          target: 'judge',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          rubricVersion: 'v1',
+          gate: { mode: 'report-only', thresholds: {} },
+          scoreScale: { min: 3, max: 0 },
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'likert', passed: true, score: 2 }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'suiteManifests[0].scoreScale.min must be less than scoreScale.max.',
+    );
+  });
+
+  it('rejects non-string rows[].complianceRefs entries', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true, complianceRefs: [42] }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].complianceRefs[0] must be a non-empty string.',
+    );
+  });
+
+  it('rejects non-string suiteManifests[].complianceFrameworks entries', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'pii', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'pii',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'pii',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: {} },
+          complianceFrameworks: [42],
+        },
+      ],
+      rows: [{ id: 'row-1', suite: 'pii', passed: true }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'suiteManifests[0].complianceFrameworks[0] must be a non-empty string.',
+    );
+  });
+
+  it('accepts a top-level tags record (4F.15)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      tags: { pr: '42', model: 'gpt-4o' },
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.report.tags).toEqual({ pr: '42', model: 'gpt-4o' });
+    }
+  });
+
+  it('rejects tags with non-string values', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      tags: { pr: 42 },
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain('tags.pr must be a string.');
   });
 
   it('accepts first-class LLM judge row fields', () => {
@@ -262,12 +442,38 @@ describe('validateEvalReport', () => {
             spanId: 'span-def456',
             traceUrl: 'https://observability.example/trace/trace-abc123',
             spanUrl: 'https://observability.example/trace/trace-abc123/span/span-def456',
+            spanType: 'tool',
           },
         },
       ],
     });
 
     expect(result.ok).toBe(true);
+  });
+
+  it('accepts any free-form string for trace.spanType', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, trace: { spanType: 'anything-goes' } }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects non-string trace.spanType', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, trace: { spanType: 123 } }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].trace.spanType must be a string when provided.',
+    );
   });
 
   it('rejects non-string trace reference fields', () => {
@@ -317,6 +523,117 @@ describe('validateEvalReport', () => {
 
     expect(result.ok).toBe(false);
   });
+
+  it('accepts axisReasoning alongside axisScores on a row', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'r',
+          suite: 'q',
+          passed: true,
+          axisScores: { clarity: 0.9, groundedness: 1.0 },
+          axisReasoning: {
+            clarity: 'The explanation was easy to follow.',
+            groundedness: 'Every claim cited a source passage.',
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects axisReasoning with a non-string value', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, axisReasoning: { clarity: 42 } }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].axisReasoning.clarity must be a string.',
+    );
+  });
+
+  it('rejects axisReasoning that is not an object', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, axisReasoning: 'nope' }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].axisReasoning must be an object when provided.',
+    );
+  });
+
+  it('accepts judgeTraces with input/output strings on a row', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'r',
+          suite: 'q',
+          passed: true,
+          judgeTraces: {
+            input: 'What is the capital of France?',
+            output: 'Paris',
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts judgeTraces with only one of input/output', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, judgeTraces: { output: 'Paris' } }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects judgeTraces with a non-string field', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, judgeTraces: { input: 42 } }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].judgeTraces.input must be a string when provided.',
+    );
+  });
+
+  it('rejects judgeTraces that is not an object', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, judgeTraces: 'nope' }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].judgeTraces must be an object when provided.',
+    );
+  });
+
 
   it('rejects non-numeric score and durationMs values on rows', () => {
     const result = validateEvalReport({
@@ -527,5 +844,102 @@ describe('validateEvalReport', () => {
       issues: Array<{ code: string; path: string; message: string }>;
     };
     expect(failed.issues.some((issue) => issue.path === 'suiteManifests[0].rubricVersion')).toBe(true);
+  });
+
+  it('accepts rows with valid humanReviews and reviewAgreement (4F.19)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          humanReviews: [
+            { reviewer: 'alice', verdict: 'pass', category: 'acceptable', note: 'looks good', decidedAt: '2026-07-31T10:00:00.000Z' },
+            { reviewer: 'bob', verdict: 'pass' },
+          ],
+          reviewAgreement: 1,
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects humanReviews entries missing reviewer/verdict (4F.19)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          humanReviews: [{ category: 'acceptable' }],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].humanReviews[0].reviewer must be a non-empty string.');
+    expect(failed.errors).toContain('rows[0].humanReviews[0].verdict must be a non-empty string.');
+  });
+
+  it('rejects reviewAgreement outside 0-1 (4F.19)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true, reviewAgreement: 1.5 }],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].reviewAgreement must be a number between 0 and 1 when provided.');
+  });
+
+  it('accepts rows with a valid repeated aggregation record (4F.22)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          repeated: { runs: 5, passes: 4, aggregation: 'majority' },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an invalid repeated aggregation record (4F.22)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          repeated: { runs: 3, passes: 5, aggregation: 'bogus' },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].repeated.passes must not exceed repeated.runs.');
+    expect(failed.errors).toContain(
+      "rows[0].repeated.aggregation must be one of 'mean', 'majority', 'all'.",
+    );
   });
 });

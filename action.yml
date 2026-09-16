@@ -50,7 +50,11 @@ inputs:
     required: false
     default: ''
   github-token:
-    description: 'Token used for publish targets that talk to the GitHub API.'
+    description: >-
+      Token used for publish targets that talk to the GitHub API. Required
+      scope depends on publish-target: github-pr-comment needs
+      `pull-requests: write`; github-pages needs push rights to the target
+      branch. Grant it via the calling workflow's `permissions:` block.
     required: false
     default: ''
 
@@ -73,7 +77,7 @@ runs:
     - name: Generate eval dashboard
       shell: bash
       run: |
-        npx --yes "${{ inputs.package-spec }}" report \
+        npx --yes --package="${{ inputs.package-spec }}" -- eval-dashboards report \
           --input="${{ inputs.input-dir }}" \
           --report-dir="${{ inputs.output-dir }}" \
           --reporter=html --reporter=json-summary
@@ -94,7 +98,7 @@ runs:
           gate_flags+=(--zero-critical)
         fi
 
-        npx --yes "${{ inputs.package-spec }}" check \
+        npx --yes --package="${{ inputs.package-spec }}" -- eval-dashboards check \
           --input="${{ inputs.input-dir }}" \
           "${gate_flags[@]}" \
           --json-out="${{ inputs.output-dir }}/check-result.json" \
@@ -125,6 +129,6 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        npx --yes "${{ inputs.package-spec }}" publish \
+        npx --yes --package="${{ inputs.package-spec }}" -- eval-dashboards publish \
           --target="${{ inputs.publish-target }}" \
           ${{ inputs.publish-args }}

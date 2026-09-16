@@ -77,6 +77,12 @@ const provenanceSources = [...ROW_PROVENANCE_SOURCES] as string[];
 const lifecycleStatuses = [...ROW_LIFECYCLE_STATUSES] as string[];
 const datasetChangeTypes = [...DATASET_CHANGE_TYPES] as string[];
 
+/**
+ * Validate an unknown value against the `eval-report/v1` schema/shape,
+ * returning a structured result with `valid: boolean` plus a list of
+ * human-readable error messages. Does not throw; use this to check
+ * artifacts before further processing (reporting, gating, publishing).
+ */
 export const validateEvalReport = (value: unknown): ValidationResult => {
   const errors: string[] = [];
 
@@ -98,6 +104,14 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
 
     if (!isString(value.run.generatedAt) || Number.isNaN(Date.parse(value.run.generatedAt))) {
       errors.push('run.generatedAt must be an ISO date string.');
+    }
+
+    if (value.run.experimentId !== undefined && !isString(value.run.experimentId)) {
+      errors.push('run.experimentId must be a string when provided.');
+    }
+
+    if (value.run.variantLabel !== undefined && !isString(value.run.variantLabel)) {
+      errors.push('run.variantLabel must be a string when provided.');
     }
 
     if (value.run.configSnapshot !== undefined) {
@@ -213,6 +227,19 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['judgeTraces'] !== undefined) {
+        if (!isObject(row['judgeTraces'])) {
+          errors.push(`rows[${index}].judgeTraces must be an object when provided.`);
+        } else {
+          const traces = row['judgeTraces'] as Record<string, unknown>;
+          for (const field of ['input', 'output']) {
+            if (traces[field] !== undefined && !isString(traces[field])) {
+              errors.push(`rows[${index}].judgeTraces.${field} must be a string when provided.`);
+            }
+          }
+        }
+      }
+
       if (row['agentReasoning'] !== undefined && !isString(row['agentReasoning'])) {
         errors.push(`rows[${index}].agentReasoning must be a string when provided.`);
       }
@@ -265,6 +292,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['axisReasoning'] !== undefined) {
+        if (!isObject(row['axisReasoning'])) {
+          errors.push(`rows[${index}].axisReasoning must be an object when provided.`);
+        } else {
+          for (const [axis, reasoning] of Object.entries(row['axisReasoning'] as Record<string, unknown>)) {
+            if (!isString(reasoning)) {
+              errors.push(`rows[${index}].axisReasoning.${axis} must be a string.`);
+            }
+          }
+        }
+      }
+
       if (row['groundTruthAxisScores'] !== undefined) {
         if (!isObject(row['groundTruthAxisScores'])) {
           errors.push(`rows[${index}].groundTruthAxisScores must be an object when provided.`);
@@ -277,11 +316,74 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['humanReviews'] !== undefined) {
+        if (!Array.isArray(row['humanReviews'])) {
+          errors.push(`rows[${index}].humanReviews must be an array when provided.`);
+        } else {
+          (row['humanReviews'] as unknown[]).forEach((hr, hi) => {
+            if (!isObject(hr)) {
+              errors.push(`rows[${index}].humanReviews[${hi}] must be an object.`);
+              return;
+            }
+            if (!isString(hr['reviewer']) || hr['reviewer'].length === 0) {
+              errors.push(`rows[${index}].humanReviews[${hi}].reviewer must be a non-empty string.`);
+            }
+            if (!isString(hr['verdict']) || hr['verdict'].length === 0) {
+              errors.push(`rows[${index}].humanReviews[${hi}].verdict must be a non-empty string.`);
+            }
+            if (hr['category'] !== undefined && !isString(hr['category'])) {
+              errors.push(`rows[${index}].humanReviews[${hi}].category must be a string when provided.`);
+            }
+            if (hr['note'] !== undefined && !isString(hr['note'])) {
+              errors.push(`rows[${index}].humanReviews[${hi}].note must be a string when provided.`);
+            }
+            if (hr['decidedAt'] !== undefined && !isString(hr['decidedAt'])) {
+              errors.push(`rows[${index}].humanReviews[${hi}].decidedAt must be a string when provided.`);
+            }
+          });
+        }
+      }
+
+      if (row['reviewAgreement'] !== undefined) {
+        if (!isNumber(row['reviewAgreement']) || row['reviewAgreement'] < 0 || row['reviewAgreement'] > 1) {
+          errors.push(`rows[${index}].reviewAgreement must be a number between 0 and 1 when provided.`);
+        }
+      }
+
+      if (row['repeated'] !== undefined) {
+        if (!isObject(row['repeated'])) {
+          errors.push(`rows[${index}].repeated must be an object when provided.`);
+        } else {
+          const rep = row['repeated'];
+          if (!isNumber(rep['runs']) || rep['runs'] < 1 || !Number.isInteger(rep['runs'])) {
+            errors.push(`rows[${index}].repeated.runs must be a positive integer.`);
+          }
+          if (!isNumber(rep['passes']) || rep['passes'] < 0 || !Number.isInteger(rep['passes'])) {
+            errors.push(`rows[${index}].repeated.passes must be a non-negative integer.`);
+          }
+          if (
+            isNumber(rep['runs']) &&
+            isNumber(rep['passes']) &&
+            Number.isInteger(rep['runs']) &&
+            Number.isInteger(rep['passes']) &&
+            rep['passes'] > rep['runs']
+          ) {
+            errors.push(`rows[${index}].repeated.passes must not exceed repeated.runs.`);
+          }
+          if (
+            !isString(rep['aggregation']) ||
+            !['mean', 'majority', 'all'].includes(rep['aggregation'] as string)
+          ) {
+            errors.push(`rows[${index}].repeated.aggregation must be one of 'mean', 'majority', 'all'.`);
+          }
+        }
+      }
+
       if (row['trace'] !== undefined) {
         if (!isObject(row['trace'])) {
           errors.push(`rows[${index}].trace must be an object when provided.`);
         } else {
-          for (const field of ['traceId', 'spanId', 'traceUrl', 'spanUrl']) {
+          for (const field of ['traceId', 'spanId', 'traceUrl', 'spanUrl', 'spanType']) {
             if (row['trace'][field] !== undefined && !isString(row['trace'][field])) {
               errors.push(`rows[${index}].trace.${field} must be a string when provided.`);
             }
@@ -302,6 +404,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           if (usage['model'] !== undefined && !isString(usage['model'])) {
             errors.push(`rows[${index}].usage.model must be a string when provided.`);
           }
+        }
+      }
+
+      if (row['complianceRefs'] !== undefined) {
+        if (!Array.isArray(row['complianceRefs'])) {
+          errors.push(`rows[${index}].complianceRefs must be an array when provided.`);
+        } else {
+          (row['complianceRefs'] as unknown[]).forEach((ref, refIndex) => {
+            if (!isString(ref) || ref.length === 0) {
+              errors.push(`rows[${index}].complianceRefs[${refIndex}] must be a non-empty string.`);
+            }
+          });
         }
       }
 
@@ -439,6 +553,37 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
 
+        if (manifest.complianceFrameworks !== undefined) {
+          if (!Array.isArray(manifest.complianceFrameworks)) {
+            errors.push(`suiteManifests[${index}].complianceFrameworks must be an array when provided.`);
+          } else {
+            manifest.complianceFrameworks.forEach((framework, frameworkIndex) => {
+              if (!isString(framework) || framework.length === 0) {
+                errors.push(
+                  `suiteManifests[${index}].complianceFrameworks[${frameworkIndex}] must be a non-empty string.`,
+                );
+              }
+            });
+          }
+        }
+
+        if (manifest.scoreScale !== undefined) {
+          if (!isObject(manifest.scoreScale)) {
+            errors.push(`suiteManifests[${index}].scoreScale must be an object when provided.`);
+          } else {
+            const { min, max } = manifest.scoreScale;
+            if (!isNumber(min)) {
+              errors.push(`suiteManifests[${index}].scoreScale.min must be a number.`);
+            }
+            if (!isNumber(max)) {
+              errors.push(`suiteManifests[${index}].scoreScale.max must be a number.`);
+            }
+            if (isNumber(min) && isNumber(max) && min >= max) {
+              errors.push(`suiteManifests[${index}].scoreScale.min must be less than scoreScale.max.`);
+            }
+          }
+        }
+
         const hasLlMJudgeGrader =
           Array.isArray(manifest.graders) && manifest.graders.some((grader) => grader === 'llm-judge');
         const isBlockingGate = isObject(manifest.gate) && manifest.gate.mode === 'blocking';
@@ -534,6 +679,18 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
       });
+    }
+  }
+
+  if (value.tags !== undefined) {
+    if (!isObject(value.tags)) {
+      errors.push('tags must be an object when provided.');
+    } else {
+      for (const [key, tagValue] of Object.entries(value.tags as Record<string, unknown>)) {
+        if (!isString(tagValue)) {
+          errors.push(`tags.${key} must be a string.`);
+        }
+      }
     }
   }
 

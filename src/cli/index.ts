@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
@@ -109,6 +110,7 @@ Commands:
   org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
   evidence-export  Bundle a report, check result, waivers, and signature into one evidence file (4F.11).
   evidence-verify   Independently re-validate a previously produced evidence bundle.
+  schema   Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -168,6 +170,8 @@ Options:
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+  --repeat-runs=<number>           Expected repeat-run count per row (gate.repeat, 4F.23)
+  --repeat-required-passes=<number> Minimum passes required out of --repeat-runs (4F.23)
   --json-out=<path>                Write machine-readable gate result JSON (eval-check-result/v1)
   --json-v2-out=<path>             Write eval-check-result/v2 JSON with full audit provenance
                                     (resolved gate config, per-suite dataset/rubric versions,
@@ -820,7 +824,7 @@ const loadContext = async (
   reportDir: string,
   options?: LoadContextOptions,
 ) => {
-  const reports = await readEvalReports(input);
+  const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
 
   if (reports.length === 0) {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
@@ -1051,7 +1055,13 @@ const gateConfigFromOptions = (
   for (const budget of warningBudgets) {
     const [code, rawCount] = budget.split(':', 2);
     const count = Number(rawCount);
-    if (!code || !Number.isFinite(count)) continue;
+    if (!code || !Number.isFinite(count)) {
+      console.error(
+        `Invalid value for --max-warning-code: "${budget}" is not in <code:count> form with a finite count. ` +
+          'This budget entry will be ignored, which may silently disable a gate.',
+      );
+      continue;
+    }
     maxWarningsByCode[code] = count;
   }
 
@@ -1074,6 +1084,15 @@ const gateConfigFromOptions = (
   const enableCalibrationPreflight = optionBoolean(options, 'calibration-preflight');
   const allowStaleCalibration = optionBoolean(options, 'allow-stale-calibration');
   const disableCalibrationPreflight = optionBoolean(options, 'no-calibration-preflight');
+  const repeatRuns = optionNumber(options, 'repeat-runs');
+  const repeatRequiredPasses = optionNumber(options, 'repeat-required-passes');
+  const repeat =
+    repeatRuns !== undefined || repeatRequiredPasses !== undefined
+      ? ({
+        ...(repeatRuns !== undefined ? { runs: repeatRuns } : {}),
+        ...(repeatRequiredPasses !== undefined ? { requiredPasses: repeatRequiredPasses } : {}),
+      } as NonNullable<GateConfig['repeat']>)
+      : undefined;
   const statisticalFields = {
     mode: statisticalMode,
     confidenceLevel,
@@ -1109,14 +1128,19 @@ const gateConfigFromOptions = (
     minPassRate: optionNumber(options, 'min-pass-rate'),
     minMatchedExpectationRate: optionNumber(options, 'min-matched-expectation-rate'),
     maxNewFailures: optionNumber(options, 'max-new-failures'),
-    zeroCritical: optionBoolean(options, 'zero-critical'),
+    zeroCritical: optionBoolean(options, 'zero-critical') || undefined,
     maxWarnings: optionNumber(options, 'max-warnings'),
     maxWarningsByCode: Object.keys(maxWarningsByCode).length > 0 ? maxWarningsByCode : undefined,
-    failOnWarningCodes: optionStrings(options, 'fail-on-warning-code', []),
+    failOnWarningCodes: optionStrings(options, 'fail-on-warning-code', []).length
+      ? optionStrings(options, 'fail-on-warning-code', [])
+      : undefined,
     newFailureKey: parsedNewFailureKey,
-    requiredPassingSuites: optionStrings(options, 'require-suite-pass', []),
+    requiredPassingSuites: optionStrings(options, 'require-suite-pass', []).length
+      ? optionStrings(options, 'require-suite-pass', [])
+      : undefined,
     ...(statistical ? { statistical } : {}),
     ...(calibration ? { calibration } : {}),
+    ...(repeat ? { repeat } : {}),
   };
 };
 
@@ -1273,7 +1297,7 @@ const main = async (): Promise<void> => {
       minMatchedExpectationRate:
         optionNumber(options, 'min-matched-expectation-rate') ?? fileConfig.gates?.minMatchedExpectationRate,
       maxNewFailures: optionNumber(options, 'max-new-failures') ?? fileConfig.gates?.maxNewFailures,
-      zeroCritical: optionBoolean(options, 'zero-critical') ?? fileConfig.gates?.zeroCritical,
+      zeroCritical: (optionBoolean(options, 'zero-critical') || undefined) ?? fileConfig.gates?.zeroCritical,
       maxWarnings: optionNumber(options, 'max-warnings') ?? fileConfig.gates?.maxWarnings,
       maxWarningsByCode: fileConfig.gates?.maxWarningsByCode,
       failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
@@ -1367,6 +1391,34 @@ const main = async (): Promise<void> => {
     }
 
     console.log(renderDefaultInitConfig());
+    return;
+  }
+
+  if (command === 'schema') {
+    if (optionBoolean(options, 'help')) {
+      console.log(
+        [
+          'Usage: eval-dashboards schema',
+          '',
+          'Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.',
+          '',
+          'Examples:',
+          '  eval-dashboards schema > eval-report-v1.schema.json',
+          '  evd schema | jq .',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    const schemaPath = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '..',
+      '..',
+      'schemas',
+      'eval-report-v1.schema.json',
+    );
+    const contents = await readFile(schemaPath, 'utf8');
+    process.stdout.write(contents.endsWith('\n') ? contents : `${contents}\n`);
     return;
   }
 
@@ -1512,7 +1564,7 @@ const main = async (): Promise<void> => {
       );
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const target = selectRun(reports, runId);
     if (!target) {
       throw Object.assign(new Error(`Run ID ${runId} was not found under ${input}.`), {
@@ -1582,7 +1634,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const locale = optionString(options, 'locale', '') || config.locale;
     const out = optionString(options, 'out', path.join(reportDir, 'overview.html'));
     await writeTextFile(out, renderGroupedIndexHtml(reports, locale));
@@ -1670,9 +1722,12 @@ const main = async (): Promise<void> => {
       });
       const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
       const cliGateOverrides = gateConfigFromOptions(options);
+      const cliGateOverridesDefined = Object.fromEntries(
+        Object.entries(cliGateOverrides).filter(([, value]) => value !== undefined),
+      ) as GateConfig;
       const gateConfig: GateConfig = {
         ...(config.gates ?? {}),
-        ...cliGateOverrides,
+        ...cliGateOverridesDefined,
         ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
       };
 
@@ -1687,6 +1742,12 @@ const main = async (): Promise<void> => {
           ...(config.gates?.calibration ?? {}),
           ...(cliGateOverrides.calibration ?? {}),
         };
+      }
+      if ((config.gates?.repeat ?? cliGateOverrides.repeat) !== undefined) {
+        gateConfig.repeat = {
+          ...(config.gates?.repeat ?? {}),
+          ...(cliGateOverrides.repeat ?? {}),
+        } as GateConfig['repeat'];
       }
       assertValidStatisticalGateConfig(gateConfig);
       assertValidCalibrationGateConfig(gateConfig);
@@ -1916,7 +1977,7 @@ const main = async (): Promise<void> => {
         await writeJsonFile(jsonOut, checkPayload);
       }
       if (jsonV2Out) {
-        const artifactFiles = await findJsonReports(input);
+        const artifactFiles = await findJsonReports(input, { excludeDirs: [reportDir] });
         const checkPayloadV2: CheckOutputPayloadV2 = {
           ...checkPayload,
           schemaVersion: 'eval-check-result/v2',
@@ -1987,7 +2048,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const result = lintReportsTaxonomy(reports);
     const strict = optionBoolean(options, 'strict');
     const lintFailOnWarningCodes = new Set(optionStrings(options, 'fail-on-warning-code', []));
@@ -2037,7 +2098,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const out = optionString(options, 'out', 'eval-report/merged.json');
     await writeJsonFile(out, { schemaVersion: 'eval-report-merged/v1', reports });
     console.log(out);
@@ -2050,7 +2111,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const reports = await readEvalReports(input);
+    const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
     const out = optionString(options, 'out', 'eval-report/history.json');
     const bypassLogPath = optionString(options, 'bypass-log', '') || config.bypassLogFile || '';
     let bypassUsageByRunId: Record<string, ReturnType<typeof summarizeBypassUsage>> | undefined;

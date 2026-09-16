@@ -58,6 +58,150 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('[redacted]');
   });
 
+  it('echoes top-level tags (4F.15) in html and markdown reports', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-tags',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      tags: { pr: '42', model: 'gpt-4o' },
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html', 'markdown-summary', 'json-summary'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('pr=42');
+    expect(html).toContain('model=gpt-4o');
+
+    const markdown = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(markdown).toContain('pr=42');
+    expect(markdown).toContain('model=gpt-4o');
+  });
+
+  it('renders declared suite scoreScale (4F.18) on row score bars, falling back to 0-1 when absent', async () => {
+    const reportDir = await createTempDir();
+    const scaled: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-scale', generatedAt: '2026-08-04T12:00:00.000Z' },
+      suites: [{ id: 'likert', total: 1, passed: 1, failed: 0 }],
+      suiteManifests: [
+        {
+          name: 'likert',
+          target: 'judge',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'response-quality',
+          graders: ['llm-judge'],
+          rubricVersion: 'v1',
+          gate: { mode: 'report-only', thresholds: {} },
+          scoreScale: { min: 0, max: 3 },
+        },
+      ],
+      rows: [
+        { id: 'row-1', suite: 'likert', passed: true, score: 2, reason: 'Likert score 2 of 3' },
+      ],
+    };
+
+    await renderReports(
+      {
+        current: scaled,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(scaled, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('2 (of 0-3)');
+  });
+
+  it('groups by compliance-framework tags (4F.14) when present, with no UI change when absent', async () => {
+    const reportDir = await createTempDir();
+    const tagged: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-compliance', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'pii', total: 2, passed: 1, failed: 1 }],
+      suiteManifests: [
+        {
+          name: 'pii',
+          target: 'agent',
+          datasetSource: 'synthetic',
+          datasetVersion: 'v1',
+          riskArea: 'pii',
+          graders: ['deterministic-assertions'],
+          gate: { mode: 'report-only', thresholds: {} },
+          complianceFrameworks: ['eu:ai-act'],
+        },
+      ],
+      rows: [
+        { id: 'row-1', suite: 'pii', passed: true, complianceRefs: ['owasp:llm:01'] },
+        { id: 'row-2', suite: 'pii', passed: false, complianceRefs: ['nist:ai:measure:1.1'] },
+      ],
+    };
+
+    await renderReports(
+      {
+        current: tagged,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(tagged, undefined),
+        reportDir,
+      },
+      ['html', 'markdown-summary'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('owasp:llm:01');
+    expect(html).toContain('nist:ai:measure:1.1');
+    expect(html).toContain('eu:ai-act');
+
+    const markdown = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    expect(markdown).toContain('Compliance coverage');
+    expect(markdown).toContain('owasp:llm:01');
+    expect(markdown).toContain('eu:ai-act');
+
+    // Absent case: no compliance tags anywhere -> no compliance section rendered.
+    const untaggedReportDir = await createTempDir();
+    const untagged: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-no-compliance', generatedAt: '2026-08-03T12:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+    };
+
+    await renderReports(
+      {
+        current: untagged,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(untagged, undefined),
+        reportDir: untaggedReportDir,
+      },
+      ['html', 'markdown-summary'],
+    );
+
+    const untaggedHtml = await readFile(path.join(untaggedReportDir, 'index.html'), 'utf8');
+    expect(untaggedHtml).not.toContain('compliance-coverage');
+
+    const untaggedMarkdown = await readFile(path.join(untaggedReportDir, 'summary.md'), 'utf8');
+    expect(untaggedMarkdown).not.toContain('Compliance coverage');
+  });
+
   it('does not mark judgeVerdict as missing when it is false', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {
@@ -80,6 +224,7 @@ describe('render html safety and taxonomy scoring', () => {
           rubricId: 'rubric-v1',
           judgeVerdict: false,
           axisScores: { helpfulness: 1 },
+          axisReasoning: { helpfulness: 'Directly answered the user question <script>evil()</script>' },
         },
       ],
     };
@@ -98,6 +243,52 @@ describe('render html safety and taxonomy scoring', () => {
     const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
     expect(html).toContain('All recommended fields present');
     expect(html).not.toContain('Missing fields:\njudgeVerdict');
+    expect(html).toContain('axis-score-reasoning');
+    expect(html).toContain('Directly answered the user question &lt;script&gt;evil()&lt;/script&gt;');
+    expect(html).not.toContain('<script>evil()</script>');
+  });
+
+  it('renders judgeTraces input/output as escaped row detail fields', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-traces',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-traces',
+          suite: 'quality',
+          kind: 'llm-judge',
+          passed: true,
+          judgeVerdict: true,
+          judgeTraces: {
+            input: 'Judge input <script>evil()</script>',
+            output: 'Judge output snapshot',
+          },
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Judge trace input');
+    expect(html).toContain('Judge trace output');
+    expect(html).toContain('Judge input &lt;script&gt;evil()&lt;/script&gt;');
+    expect(html).toContain('Judge output snapshot');
+    expect(html).not.toContain('<script>evil()</script>');
   });
 
   it('renders dataset changelog section when entries are provided', async () => {
@@ -201,6 +392,90 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Agreement pairs');
   });
 
+  it('renders humanReviews and reviewAgreement in row detail (4F.19)', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-human-reviews',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'case-hr-1',
+          suite: 'quality',
+          passed: true,
+          humanReviews: [
+            {
+              reviewer: 'alice',
+              verdict: 'pass',
+              category: 'acceptable',
+              note: 'Clear and accurate <script>alert(1)</script>',
+              decidedAt: '2026-08-01T00:00:00.000Z',
+            },
+            { reviewer: 'bob', verdict: 'pass' },
+          ],
+          reviewAgreement: 1,
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Human reviews');
+    expect(html).toContain('alice');
+    expect(html).toContain('bob');
+    expect(html).toContain('Review agreement');
+    expect(html).toContain('100%');
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
+  it('renders repeated-run aggregation record in row detail (4F.22)', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-repeated',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'case-repeated-1',
+          suite: 'quality',
+          passed: true,
+          repeated: { runs: 5, passes: 4, aggregation: 'majority' },
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Repeated runs');
+    expect(html).toContain('4/5 passed (majority aggregation)');
+  });
+
   it('renders provenance badge and suite pass-rate pills', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {
@@ -265,6 +540,84 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('class="suite-pill suite-pill-pass" data-tip="quality');
     expect(html).toContain('class="suite-pill suite-pill-fail" data-tip="safety');
     expect(html).toContain('class="metric" data-tip="Rows that met their pass threshold this run.');
+  });
+
+  it('renders run.experimentId and run.variantLabel in the HTML report banner and metadata card', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-exp',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+        branch: 'refs/heads/main',
+        experimentId: 'prompt-tuning-2026-07',
+        variantLabel: 'v3-cot',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-exp', suite: 'quality', passed: true }],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('prompt-tuning-2026-07');
+    expect(html).toContain('v3-cot');
+    expect(html).toContain('Experiment');
+    expect(html).toContain('Variant');
+  });
+
+  it('escapes markdown table pipes/newlines in run.experimentId, variantLabel, branch, commit, buildId, and tags', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-pipe',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+        branch: 'br|anch',
+        commit: 'co\nmmit',
+        buildId: 'bu|ild',
+        experimentId: 'exp|broken|pipe',
+        variantLabel: 'v1\n\nrow|injected',
+      },
+      tags: { pr: '1|2' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-pipe', suite: 'quality', passed: true }],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    const rows = md.split('\n').filter((line) => line.startsWith('| '));
+    for (const row of rows) {
+      // Each markdown table row must have exactly 2 unescaped cell separators
+      // plus the leading/trailing pipes (i.e. no injected extra columns/rows).
+      const unescapedPipes = (row.match(/(?<!\\)\|/g) ?? []).length;
+      expect(unescapedPipes).toBeLessThanOrEqual(3);
+    }
+    expect(md).toContain('| Branch | br\\|anch |');
+    expect(md).toContain('| Commit | co mmit |');
+    expect(md).toContain('| Build | bu\\|ild |');
+    expect(md).toContain('| Experiment | exp\\|broken\\|pipe |');
+    expect(md).toContain('| Variant | v1 row\\|injected |');
+    expect(md).toContain('| Tags | pr=1\\|2 |');
   });
 
   it('renders sections collapsed by default with summary and toggle affordance', async () => {
@@ -724,6 +1077,7 @@ describe('render html safety and taxonomy scoring', () => {
             spanId: 'span-456',
             traceUrl: 'https://traces.example/runs/trace-123',
             spanUrl: 'https://traces.example/runs/trace-123/spans/span-456',
+            spanType: 'tool',
           },
         },
       ],
@@ -745,10 +1099,13 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('<a href="https://traces.example/runs/trace-123/spans/span-456" target="_blank" rel="noopener">span</a>');
     expect(html).toContain('Trace ID');
     expect(html).toContain('trace-123');
+    expect(html).toContain('Span type');
+    expect(html).toContain('span-type-tag">tool</span>');
 
     const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
     expect(md).toContain('[trace](https://traces.example/runs/trace-123)');
     expect(md).toContain('[span](https://traces.example/runs/trace-123/spans/span-456)');
+    expect(md).toContain('(tool)');
   });
 
   it('omits Trace column from failing rows table when no trace links are present', async () => {

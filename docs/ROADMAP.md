@@ -450,6 +450,18 @@ Acceptance criteria:
 
 - Users can compare quality vs cost trade-offs and bootstrap standardized packs with stable version metadata.
 
+### 4B.9 Promptfoo export-compat metadata preservation (P1)
+
+- [ ] Extend the Promptfoo importer to preserve export-time evaluator context fields that now appear in Promptfoo exports (for example `metadata.sessionId`, grader comments, and latency) instead of dropping them during conversion.
+- [ ] Map preserved latency to `rows[].durationMs`, keep grader comments in `rows[].reason`, and store source session ids in row metadata for downstream grouping/filtering.
+- [ ] Add fixture coverage proving these fields survive `eval-dashboards import --from=promptfoo` and pass schema validation + taxonomy lint.
+
+Acceptance criteria:
+
+- Importing a Promptfoo export containing session ids and latency yields an `eval-report/v1` artifact where those values are queryable (`rows[].durationMs`, `rows[].reason`, `rows[].metadata.sourceSessionId`) and validated by tests.
+
+Rationale (2026-09-16 scan): Promptfoo release notes call out `metadata.sessionId` export visibility and richer export context, so preserving those fields removes migration friction for teams already standardizing on Promptfoo outputs. Source: https://www.promptfoo.dev/docs/releases
+
 ### 4B execution order
 
 1. 4B.1 Initializer profiles and setup flags
@@ -719,6 +731,49 @@ Acceptance criteria:
 - Each converted adapter has a fixture, a passing test proving valid `eval-report/v1` output, and correct suite/row totals, matching 4B.3 acceptance criteria.
 - Status: 4 of 4 sources (ragas, langfuse, phoenix, braintrust) meet this bar. Done.
 
+### 4E.11 `eval-ai-library` import adapter (P2, S)
+
+- [x] Add `--from=eval-ai-library` to `eval-dashboards import`, converting output from the
+      `eval-ai-library` Python package (https://github.com/meshkovQA/eval-ai-library,
+      docs at https://library.eval-ai.com/) into `eval-report/v1`.
+      Rationale (2026-09-15 competitive scan of library.eval-ai.com and the
+      meshkovQA/eval-ai-library repo): it is a harness, not a reporting/gating
+      layer — out of category, not a competitor to replicate — but it is a
+      real upstream source teams may already be using, matching the existing
+      promptfoo/deepeval/ragas/langfuse/phoenix/braintrust/openai-evals adapter
+      pattern (4B.3/4E.9).
+      Evidence: `src/cli/import-adapters.ts:768` (`evalAiLibraryRows`) plus
+      `resolveImportSource`/dispatch wiring for `'eval-ai-library'`; verified
+      by `test/import-adapters-eval-ai-library.test.ts` (all 3 tests pass).
+- [x] Map its named metric/scorer categories (answer_relevancy, faithfulness,
+      contextual_precision/recall, bias, toxicity, goal_achievement,
+      task_success, tools_correctness, jailbreak_detection,
+      prompt_injection_detection, pii_leakage, exact_match, etc.) onto this
+      repo's `category`/`riskArea` taxonomy fields as a documented reference
+      table (`docs/taxonomy.md` or a new interop page), so adopters coming
+      from that library have a direct mapping instead of guessing.
+      Evidence: `docs/import-eval-ai-library-taxonomy.md` (full mapping
+      table), cross-linked from `docs/taxonomy.md` section "6. Import Adapter
+      Metric Mappings"; mapping table also lives in code as
+      `EVAL_AI_LIBRARY_METRIC_TAXONOMY` in `src/cli/import-adapters.ts`.
+
+Acceptance criteria:
+
+- Fixture + passing test proving valid `eval-report/v1` output with correct
+  suite/row totals, matching 4B.3/4E.9 acceptance criteria.
+  Verified: `test/fixtures/eval-ai-library-sample.json` +
+  `test/import-adapters-eval-ai-library.test.ts` ("imports eval-ai-library
+  test case results into a valid eval-report/v1 artifact" — 2 rows, 1
+  passed/1 failed, suite totals `{ total: 2, passed: 1, failed: 1 }`).
+- Metric-to-taxonomy mapping table is committed and cross-linked from
+  `docs/taxonomy.md`.
+  Verified: `docs/taxonomy.md:481-486` links to
+  `docs/import-eval-ai-library-taxonomy.md`.
+- No harness/scoring logic is imported or reimplemented — only artifact
+  conversion, matching the runner-agnostic charter.
+  Verified: `evalAiLibraryRows` in `src/cli/import-adapters.ts` only reads
+  pre-computed `metrics_data`/`success` fields from the input JSON; no
+  eval-ai-library package is a dependency (see `package.json`).
 
 ### 4E.10 JSONL import ingress for eval migration paths (P1, S)
 
@@ -1122,6 +1177,199 @@ itself. New CLI commands: `eval-dashboards evidence-export
 coverage plus CLI-level export+verify round trip, missing-flag exit 2, and
 hand-edited-bundle detection).
 
+### 4F.12 CI dependency-audit gate (P1, S)
+
+- [x] Add a `pnpm audit` (or `npm audit`) step to `.github/workflows/ci.yml` that
+      hard-fails the build above a configurable severity threshold (default
+      `high`), not merely a reporting/informational step.
+      Rationale (2026-09-15 competitive scan): verified via direct inspection
+      that this repo's CI currently has **no dependency-vulnerability check at
+      all** — not gating, not even reporting. A competitor repo's own incident
+      writeup (egnaro9/eval-dashboard) documented a worse but related failure
+      mode: audit run non-blocking (`|| true`), README claiming "0
+      vulnerabilities" while real vulns silently accumulated. This repo's gap
+      is currently strictly worse (zero check), which is inconsistent with a
+      package whose entire thesis is "claims must be enforced, not asserted."
+      Evidence: `.github/workflows/ci.yml:56-57` adds a "Dependency audit
+      (fails on high/critical)" step running `pnpm audit --audit-level=high`
+      in the `lint-and-test` job, after the existing CLI/typecheck/build
+      steps, following the same job/step conventions as the rest of the file.
+      Verified locally (2026-09-15): before this change `pnpm audit
+      --audit-level=high` reported 8 high-severity advisories (fast-uri x5,
+      js-yaml x2, nanoid x1, all transitive devDependencies of
+      commitlint/semantic-release/tsup/vitest); fixed by pinning patched
+      versions via `overrides` in `pnpm-workspace.yaml:6-9` (`fast-uri
+      >=3.1.6`, `js-yaml >=4.3.2`, `nanoid >=3.3.18`). After `pnpm install`,
+      `pnpm audit --audit-level=high` exits `0` (3 remaining findings are 1
+      low + 2 moderate, below the `high` threshold, so they correctly do not
+      fail the gate).
+- [x] Document the severity threshold and an explicit override/waiver path,
+      consistent with the existing bypass-accounting pattern (4F.9) so a
+      justified exception is loggable rather than requiring `|| true`.
+      Evidence: `docs/gates.md:409-448` ("CI dependency-audit gate (4F.12)")
+      documents the `high` threshold, how to fix a real finding via
+      `pnpm-workspace.yaml` overrides, and the recording/scoping requirements
+      for an intentional override, mirroring the 4F.9 principle that a bypass
+      must be loggable and time-bounded rather than a silent `|| true`.
+
+Acceptance criteria:
+
+- `.github/workflows/ci.yml` fails a PR that introduces a dependency with a
+  vulnerability at or above the configured threshold.
+- An intentional override is possible but recorded, not silent.
+
+
+### 4F.13 Client-side compare for the static HTML report (P2, M)
+
+- [x] Add an optional, fully offline "load another eval-report/v1 file" control
+      to the generated HTML report (`src/reporters/render.ts`/`html.ts`):
+      a file picker/drag-drop reads a second JSON file via `FileReader`
+      client-side (no server call, no new CLI surface required) and renders it
+      alongside or diffed against the currently baked-in report.
+      Rationale (2026-09-15 competitive scan, reinforced by three independent
+      precedents): egnaro9/eval-dashboard's static export supports loading an
+      arbitrary run without rebuilding; Comet Opik has side-by-side experiment
+      comparison; Confident AI has an A/B "Compare Test Results" page picking
+      an arbitrary prior run. This repo's HTML reporter currently bakes one
+      run's data into the page at generation time with no way to point the
+      same static file at a different artifact.
+      Evidence: `src/reporters/render.ts` — a "Compare against another report"
+      collapsible section (added near line 1802) renders a
+      `<input type="file" id="compare-file-input">` picker wired to
+      `onchange="handleCompareFile(...)"`; the current run's suite pass-rate
+      data is baked into `<script id="eval-report-current-summary"
+      type="application/json">` (near line 1830) so the page never needs to
+      re-fetch anything. The inline `<script>` block (from line ~1930) adds
+      `handleCompareFile`, which uses `new FileReader()` /
+      `reader.readAsText(file)` to parse the picked file client-side,
+      validates `schemaVersion === 'eval-report/v1'`, and renders a
+      side-by-side suite pass-rate delta table via `renderCompareResult`.
+      Test: `test/report-compare-client.test.ts` ("renders the file-picker
+      control, its script id, and FileReader logic") asserts on the generated
+      HTML for the input element, the `onchange` wiring, `new FileReader()`,
+      `reader.readAsText(file)`, the baked-in summary script, and the absence
+      of any `<script src=...>` or `type="module"` (so it still works from
+      `file://` with no bundler/server).
+- [x] Keep it fully client-side and offline — no schema change, no hosted
+      comparison service, matching the "still out of scope in 4F" non-goals.
+      Evidence: no new CLI flag, no network call, no artifact schema change —
+      `handleCompareFile` in `src/reporters/render.ts` only reads the
+      user-picked file via `FileReader` and renders into the existing DOM;
+      no `fetch`/`XMLHttpRequest`/`import()` is used anywhere in the added
+      code.
+
+Acceptance criteria:
+
+- Opening the generated `index.html` directly from disk (`file://`) still
+  works with no server, and a user can load a second `eval-report/v1` JSON
+  file to compare against the baked-in one, entirely in the browser.
+  Verified: `test/report-compare-client.test.ts` ("still renders existing
+  report content unchanged with the compare feature present") confirms
+  pre-existing sections (Suite summary, Failing rows, All rows, How to read
+  this report) are unaffected, and a real-CLI-generated report
+  (`report --input=... --reporter=html`) was manually inspected: opening the
+  output `index.html` in a browser shows the new "Compare against another
+  report" section with a working file picker alongside the unchanged
+  existing report content.
+
+### 4F.14 Compliance-framework tagging (P1, S)
+
+- [x] Add optional `rows[].complianceRefs?: string[]` (opaque free-form ids
+      like `"owasp:llm:01"`, `"nist:ai:measure:1.1"`, `"eu:ai-act"`) and
+      optional `suites[].manifest.complianceFrameworks?: string[]` to the
+      `eval-report/v1` model. Keep ids as opaque strings — do NOT hard-code a
+      canonical enum of frameworks; that's harness/classification territory.
+- [x] HTML/markdown/JSON reporters group/filter by these tags when present;
+      no UI change when absent (empty state).
+- [x] Update `docs/artifact-format.md` and `docs/taxonomy.md` with the new
+      optional fields plus 2-3 example ids.
+- [x] Fixture + test proving round-trip and reporter grouping.
+
+### 4F.15 Free-form run-level tags (P2, S)
+
+- [x] Add optional top-level `tags?: Record<string,string>` to the
+      `eval-report/v1` artifact (e.g. `{"pr": "42", "model": "gpt-4o"}`) for
+      ad hoc CI context beyond the existing fixed `branch`/`commit`/`build`
+      fields. Purely descriptive — no gating semantics.
+- [x] Echo `tags` in the HTML report's metadata header card and in
+      `--json-out`.
+- [x] Update `docs/artifact-format.md`; fixture + test.
+
+### 4F.16 Trace span-type tagging (P2, S)
+
+- [x] Add optional `spanType?: string` to `TraceReference` (free-form,
+      runner-defined; e.g. `"retrieval"`, `"generation"`, `"tool"`, `"agent"`) —
+      no enum lock-in, purely a label for grouping evidence by pipeline stage.
+- [x] HTML/markdown reporters show the span type next to trace links when
+      present; no change when absent.
+- [x] Update `docs/artifact-format.md`; fixture + test.
+
+### 4F.17 Per-axis judge reasoning (P2, S)
+
+- [x] Add optional `axisReasoning?: Record<string, string>` sibling to the
+      existing `axisScores?: Record<string, number>` field — one explanation
+      string per axis, mirrors the existing row-level `judgeReasoning`.
+- [x] HTML reporter shows per-axis reasoning inline with each axis score when
+      present.
+- [x] Update `docs/artifact-format.md` and `docs/taxonomy.md`; fixture + test.
+
+### 4F.18 Declared score scale on a suite (P2, S)
+
+- [x] Add optional `scoreScale?: { min: number; max: number }` to the suite
+      manifest (not per-row) so non-normalized scores (e.g. a 0-3 Likert
+      rubric) render correctly instead of being assumed 0-1.
+- [x] HTML reporter uses the declared scale when rendering score bars/gauges
+      for that suite; falls back to 0-1 assumption when absent.
+- [x] Update `docs/artifact-format.md`; fixture + test.
+
+### 4F.19 Multi-reviewer human-review fields (P2, S)
+
+- [x] Add optional `rows[].humanReviews?: Array<{ reviewer: string; verdict: string;
+      category?: string; note?: string; decidedAt?: string }>` and optional
+      `rows[].reviewAgreement?: number` (0-1) — captures independent multi-reviewer
+      verdicts and inter-rater agreement on a row, distinct from the existing
+      singular `groundTruthVerdict`/`groundTruthAnnotation`. Additive/optional;
+      validate leniently. Inspired by Arize Phoenix's multi-annotator review model
+      (charter-compatible: schema field only, not their harness/evaluators).
+      Evidence: test/validate.test.ts:788, test/render.test.ts:352.
+
+### 4F.20 Run experiment/variant grouping key (P2, S)
+
+- [x] Add optional `run.experimentId?: string` and `run.variantLabel?: string` to
+      the `run` object — lets report/history tooling cluster 3+ variant runs
+      (e.g. prompt v1/v2/v3) for side-by-side comparison, beyond the existing
+      single baseline-vs-current model. Additive/optional; validate leniently.
+      Inspired by Arize Phoenix's Experiments concept (schema field only, not
+      their dataset/experiment abstractions or hosted comparison UI).
+      Evidence: test/validate.test.ts:63, test/render.test.ts:418.
+
+### 4F.21 Judge evidence snapshot (P2, S)
+
+- [x] Add optional `rows[].judgeVerdict.traces?: { input?: string; output?: string }` —
+      a small, bounded snapshot of what the judge actually saw/produced, distinct
+      from full transcripts or `judgeReasoning`. String-only, no size enforcement
+      in the schema (reporters may truncate for display). Inspired by Ragas's
+      `MetricResult.traces` convention (input/output only, not a full trace tree).
+      Purely additive; render near existing judge-verdict/reasoning row detail.
+      Evidence: test/validate.test.ts:577, test/render.test.ts:251.
+
+### 4F.22 Repeated-run aggregation record (P2, S)
+
+- [x] Add optional `rows[].repeated?: { runs: number; passes: number; aggregation:
+      'mean' | 'majority' | 'all' }` to represent a row's result when a judge was
+      run multiple times to absorb non-determinism, instead of collapsing straight
+      to a single boolean. Inspired by Ragas's `_ensemble()` repeated-metric pattern
+      and community CI examples that gate on N-of-M passes rather than one run.
+      Purely additive; render as an optional badge/detail near the row's pass/fail.
+
+### 4F.23 Gate repeat-run mode (P2, S) — depends on 4F.22
+
+- [x] Extend gate config with an optional `gate.repeat: { runs: number;
+      requiredPasses: number }` mode, evaluated against `rows[].repeated` when
+      present (fall back to existing pass-rate/threshold modes otherwise).
+      Document in `docs/gates.md`. Small CLI/config addition, not a new engine —
+      the gate still only reads fields already in the artifact.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
@@ -1269,7 +1517,7 @@ Acceptance criteria:
 ### 4I.2 Versioned, marketplace-listed composite GitHub Action (P1, S)
 
 - [x] Package the existing example workflow YAML as a versioned composite
-      Action (`uses: icodenet/eval-dashboards-action@v1`) instead of a
+      Action (`uses: IcodeNet/eval-dashboards@v0.7.0`) instead of a
       copy-paste snippet, lowering adoption friction to match competitor
       packaging.
 

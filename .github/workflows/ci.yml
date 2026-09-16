@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -52,6 +55,12 @@ jobs:
 
       - name: Verify CLI help snapshots and scaffold/completion guards
         run: pnpm verify:cli
+
+      - name: Verify teaching docs match real CLI output
+        run: pnpm teach:verify
+
+      - name: Dependency audit (fails on high/critical)
+        run: pnpm audit --audit-level=high
 
   examples:
     runs-on: ubuntu-latest

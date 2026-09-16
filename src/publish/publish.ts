@@ -50,6 +50,16 @@ export type PublishResult = {
   url?: string;
 };
 
+/**
+ * Publish a rendered report to a configured target (e.g. `github-pages`,
+ * `s3`, `github-pr-comment`). Only the `github-pr-comment` target defaults
+ * to dry-run outside CI (detected via `CI`/`GITHUB_ACTIONS` env vars) when
+ * `options.dryRun` is not explicitly set. All other live-side-effect targets
+ * (`github-pages`, `azure-storage`, `azure-static-webapp`, `s3`, etc.) use
+ * `options.dryRun` as given and default to a LIVE publish when it is
+ * omitted — pass `dryRun: true` explicitly to preview those. See
+ * `docs/publishing.md` for target-specific options and defaults.
+ */
 export const publishReport = async (options: PublishOptions): Promise<PublishResult> => {
   const result = await publishReportInternal(options);
   if (options.redact) {

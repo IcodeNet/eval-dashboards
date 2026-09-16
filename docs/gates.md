@@ -43,6 +43,7 @@ Initial gates:
 - `statistical.confidenceLevel`
 - `statistical.bootstrapSamples`
 - `statistical.minPassRateDelta`
+- `repeat.runs` / `repeat.requiredPasses` (4F.23)
 
 ## PR-subset vs full-suite tiering with a cost budget (4F.10)
 
@@ -277,7 +278,30 @@ Statistical gate options (opt-in):
 - `--bootstrap-samples=<n>`: number of bootstrap resamples (integer, minimum `200`, default `2000`).
 - `--min-pass-rate-delta=<n>`: minimum acceptable pass-rate delta vs baseline. The gate fails only when the bootstrap confidence interval is fully below this threshold (upper bound `< n`).
 
-Current assumption: bootstrap draws are unpaired across all rows in each run (not scenario-paired resampling), and row counts must match between current and baseline runs. Use this as a conservative run-le...[truncated]
+Current assumption: bootstrap draws are unpaired across all rows in each run (not scenario-paired resampling), and row counts must match between current and baseline runs. Use this as a conservative run-level signal, not a per-scenario statistical test.
+
+### Repeat-run gate mode (4F.23)
+
+When a runner emits `rows[].repeated` (the 4F.22 aggregation record — `{ runs, passes, aggregation }`, produced when a judge/case was actually run multiple times), `gate.repeat` lets you enforce a required pass count on those rows without a separate statistical engine — the gate only reads a field already in the artifact:
+
+```ts
+export default {
+  gates: {
+    repeat: { runs: 5, requiredPasses: 4 },
+  },
+};
+```
+
+```sh
+eval-dashboards check --input=.evals_output --repeat-runs=5 --repeat-required-passes=4
+```
+
+- Only rows with a `repeated` record are checked; rows without one fall back to the existing pass-rate/threshold gates untouched.
+- A row whose `repeated.runs` does not match the configured `runs` fails the gate (its aggregation record does not correspond to what was configured, so it cannot be judged against `requiredPasses`).
+- A row whose `repeated.passes < requiredPasses` fails the gate.
+- `requiredPasses` must be between `0` and `runs` inclusive; an out-of-range or non-integer config fails fast as an invalid gate config (same class of failure as other malformed gate config).
+- Diagnostics report how many repeated-run rows were checked and against what `runs`/`requiredPasses`.
+
 
 Typical workflow policies:
 
@@ -406,3 +430,43 @@ eval-dashboards history --input=.evals_output --bypass-log=eval-report/bypass-lo
 `org-rollup` then surfaces a per-repo `bypassCount` column and an org-wide
 `totalBypassCount` summary card, so bypass erosion is visible as a trend across
 repos instead of only discoverable by reading CI logs during an audit.
+
+## CI dependency-audit gate (4F.12)
+
+`.github/workflows/ci.yml` (`lint-and-test` job, step "Dependency audit (fails
+on high/critical)") runs `pnpm audit --audit-level=high` as a hard-failing CI
+step — not a reporting/informational step. `pnpm audit` exits non-zero when
+any advisory is at or above the given `--audit-level`, so the CI step fails
+the build the same way `pnpm typecheck`/`pnpm test` do.
+
+- **Severity threshold:** `high` (i.e. `high` and `critical` fail the build;
+  `low`/`moderate` are reported by `pnpm audit` locally but do not fail CI).
+  Change the threshold by editing the `--audit-level` value in
+  `.github/workflows/ci.yml`.
+- **Fixing a real finding:** prefer upgrading the vulnerable package directly.
+  When the vulnerability is in a transitive dependency with no direct upgrade
+  path, pin a patched version via `overrides` in `pnpm-workspace.yaml` (pnpm
+  10+ reads `overrides` from the workspace file, not from `package.json`'s
+  legacy `pnpm.overrides` field) and re-run `pnpm install && pnpm audit
+  --audit-level=high` to confirm the advisory clears.
+- **Intentional override/waiver (consistent with 4F.9 bypass accounting):** if
+  a flagged advisory must be accepted temporarily (e.g. no patched version
+  exists yet, or the vulnerable code path is unreachable in this project's
+  usage), do not silence the step with `|| true`. Instead, record the
+  exception explicitly and keep the gate itself intact:
+  1. Note the advisory id, package, severity, and justification in
+     `docs/ROADMAP.md`/`docs/STATUS.md` (or a dedicated waiver log) so the
+     exception is discoverable in the same repo, not only in a CI log.
+  2. If the advisory affects a package pnpm can override, prefer scoping the
+     override narrowly (exact version range) in `pnpm-workspace.yaml` rather
+     than broadening `--audit-level`, so the gate keeps catching new
+     vulnerabilities in every other dependency.
+  3. Only as a last resort — and only for a specific, named advisory id, never
+     the whole audit — use `pnpm audit --audit-level=high || true` scoped to a
+     follow-up ticket with an expiry date, mirroring the 4F.9 principle that a
+     bypass must be loggable and time-bounded, never a silent, permanent
+     no-op.
+
+This keeps the audit gate's trust model the same as the other gates in this
+document: a clean run means `pnpm audit --audit-level=high` genuinely found no
+high/critical advisories, not that the check was skipped.

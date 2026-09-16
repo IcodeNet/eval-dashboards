@@ -8,6 +8,7 @@ import {
   type EvalRow,
   type EvalSuiteSummary,
   type RiskArea,
+  type SuiteManifest,
 } from '../model/eval-report-v1.js';
 import { writeJsonFile, writeTextFile } from '../io/reports.js';
 import { formatDate, formatPassRate, formatDuration } from '../utils/format.js';
@@ -183,9 +184,16 @@ export const renderMarkdown = (context: ReportContext): string => {
     lines.push(`| Total tokens | ${usageTotals.totalTokens} |`);
   }
 
-  if (summary.run.branch) lines.push(`| Branch | ${summary.run.branch} |`);
-  if (summary.run.commit) lines.push(`| Commit | ${summary.run.commit} |`);
-  if (summary.run.buildId) lines.push(`| Build | ${summary.run.buildId} |`);
+  if (summary.run.branch) lines.push(`| Branch | ${mdTableCell(summary.run.branch)} |`);
+  if (summary.run.commit) lines.push(`| Commit | ${mdTableCell(summary.run.commit)} |`);
+  if (summary.run.buildId) lines.push(`| Build | ${mdTableCell(summary.run.buildId)} |`);
+  if (summary.run.experimentId) lines.push(`| Experiment | ${mdTableCell(summary.run.experimentId)} |`);
+  if (summary.run.variantLabel) lines.push(`| Variant | ${mdTableCell(summary.run.variantLabel)} |`);
+  if (context.current.tags && Object.keys(context.current.tags).length > 0) {
+    lines.push(
+      `| Tags | ${mdTableCell(Object.entries(context.current.tags).map(([key, val]) => `${key}=${val}`).join(', '))} |`,
+    );
+  }
 
   lines.push('');
 
@@ -242,7 +250,51 @@ export const renderMarkdown = (context: ReportContext): string => {
     lines.push('## Diff vs previous run', '', 'No row flips detected.', '');
   }
 
+  const complianceCoverage = summarizeComplianceCoverage(context.current);
+  if (complianceCoverage.length > 0) {
+    lines.push(`## Compliance coverage`, '');
+    lines.push('| Framework/ref | Rows | Failing |');
+    lines.push('| --- | ---: | ---: |');
+    for (const entry of complianceCoverage) {
+      lines.push(`| ${mdTableCell(entry.tag)} | ${entry.total} | ${entry.failed} |`);
+    }
+    lines.push('');
+  }
+
   return lines.join('\n');
+};
+
+type ComplianceCoverageEntry = { tag: string; total: number; failed: number };
+
+/**
+ * 4F.14 — group rows by opaque compliance tag (row.complianceRefs plus the
+ * owning suite manifest's complianceFrameworks, when present) so reporters
+ * can show coverage without hard-coding any canonical framework list. Empty
+ * array when no report content declares compliance tags — reporters must
+ * render nothing (not an empty-state table) in that case.
+ */
+const summarizeComplianceCoverage = (report: EvalReportV1): ComplianceCoverageEntry[] => {
+  const manifestFrameworksBySuite = new Map(
+    (report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest.complianceFrameworks ?? []]),
+  );
+  const counts = new Map<string, { total: number; failed: number }>();
+
+  for (const row of report.rows) {
+    const tags = new Set<string>([
+      ...(row.complianceRefs ?? []),
+      ...(manifestFrameworksBySuite.get(row.suite) ?? []),
+    ]);
+    for (const tag of tags) {
+      const entry = counts.get(tag) ?? { total: 0, failed: 0 };
+      entry.total += 1;
+      if (!row.passed) entry.failed += 1;
+      counts.set(tag, entry);
+    }
+  }
+
+  return Array.from(counts.entries())
+    .map(([tag, { total, failed }]) => ({ tag, total, failed }))
+    .sort((a, b) => a.tag.localeCompare(b.tag));
 };
 
 const reportProvenance = (
@@ -293,6 +345,7 @@ const traceLinksHtml = (row: EvalRow): string => {
   const links: string[] = [];
   if (row.trace?.traceUrl) links.push(externalLink(row.trace.traceUrl, 'trace'));
   if (row.trace?.spanUrl) links.push(externalLink(row.trace.spanUrl, 'span'));
+  if (row.trace?.spanType) links.push(`<span class="span-type-tag">${e(row.trace.spanType)}</span>`);
   if (links.length === 0) return '<span class="muted">n/a</span>';
   return links.join(' · ');
 };
@@ -301,6 +354,7 @@ const traceLinksMarkdown = (row: EvalRow): string => {
   const links: string[] = [];
   if (row.trace?.traceUrl && isHttpUrl(row.trace.traceUrl)) links.push(`[trace](${row.trace.traceUrl})`);
   if (row.trace?.spanUrl && isHttpUrl(row.trace.spanUrl)) links.push(`[span](${row.trace.spanUrl})`);
+  if (row.trace?.spanType) links.push(`(${row.trace.spanType})`);
   return links.join(' · ');
 };
 
@@ -320,6 +374,7 @@ const gatePolicyTable = (report: EvalReportV1): string => {
       ${th('Rubric', 'Rubric version declared in suite manifest.')}
       ${th('Rubric sources', 'Registered rubric source files for this suite when provided.')}
       ${th('Risk area', 'Governance risk area for this suite.')}
+      ${th('Compliance', 'Opaque compliance/regulatory framework tags this suite maps to, when provided.')}
       ${th('Gate', 'Gate mode for this suite.')}
       ${th('Thresholds', 'Blocking/report-only threshold keys for this suite.')}
     </tr></thead>
@@ -334,6 +389,9 @@ const gatePolicyTable = (report: EvalReportV1): string => {
             .map((rubric) => (rubric.sourcePath ? sourceLink(rubric.sourcePath) : e(rubric.axis)))
             .join('<br>') ??
           '<span class="muted">n/a</span>';
+        const complianceFrameworks = manifest.complianceFrameworks?.length
+          ? manifest.complianceFrameworks.map((framework) => e(framework)).join('<br>')
+          : '<span class="muted">n/a</span>';
 
         return `<tr>
           <td>${e(manifest.name)}</td>
@@ -342,6 +400,7 @@ const gatePolicyTable = (report: EvalReportV1): string => {
           <td>${e(manifest.rubricVersion ?? 'n/a')}</td>
           <td>${rubricSources}</td>
           <td>${e(manifest.riskArea)}</td>
+          <td>${complianceFrameworks}</td>
           <td>${e(manifest.gate.mode)}</td>
           <td class="reason">${e(thresholds || 'n/a')}</td>
         </tr>`;
@@ -489,6 +548,7 @@ const metadataCards = (
   totalDurationMs: number,
   durationStats?: DurationStats,
   usageTotals?: { totalCostUsd?: number; totalTokens?: number; rowsWithUsage: number },
+  tags?: Record<string, string>,
 ): string => {
   const cards: Array<{ label: string; value: string; tip: string }> = [];
   cards.push({ label: 'Generated', value: run.generatedAt, tip: 'When this report run was generated.' });
@@ -496,6 +556,15 @@ const metadataCards = (
   if (run.branch) cards.push({ label: 'Branch', value: run.branch, tip: 'Git branch recorded by the eval runner.' });
   if (run.commit) cards.push({ label: 'Commit', value: run.commit, tip: 'Git commit recorded by the eval runner.' });
   if (run.sourceUrl) cards.push({ label: 'Source', value: run.sourceUrl, tip: 'Source CI/job URL for this run when available.' });
+  if (run.experimentId) cards.push({ label: 'Experiment', value: run.experimentId, tip: 'Grouping key for clustering variant runs (e.g. prompt v1/v2/v3).' });
+  if (run.variantLabel) cards.push({ label: 'Variant', value: run.variantLabel, tip: 'Human-readable label for this run within its experiment.' });
+  if (tags && Object.keys(tags).length > 0) {
+    cards.push({
+      label: 'Tags',
+      value: Object.entries(tags).map(([key, val]) => `${key}=${val}`).join(', '),
+      tip: 'Free-form ad hoc CI context tags (e.g. pr, model) attached to this report.',
+    });
+  }
   if (totalDurationMs > 0) {
     cards.push({
       label: 'Reported duration',
@@ -567,6 +636,11 @@ const inferGroupTarget = (report: EvalReportV1): string => {
   return 'custom';
 };
 
+/**
+ * Render a single "org rollup" HTML index page grouping multiple eval
+ * reports (e.g. one per repo/team) into one dashboard view, with per-report
+ * summary cards linking out to each report's own HTML output.
+ */
 export const renderGroupedIndexHtml = (
   reports: EvalReportV1[],
   locale?: string,
@@ -751,7 +825,18 @@ const groupRows = (
 
 // ── Row detail panel (expanded view) ──
 
-const renderRowDetail = (r: EvalRow, colSpan: number): string => {
+// 4F.18 — declared, non-normalized suite score scale: renders a 0-100% bar
+// for row.score using the suite manifest's scoreScale when present, falling
+// back to assuming a 0-1 range when absent (unchanged prior behaviour).
+const scoreScaleBar = (score: number, scale?: { min: number; max: number }): string => {
+  const { min, max } = scale ?? { min: 0, max: 1 };
+  const range = max - min;
+  const pct = range > 0 ? Math.max(0, Math.min(100, Math.round(((score - min) / range) * 100))) : 0;
+  const label = scale ? `${score} (of ${min}-${max})` : score.toFixed(2);
+  return `<span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span> ${e(label)}`;
+};
+
+const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number; max: number }): string => {
   const fields: string[] = [];
 
   const field = (
@@ -792,7 +877,44 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
     true,
     'Human-written notes that explain why the labelled verdict or category is correct.',
   );
+  if (Array.isArray(r.humanReviews) && r.humanReviews.length > 0) {
+    const items = r.humanReviews
+      .map((hr) => {
+        const parts = [`<strong>${e(hr.reviewer)}</strong>: ${e(hr.verdict)}`];
+        if (hr.category) parts.push(`(${e(hr.category)})`);
+        if (hr.decidedAt) parts.push(`<span class="mono">${e(hr.decidedAt)}</span>`);
+        const note = hr.note ? `<div>${e(hr.note)}</div>` : '';
+        return `<li>${parts.join(' ')}${note}</li>`;
+      })
+      .join('');
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Independent multi-reviewer verdicts for this row, distinct from the single ground-truth label above.">Human reviews</span>
+      <span class="detail-field-value"><ul>${items}</ul></span>
+    </div>`);
+  }
+  field(
+    'Review agreement',
+    typeof r.reviewAgreement === 'number' ? `${Math.round(r.reviewAgreement * 100)}%` : null,
+    false,
+    false,
+    'Inter-rater agreement across humanReviews, as a fraction between 0 and 1.',
+  );
+  if (r.repeated) {
+    const { runs, passes, aggregation } = r.repeated;
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="This row's passed value reflects an aggregation across multiple judge runs rather than a single run, to absorb non-determinism.">Repeated runs</span>
+      <span class="detail-field-value">${passes}/${runs} passed (${e(aggregation)} aggregation)</span>
+    </div>`);
+  }
   field('Judge model', r.judgeModel, false, false, 'The grader model or judge used to score this row.');
+
+  if (typeof r.score === 'number' && Number.isFinite(r.score)) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value">${scoreScaleBar(r.score, scoreScale)}</span>
+    </div>`);
+  }
+
   field(
     'Judge verdict',
     r.judgeVerdict != null ? String(r.judgeVerdict) : null,
@@ -808,9 +930,29 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
     'The judge explanation for why it gave this verdict or score.',
   );
 
+  field(
+    'Judge trace input',
+    r.judgeTraces?.input,
+    true,
+    true,
+    'Bounded snapshot of the input the judge actually saw, distinct from the full transcript.',
+  );
+  field(
+    'Judge trace output',
+    r.judgeTraces?.output,
+    true,
+    true,
+    'Bounded snapshot of the output the judge actually evaluated, distinct from the full transcript.',
+  );
+
   if (r.axisScores && Object.keys(r.axisScores).length) {
     const chips = Object.entries(r.axisScores)
-      .map(([k, v]) => `<span class="axis-score-chip">${e(k)}: ${typeof v === 'number' ? v.toFixed(2) : e(String(v))}</span>`)
+      .map(([k, v]) => {
+        const reasoning = r.axisReasoning?.[k];
+        const chip = `<span class="axis-score-chip">${e(k)}: ${typeof v === 'number' ? v.toFixed(2) : e(String(v))}</span>`;
+        if (!reasoning) return chip;
+        return `<div class="axis-score-with-reasoning">${chip}<span class="axis-score-reasoning">${e(reasoning)}</span></div>`;
+      })
       .join('');
     fields.push(`<div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
@@ -822,6 +964,13 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
     fields.push(`<div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Tool calls made while evaluating this row.">Tool calls</span>
       <div class="axis-scores">${r.toolCalls.map((t) => `<span class="axis-score-chip">${e(t.name)}</span>`).join('')}</div>
+    </div>`);
+  }
+
+  if (r.complianceRefs?.length) {
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Opaque compliance/regulatory reference ids this row is evidence for (e.g. owasp:llm:01, nist:ai:measure:1.1, eu:ai-act).">Compliance refs</span>
+      <div class="axis-scores">${r.complianceRefs.map((ref) => `<span class="axis-score-chip">${e(ref)}</span>`).join('')}</div>
     </div>`);
   }
 
@@ -853,13 +1002,20 @@ const renderRowDetail = (r: EvalRow, colSpan: number): string => {
     </div>`);
   }
 
+  field('Span type', r.trace?.spanType, false, false, 'Runner-defined label for the pipeline stage this span represents.');
+
   if (!fields.length) return '';
   return `<tr class="detail-row"><td colspan="${colSpan}"><div class="detail-panel">${fields.join('')}</div></td></tr>`;
 };
 
 // ── Grouped rows table with taxonomy completeness ──
 
-const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true, anchorPrefix = 'row'): string => {
+const groupedRowsTable = (
+  rows: EvalRow[],
+  showTaxonomy = true,
+  anchorPrefix = 'row',
+  manifestBySuite?: Map<string, SuiteManifest>,
+): string => {
   if (!rows.length) return '<p class="empty">No rows.</p>';
 
   const groups = groupRows(rows);
@@ -887,7 +1043,7 @@ const groupedRowsTable = (rows: EvalRow[], showTaxonomy = true, anchorPrefix = '
         .map((r) => {
           const tax = taxonomyCompleteness(r);
           const colSpan = showTaxonomy ? 5 : 4;
-          const detail = renderRowDetail(r, colSpan);
+          const detail = renderRowDetail(r, colSpan, manifestBySuite?.get(r.suite)?.scoreScale);
           const hasDetail = detail.length > 0;
           const rowDomId = `${anchorPrefix}-${encodeURIComponent(`${r.suite}:${r.id}`)}`;
           return `<tr id="${rowDomId}" class="data-row${r.passed ? '' : ' fail-row'}"${hasDetail ? ` onclick="toggleRow(this)"` : ''}>
@@ -1343,6 +1499,7 @@ const renderHtml = (context: ReportContext): string => {
   const judgeCalibration = summarizeJudgeCalibration(rows);
   const failingRows = rows.filter((r) => !r.passed);
   const guardrailSummary = summarizeGuardrailRows(current);
+  const complianceCoverage = summarizeComplianceCoverage(current);
   const guardrailProfileEnabled = context.profile === 'guardrail';
   const statisticalSummary = statisticalContextSummary(context);
   const compatStatus = compat?.status ?? 'not compared';
@@ -1365,6 +1522,7 @@ const renderHtml = (context: ReportContext): string => {
     ? '0 rows • no failures'
     : `${pluralize(failingRows.length, 'row')} • ${pluralize(newlyFailing.length, 'new regression')} • ${pluralize(comparison.persistentFailures.length, 'persistent failure')}`;
   const allRowsSummary = `${pluralize(current.rows.length, 'row')} • ${summary.failed} failing • ${formatPassRate(summary.passed, summary.total)} pass rate`;
+  const manifestBySuiteForRows = new Map((current.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
   const datasetChangelogSummary = `${pluralize(datasetChangelog.length, 'entry')} • +${datasetChangelogTotals.added} / ~${datasetChangelogTotals.updated} / -${datasetChangelogTotals.removed}`;
   const baselineCompatibilitySummary = `${compatStatus} • ${pluralize(compat?.issues.length ?? 0, 'issue')}`;
   const judgeCalibrationSummary = judgeCalibration
@@ -1482,6 +1640,17 @@ ${renderCssVariables(theme)}
     .sev-medium { background: var(--warn-soft); color: var(--warn); }
     .sev-high, .sev-critical { background: var(--fail-soft); color: var(--fail); }
 
+    /* ── Client-side compare (4F.13) ── */
+    .compare-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 20px; }
+    .compare-picker input[type="file"] { font-size: 13px; color: var(--muted); }
+    .compare-status { font-size: 13px; color: var(--muted); }
+    .compare-status.compare-error { color: var(--fail); font-weight: 600; }
+    .compare-status.compare-ok { color: var(--pass); font-weight: 600; }
+    .compare-result { padding: 0 20px 16px; }
+    .delta-pos { color: var(--pass); font-weight: 700; }
+    .delta-neg { color: var(--fail); font-weight: 700; }
+    .delta-zero { color: var(--muted); }
+
     /* ── Kind badges ── */
     .kind-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: var(--surface-muted); color: var(--muted); }
     .kind-deterministic { background: var(--accent-soft); color: var(--accent); }
@@ -1520,6 +1689,8 @@ ${renderCssVariables(theme)}
     .detail-field.full-width { grid-column: 1 / -1; }
     .axis-scores { display: flex; flex-wrap: wrap; gap: 6px; }
     .axis-score-chip { font-family: var(--font-mono); font-size: 11px; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 7px; }
+    .axis-score-with-reasoning { display: flex; flex-direction: column; gap: 3px; }
+    .axis-score-reasoning { font-size: 11px; color: var(--text-muted); padding-left: 2px; }
 
     /* ── View switcher ── */
     .view-switcher { display: flex; gap: 4px; }
@@ -1580,6 +1751,8 @@ ${renderCssVariables(theme)}
         ${run.branch ? `<span>Branch&nbsp;<strong>${e(run.branch)}</strong></span>` : ''}
         ${run.commit ? `<span>Commit&nbsp;<strong>${e(run.commit)}</strong></span>` : ''}
         ${run.buildId ? `<span>Build&nbsp;<strong>${e(run.buildId)}</strong></span>` : ''}
+        ${run.experimentId ? `<span>Experiment&nbsp;<strong>${e(run.experimentId)}</strong></span>` : ''}
+        ${run.variantLabel ? `<span>Variant&nbsp;<strong>${e(run.variantLabel)}</strong></span>` : ''}
         <span>Provenance&nbsp;<strong><span class="provenance-badge provenance-${e(provenance.className)}">${e(provenance.label)}</span></strong></span>
         ${totalDurationMs > 0 ? `<span>Duration&nbsp;<strong>${e(formatDuration(totalDurationMs))}</strong></span>` : ''}
       </div>
@@ -1630,7 +1803,7 @@ ${renderCssVariables(theme)}
       id: 'run-metadata',
       title: 'Run metadata',
       summary: [run.branch, run.commit, run.buildId].filter(Boolean).join(' • ') || 'Run identity and provenance details',
-      body: metadataCards(run, totalDurationMs, durationStats, calculateUsageTotals(context.current.rows)),
+      body: metadataCards(run, totalDurationMs, durationStats, calculateUsageTotals(context.current.rows), context.current.tags),
     })}
 
     ${renderCollapsibleSection({
@@ -1640,6 +1813,26 @@ ${renderCssVariables(theme)}
       body: gatePolicyTable(current),
       summaryTone: compatibilityTone,
     })}
+
+    ${complianceCoverage.length > 0
+      ? renderCollapsibleSection({
+        id: 'compliance-coverage',
+        title: 'Compliance coverage',
+        summary: `${pluralize(complianceCoverage.length, 'framework/ref')}`,
+        body: `<div class="table-wrap"><table>
+          <thead><tr>
+            ${th('Framework/ref', 'Opaque compliance/regulatory tag from row.complianceRefs or the suite manifest complianceFrameworks.')}
+            ${th('Rows', 'Rows tagged with this framework/ref.')}
+            ${th('Failing', 'Failing rows tagged with this framework/ref.')}
+          </tr></thead>
+          <tbody>${complianceCoverage
+            .map(
+              (entry) => `<tr><td>${e(entry.tag)}</td><td>${entry.total}</td><td>${entry.failed}</td></tr>`,
+            )
+            .join('')}</tbody>
+        </table></div>`,
+      })
+      : ''}
 
     ${statisticalSummary
       ? renderCollapsibleSection({
@@ -1742,7 +1935,7 @@ ${renderCssVariables(theme)}
           </div>` : ''}
         </div>`,
       body: `${failingRows.length > 0
-        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true, 'failrow')}</div>
+        ? `<div id="failrows-details" class="view-pane active">${groupedRowsTable(failingRows, true, 'failrow', manifestBySuiteForRows)}</div>
              <div id="failrows-table" class="view-pane">${flatRowsTable(failingRows)}</div>
              <div id="failrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(failingRows, null, 2))}</pre></div>`
         : '<p class="empty">No failing rows.</p>'
@@ -1761,7 +1954,7 @@ ${renderCssVariables(theme)}
             <button class="view-btn" onclick="switchView('allrows','json',this)">JSON</button>
           </div>
         </div>`,
-      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true, 'row')}</div>
+      body: `<div id="allrows-details" class="view-pane active">${groupedRowsTable(current.rows, true, 'row', manifestBySuiteForRows)}</div>
         <div id="allrows-table" class="view-pane">${flatRowsTable(current.rows)}</div>
         <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>`,
     })}
@@ -1791,6 +1984,21 @@ ${renderCssVariables(theme)}
     }
 
     ${renderCollapsibleSection({
+      id: 'compare',
+      title: 'Compare against another report',
+      summary: 'Client-side only — load a second eval-report/v1 JSON file, nothing leaves the browser',
+      collapsed: true,
+      body: `
+      <div class="compare-picker">
+        <label for="compare-file-input"><strong>Load eval-report/v1 JSON to compare:</strong></label>
+        <input type="file" id="compare-file-input" accept="application/json,.json" onchange="handleCompareFile(this.files && this.files[0])">
+        <span id="compare-status" class="compare-status"></span>
+      </div>
+      <div id="compare-result" class="compare-result"></div>
+    `,
+    })}
+
+    ${renderCollapsibleSection({
       id: 'how-to-read',
       title: 'How to read this report',
       summary: 'Reference guide for interpreting scores, gates, and trend shifts',
@@ -1803,6 +2011,19 @@ ${renderCssVariables(theme)}
   </div>
 
   <div id="eval-tooltip" role="tooltip"></div>
+
+  <script id="eval-report-current-summary" type="application/json">${JSON.stringify({
+    runId: run.id,
+    suites: current.suites.map((s) => ({
+      id: s.id,
+      name: s.name ?? s.id,
+      total: s.total,
+      passed: s.passed,
+      failed: s.failed,
+      passRate: s.total > 0 ? s.passed / s.total : 0,
+    })),
+    rows: current.rows.map((r) => ({ id: r.id, suite: r.suite, passed: r.passed })),
+  }).replaceAll('</', '<\\/')}</script>
 
   <script>
     function toggleSection(btn) {
@@ -1879,6 +2100,105 @@ ${renderCssVariables(theme)}
         tip.style.top  = y + 'px';
       }
     })();
+
+    /* ── 4F.13: client-side compare, fully offline, no server call ── */
+    function escapeCompareHtml(s) {
+      return String(s == null ? '' : s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+    function compareCurrentSummary() {
+      var el = document.getElementById('eval-report-current-summary');
+      return el ? JSON.parse(el.textContent) : { runId: '', suites: [], rows: [] };
+    }
+    function summarizeOtherReport(data) {
+      if (!data || data.schemaVersion !== 'eval-report/v1' || !Array.isArray(data.suites)) {
+        throw new Error('Not a recognizable eval-report/v1 file (missing schemaVersion or suites).');
+      }
+      var suites = data.suites.map(function (s) {
+        var total = s.total || 0;
+        var passed = s.passed || 0;
+        return {
+          id: s.id,
+          name: s.name || s.id,
+          total: total,
+          passed: passed,
+          failed: s.failed || 0,
+          passRate: total > 0 ? passed / total : 0,
+        };
+      });
+      return { runId: (data.run && data.run.id) || 'unknown', suites: suites, rows: Array.isArray(data.rows) ? data.rows : [] };
+    }
+    function formatComparePassRate(x) {
+      return (x * 100).toFixed(1) + '%';
+    }
+    function deltaClass(delta) {
+      if (delta > 0.0001) return 'delta-pos';
+      if (delta < -0.0001) return 'delta-neg';
+      return 'delta-zero';
+    }
+    function formatCompareDelta(delta) {
+      var pct = (delta * 100);
+      var sign = pct > 0 ? '+' : '';
+      return sign + pct.toFixed(1) + 'pp';
+    }
+    function renderCompareResult(current, other) {
+      var byId = {};
+      current.suites.forEach(function (s) { byId[s.id] = { current: s }; });
+      other.suites.forEach(function (s) {
+        byId[s.id] = byId[s.id] || {};
+        byId[s.id].other = s;
+      });
+      var ids = Object.keys(byId).sort();
+      var rows = ids.map(function (id) {
+        var pair = byId[id];
+        var c = pair.current;
+        var o = pair.other;
+        var label = (c && c.name) || (o && o.name) || id;
+        var cRate = c ? c.passRate : null;
+        var oRate = o ? o.passRate : null;
+        var delta = cRate != null && oRate != null ? cRate - oRate : null;
+        return '<tr>' +
+          '<td>' + escapeCompareHtml(label) + '</td>' +
+          '<td class="num">' + (c ? formatComparePassRate(cRate) + ' (' + c.passed + '/' + c.total + ')' : '—') + '</td>' +
+          '<td class="num">' + (o ? formatComparePassRate(oRate) + ' (' + o.passed + '/' + o.total + ')' : '—') + '</td>' +
+          '<td class="num ' + (delta != null ? deltaClass(delta) : '') + '">' + (delta != null ? formatCompareDelta(delta) : '—') + '</td>' +
+          '</tr>';
+      }).join('');
+      return '<div class="table-wrap"><table>' +
+        '<thead><tr><th>Suite</th><th>Current (' + escapeCompareHtml(current.runId) + ')</th>' +
+        '<th>Loaded (' + escapeCompareHtml(other.runId) + ')</th><th>Δ pass rate (current − loaded)</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+    }
+    function handleCompareFile(file) {
+      var status = document.getElementById('compare-status');
+      var result = document.getElementById('compare-result');
+      if (!file) return;
+      status.textContent = 'Reading ' + file.name + '…';
+      status.className = 'compare-status';
+      result.innerHTML = '';
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result));
+          var other = summarizeOtherReport(data);
+          var current = compareCurrentSummary();
+          result.innerHTML = renderCompareResult(current, other);
+          status.textContent = 'Comparing against ' + file.name + ' — all done in your browser, no data was uploaded.';
+          status.className = 'compare-status compare-ok';
+        } catch (err) {
+          status.textContent = 'Could not compare: ' + (err && err.message ? err.message : String(err));
+          status.className = 'compare-status compare-error';
+        }
+      };
+      reader.onerror = function () {
+        status.textContent = 'Could not read file.';
+        status.className = 'compare-status compare-error';
+      };
+      reader.readAsText(file);
+    }
   </script>
 </body>
 </html>`;

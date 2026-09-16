@@ -3,14 +3,29 @@ import path from 'node:path';
 import type { EvalReportV1 } from '../model/eval-report-v1.js';
 import { validateEvalReport } from '../model/validate.js';
 
-export const findJsonReports = async (input: string): Promise<string[]> => {
+export const findJsonReports = async (
+  input: string,
+  options?: { excludeDirs?: string[] },
+): Promise<string[]> => {
   const results: string[] = [];
+  const excludeDirs = (options?.excludeDirs ?? []).map((dir) => path.resolve(dir));
+
+  const isExcluded = (entryPath: string): boolean => {
+    const resolved = path.resolve(entryPath);
+    return excludeDirs.some(
+      (dir) => resolved === dir || resolved.startsWith(dir + path.sep),
+    );
+  };
 
   const visit = async (target: string): Promise<void> => {
     const entries = await readdir(target, { withFileTypes: true });
 
     for (const entry of entries) {
       const entryPath = path.join(target, entry.name);
+
+      if (isExcluded(entryPath)) {
+        continue;
+      }
 
       if (entry.isDirectory()) {
         await visit(entryPath);
@@ -106,8 +121,11 @@ export const readEvalReport = async (filePath: string): Promise<EvalReportV1> =>
   return result.report;
 };
 
-export const readEvalReports = async (input: string): Promise<EvalReportV1[]> => {
-  const files = await findJsonReports(input);
+export const readEvalReports = async (
+  input: string,
+  options?: { excludeDirs?: string[] },
+): Promise<EvalReportV1[]> => {
+  const files = await findJsonReports(input, options);
 
   if (files.length === 0) {
     throw Object.assign(

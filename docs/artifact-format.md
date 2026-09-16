@@ -127,6 +127,8 @@ export type EvalReportV1 = {
     commit?: string;
     buildId?: string;
     sourceUrl?: string;
+    experimentId?: string;
+    variantLabel?: string;
     configSnapshot?: {
       redacted?: boolean;
       source?: string;
@@ -140,13 +142,41 @@ export type EvalReportV1 = {
   baselineCompatibility?: BaselineCompatibilityResult;
   datasetChangelog?: DatasetChangelogEntry[];
   metadata?: Record<string, unknown>;
+  tags?: Record<string, string>;
 };
 ```
+
+`EvalSuiteSummary` (per-suite roll-up counts, one entry per suite name present in `rows[]`; `id` is required and must match `rows[].suite` / `suiteManifests[].name`):
+
+```ts
+export type EvalSuiteSummary = {
+  id: string;
+  name?: string;
+  total: number;
+  passed: number;
+  failed: number;
+  passRate?: number;
+};
+```
+
+`run.experimentId` / `run.variantLabel` (both optional strings, validated
+leniently with no format constraint): a grouping key for clustering 3+
+variant runs (e.g. prompt v1/v2/v3) for side-by-side comparison, beyond the
+single baseline-vs-current model. `experimentId` identifies the experiment;
+`variantLabel` is a human-readable label for this run's variant within it.
+Purely descriptive — no gate reads these fields. Echoed in the HTML report's
+run banner and run-metadata card, and in the markdown reporter's run table.
 
 `run.kind` conventions:
 
 - `calibration`: marks a calibration-evidence artifact (for example, `judge-calibration` rows) and excludes that run from automatic baseline selection (`--baseline-strategy`) so calibration-only artifacts do not become report/check baselines.
 - Other values are currently free-form and tool-specific.
+
+`tags` (top-level, optional): free-form `Record<string, string>` for ad hoc CI
+context beyond the fixed `run.branch` / `run.commit` / `run.buildId` fields —
+e.g. `{ "pr": "42", "model": "gpt-4o" }`. Purely descriptive; no gate reads
+this field. Echoed in the HTML report's run-metadata card, in the markdown
+report's metadata table, and in `--json-out`.
 
 Rows are runner-agnostic:
 
@@ -173,6 +203,19 @@ export type EvalRow = {
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
   groundTruthAxisScores?: Record<string, number>;
+  humanReviews?: Array<{
+    reviewer: string;
+    verdict: string;
+    category?: string;
+    note?: string;
+    decidedAt?: string;
+  }>;
+  reviewAgreement?: number; // 0-1
+  repeated?: {
+    runs: number;
+    passes: number;
+    aggregation: 'mean' | 'majority' | 'all';
+  };
   input?: string;
   output?: string;
   expected?: string;
@@ -196,8 +239,11 @@ export type EvalRow = {
     spanId?: string;
     traceUrl?: string;
     spanUrl?: string;
+    spanType?: string;
   };
   axisScores?: Record<string, number>;
+  /** Optional per-axis judge reasoning, one explanation string per axis key. */
+  axisReasoning?: Record<string, string>;
   passed: boolean;
   score?: number;
   severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
@@ -212,6 +258,7 @@ export type EvalRow = {
     model?: string;
   };
   metadata?: Record<string, unknown>;
+  complianceRefs?: string[];
 };
 ```
 
@@ -231,6 +278,8 @@ Agent and LLM judge reports should use the first-class optional judge fields ins
 - `groundTruthVerdict`, `groundTruthCategory`, and `groundTruthAnnotation`: labelled calibration evidence for judge evals.
 - `trace.traceId`, `trace.spanId`: portable trace/span identifiers when available.
 - `trace.traceUrl`, `trace.spanUrl`: optional deep links to trace evidence that reporters can render as clickable links.
+- `trace.spanType`: optional free-form, runner-defined label for the pipeline stage this span represents (e.g. `"retrieval"`, `"generation"`, `"tool"`, `"agent"`). No enum lock-in; purely a label for grouping evidence by pipeline stage. HTML/markdown reporters show it next to trace links when present; no change when absent.
+- `complianceRefs`: opaque, free-form compliance/regulatory reference ids this row is evidence for (e.g. `"owasp:llm:01"`, `"nist:ai:measure:1.1"`, `"eu:ai-act"`). Not validated against a canonical list — harnesses own classification, this package only stores and groups/filters by whatever strings are provided. `suiteManifests[].complianceFrameworks?: string[]` is the analogous suite-level field. HTML/markdown/JSON reporters render a "Compliance coverage" grouping by these tags only when at least one row or manifest declares one; there is no UI change when both are absent.
 
 When using judge-based groundedness/relevance suites, ensure rubric guidance does not penalize extra details that remain consistent with reference/context.
 
@@ -249,7 +298,8 @@ For failure triage, prefer carrying both portable IDs and clickable links:
     "traceId": "4f5c7c55f9da4b4a",
     "spanId": "a1e243fbe90c9f5d",
     "traceUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a",
-    "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d"
+    "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d",
+    "spanType": "tool"
   }
 }
 ```
@@ -295,6 +345,8 @@ export type SuiteManifest = {
   datasetPath?: string; // optional source file/URL
   gate: { mode: 'blocking' | 'report-only'; thresholds: Record<string, number> };
   description?: string;
+  complianceFrameworks?: string[];
+  scoreScale?: { min: number; max: number };
 };
 ```
 
@@ -303,6 +355,10 @@ export type SuiteManifest = {
 Use `target: 'agent'` for live agent behavior, tool use, channel, prompt, and version checks. Use `target: 'judge'` for judge calibration suites where the evaluated subject is the judge itself.
 
 For fail-fast live pipelines, define a dedicated `preflight` suite (`target: 'custom'`) with deterministic probe rows and gate it via required suite pass checks.
+
+`complianceFrameworks` (optional): opaque, free-form compliance/regulatory framework tags this suite maps to, e.g. `["owasp:llm", "nist:ai:measure:1.1", "eu:ai-act"]`. Deliberately not a canonical enum — classification is harness territory. Combined with `rows[].complianceRefs`, reporters group/filter a "Compliance coverage" view; both fields are additive and produce no UI change when omitted.
+
+`scoreScale` (optional, 4F.18): a declared, non-normalized score range for this suite's rows, `{ min: number; max: number }`, e.g. `{ min: 0, max: 3 }` for a 0-3 Likert rubric. One per suite, not per row — `rows[].score` values for rows in this suite are assumed to fall within `[min, max]`. The HTML reporter uses it to render row score bars/gauges proportionally to the declared scale; suites without it keep the existing default 0-1 assumption, so this is additive with no behavior change when omitted.
 
 Rubric contracts describe the axes used by judge and human-review rows:
 

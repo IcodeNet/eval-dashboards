@@ -135,6 +135,23 @@ export type SuiteManifest = {
    * from PR gating.
    */
   tier?: 'pr' | 'full' | 'both';
+  /**
+   * 4F.14 — opaque, free-form compliance/regulatory framework tags this
+   * suite maps to (e.g. `"owasp:llm"`, `"nist:ai:measure:1.1"`,
+   * `"eu:ai-act"`). Deliberately not a canonical enum — classification is
+   * harness territory; this package only stores and groups/filters by the
+   * strings it's given.
+   */
+  complianceFrameworks?: string[];
+  /**
+   * 4F.18 — declared, non-normalized score scale for this suite's rows (e.g.
+   * a 0-3 Likert rubric or a 1-5 scale), as `{ min, max }`. One per suite, not
+   * per row: `rows[].score` values in this suite are assumed to live within
+   * `[min, max]`. Reporters use this to render score bars/gauges correctly
+   * instead of assuming the default 0-1 range. Optional and additive; suites
+   * without it keep the existing 0-1 assumption.
+   */
+  scoreScale?: { min: number; max: number };
 };
 
 export type RegisteredRubric = {
@@ -205,6 +222,10 @@ export type EvalRun = {
   commit?: string;
   buildId?: string;
   sourceUrl?: string;
+  /** Optional grouping key for clustering variant runs (e.g. prompt v1/v2/v3). */
+  experimentId?: string;
+  /** Optional human-readable label for the variant within an experiment. */
+  variantLabel?: string;
   configSnapshot?: RunConfigSnapshot;
 };
 
@@ -226,6 +247,12 @@ export type TraceReference = {
   traceUrl?: string;
   /** Optional direct URL to a span-level evidence view for this row. */
   spanUrl?: string;
+  /**
+   * Optional free-form, runner-defined label for the pipeline stage this
+   * span represents (e.g. "retrieval", "generation", "tool", "agent").
+   * No enum lock-in; purely a grouping label for evidence display.
+   */
+  spanType?: string;
 };
 
 export type EvalRow = {
@@ -242,6 +269,16 @@ export type EvalRow = {
   judgeVerdict?: boolean;
   judgeCategory?: string;
   judgeReasoning?: string;
+  /**
+   * 4F.21 — optional bounded snapshot of what the judge actually saw/produced,
+   * distinct from full transcripts (`turns`) or `judgeReasoning`. String-only,
+   * no size enforcement in the schema; reporters may truncate for display.
+   * Inspired by Ragas's `MetricResult.traces` convention.
+   */
+  judgeTraces?: {
+    input?: string;
+    output?: string;
+  };
   promptVersion?: string;
   agentChannel?: string;
   agentVersion?: string;
@@ -250,12 +287,46 @@ export type EvalRow = {
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
   groundTruthAxisScores?: Record<string, number>;
+  /**
+   * 4F.19 — optional independent multi-reviewer verdicts for this row,
+   * distinct from the singular groundTruthVerdict/groundTruthAnnotation.
+   * Each entry captures one reviewer's verdict/category/note/decidedAt.
+   */
+  humanReviews?: Array<{
+    reviewer: string;
+    verdict: string;
+    category?: string;
+    note?: string;
+    decidedAt?: string;
+  }>;
+  /**
+   * 4F.19 — optional inter-rater agreement score across humanReviews,
+   * expressed as a fraction between 0 and 1.
+   */
+  reviewAgreement?: number;
+  /**
+   * 4F.22 — optional repeated-run aggregation record: when a judge was run
+   * multiple times to absorb non-determinism instead of collapsing straight
+   * to a single boolean, this captures the run count, pass count, and the
+   * aggregation strategy used to derive the row's final `passed` value.
+   */
+  repeated?: {
+    runs: number;
+    passes: number;
+    aggregation: 'mean' | 'majority' | 'all';
+  };
   input?: string;
   output?: string;
   expected?: string;
   turns?: ConversationTurn[];
   toolCalls?: ToolCall[];
   axisScores?: Record<string, number>;
+  /**
+   * Optional per-axis judge reasoning: one explanation string per axis key,
+   * mirroring the keys used in `axisScores`. Sibling to the row-level
+   * `judgeReasoning` field.
+   */
+  axisReasoning?: Record<string, string>;
   trace?: TraceReference;
   passed: boolean;
   /**
@@ -276,6 +347,13 @@ export type EvalRow = {
    */
   usage?: RowUsageMetrics;
   metadata?: RowMetadata;
+  /**
+   * 4F.14 — opaque, free-form compliance/regulatory reference ids this row
+   * is evidence for (e.g. `"owasp:llm:01"`, `"nist:ai:measure:1.1"`,
+   * `"eu:ai-act"`). Not validated against a canonical list; harnesses own
+   * classification, this package only stores and groups/filters by them.
+   */
+  complianceRefs?: string[];
 };
 
 export type EvalReportV1 = {
@@ -288,6 +366,13 @@ export type EvalReportV1 = {
   baselineCompatibility?: BaselineCompatibilityResult;
   datasetChangelog?: DatasetChangelogEntry[];
   metadata?: Record<string, unknown>;
+  /**
+   * 4F.15 — free-form run-level tags for ad hoc CI context (e.g.
+   * `{ "pr": "42", "model": "gpt-4o" }`) beyond the fixed `run.branch` /
+   * `run.commit` / `run.buildId` fields. Purely descriptive; string values
+   * only, no gating semantics attach to this field.
+   */
+  tags?: Record<string, string>;
 };
 
 export type EvalSummary = {

@@ -99,6 +99,12 @@ export const BUILT_IN_THEMES: Record<string, EvalReportsTheme> = {
   minimal: minimalTheme,
 };
 
+/**
+ * Resolve a theme option (a built-in theme name, a partial theme override
+ * object, or undefined) into a complete `EvalReportsTheme` used by the HTML
+ * reporter. Unknown theme names and partial overrides fall back to the
+ * default theme's values for any unset fields.
+ */
 export const resolveTheme = (
   theme: string | Partial<EvalReportsTheme> | undefined,
 ): EvalReportsTheme => {
