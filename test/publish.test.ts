@@ -67,6 +67,12 @@ describe('publishReport', () => {
 
 describe('publishReport azure-storage', () => {
   it('invokes az via execFileSync argv (not a shell string), even with shell-metacharacter values', async () => {
+    const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'evd-publish-test-'));
+    writeFileSync(path.join(dir, 'index.html'), '<html></html>');
+
     vi.resetModules();
     const execFileSyncMock = vi.fn().mockReturnValue(Buffer.from(''));
     vi.doMock('node:child_process', () => ({ execFileSync: execFileSyncMock }));
@@ -74,13 +80,17 @@ describe('publishReport azure-storage', () => {
 
     const maliciousAccount = 'x"; touch /tmp/should-not-run; echo "';
 
-    await publishReportIsolated({
-      target: 'azure-storage',
-      reportDir: 'eval-report',
-      account: maliciousAccount,
-      container: '$web',
-      dryRun: false,
-    });
+    try {
+      await publishReportIsolated({
+        target: 'azure-storage',
+        reportDir: dir,
+        account: maliciousAccount,
+        container: '$web',
+        dryRun: false,
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
 
     // Every call must be execFileSync('az', [...argv]) — never a single
     // interpolated shell command string that a shell would re-parse.

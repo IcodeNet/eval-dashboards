@@ -58,9 +58,15 @@ isn't running yet.
 ## Run The Example
 
 ```sh
-cd examples/financial-domain-ollama-evals
-OLLAMA_MODEL=mistral:latest pnpm exec tsx run-financial-domain-evals.ts
+OLLAMA_MODEL=mistral:latest pnpm exec tsx examples/financial-domain-ollama-evals/run-financial-domain-evals.ts
 ```
+
+Run this from the repo root, not from inside `examples/financial-domain-ollama-evals/`
+— the script writes to a repo-root-relative `examples/financial-domain-ollama-evals/.evals_output`
+path, so `cd`-ing into that directory first doubles the path (writes to a
+nested `examples/financial-domain-ollama-evals/examples/financial-domain-ollama-evals/.evals_output/`)
+and the `report`/`check` commands below (also run from repo root) then find
+nothing there.
 
 Environment variables:
 
