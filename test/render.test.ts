@@ -497,6 +497,51 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Variant');
   });
 
+  it('escapes markdown table pipes/newlines in run.experimentId, variantLabel, branch, commit, buildId, and tags', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-pipe',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+        branch: 'br|anch',
+        commit: 'co\nmmit',
+        buildId: 'bu|ild',
+        experimentId: 'exp|broken|pipe',
+        variantLabel: 'v1\n\nrow|injected',
+      },
+      tags: { pr: '1|2' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-pipe', suite: 'quality', passed: true }],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['markdown-summary'],
+    );
+
+    const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
+    const rows = md.split('\n').filter((line) => line.startsWith('| '));
+    for (const row of rows) {
+      // Each markdown table row must have exactly 2 unescaped cell separators
+      // plus the leading/trailing pipes (i.e. no injected extra columns/rows).
+      const unescapedPipes = (row.match(/(?<!\\)\|/g) ?? []).length;
+      expect(unescapedPipes).toBeLessThanOrEqual(3);
+    }
+    expect(md).toContain('| Branch | br\\|anch |');
+    expect(md).toContain('| Commit | co mmit |');
+    expect(md).toContain('| Build | bu\\|ild |');
+    expect(md).toContain('| Experiment | exp\\|broken\\|pipe |');
+    expect(md).toContain('| Variant | v1 row\\|injected |');
+    expect(md).toContain('| Tags | pr=1\\|2 |');
+  });
+
   it('renders sections collapsed by default with summary and toggle affordance', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

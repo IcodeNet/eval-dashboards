@@ -184,14 +184,14 @@ export const renderMarkdown = (context: ReportContext): string => {
     lines.push(`| Total tokens | ${usageTotals.totalTokens} |`);
   }
 
-  if (summary.run.branch) lines.push(`| Branch | ${summary.run.branch} |`);
-  if (summary.run.commit) lines.push(`| Commit | ${summary.run.commit} |`);
-  if (summary.run.buildId) lines.push(`| Build | ${summary.run.buildId} |`);
-  if (summary.run.experimentId) lines.push(`| Experiment | ${summary.run.experimentId} |`);
-  if (summary.run.variantLabel) lines.push(`| Variant | ${summary.run.variantLabel} |`);
+  if (summary.run.branch) lines.push(`| Branch | ${mdTableCell(summary.run.branch)} |`);
+  if (summary.run.commit) lines.push(`| Commit | ${mdTableCell(summary.run.commit)} |`);
+  if (summary.run.buildId) lines.push(`| Build | ${mdTableCell(summary.run.buildId)} |`);
+  if (summary.run.experimentId) lines.push(`| Experiment | ${mdTableCell(summary.run.experimentId)} |`);
+  if (summary.run.variantLabel) lines.push(`| Variant | ${mdTableCell(summary.run.variantLabel)} |`);
   if (context.current.tags && Object.keys(context.current.tags).length > 0) {
     lines.push(
-      `| Tags | ${Object.entries(context.current.tags).map(([key, val]) => `${key}=${val}`).join(', ')} |`,
+      `| Tags | ${mdTableCell(Object.entries(context.current.tags).map(([key, val]) => `${key}=${val}`).join(', '))} |`,
     );
   }
 
