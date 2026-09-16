@@ -1321,6 +1321,25 @@ Acceptance criteria:
       for that suite; falls back to 0-1 assumption when absent.
 - [x] Update `docs/artifact-format.md`; fixture + test.
 
+### 4F.19 Multi-reviewer human-review fields (P2, S)
+
+- [ ] Add optional `rows[].humanReviews?: Array<{ reviewer: string; verdict: string;
+      category?: string; note?: string; decidedAt?: string }>` and optional
+      `rows[].reviewAgreement?: number` (0-1) — captures independent multi-reviewer
+      verdicts and inter-rater agreement on a row, distinct from the existing
+      singular `groundTruthVerdict`/`groundTruthAnnotation`. Additive/optional;
+      validate leniently. Inspired by Arize Phoenix's multi-annotator review model
+      (charter-compatible: schema field only, not their harness/evaluators).
+
+### 4F.20 Run experiment/variant grouping key (P2, S)
+
+- [ ] Add optional `run.experimentId?: string` and `run.variantLabel?: string` to
+      the `run` object — lets report/history tooling cluster 3+ variant runs
+      (e.g. prompt v1/v2/v3) for side-by-side comparison, beyond the existing
+      single baseline-vs-current model. Additive/optional; validate leniently.
+      Inspired by Arize Phoenix's Experiments concept (schema field only, not
+      their dataset/experiment abstractions or hosted comparison UI).
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
