@@ -198,6 +198,11 @@ export type EvalRow = {
     decidedAt?: string;
   }>;
   reviewAgreement?: number; // 0-1
+  repeated?: {
+    runs: number;
+    passes: number;
+    aggregation: 'mean' | 'majority' | 'all';
+  };
   input?: string;
   output?: string;
   expected?: string;

@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generalized stale embedded help-text sweep in the CLI-help verification tooling (4H.5).
 - Optional `rows[].humanReviews` (independent multi-reviewer verdicts) and `rows[].reviewAgreement` (inter-rater agreement, 0-1) on rows, distinct from the existing singular `groundTruthVerdict`/`groundTruthAnnotation` (4F.19).
 - Optional `run.experimentId`/`run.variantLabel` grouping key for clustering variant runs (e.g. prompt v1/v2/v3), surfaced in the HTML report banner/metadata card and markdown table (4F.20).
+- Optional `rows[].repeated?: { runs; passes; aggregation: 'mean' | 'majority' | 'all' }` to represent a row's result when a judge was run multiple times to absorb non-determinism, rendered as a detail near the row's pass/fail (4F.22).
 
 ### Changed
 

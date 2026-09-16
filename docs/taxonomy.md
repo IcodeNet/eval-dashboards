@@ -145,6 +145,17 @@ from the singular `groundTruthVerdict`/`groundTruthAnnotation` fields above:
 }
 ```
 
+When a judge is run multiple times to absorb non-determinism instead of
+collapsing straight to a single boolean, rows can record the aggregation via
+`repeated: { runs, passes, aggregation }` where `aggregation` is one of
+`'mean' | 'majority' | 'all'`:
+
+```json
+{
+  "repeated": { "runs": 5, "passes": 4, "aggregation": "majority" }
+}
+```
+
 ### 1.4 Add Metadata for Grouping & Versioning (Recommended)
 
 | Field | Type | Purpose |
