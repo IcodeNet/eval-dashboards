@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `publish --redact` for two-tier (redacted/full) artifact splits (4F.1), with a hard-fail preflight when evidence isn't redacted (4F.2).
 - `eval-check-result/v2` audit-provenance output from `check` (4F.3).
 - `sign`/`verify` CLI for artifact digest signing, including cosign keyless mode (4F.4).
+- Structured per-row assertion evidence: optional `rows[].checks?: Array<{ type, expected?, actual?, threshold?, pass, weight? }>` for recording which named check(s) produced a row's pass/fail, rendered as a per-row checks table in HTML (4F.24).
 - Waiver/exception register for gate bypasses (4F.5), plus detection of gate config loosening vs baseline (4F.6).
 - `heartbeat-verify` command (4F.7) and a static offline org rollup view in `history` (4F.8).
 - Bypass accounting for gate escape hatches (4F.9), and PR-subset vs full-suite gate tiering with a cost budget (4F.10).
