@@ -349,6 +349,55 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Agreement pairs');
   });
 
+  it('renders humanReviews and reviewAgreement in row detail (4F.19)', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-human-reviews',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'case-hr-1',
+          suite: 'quality',
+          passed: true,
+          humanReviews: [
+            {
+              reviewer: 'alice',
+              verdict: 'pass',
+              category: 'acceptable',
+              note: 'Clear and accurate <script>alert(1)</script>',
+              decidedAt: '2026-08-01T00:00:00.000Z',
+            },
+            { reviewer: 'bob', verdict: 'pass' },
+          ],
+          reviewAgreement: 1,
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Human reviews');
+    expect(html).toContain('alice');
+    expect(html).toContain('bob');
+    expect(html).toContain('Review agreement');
+    expect(html).toContain('100%');
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
   it('renders provenance badge and suite pass-rate pills', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {
@@ -413,6 +462,39 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('class="suite-pill suite-pill-pass" data-tip="quality');
     expect(html).toContain('class="suite-pill suite-pill-fail" data-tip="safety');
     expect(html).toContain('class="metric" data-tip="Rows that met their pass threshold this run.');
+  });
+
+  it('renders run.experimentId and run.variantLabel in the HTML report banner and metadata card', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-exp',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+        branch: 'refs/heads/main',
+        experimentId: 'prompt-tuning-2026-07',
+        variantLabel: 'v3-cot',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-exp', suite: 'quality', passed: true }],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('prompt-tuning-2026-07');
+    expect(html).toContain('v3-cot');
+    expect(html).toContain('Experiment');
+    expect(html).toContain('Variant');
   });
 
   it('renders sections collapsed by default with summary and toggle affordance', async () => {

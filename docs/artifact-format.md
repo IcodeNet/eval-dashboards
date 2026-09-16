@@ -127,6 +127,8 @@ export type EvalReportV1 = {
     commit?: string;
     buildId?: string;
     sourceUrl?: string;
+    experimentId?: string;
+    variantLabel?: string;
     configSnapshot?: {
       redacted?: boolean;
       source?: string;
@@ -143,6 +145,14 @@ export type EvalReportV1 = {
   tags?: Record<string, string>;
 };
 ```
+
+`run.experimentId` / `run.variantLabel` (both optional strings, validated
+leniently with no format constraint): a grouping key for clustering 3+
+variant runs (e.g. prompt v1/v2/v3) for side-by-side comparison, beyond the
+single baseline-vs-current model. `experimentId` identifies the experiment;
+`variantLabel` is a human-readable label for this run's variant within it.
+Purely descriptive — no gate reads these fields. Echoed in the HTML report's
+run banner and run-metadata card, and in the markdown reporter's run table.
 
 `run.kind` conventions:
 
@@ -180,6 +190,14 @@ export type EvalRow = {
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
   groundTruthAxisScores?: Record<string, number>;
+  humanReviews?: Array<{
+    reviewer: string;
+    verdict: string;
+    category?: string;
+    note?: string;
+    decidedAt?: string;
+  }>;
+  reviewAgreement?: number; // 0-1
   input?: string;
   output?: string;
   expected?: string;

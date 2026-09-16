@@ -187,6 +187,8 @@ export const renderMarkdown = (context: ReportContext): string => {
   if (summary.run.branch) lines.push(`| Branch | ${summary.run.branch} |`);
   if (summary.run.commit) lines.push(`| Commit | ${summary.run.commit} |`);
   if (summary.run.buildId) lines.push(`| Build | ${summary.run.buildId} |`);
+  if (summary.run.experimentId) lines.push(`| Experiment | ${summary.run.experimentId} |`);
+  if (summary.run.variantLabel) lines.push(`| Variant | ${summary.run.variantLabel} |`);
   if (context.current.tags && Object.keys(context.current.tags).length > 0) {
     lines.push(
       `| Tags | ${Object.entries(context.current.tags).map(([key, val]) => `${key}=${val}`).join(', ')} |`,
@@ -554,6 +556,8 @@ const metadataCards = (
   if (run.branch) cards.push({ label: 'Branch', value: run.branch, tip: 'Git branch recorded by the eval runner.' });
   if (run.commit) cards.push({ label: 'Commit', value: run.commit, tip: 'Git commit recorded by the eval runner.' });
   if (run.sourceUrl) cards.push({ label: 'Source', value: run.sourceUrl, tip: 'Source CI/job URL for this run when available.' });
+  if (run.experimentId) cards.push({ label: 'Experiment', value: run.experimentId, tip: 'Grouping key for clustering variant runs (e.g. prompt v1/v2/v3).' });
+  if (run.variantLabel) cards.push({ label: 'Variant', value: run.variantLabel, tip: 'Human-readable label for this run within its experiment.' });
   if (tags && Object.keys(tags).length > 0) {
     cards.push({
       label: 'Tags',
@@ -872,6 +876,28 @@ const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number
     true,
     true,
     'Human-written notes that explain why the labelled verdict or category is correct.',
+  );
+  if (Array.isArray(r.humanReviews) && r.humanReviews.length > 0) {
+    const items = r.humanReviews
+      .map((hr) => {
+        const parts = [`<strong>${e(hr.reviewer)}</strong>: ${e(hr.verdict)}`];
+        if (hr.category) parts.push(`(${e(hr.category)})`);
+        if (hr.decidedAt) parts.push(`<span class="mono">${e(hr.decidedAt)}</span>`);
+        const note = hr.note ? `<div>${e(hr.note)}</div>` : '';
+        return `<li>${parts.join(' ')}${note}</li>`;
+      })
+      .join('');
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Independent multi-reviewer verdicts for this row, distinct from the single ground-truth label above.">Human reviews</span>
+      <span class="detail-field-value"><ul>${items}</ul></span>
+    </div>`);
+  }
+  field(
+    'Review agreement',
+    typeof r.reviewAgreement === 'number' ? `${Math.round(r.reviewAgreement * 100)}%` : null,
+    false,
+    false,
+    'Inter-rater agreement across humanReviews, as a fraction between 0 and 1.',
   );
   field('Judge model', r.judgeModel, false, false, 'The grader model or judge used to score this row.');
 
@@ -1703,6 +1729,8 @@ ${renderCssVariables(theme)}
         ${run.branch ? `<span>Branch&nbsp;<strong>${e(run.branch)}</strong></span>` : ''}
         ${run.commit ? `<span>Commit&nbsp;<strong>${e(run.commit)}</strong></span>` : ''}
         ${run.buildId ? `<span>Build&nbsp;<strong>${e(run.buildId)}</strong></span>` : ''}
+        ${run.experimentId ? `<span>Experiment&nbsp;<strong>${e(run.experimentId)}</strong></span>` : ''}
+        ${run.variantLabel ? `<span>Variant&nbsp;<strong>${e(run.variantLabel)}</strong></span>` : ''}
         <span>Provenance&nbsp;<strong><span class="provenance-badge provenance-${e(provenance.className)}">${e(provenance.label)}</span></strong></span>
         ${totalDurationMs > 0 ? `<span>Duration&nbsp;<strong>${e(formatDuration(totalDurationMs))}</strong></span>` : ''}
       </div>

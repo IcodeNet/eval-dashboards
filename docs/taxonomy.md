@@ -130,6 +130,21 @@ Provide the reviewer's assessment:
 }
 ```
 
+Multiple independent reviewers can be captured per row via `humanReviews`
+(array of `{ reviewer, verdict, category?, note?, decidedAt? }`) plus an
+optional `reviewAgreement` (0-1) summarizing inter-rater agreement — distinct
+from the singular `groundTruthVerdict`/`groundTruthAnnotation` fields above:
+
+```json
+{
+  "humanReviews": [
+    { "reviewer": "alice", "verdict": "pass", "category": "acceptable" },
+    { "reviewer": "bob", "verdict": "pass", "note": "Agrees with alice." }
+  ],
+  "reviewAgreement": 1.0
+}
+```
+
 ### 1.4 Add Metadata for Grouping & Versioning (Recommended)
 
 | Field | Type | Purpose |
@@ -325,6 +340,7 @@ When emitting `eval-report/v1`, include:
 - ✅ `suiteManifests[*]` with `name`, `target`, `riskArea`, `datasetSource`, `datasetVersion`, `gate`
 - ✅ `rubricContracts[*]` if using LLM judges or rubric axes
 - ✅ `run` metadata (project, team, branch, commit, buildId)
+- ✅ `run.experimentId` / `run.variantLabel` when clustering 3+ variant runs (e.g. prompt v1/v2/v3) for comparison
 
 ### For Teams Using `@icodenet/eval-dashboards`
 

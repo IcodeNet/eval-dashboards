@@ -1333,12 +1333,13 @@ Acceptance criteria:
 
 ### 4F.20 Run experiment/variant grouping key (P2, S)
 
-- [ ] Add optional `run.experimentId?: string` and `run.variantLabel?: string` to
+- [x] Add optional `run.experimentId?: string` and `run.variantLabel?: string` to
       the `run` object — lets report/history tooling cluster 3+ variant runs
       (e.g. prompt v1/v2/v3) for side-by-side comparison, beyond the existing
       single baseline-vs-current model. Additive/optional; validate leniently.
       Inspired by Arize Phoenix's Experiments concept (schema field only, not
       their dataset/experiment abstractions or hosted comparison UI).
+      Evidence: test/validate.test.ts:63, test/render.test.ts:418.
 
 ### Still out of scope in 4F
 

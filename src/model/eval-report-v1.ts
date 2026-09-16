@@ -222,6 +222,10 @@ export type EvalRun = {
   commit?: string;
   buildId?: string;
   sourceUrl?: string;
+  /** Optional grouping key for clustering variant runs (e.g. prompt v1/v2/v3). */
+  experimentId?: string;
+  /** Optional human-readable label for the variant within an experiment. */
+  variantLabel?: string;
   configSnapshot?: RunConfigSnapshot;
 };
 
@@ -273,6 +277,23 @@ export type EvalRow = {
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
   groundTruthAxisScores?: Record<string, number>;
+  /**
+   * 4F.19 — optional independent multi-reviewer verdicts for this row,
+   * distinct from the singular groundTruthVerdict/groundTruthAnnotation.
+   * Each entry captures one reviewer's verdict/category/note/decidedAt.
+   */
+  humanReviews?: Array<{
+    reviewer: string;
+    verdict: string;
+    category?: string;
+    note?: string;
+    decidedAt?: string;
+  }>;
+  /**
+   * 4F.19 — optional inter-rater agreement score across humanReviews,
+   * expressed as a fraction between 0 and 1.
+   */
+  reviewAgreement?: number;
   input?: string;
   output?: string;
   expected?: string;

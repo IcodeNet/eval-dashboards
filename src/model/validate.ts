@@ -106,6 +106,14 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
       errors.push('run.generatedAt must be an ISO date string.');
     }
 
+    if (value.run.experimentId !== undefined && !isString(value.run.experimentId)) {
+      errors.push('run.experimentId must be a string when provided.');
+    }
+
+    if (value.run.variantLabel !== undefined && !isString(value.run.variantLabel)) {
+      errors.push('run.variantLabel must be a string when provided.');
+    }
+
     if (value.run.configSnapshot !== undefined) {
       if (!isObject(value.run.configSnapshot)) {
         errors.push('run.configSnapshot must be an object when provided.');
@@ -292,6 +300,40 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
               errors.push(`rows[${index}].groundTruthAxisScores.${axis} must be a number.`);
             }
           }
+        }
+      }
+
+      if (row['humanReviews'] !== undefined) {
+        if (!Array.isArray(row['humanReviews'])) {
+          errors.push(`rows[${index}].humanReviews must be an array when provided.`);
+        } else {
+          (row['humanReviews'] as unknown[]).forEach((hr, hi) => {
+            if (!isObject(hr)) {
+              errors.push(`rows[${index}].humanReviews[${hi}] must be an object.`);
+              return;
+            }
+            if (!isString(hr['reviewer']) || hr['reviewer'].length === 0) {
+              errors.push(`rows[${index}].humanReviews[${hi}].reviewer must be a non-empty string.`);
+            }
+            if (!isString(hr['verdict']) || hr['verdict'].length === 0) {
+              errors.push(`rows[${index}].humanReviews[${hi}].verdict must be a non-empty string.`);
+            }
+            if (hr['category'] !== undefined && !isString(hr['category'])) {
+              errors.push(`rows[${index}].humanReviews[${hi}].category must be a string when provided.`);
+            }
+            if (hr['note'] !== undefined && !isString(hr['note'])) {
+              errors.push(`rows[${index}].humanReviews[${hi}].note must be a string when provided.`);
+            }
+            if (hr['decidedAt'] !== undefined && !isString(hr['decidedAt'])) {
+              errors.push(`rows[${index}].humanReviews[${hi}].decidedAt must be a string when provided.`);
+            }
+          });
+        }
+      }
+
+      if (row['reviewAgreement'] !== undefined) {
+        if (!isNumber(row['reviewAgreement']) || row['reviewAgreement'] < 0 || row['reviewAgreement'] > 1) {
+          errors.push(`rows[${index}].reviewAgreement must be a number between 0 and 1 when provided.`);
         }
       }
 

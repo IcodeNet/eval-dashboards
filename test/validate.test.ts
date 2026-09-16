@@ -50,13 +50,51 @@ describe('validateEvalReport', () => {
           },
         },
       },
-      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
-      rows: [{ id: 'row-1', suite: 'quality', passed: true }],
+      suites: [],
+      rows: [],
     });
 
     expect(result.ok).toBe(false);
     expect((result as { ok: false; errors: string[] }).errors).toContain(
       'run.configSnapshot.values.bad must be a string, number, boolean, or null.',
+    );
+  });
+
+  it('accepts run.experimentId and run.variantLabel as plain optional strings', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-07-31T10:00:00.000Z',
+        experimentId: 'prompt-tuning-2026-07',
+        variantLabel: 'v3-cot',
+      },
+      suites: [],
+      rows: [],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects non-string run.experimentId / run.variantLabel', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-07-31T10:00:00.000Z',
+        experimentId: 42,
+        variantLabel: { label: 'v3' },
+      },
+      suites: [],
+      rows: [],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'run.experimentId must be a string when provided.',
+    );
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'run.variantLabel must be a string when provided.',
     );
   });
 
@@ -746,5 +784,61 @@ describe('validateEvalReport', () => {
       issues: Array<{ code: string; path: string; message: string }>;
     };
     expect(failed.issues.some((issue) => issue.path === 'suiteManifests[0].rubricVersion')).toBe(true);
+  });
+
+  it('accepts rows with valid humanReviews and reviewAgreement (4F.19)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          humanReviews: [
+            { reviewer: 'alice', verdict: 'pass', category: 'acceptable', note: 'looks good', decidedAt: '2026-07-31T10:00:00.000Z' },
+            { reviewer: 'bob', verdict: 'pass' },
+          ],
+          reviewAgreement: 1,
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects humanReviews entries missing reviewer/verdict (4F.19)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          humanReviews: [{ category: 'acceptable' }],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].humanReviews[0].reviewer must be a non-empty string.');
+    expect(failed.errors).toContain('rows[0].humanReviews[0].verdict must be a non-empty string.');
+  });
+
+  it('rejects reviewAgreement outside 0-1 (4F.19)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true, reviewAgreement: 1.5 }],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].reviewAgreement must be a number between 0 and 1 when provided.');
   });
 });
