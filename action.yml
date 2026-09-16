@@ -50,7 +50,11 @@ inputs:
     required: false
     default: ''
   github-token:
-    description: 'Token used for publish targets that talk to the GitHub API.'
+    description: >-
+      Token used for publish targets that talk to the GitHub API. Required
+      scope depends on publish-target: github-pr-comment needs
+      `pull-requests: write`; github-pages needs push rights to the target
+      branch. Grant it via the calling workflow's `permissions:` block.
     required: false
     default: ''
 

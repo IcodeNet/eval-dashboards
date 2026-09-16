@@ -1468,7 +1468,7 @@ Acceptance criteria:
 ### 4I.2 Versioned, marketplace-listed composite GitHub Action (P1, S)
 
 - [x] Package the existing example workflow YAML as a versioned composite
-      Action (`uses: icodenet/eval-dashboards-action@v1`) instead of a
+      Action (`uses: IcodeNet/eval-dashboards@v0.7.0`) instead of a
       copy-paste snippet, lowering adoption friction to match competitor
       packaging.
 
