@@ -1128,12 +1128,16 @@ const gateConfigFromOptions = (
     minPassRate: optionNumber(options, 'min-pass-rate'),
     minMatchedExpectationRate: optionNumber(options, 'min-matched-expectation-rate'),
     maxNewFailures: optionNumber(options, 'max-new-failures'),
-    zeroCritical: optionBoolean(options, 'zero-critical'),
+    zeroCritical: optionBoolean(options, 'zero-critical') || undefined,
     maxWarnings: optionNumber(options, 'max-warnings'),
     maxWarningsByCode: Object.keys(maxWarningsByCode).length > 0 ? maxWarningsByCode : undefined,
-    failOnWarningCodes: optionStrings(options, 'fail-on-warning-code', []),
+    failOnWarningCodes: optionStrings(options, 'fail-on-warning-code', []).length
+      ? optionStrings(options, 'fail-on-warning-code', [])
+      : undefined,
     newFailureKey: parsedNewFailureKey,
-    requiredPassingSuites: optionStrings(options, 'require-suite-pass', []),
+    requiredPassingSuites: optionStrings(options, 'require-suite-pass', []).length
+      ? optionStrings(options, 'require-suite-pass', [])
+      : undefined,
     ...(statistical ? { statistical } : {}),
     ...(calibration ? { calibration } : {}),
     ...(repeat ? { repeat } : {}),
@@ -1718,9 +1722,12 @@ const main = async (): Promise<void> => {
       });
       const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
       const cliGateOverrides = gateConfigFromOptions(options);
+      const cliGateOverridesDefined = Object.fromEntries(
+        Object.entries(cliGateOverrides).filter(([, value]) => value !== undefined),
+      ) as GateConfig;
       const gateConfig: GateConfig = {
         ...(config.gates ?? {}),
-        ...cliGateOverrides,
+        ...cliGateOverridesDefined,
         ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
       };
 

@@ -970,6 +970,31 @@ describe('check machine outputs', () => {
     );
   });
 
+  it('applies config-file minPassRate when no matching CLI gate flag is passed', async () => {
+    const dir = await createTempDir();
+    const artifactDir = path.join(dir, 'artifacts');
+    await mkdir(artifactDir, { recursive: true });
+
+    const templateRaw = await readFile(
+      path.join(process.cwd(), 'examples/taxonomy-complete-fixture/run-complete.json'),
+      'utf8',
+    );
+    await writeFile(path.join(artifactDir, 'report.json'), templateRaw);
+    await writeFile(
+      path.join(dir, 'eval-dashboards.config.mjs'),
+      'export default { gates: { minPassRate: 0.9 } };\n',
+    );
+
+    await expect(
+      execFileAsync(tsxBin, [path.join(process.cwd(), 'src/cli/index.ts'), 'check', '--input=artifacts'], {
+        cwd: dir,
+      }),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('is below required 0.900'),
+    });
+  });
+
   it('respects config disable unless explicitly re-enabled on CLI', async () => {
     const dir = await createTempDir();
     const artifactDir = path.join(dir, 'artifacts');
