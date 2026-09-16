@@ -942,4 +942,61 @@ describe('validateEvalReport', () => {
       "rows[0].repeated.aggregation must be one of 'mean', 'majority', 'all'.",
     );
   });
+
+  it('accepts rows with valid structured checks (4F.24)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          checks: [
+            { type: 'contains', expected: 'refund', actual: 'refund policy', pass: true, weight: 1 },
+            { type: 'latency-ms', threshold: 2000, actual: 1450, pass: true, weight: 0.5 },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects invalid structured checks (4F.24)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          checks: [{ type: '', pass: 'yes', threshold: 'nope', weight: 'nope' } as unknown],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].checks[0].type must be a non-empty string.');
+    expect(failed.errors).toContain('rows[0].checks[0].pass must be a boolean.');
+    expect(failed.errors).toContain('rows[0].checks[0].threshold must be a number when provided.');
+    expect(failed.errors).toContain('rows[0].checks[0].weight must be a number when provided.');
+  });
+
+  it('rejects a non-array checks field (4F.24)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'quality', passed: true, checks: 'nope' as unknown }],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].checks must be an array when provided.');
+  });
 });

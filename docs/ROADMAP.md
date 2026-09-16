@@ -1372,7 +1372,7 @@ Acceptance criteria:
 
 ### 4F.24 Structured per-row assertion evidence (P1, M)
 
-- [ ] Add optional `rows[].checks?: Array<{ type: string; expected?: unknown;
+- [x] Add optional `rows[].checks?: Array<{ type: string; expected?: unknown;
       actual?: unknown; threshold?: number; pass: boolean; weight?: number }>`
       to `EvalRow`. Promptfoo-style gap scan (2026-09-16): today `graders` is
       only a free-text category on the *suite*, and a row collapses straight to

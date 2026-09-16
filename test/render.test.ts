@@ -476,6 +476,47 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('4/5 passed (majority aggregation)');
   });
 
+  it('renders structured per-row checks in row detail (4F.24)', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-checks',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'case-checks-1',
+          suite: 'quality',
+          passed: true,
+          checks: [
+            { type: 'contains', expected: 'refund', actual: 'refund policy', pass: true, weight: 1 },
+            { type: 'latency-ms', threshold: 2000, actual: 1450, pass: false, weight: 0.5 },
+          ],
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Checks');
+    expect(html).toContain('contains');
+    expect(html).toContain('latency-ms');
+    expect(html).toContain('threshold=2000');
+    expect(html).toContain('weight=0.5');
+  });
+
   it('renders provenance badge and suite pass-rate pills', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {

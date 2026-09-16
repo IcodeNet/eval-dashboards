@@ -315,6 +315,22 @@ export type EvalRow = {
     passes: number;
     aggregation: 'mean' | 'majority' | 'all';
   };
+  /**
+   * 4F.24 — optional structured per-row assertion evidence: a row's `passed`
+   * value may be the result of one or more named checks (e.g. a
+   * weighted-assertion-set row), each with its own type, expected/actual
+   * values, threshold, pass state, and optional weight. `type` is a
+   * free-form string a runner defines — this repo does not own an
+   * assertion DSL, it only stores the result.
+   */
+  checks?: Array<{
+    type: string;
+    expected?: unknown;
+    actual?: unknown;
+    threshold?: number;
+    pass: boolean;
+    weight?: number;
+  }>;
   input?: string;
   output?: string;
   expected?: string;

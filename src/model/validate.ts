@@ -379,6 +379,32 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['checks'] !== undefined) {
+        if (!Array.isArray(row['checks'])) {
+          errors.push(`rows[${index}].checks must be an array when provided.`);
+        } else {
+          row['checks'].forEach((check: unknown, ci: number) => {
+            if (!isObject(check)) {
+              errors.push(`rows[${index}].checks[${ci}] must be an object.`);
+              return;
+            }
+            const c = check as Record<string, unknown>;
+            if (!isString(c['type']) || c['type'].length === 0) {
+              errors.push(`rows[${index}].checks[${ci}].type must be a non-empty string.`);
+            }
+            if (typeof c['pass'] !== 'boolean') {
+              errors.push(`rows[${index}].checks[${ci}].pass must be a boolean.`);
+            }
+            if (c['threshold'] !== undefined && !isNumber(c['threshold'])) {
+              errors.push(`rows[${index}].checks[${ci}].threshold must be a number when provided.`);
+            }
+            if (c['weight'] !== undefined && !isNumber(c['weight'])) {
+              errors.push(`rows[${index}].checks[${ci}].weight must be a number when provided.`);
+            }
+          });
+        }
+      }
+
       if (row['trace'] !== undefined) {
         if (!isObject(row['trace'])) {
           errors.push(`rows[${index}].trace must be an object when provided.`);

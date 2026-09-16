@@ -216,6 +216,14 @@ export type EvalRow = {
     passes: number;
     aggregation: 'mean' | 'majority' | 'all';
   };
+  checks?: Array<{
+    type: string;
+    expected?: unknown;
+    actual?: unknown;
+    threshold?: number;
+    pass: boolean;
+    weight?: number;
+  }>;
   input?: string;
   output?: string;
   expected?: string;

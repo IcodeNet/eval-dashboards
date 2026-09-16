@@ -156,6 +156,22 @@ collapsing straight to a single boolean, rows can record the aggregation via
 }
 ```
 
+A row's `passed` value can also be the result of one or more named checks —
+structured per-row assertion evidence via `checks: Array<{ type, expected?,
+actual?, threshold?, pass, weight? }>`. `type` is a free-form string a runner
+defines (this repo does not own an assertion DSL, it only stores the
+result), useful for weighted-assertion-set rows where several named
+assertions combine into one pass/fail:
+
+```json
+{
+  "checks": [
+    { "type": "contains", "expected": "refund", "actual": "refund policy", "pass": true, "weight": 1 },
+    { "type": "latency-ms", "threshold": 2000, "actual": 1450, "pass": true, "weight": 0.5 }
+  ]
+}
+```
+
 ### 1.4 Add Metadata for Grouping & Versioning (Recommended)
 
 | Field | Type | Purpose |

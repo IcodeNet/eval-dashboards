@@ -906,6 +906,26 @@ const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number
       <span class="detail-field-value">${passes}/${runs} passed (${e(aggregation)} aggregation)</span>
     </div>`);
   }
+  if (Array.isArray(r.checks) && r.checks.length > 0) {
+    const items = r.checks
+      .map((c) => {
+        const badge = c.pass ? '<span class="badge pass">pass</span>' : '<span class="badge fail">fail</span>';
+        const parts = [`<strong>${e(c.type)}</strong>`, badge];
+        if (c.threshold !== undefined) parts.push(`threshold=${e(String(c.threshold))}`);
+        if (c.weight !== undefined) parts.push(`weight=${e(String(c.weight))}`);
+        const detail: string[] = [];
+        const stringifyValue = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v));
+        if (c.expected !== undefined) detail.push(`expected: <span class="mono">${e(stringifyValue(c.expected))}</span>`);
+        if (c.actual !== undefined) detail.push(`actual: <span class="mono">${e(stringifyValue(c.actual))}</span>`);
+        const detailHtml = detail.length ? `<div>${detail.join(' &middot; ')}</div>` : '';
+        return `<li>${parts.join(' ')}${detailHtml}</li>`;
+      })
+      .join('');
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Structured per-row assertion evidence: named checks (type, expected/actual, threshold, weight) whose combination may determine this row's passed value. check.type is a free-form string a runner defines.">Checks</span>
+      <span class="detail-field-value"><ul>${items}</ul></span>
+    </div>`);
+  }
   field('Judge model', r.judgeModel, false, false, 'The grader model or judge used to score this row.');
 
   if (typeof r.score === 'number' && Number.isFinite(r.score)) {
