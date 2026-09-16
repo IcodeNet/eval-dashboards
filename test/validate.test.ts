@@ -574,6 +574,66 @@ describe('validateEvalReport', () => {
     );
   });
 
+  it('accepts judgeTraces with input/output strings on a row', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'r',
+          suite: 'q',
+          passed: true,
+          judgeTraces: {
+            input: 'What is the capital of France?',
+            output: 'Paris',
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts judgeTraces with only one of input/output', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, judgeTraces: { output: 'Paris' } }],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects judgeTraces with a non-string field', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, judgeTraces: { input: 42 } }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].judgeTraces.input must be a string when provided.',
+    );
+  });
+
+  it('rejects judgeTraces that is not an object', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'q', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r', suite: 'q', passed: true, judgeTraces: 'nope' }],
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; errors: string[] }).errors).toContain(
+      'rows[0].judgeTraces must be an object when provided.',
+    );
+  });
+
 
   it('rejects non-numeric score and durationMs values on rows', () => {
     const result = validateEvalReport({
@@ -840,5 +900,46 @@ describe('validateEvalReport', () => {
     expect(result.ok).toBe(false);
     const failed = result as { ok: false; errors: string[] };
     expect(failed.errors).toContain('rows[0].reviewAgreement must be a number between 0 and 1 when provided.');
+  });
+
+  it('accepts rows with a valid repeated aggregation record (4F.22)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          repeated: { runs: 5, passes: 4, aggregation: 'majority' },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an invalid repeated aggregation record (4F.22)', () => {
+    const result = validateEvalReport({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-07-31T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-1',
+          suite: 'quality',
+          passed: true,
+          repeated: { runs: 3, passes: 5, aggregation: 'bogus' },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    const failed = result as { ok: false; errors: string[] };
+    expect(failed.errors).toContain('rows[0].repeated.passes must not exceed repeated.runs.');
+    expect(failed.errors).toContain(
+      "rows[0].repeated.aggregation must be one of 'mean', 'majority', 'all'.",
+    );
   });
 });

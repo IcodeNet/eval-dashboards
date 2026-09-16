@@ -227,6 +227,19 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
 
+      if (row['judgeTraces'] !== undefined) {
+        if (!isObject(row['judgeTraces'])) {
+          errors.push(`rows[${index}].judgeTraces must be an object when provided.`);
+        } else {
+          const traces = row['judgeTraces'] as Record<string, unknown>;
+          for (const field of ['input', 'output']) {
+            if (traces[field] !== undefined && !isString(traces[field])) {
+              errors.push(`rows[${index}].judgeTraces.${field} must be a string when provided.`);
+            }
+          }
+        }
+      }
+
       if (row['agentReasoning'] !== undefined && !isString(row['agentReasoning'])) {
         errors.push(`rows[${index}].agentReasoning must be a string when provided.`);
       }
@@ -334,6 +347,35 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
       if (row['reviewAgreement'] !== undefined) {
         if (!isNumber(row['reviewAgreement']) || row['reviewAgreement'] < 0 || row['reviewAgreement'] > 1) {
           errors.push(`rows[${index}].reviewAgreement must be a number between 0 and 1 when provided.`);
+        }
+      }
+
+      if (row['repeated'] !== undefined) {
+        if (!isObject(row['repeated'])) {
+          errors.push(`rows[${index}].repeated must be an object when provided.`);
+        } else {
+          const rep = row['repeated'];
+          if (!isNumber(rep['runs']) || rep['runs'] < 1 || !Number.isInteger(rep['runs'])) {
+            errors.push(`rows[${index}].repeated.runs must be a positive integer.`);
+          }
+          if (!isNumber(rep['passes']) || rep['passes'] < 0 || !Number.isInteger(rep['passes'])) {
+            errors.push(`rows[${index}].repeated.passes must be a non-negative integer.`);
+          }
+          if (
+            isNumber(rep['runs']) &&
+            isNumber(rep['passes']) &&
+            Number.isInteger(rep['runs']) &&
+            Number.isInteger(rep['passes']) &&
+            rep['passes'] > rep['runs']
+          ) {
+            errors.push(`rows[${index}].repeated.passes must not exceed repeated.runs.`);
+          }
+          if (
+            !isString(rep['aggregation']) ||
+            !['mean', 'majority', 'all'].includes(rep['aggregation'] as string)
+          ) {
+            errors.push(`rows[${index}].repeated.aggregation must be one of 'mean', 'majority', 'all'.`);
+          }
         }
       }
 

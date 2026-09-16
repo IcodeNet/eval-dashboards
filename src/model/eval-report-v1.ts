@@ -269,6 +269,16 @@ export type EvalRow = {
   judgeVerdict?: boolean;
   judgeCategory?: string;
   judgeReasoning?: string;
+  /**
+   * 4F.21 — optional bounded snapshot of what the judge actually saw/produced,
+   * distinct from full transcripts (`turns`) or `judgeReasoning`. String-only,
+   * no size enforcement in the schema; reporters may truncate for display.
+   * Inspired by Ragas's `MetricResult.traces` convention.
+   */
+  judgeTraces?: {
+    input?: string;
+    output?: string;
+  };
   promptVersion?: string;
   agentChannel?: string;
   agentVersion?: string;
@@ -294,6 +304,17 @@ export type EvalRow = {
    * expressed as a fraction between 0 and 1.
    */
   reviewAgreement?: number;
+  /**
+   * 4F.22 — optional repeated-run aggregation record: when a judge was run
+   * multiple times to absorb non-determinism instead of collapsing straight
+   * to a single boolean, this captures the run count, pass count, and the
+   * aggregation strategy used to derive the row's final `passed` value.
+   */
+  repeated?: {
+    runs: number;
+    passes: number;
+    aggregation: 'mean' | 'majority' | 'all';
+  };
   input?: string;
   output?: string;
   expected?: string;

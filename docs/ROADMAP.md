@@ -1344,16 +1344,17 @@ Acceptance criteria:
 
 ### 4F.21 Judge evidence snapshot (P2, S)
 
-- [ ] Add optional `rows[].judgeVerdict.traces?: { input?: string; output?: string }` —
+- [x] Add optional `rows[].judgeVerdict.traces?: { input?: string; output?: string }` —
       a small, bounded snapshot of what the judge actually saw/produced, distinct
       from full transcripts or `judgeReasoning`. String-only, no size enforcement
       in the schema (reporters may truncate for display). Inspired by Ragas's
       `MetricResult.traces` convention (input/output only, not a full trace tree).
       Purely additive; render near existing judge-verdict/reasoning row detail.
+      Evidence: test/validate.test.ts:577, test/render.test.ts:251.
 
 ### 4F.22 Repeated-run aggregation record (P2, S)
 
-- [ ] Add optional `rows[].repeated?: { runs: number; passes: number; aggregation:
+- [x] Add optional `rows[].repeated?: { runs: number; passes: number; aggregation:
       'mean' | 'majority' | 'all' }` to represent a row's result when a judge was
       run multiple times to absorb non-determinism, instead of collapsing straight
       to a single boolean. Inspired by Ragas's `_ensemble()` repeated-metric pattern

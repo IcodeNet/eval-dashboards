@@ -899,6 +899,13 @@ const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number
     false,
     'Inter-rater agreement across humanReviews, as a fraction between 0 and 1.',
   );
+  if (r.repeated) {
+    const { runs, passes, aggregation } = r.repeated;
+    fields.push(`<div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="This row's passed value reflects an aggregation across multiple judge runs rather than a single run, to absorb non-determinism.">Repeated runs</span>
+      <span class="detail-field-value">${passes}/${runs} passed (${e(aggregation)} aggregation)</span>
+    </div>`);
+  }
   field('Judge model', r.judgeModel, false, false, 'The grader model or judge used to score this row.');
 
   if (typeof r.score === 'number' && Number.isFinite(r.score)) {
@@ -921,6 +928,21 @@ const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number
     true,
     true,
     'The judge explanation for why it gave this verdict or score.',
+  );
+
+  field(
+    'Judge trace input',
+    r.judgeTraces?.input,
+    true,
+    true,
+    'Bounded snapshot of the input the judge actually saw, distinct from the full transcript.',
+  );
+  field(
+    'Judge trace output',
+    r.judgeTraces?.output,
+    true,
+    true,
+    'Bounded snapshot of the output the judge actually evaluated, distinct from the full transcript.',
   );
 
   if (r.axisScores && Object.keys(r.axisScores).length) {

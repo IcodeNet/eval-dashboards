@@ -248,6 +248,49 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).not.toContain('<script>evil()</script>');
   });
 
+  it('renders judgeTraces input/output as escaped row detail fields', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-traces',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'row-traces',
+          suite: 'quality',
+          kind: 'llm-judge',
+          passed: true,
+          judgeVerdict: true,
+          judgeTraces: {
+            input: 'Judge input <script>evil()</script>',
+            output: 'Judge output snapshot',
+          },
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Judge trace input');
+    expect(html).toContain('Judge trace output');
+    expect(html).toContain('Judge input &lt;script&gt;evil()&lt;/script&gt;');
+    expect(html).toContain('Judge output snapshot');
+    expect(html).not.toContain('<script>evil()</script>');
+  });
+
   it('renders dataset changelog section when entries are provided', async () => {
     const reportDir = await createTempDir();
     const current: EvalReportV1 = {
@@ -396,6 +439,41 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('Review agreement');
     expect(html).toContain('100%');
     expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
+  it('renders repeated-run aggregation record in row detail (4F.22)', async () => {
+    const reportDir = await createTempDir();
+    const current: EvalReportV1 = {
+      schemaVersion: 'eval-report/v1',
+      run: {
+        id: 'run-repeated',
+        generatedAt: '2026-08-03T12:00:00.000Z',
+      },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'case-repeated-1',
+          suite: 'quality',
+          passed: true,
+          repeated: { runs: 5, passes: 4, aggregation: 'majority' },
+        },
+      ],
+    };
+
+    await renderReports(
+      {
+        current,
+        previous: undefined,
+        history: [],
+        comparison: compareRuns(current, undefined),
+        reportDir,
+      },
+      ['html'],
+    );
+
+    const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
+    expect(html).toContain('Repeated runs');
+    expect(html).toContain('4/5 passed (majority aggregation)');
   });
 
   it('renders provenance badge and suite pass-rate pills', async () => {
