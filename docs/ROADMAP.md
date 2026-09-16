@@ -1342,6 +1342,32 @@ Acceptance criteria:
       their dataset/experiment abstractions or hosted comparison UI).
       Evidence: test/validate.test.ts:63, test/render.test.ts:418.
 
+### 4F.21 Judge evidence snapshot (P2, S)
+
+- [ ] Add optional `rows[].judgeVerdict.traces?: { input?: string; output?: string }` —
+      a small, bounded snapshot of what the judge actually saw/produced, distinct
+      from full transcripts or `judgeReasoning`. String-only, no size enforcement
+      in the schema (reporters may truncate for display). Inspired by Ragas's
+      `MetricResult.traces` convention (input/output only, not a full trace tree).
+      Purely additive; render near existing judge-verdict/reasoning row detail.
+
+### 4F.22 Repeated-run aggregation record (P2, S)
+
+- [ ] Add optional `rows[].repeated?: { runs: number; passes: number; aggregation:
+      'mean' | 'majority' | 'all' }` to represent a row's result when a judge was
+      run multiple times to absorb non-determinism, instead of collapsing straight
+      to a single boolean. Inspired by Ragas's `_ensemble()` repeated-metric pattern
+      and community CI examples that gate on N-of-M passes rather than one run.
+      Purely additive; render as an optional badge/detail near the row's pass/fail.
+
+### 4F.23 Gate repeat-run mode (P2, S) — depends on 4F.22
+
+- [ ] Extend gate config with an optional `gate.repeat: { runs: number;
+      requiredPasses: number }` mode, evaluated against `rows[].repeated` when
+      present (fall back to existing pass-rate/threshold modes otherwise).
+      Document in `docs/gates.md`. Small CLI/config addition, not a new engine —
+      the gate still only reads fields already in the artifact.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
