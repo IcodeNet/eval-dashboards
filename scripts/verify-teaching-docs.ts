@@ -84,6 +84,8 @@ interface Block {
   lang: string;
   body: string;
   startLine: number;
+  /** Nearest preceding inline-code path, e.g. `eval-dashboard-red/index.html`. */
+  attributedTo?: string;
 }
 
 /** Extract fenced code blocks with their 1-indexed opening line number. */
@@ -91,16 +93,29 @@ function extractBlocks(markdown: string): Block[] {
   const lines = markdown.split('\n');
   const blocks: Block[] = [];
   let open: { lang: string; startLine: number; buf: string[] } | null = null;
+  let lastAttribution: string | undefined;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const fence = line.match(/^```(\w*)\s*$/);
     if (!fence) {
-      if (open) open.buf.push(line);
+      if (open) {
+        open.buf.push(line);
+      } else {
+        // Docs introduce a block by naming the file it came from, e.g.
+        // `eval-dashboard-good/index.html`: — remember the most recent one.
+        const named = line.match(/`([^`]*index\.html)`/);
+        if (named) lastAttribution = named[1];
+      }
       continue;
     }
     if (open) {
-      blocks.push({ lang: open.lang, body: open.buf.join('\n'), startLine: open.startLine });
+      blocks.push({
+        lang: open.lang,
+        body: open.buf.join('\n'),
+        startLine: open.startLine,
+        attributedTo: lastAttribution,
+      });
       open = null;
     } else {
       open = { lang: fence[1] || '', startLine: i + 1, buf: [] };
@@ -199,6 +214,10 @@ function verifyDoc(
     captured += stdout;
   }
 
+  // Per-report text, so a figure documented for one report cannot be satisfied
+  // by another. Keyed by the path the CLI printed, e.g. eval-dashboard/index.html.
+  const byReport = new Map<string, string>();
+
   if (source === 'html') {
     // The CLI prints each report's path; read back what it actually rendered.
     const reports = captured
@@ -214,19 +233,34 @@ function verifyDoc(
       });
       return 0;
     }
-    captured = reports
-      .map((rel) => htmlToText(readFileSync(path.join(cwd, rel), 'utf8')))
-      .join('\n');
+    for (const rel of reports) {
+      byReport.set(rel, htmlToText(readFileSync(path.join(cwd, rel), 'utf8')));
+    }
+    captured = [...byReport.values()].join('\n');
   }
 
   if (printMode) {
     process.stdout.write(`\n=== ${docRelPath} ===\n${captured}`);
   }
 
-  const haystack = normalizeForMatch(captured);
+  const allText = normalizeForMatch(captured);
 
   for (const block of blocks) {
     if (block.lang !== 'text') continue;
+
+    // When a doc names the report a block came from, assert against that report
+    // alone. pm-02 contrasts a good run with a red one; matching against the
+    // union would let the two sets of figures satisfy each other's assertions.
+    let haystack = allText;
+    let scope = '';
+    if (source === 'html' && block.attributedTo) {
+      const match = [...byReport.entries()].find(([rel]) => rel.endsWith(block.attributedTo!));
+      if (match) {
+        haystack = normalizeForMatch(match[1]);
+        scope = match[0];
+      }
+    }
+
     for (const expected of assertableLines(block.body)) {
       asserted += 1;
       if (!haystack.includes(normalizeForMatch(expected))) {
@@ -234,7 +268,9 @@ function verifyDoc(
           file: docRelPath,
           line: block.startLine,
           documented: expected,
-          context: captured.trim().split('\n').slice(-6).join('\n'),
+          context: scope
+            ? `(asserted against ${scope})`
+            : captured.trim().split('\n').slice(-6).join('\n'),
         });
       }
     }
