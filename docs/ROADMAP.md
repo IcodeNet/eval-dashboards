@@ -26,6 +26,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4H: Documentation navigability](#-phase-4h-documentation-navigability-new)
 - [Phase 4I: GitHub PR-native visibility](#-phase-4i-github-pr-native-visibility-new)
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
+- [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4D.
@@ -1670,6 +1671,58 @@ Acceptance criteria:
 
 **Medium term:**
 3. External adoption push and community feedback loop
+
+---
+
+## 🚧 Phase 4J: OTel GenAI evaluation-span mapping (NEW)
+
+**Why**: a 2026-09-15 competitive/gap scan found the OpenTelemetry GenAI
+semantic-conventions SIG shipped `gen_ai.evaluation.result` (added in the
+GenAI conventions v1.38.0 cut, Oct 2025) specifically to attach an
+evaluation's `evaluation.name`, `score.value`, `score.label`, and
+`explanation` to the span/trace that produced the underlying model or tool
+call. Langfuse, Arize Phoenix, and Datadog LLM Observability already consume
+this event on the standard OTLP endpoint. `docs/integrations/trace-stacks.md`
+mentions OpenTelemetry only in a one-line "applies to" sentence and 4D.2
+already flags (Audit 2026-09-14) that no semantic-convention or
+span-attribute mapping exists. This repo's `TraceReference` (`traceId`,
+`spanId`, `traceUrl`, `spanUrl`) is a generic evidence link with no
+documented way to round-trip against `gen_ai.evaluation.result`, so a team
+piping OTel-instrumented agent traces into `eval-report/v1` has to invent the
+mapping from scratch. Source:
+https://john-hodge.com/blog/opentelemetry-genai-semantic-conventions (state
+of the spec as of July 2026, confirms `gen_ai.evaluation.result` landed in
+v1.38.0 and the GenAI surface remains Development/unstable, so document as
+best-effort/versioned guidance, not a hard schema dependency).
+
+### 4J.1 Document and test the `gen_ai.evaluation.result` ↔ `EvalRow` mapping (P1, S)
+
+- [ ] Add a documented field mapping table to `docs/integrations/trace-stacks.md`
+      (or a new `docs/integrations/otel-genai.md`) from `gen_ai.evaluation.result`
+      attributes (`gen_ai.evaluation.name`, `gen_ai.evaluation.score.value`,
+      `gen_ai.evaluation.score.label`, `gen_ai.evaluation.explanation`) plus the
+      correlating span's `trace_id`/`span_id` to `EvalRow` fields
+      (`judgeCategory`/`score`/`judgeReasoning`/`trace.traceId`/`trace.spanId`).
+  - Explicitly note the GenAI conventions are unstable/Development status per
+    the OTel spec and that consumers should pin a convention version, matching
+    this repo's existing "additive, versioned" posture toward `eval-report/v1`.
+- [ ] Add one runnable example (fixture OTLP/JSON span export containing a
+      `gen_ai.evaluation.result` event → `eval-dashboards import`-style or
+      adapter-helper conversion → valid `eval-report/v1` row with `trace`
+      populated) with a passing test asserting the mapped fields round-trip.
+- [ ] Cross-link this doc from `docs/adoption-map.md` and the existing
+      trace-first evidence example (4C.9) so OTel-based teams have one
+      concrete, tested path instead of ad hoc field guessing.
+
+Acceptance criteria:
+
+- A fixture containing a `gen_ai.evaluation.result` event maps to an
+  `EvalRow` with `trace.traceId`/`trace.spanId` populated and a passing test
+  proves it, matching the existing 4B.3 importer acceptance bar (fixture +
+  test + correct field mapping).
+- `docs/integrations/trace-stacks.md` (or the new OTel-specific page) states
+  the OTel GenAI evaluation-event mapping explicitly instead of only naming
+  OpenTelemetry as a supported trace backend in passing.
 
 ---
 
