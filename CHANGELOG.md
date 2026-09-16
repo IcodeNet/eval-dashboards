@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional top-level `tags` on `eval-report/v1` (4F.15) and compliance-framework tagging fields (4F.14).
 - Optional `trace.spanType` tagging on rows (4F.16), optional per-axis `axisReasoning` alongside `axisScores` (4F.17), and optional suite `scoreScale` for non-normalized scores (4F.18).
 - Generalized stale embedded help-text sweep in the CLI-help verification tooling (4H.5).
+- Optional `rows[].humanReviews` (independent multi-reviewer verdicts) and `rows[].reviewAgreement` (inter-rater agreement, 0-1) on rows, distinct from the existing singular `groundTruthVerdict`/`groundTruthAnnotation` (4F.19).
+- Optional `run.experimentId`/`run.variantLabel` grouping key for clustering variant runs (e.g. prompt v1/v2/v3), surfaced in the HTML report banner/metadata card and markdown table (4F.20).
 
 ### Changed
 
@@ -52,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Frontier markdown table rendering now escapes `|` and newline cell content.
+- Markdown summary table cells for run metadata (`branch`, `commit`, `buildId`, `experimentId`, `variantLabel`, `tags`) now route through the same cell-escaping helper as every other markdown table field, preventing a `|` or newline in these values from corrupting the table structure.
 - Frontier extraction now treats `score` and `durationMs` as strict numeric fields (no coercion of `null`/string to `0`).
 - CLI now rejects unknown flags instead of silently ignoring them.
 - CLI now warns instead of silently ignoring an unparsable numeric flag, and warns on a typo'd `--max-warning-code`.
