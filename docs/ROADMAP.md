@@ -1363,7 +1363,7 @@ Acceptance criteria:
 
 ### 4F.23 Gate repeat-run mode (P2, S) — depends on 4F.22
 
-- [ ] Extend gate config with an optional `gate.repeat: { runs: number;
+- [x] Extend gate config with an optional `gate.repeat: { runs: number;
       requiredPasses: number }` mode, evaluated against `rows[].repeated` when
       present (fall back to existing pass-rate/threshold modes otherwise).
       Document in `docs/gates.md`. Small CLI/config addition, not a new engine —

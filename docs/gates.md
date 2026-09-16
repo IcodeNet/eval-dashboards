@@ -43,6 +43,7 @@ Initial gates:
 - `statistical.confidenceLevel`
 - `statistical.bootstrapSamples`
 - `statistical.minPassRateDelta`
+- `repeat.runs` / `repeat.requiredPasses` (4F.23)
 
 ## PR-subset vs full-suite tiering with a cost budget (4F.10)
 
@@ -277,7 +278,30 @@ Statistical gate options (opt-in):
 - `--bootstrap-samples=<n>`: number of bootstrap resamples (integer, minimum `200`, default `2000`).
 - `--min-pass-rate-delta=<n>`: minimum acceptable pass-rate delta vs baseline. The gate fails only when the bootstrap confidence interval is fully below this threshold (upper bound `< n`).
 
-Current assumption: bootstrap draws are unpaired across all rows in each run (not scenario-paired resampling), and row counts must match between current and baseline runs. Use this as a conservative run-le...[truncated]
+Current assumption: bootstrap draws are unpaired across all rows in each run (not scenario-paired resampling), and row counts must match between current and baseline runs. Use this as a conservative run-level signal, not a per-scenario statistical test.
+
+### Repeat-run gate mode (4F.23)
+
+When a runner emits `rows[].repeated` (the 4F.22 aggregation record — `{ runs, passes, aggregation }`, produced when a judge/case was actually run multiple times), `gate.repeat` lets you enforce a required pass count on those rows without a separate statistical engine — the gate only reads a field already in the artifact:
+
+```ts
+export default {
+  gates: {
+    repeat: { runs: 5, requiredPasses: 4 },
+  },
+};
+```
+
+```sh
+eval-dashboards check --input=.evals_output --repeat-runs=5 --repeat-required-passes=4
+```
+
+- Only rows with a `repeated` record are checked; rows without one fall back to the existing pass-rate/threshold gates untouched.
+- A row whose `repeated.runs` does not match the configured `runs` fails the gate (its aggregation record does not correspond to what was configured, so it cannot be judged against `requiredPasses`).
+- A row whose `repeated.passes < requiredPasses` fails the gate.
+- `requiredPasses` must be between `0` and `runs` inclusive; an out-of-range or non-integer config fails fast as an invalid gate config (same class of failure as other malformed gate config).
+- Diagnostics report how many repeated-run rows were checked and against what `runs`/`requiredPasses`.
+
 
 Typical workflow policies:
 

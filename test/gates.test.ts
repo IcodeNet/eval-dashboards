@@ -615,4 +615,76 @@ describe('checkGates', () => {
     expect(result.passed).toBe(false);
     expect(result.failures.some((line) => line.includes('Invalid statistical gate config'))).toBe(true);
   });
+
+  describe('repeat-run gate mode (4F.23)', () => {
+    const reportWithRepeated = (repeated: { runs: number; passes: number } | undefined): EvalReportV1 => ({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'current', generatedAt: '2026-09-16T10:00:00.000Z' },
+      suites: [{ id: 'quality', total: 1, passed: 1, failed: 0 }],
+      rows: [
+        {
+          id: 'flaky-case',
+          suite: 'quality',
+          passed: true,
+          ...(repeated ? { repeated: { ...repeated, aggregation: 'majority' as const } } : {}),
+        },
+      ],
+    });
+
+    it('passes when repeated.passes meets requiredPasses', () => {
+      const report = reportWithRepeated({ runs: 5, passes: 4 });
+      const result = checkGates(report, compareRuns(report, report), {
+        repeat: { runs: 5, requiredPasses: 4 },
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.diagnostics.some((line) => line.includes('Repeat-run gate'))).toBe(true);
+    });
+
+    it('fails when repeated.passes is below requiredPasses', () => {
+      const report = reportWithRepeated({ runs: 5, passes: 3 });
+      const result = checkGates(report, compareRuns(report, report), {
+        repeat: { runs: 5, requiredPasses: 4 },
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.failures.some((line) => line.includes('passed 3/5 repeat runs'))).toBe(true);
+    });
+
+    it('fails when repeated.runs does not match configured runs', () => {
+      const report = reportWithRepeated({ runs: 3, passes: 3 });
+      const result = checkGates(report, compareRuns(report, report), {
+        repeat: { runs: 5, requiredPasses: 4 },
+      });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.failures.some((line) => line.includes('does not match configured gate.repeat.runs=5')),
+      ).toBe(true);
+    });
+
+    it('is a no-op for rows without a repeated record', () => {
+      const report = reportWithRepeated(undefined);
+      const result = checkGates(report, compareRuns(report, report), {
+        repeat: { runs: 5, requiredPasses: 4 },
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.diagnostics.some((line) => line.includes('Repeat-run gate'))).toBe(false);
+    });
+
+    it('fails fast on an invalid repeat gate config', () => {
+      const report = reportWithRepeated({ runs: 5, passes: 5 });
+      const result = checkGates(report, compareRuns(report, report), {
+        repeat: { runs: 5, requiredPasses: 6 },
+      });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.failures.some((line) =>
+          line.includes('Invalid repeat gate config: gate.repeat.requiredPasses must not exceed gate.repeat.runs.'),
+        ),
+      ).toBe(true);
+    });
+  });
 });

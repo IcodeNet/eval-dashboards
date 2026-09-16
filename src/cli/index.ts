@@ -170,6 +170,8 @@ Options:
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
   --min-pass-rate-delta=<number>   Required baseline-to-current pass-rate delta
+  --repeat-runs=<number>           Expected repeat-run count per row (gate.repeat, 4F.23)
+  --repeat-required-passes=<number> Minimum passes required out of --repeat-runs (4F.23)
   --json-out=<path>                Write machine-readable gate result JSON (eval-check-result/v1)
   --json-v2-out=<path>             Write eval-check-result/v2 JSON with full audit provenance
                                     (resolved gate config, per-suite dataset/rubric versions,
@@ -1082,6 +1084,15 @@ const gateConfigFromOptions = (
   const enableCalibrationPreflight = optionBoolean(options, 'calibration-preflight');
   const allowStaleCalibration = optionBoolean(options, 'allow-stale-calibration');
   const disableCalibrationPreflight = optionBoolean(options, 'no-calibration-preflight');
+  const repeatRuns = optionNumber(options, 'repeat-runs');
+  const repeatRequiredPasses = optionNumber(options, 'repeat-required-passes');
+  const repeat =
+    repeatRuns !== undefined || repeatRequiredPasses !== undefined
+      ? ({
+        ...(repeatRuns !== undefined ? { runs: repeatRuns } : {}),
+        ...(repeatRequiredPasses !== undefined ? { requiredPasses: repeatRequiredPasses } : {}),
+      } as NonNullable<GateConfig['repeat']>)
+      : undefined;
   const statisticalFields = {
     mode: statisticalMode,
     confidenceLevel,
@@ -1125,6 +1136,7 @@ const gateConfigFromOptions = (
     requiredPassingSuites: optionStrings(options, 'require-suite-pass', []),
     ...(statistical ? { statistical } : {}),
     ...(calibration ? { calibration } : {}),
+    ...(repeat ? { repeat } : {}),
   };
 };
 
@@ -1723,6 +1735,12 @@ const main = async (): Promise<void> => {
           ...(config.gates?.calibration ?? {}),
           ...(cliGateOverrides.calibration ?? {}),
         };
+      }
+      if ((config.gates?.repeat ?? cliGateOverrides.repeat) !== undefined) {
+        gateConfig.repeat = {
+          ...(config.gates?.repeat ?? {}),
+          ...(cliGateOverrides.repeat ?? {}),
+        } as GateConfig['repeat'];
       }
       assertValidStatisticalGateConfig(gateConfig);
       assertValidCalibrationGateConfig(gateConfig);

@@ -43,6 +43,20 @@ export type GateConfig = {
    */
   allowLoosening?: boolean;
   statistical?: StatisticalGateConfig;
+  /**
+   * 4F.23 — repeat-run gate mode: require each repeated-run row (i.e. a row
+   * whose `repeated` aggregation record, from 4F.22, was populated by the
+   * runner) to have passed at least `requiredPasses` out of `runs` runs.
+   * Rows without a `repeated` record are unaffected by this gate and are
+   * still evaluated by the existing pass-rate/threshold gates above — this
+   * is an additive check, not a replacement engine.
+   */
+  repeat?: {
+    /** Expected number of repeat runs per row. Must be a positive integer. */
+    runs: number;
+    /** Minimum passes required out of `runs`. Must be 0 <= requiredPasses <= runs. */
+    requiredPasses: number;
+  };
   calibration?: {
     /** Enable/disable pre-gate calibration evidence checks. Default: auto (on when calibration suite manifest is present). */
     enabled?: boolean;
@@ -398,6 +412,53 @@ export const checkGates = (
             `Statistical gate failed: upper confidence bound for pass-rate delta ${stats.upperBound.toFixed(3)} is below required ${minPassRateDelta.toFixed(3)}.`,
           );
         }
+      }
+    }
+  }
+
+  if (config.repeat !== undefined) {
+    const { runs, requiredPasses } = config.repeat;
+    const repeatConfigErrors: string[] = [];
+    if (!Number.isInteger(runs) || runs <= 0) {
+      repeatConfigErrors.push('gate.repeat.runs must be a positive integer.');
+    }
+    if (!Number.isInteger(requiredPasses) || requiredPasses < 0) {
+      repeatConfigErrors.push('gate.repeat.requiredPasses must be a non-negative integer.');
+    }
+    if (
+      repeatConfigErrors.length === 0 &&
+      Number.isInteger(runs) &&
+      Number.isInteger(requiredPasses) &&
+      requiredPasses > runs
+    ) {
+      repeatConfigErrors.push('gate.repeat.requiredPasses must not exceed gate.repeat.runs.');
+    }
+
+    if (repeatConfigErrors.length > 0) {
+      failures.push(...repeatConfigErrors.map((message) => `Invalid repeat gate config: ${message}`));
+    } else {
+      const repeatedRows = report.rows.filter((row) => row.repeated !== undefined);
+      const mismatchedRuns = repeatedRows.filter((row) => row.repeated?.runs !== runs);
+      const insufficientPasses = repeatedRows.filter(
+        (row) => row.repeated !== undefined && row.repeated.runs === runs && row.repeated.passes < requiredPasses,
+      );
+
+      if (repeatedRows.length > 0) {
+        diagnostics.push(
+          `Repeat-run gate: ${repeatedRows.length} row(s) with a repeated-run record checked against runs=${runs}, requiredPasses=${requiredPasses}.`,
+        );
+      }
+
+      for (const row of mismatchedRuns) {
+        failures.push(
+          `Row "${row.suite}:${row.id}" repeated.runs=${row.repeated?.runs} does not match configured gate.repeat.runs=${runs}.`,
+        );
+      }
+
+      for (const row of insufficientPasses) {
+        failures.push(
+          `Row "${row.suite}:${row.id}" passed ${row.repeated?.passes}/${row.repeated?.runs} repeat runs, below required ${requiredPasses}.`,
+        );
       }
     }
   }

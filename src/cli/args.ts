@@ -78,6 +78,8 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--tier',
     '--max-pr-cost-usd',
     '--max-pr-duration-ms',
+    '--repeat-runs',
+    '--repeat-required-passes',
   ],
   merge: ['--input', '--out'],
   history: ['--input', '--out', '--bypass-log'],
