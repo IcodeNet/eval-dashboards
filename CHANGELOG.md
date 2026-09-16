@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dataset governance lint checks for coverage/versioning gaps (4E.5).
 - JSONL input support for `import`, in addition to JSON (4E.10).
 - Ragas and Langfuse coded import adapters (4E.9 partial), plus an OpenAI eval-outputs import adapter (4E.9 complete) and an eval-ai-library import adapter (4F.11 docs / 4E.11).
+- `schema` CLI command prints the bundled eval-report/v1 JSON Schema (Draft 7) to stdout, so third-party runners can discover and pipe it without reaching into `node_modules` or GitHub raw.
 - Two-reviewer-by-default adjudication requirement (4E.4).
 - `init` presets for output-handling-safety and prompt-leakage-resilience suites (4E.6).
 - `publish --redact` for two-tier (redacted/full) artifact splits (4F.1), with a hard-fail preflight when evidence isn't redacted (4F.2).

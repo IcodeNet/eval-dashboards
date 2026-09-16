@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
@@ -109,6 +110,7 @@ Commands:
   org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
   evidence-export  Bundle a report, check result, waivers, and signature into one evidence file (4F.11).
   evidence-verify   Independently re-validate a previously produced evidence bundle.
+  schema   Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -1373,6 +1375,34 @@ const main = async (): Promise<void> => {
     }
 
     console.log(renderDefaultInitConfig());
+    return;
+  }
+
+  if (command === 'schema') {
+    if (optionBoolean(options, 'help')) {
+      console.log(
+        [
+          'Usage: eval-dashboards schema',
+          '',
+          'Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.',
+          '',
+          'Examples:',
+          '  eval-dashboards schema > eval-report-v1.schema.json',
+          '  evd schema | jq .',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    const schemaPath = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '..',
+      '..',
+      'schemas',
+      'eval-report-v1.schema.json',
+    );
+    const contents = await readFile(schemaPath, 'utf8');
+    process.stdout.write(contents.endsWith('\n') ? contents : `${contents}\n`);
     return;
   }
 

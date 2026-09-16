@@ -19,4 +19,5 @@ Commands:
   org-rollup  Render one static HTML overview from N published per-repo history.json artifacts.
   evidence-export  Bundle a report, check result, waivers, and signature into one evidence file (4F.11).
   evidence-verify   Independently re-validate a previously produced evidence bundle.
+  schema   Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.
 
