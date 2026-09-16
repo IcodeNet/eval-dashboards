@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ci.yml`, `action-smoke-test.yml`, and `pr-title-lint.yml` now declare an explicit least-privilege `permissions: contents: read` block.
 - `config`/CLI now fail closed on a broken `package.json` instead of silently continuing.
 - The npm package no longer ships a repo-only artifact-regeneration script.
+- `publish --target=azure-storage` no longer builds Azure CLI commands via shell-string interpolation — `--account`/`--container`/`--report-dir` values (which may come from CI variables, branch names, or config) could previously inject arbitrary shell commands via `execSync`; now uses `execFileSync` with an argv array, which never invokes a shell.
 
 ---
 

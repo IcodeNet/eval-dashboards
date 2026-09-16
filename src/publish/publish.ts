@@ -1,7 +1,7 @@
 import { cp, mkdir, readdir, readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { Octokit } from '@octokit/rest';
 
 export type PublishTarget = 'dir' | 'github-pages' | 'azure-static-webapp' | 'azure-storage' | 'github-pr-comment';
@@ -174,14 +174,14 @@ const publishReportInternal = async (options: PublishOptions): Promise<PublishRe
 
     // Verify Azure CLI
     try {
-      execSync('az --version', { stdio: 'pipe' });
+      execFileSync('az', ['--version'], { stdio: 'pipe' });
     } catch {
       throw new Error('Azure CLI is not installed or not in PATH. Install from https://learn.microsoft.com/cli/azure/install-azure-cli');
     }
 
     // Verify storage account exists
     try {
-      execSync(`az storage account show --name "${options.account}" --query id`, {
+      execFileSync('az', ['storage', 'account', 'show', '--name', options.account, '--query', 'id'], {
         stdio: 'pipe',
       });
     } catch {
@@ -191,9 +191,23 @@ const publishReportInternal = async (options: PublishOptions): Promise<PublishRe
     // Enable static website hosting on $web container if using default
     if (container === '$web') {
       try {
-        execSync(`az storage blob service-properties update --account-name "${options.account}" --static-website --index-document index.html --404-document index.html`, {
-          stdio: 'pipe',
-        });
+        execFileSync(
+          'az',
+          [
+            'storage',
+            'blob',
+            'service-properties',
+            'update',
+            '--account-name',
+            options.account,
+            '--static-website',
+            '--index-document',
+            'index.html',
+            '--404-document',
+            'index.html',
+          ],
+          { stdio: 'pipe' },
+        );
       } catch {
         console.warn(`Warning: Could not enable static website hosting on ${options.account}. Verify manually if needed.`);
       }
@@ -204,9 +218,22 @@ const publishReportInternal = async (options: PublishOptions): Promise<PublishRe
     console.log(`Uploading ${files.length} file(s) to storage account "${options.account}/${container}"...`);
 
     try {
-      execSync(`az storage blob upload-batch --account-name "${options.account}" --destination "${container}" --source "${options.reportDir}" --overwrite`, {
-        stdio: 'inherit',
-      });
+      execFileSync(
+        'az',
+        [
+          'storage',
+          'blob',
+          'upload-batch',
+          '--account-name',
+          options.account,
+          '--destination',
+          container,
+          '--source',
+          options.reportDir,
+          '--overwrite',
+        ],
+        { stdio: 'inherit' },
+      );
     } catch (error) {
       throw new Error(`Failed to upload files to ${options.account}/${container}: ${String(error).slice(0, 200)}`);
     }

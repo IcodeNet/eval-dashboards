@@ -65,6 +65,44 @@ describe('publishReport', () => {
   });
 });
 
+describe('publishReport azure-storage', () => {
+  it('invokes az via execFileSync argv (not a shell string), even with shell-metacharacter values', async () => {
+    vi.resetModules();
+    const execFileSyncMock = vi.fn().mockReturnValue(Buffer.from(''));
+    vi.doMock('node:child_process', () => ({ execFileSync: execFileSyncMock }));
+    const { publishReport: publishReportIsolated } = await import('../src/publish/publish.js');
+
+    const maliciousAccount = 'x"; touch /tmp/should-not-run; echo "';
+
+    await publishReportIsolated({
+      target: 'azure-storage',
+      reportDir: 'eval-report',
+      account: maliciousAccount,
+      container: '$web',
+      dryRun: false,
+    });
+
+    // Every call must be execFileSync('az', [...argv]) — never a single
+    // interpolated shell command string that a shell would re-parse.
+    expect(execFileSyncMock).toHaveBeenCalled();
+    for (const call of execFileSyncMock.mock.calls) {
+      const [cmd, args] = call as [string, string[]];
+      expect(cmd).toBe('az');
+      expect(Array.isArray(args)).toBe(true);
+      // The malicious value must appear as a single argv element (inert),
+      // never concatenated into a shell command string.
+      for (const arg of args) {
+        expect(arg.includes('&&')).toBe(false);
+      }
+    }
+    const accountCall = execFileSyncMock.mock.calls.find((c) => (c[1] as string[]).includes(maliciousAccount));
+    expect(accountCall).toBeDefined();
+
+    vi.doUnmock('node:child_process');
+    vi.resetModules();
+  });
+});
+
 describe('publishReport github-pr-comment', () => {
   const originalEnv = { ...process.env };
 
