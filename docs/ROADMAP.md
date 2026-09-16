@@ -1323,13 +1323,14 @@ Acceptance criteria:
 
 ### 4F.19 Multi-reviewer human-review fields (P2, S)
 
-- [ ] Add optional `rows[].humanReviews?: Array<{ reviewer: string; verdict: string;
+- [x] Add optional `rows[].humanReviews?: Array<{ reviewer: string; verdict: string;
       category?: string; note?: string; decidedAt?: string }>` and optional
       `rows[].reviewAgreement?: number` (0-1) — captures independent multi-reviewer
       verdicts and inter-rater agreement on a row, distinct from the existing
       singular `groundTruthVerdict`/`groundTruthAnnotation`. Additive/optional;
       validate leniently. Inspired by Arize Phoenix's multi-annotator review model
       (charter-compatible: schema field only, not their harness/evaluators).
+      Evidence: test/validate.test.ts:788, test/render.test.ts:352.
 
 ### 4F.20 Run experiment/variant grouping key (P2, S)
 
