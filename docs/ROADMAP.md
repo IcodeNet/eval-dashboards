@@ -452,9 +452,9 @@ Acceptance criteria:
 
 ### 4B.9 Promptfoo export-compat metadata preservation (P1)
 
-- [ ] Extend the Promptfoo importer to preserve export-time evaluator context fields that now appear in Promptfoo exports (for example `metadata.sessionId`, grader comments, and latency) instead of dropping them during conversion.
-- [ ] Map preserved latency to `rows[].durationMs`, keep grader comments in `rows[].reason`, and store source session ids in row metadata for downstream grouping/filtering.
-- [ ] Add fixture coverage proving these fields survive `eval-dashboards import --from=promptfoo` and pass schema validation + taxonomy lint.
+- [x] Extend the Promptfoo importer to preserve export-time evaluator context fields that now appear in Promptfoo exports (for example `metadata.sessionId`, grader comments, and latency) instead of dropping them during conversion.
+- [x] Map preserved latency to `rows[].durationMs`, keep grader comments in `rows[].reason`, and store source session ids in row metadata for downstream grouping/filtering.
+- [x] Add fixture coverage proving these fields survive `eval-dashboards import --from=promptfoo` and pass schema validation + taxonomy lint.
 
 Acceptance criteria:
 
