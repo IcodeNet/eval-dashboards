@@ -13,6 +13,13 @@ Adoption pattern (common to all repos)
 3. Run `eval-dashboards lint`, `check`, and `report` as a post-run layer.
 4. Publish static `eval-report/` artifacts for row-level triage.
 
+Teams already instrumented with OpenTelemetry GenAI semantic conventions
+(emitting `gen_ai.evaluation.result` events) have a dedicated, tested
+mapping path instead of ad hoc field guessing — see
+[OpenTelemetry GenAI evaluation events](./integrations/otel-genai.md) and
+the trace-first evidence example in
+[Trace/observability stacks](./integrations/trace-stacks.md).
+
 ## Candidate 1: OpenAI — openai/evals
 
 Repo

@@ -1,0 +1,52 @@
+{
+  "resourceSpans": [
+    {
+      "resource": { "attributes": [] },
+      "scopeSpans": [
+        {
+          "scope": { "name": "otel-genai-fixture" },
+          "spans": [
+            {
+              "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "spanId": "00f067aa0ba902b7",
+              "name": "chat gpt-4",
+              "events": [
+                {
+                  "name": "gen_ai.evaluation.result",
+                  "attributes": [
+                    { "key": "gen_ai.evaluation.name", "value": { "stringValue": "hallucination" } },
+                    { "key": "gen_ai.evaluation.score.value", "value": { "doubleValue": 0.92 } },
+                    { "key": "gen_ai.evaluation.score.label", "value": { "stringValue": "pass" } },
+                    {
+                      "key": "gen_ai.evaluation.explanation",
+                      "value": { "stringValue": "Response is grounded in the retrieved context." }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "traceId": "5cf92f3577b34da6a3ce929d0e0e4737",
+              "spanId": "11f067aa0ba902b8",
+              "name": "chat gpt-4",
+              "events": [
+                {
+                  "name": "gen_ai.evaluation.result",
+                  "attributes": [
+                    { "key": "gen_ai.evaluation.name", "value": { "stringValue": "hallucination" } },
+                    { "key": "gen_ai.evaluation.score.value", "value": { "doubleValue": 0.1 } },
+                    { "key": "gen_ai.evaluation.score.label", "value": { "stringValue": "fail" } },
+                    {
+                      "key": "gen_ai.evaluation.explanation",
+                      "value": { "stringValue": "Response contradicts the retrieved context." }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

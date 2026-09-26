@@ -166,6 +166,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 Phase 4I (competitive parity on CI/PR ergonomics) also shipped: 4I.1 (GitHub PR-comment publish target — sticky create-then-update-in-place comment via a hidden HTML marker, dry-run by default outside CI, `src/publish/publish.ts`, `test/publish.test.ts`) and 4I.2 (a versioned composite GitHub Action wrapping `report`+`check`+optional PR-comment publish, `action.yml`). Phase 4I (4I.1–4I.2) is done.
 
+Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dashboards import --from=otel-genai` reads an OTLP/JSON export (span events or log-record events; single object or collector JSONL) and maps each `gen_ai.evaluation.result` event to an `llm-judge` row with `category`/`judgeCategory`, `judgeVerdict`, `score`, `reason`/`judgeReasoning` and `trace.traceId`/`trace.spanId`; `error.type` becomes a failed row (`src/cli/import-adapters.ts`, `test/import-adapters-otel-genai.test.ts`, `docs/integrations/otel-genai.md`). Known gaps: row ids are `<spanId>:<metric>`, unique per export but not stable across runs (spanIds are random), so cross-run baselines need a caller-supplied case id; `gen_ai.response.id` correlation is not mapped; the numeric-score fallback assumes higher-is-better on a 0–1 scale.
+
 **External Phase 4: Shipping & Adoption**
 
 - Announce on Reddit, HN, AI communities, eval-focused newsletters

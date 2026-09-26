@@ -2,6 +2,10 @@
 
 This page applies to trace systems such as OpenTelemetry backends, Langfuse, Phoenix, and internal trace stores.
 
+For a documented, tested field mapping from the OpenTelemetry GenAI
+semantic conventions' `gen_ai.evaluation.result` event to `EvalRow`, see
+[OpenTelemetry GenAI evaluation events](./otel-genai.md).
+
 ## What trace stacks do well
 
 - Explain why a row failed (tool latency, retrieval miss, policy branch, etc.).
@@ -28,5 +32,6 @@ Then open `eval-report/index.html` and inspect row `agent/tool-timeout-001`; the
 
 Related:
 
+- [OpenTelemetry GenAI evaluation events](./otel-genai.md)
 - [Artifact format trace fields](../artifact-format.md)
 - [Integration risk register](./risk-register.md)

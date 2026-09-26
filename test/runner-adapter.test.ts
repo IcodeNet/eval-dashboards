@@ -139,6 +139,18 @@ describe('runner adapter', () => {
     });
   });
 
+  it('carries trace references through the default row mapper', () => {
+    const report = createEvalReportArtifact(
+      {
+        run: { id: 'run-trace' },
+        cases: [{ id: 'case-1', suite: 'quality', passed: true, trace: { traceId: 't-1', spanId: 's-1' } }],
+      },
+      { generatedAt },
+    );
+
+    expect(report.rows[0]?.trace).toEqual({ traceId: 't-1', spanId: 's-1' });
+  });
+
   it('carries taxonomy fields through the default row mapper without requiring mapRow', () => {
     const report = createEvalReportArtifact(
       {

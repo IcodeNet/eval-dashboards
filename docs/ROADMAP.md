@@ -1713,7 +1713,7 @@ best-effort/versioned guidance, not a hard schema dependency).
 
 ### 4J.1 Document and test the `gen_ai.evaluation.result` ↔ `EvalRow` mapping (P1, S)
 
-- [ ] Add a documented field mapping table to `docs/integrations/trace-stacks.md`
+- [x] Add a documented field mapping table to `docs/integrations/trace-stacks.md`
       (or a new `docs/integrations/otel-genai.md`) from `gen_ai.evaluation.result`
       attributes (`gen_ai.evaluation.name`, `gen_ai.evaluation.score.value`,
       `gen_ai.evaluation.score.label`, `gen_ai.evaluation.explanation`) plus the
@@ -1722,11 +1722,11 @@ best-effort/versioned guidance, not a hard schema dependency).
   - Explicitly note the GenAI conventions are unstable/Development status per
     the OTel spec and that consumers should pin a convention version, matching
     this repo's existing "additive, versioned" posture toward `eval-report/v1`.
-- [ ] Add one runnable example (fixture OTLP/JSON span export containing a
+- [x] Add one runnable example (fixture OTLP/JSON span export containing a
       `gen_ai.evaluation.result` event → `eval-dashboards import`-style or
       adapter-helper conversion → valid `eval-report/v1` row with `trace`
       populated) with a passing test asserting the mapped fields round-trip.
-- [ ] Cross-link this doc from `docs/adoption-map.md` and the existing
+- [x] Cross-link this doc from `docs/adoption-map.md` and the existing
       trace-first evidence example (4C.9) so OTel-based teams have one
       concrete, tested path instead of ad hoc field guessing.
 

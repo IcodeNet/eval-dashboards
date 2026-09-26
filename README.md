@@ -343,7 +343,7 @@ Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot 
 | `eval-dashboards teach` | Guided onboarding walkthrough (alias of `init --preset=agent-quality --teach`) |
 | `eval-dashboards init` | Print a starter config, or scaffold preset files with `--preset=agent-quality --write` |
 | `eval-dashboards completion` | Print or install shell completion for bash, zsh, or fish |
-| `eval-dashboards import` | Convert third-party eval output JSON to `eval-report/v1` (Promptfoo, DeepEval, AgentEvals, Ragas, Langfuse, eval-ai-library; `openevals` alias supported) |
+| `eval-dashboards import` | Convert third-party eval output JSON to `eval-report/v1` (Promptfoo, DeepEval, AgentEvals, Ragas, Langfuse, Phoenix, Braintrust, OpenAI evals, eval-ai-library, OpenTelemetry GenAI evaluation events; `openevals` alias supported) |
 | `eval-dashboards adjudicate` | Export unresolved rows for reviewer adjudication bundles and merge reviewer verdicts back into artifacts |
 | `eval-dashboards sign` | Hash a check-result artifact and write a detached signature (cosign keyless in CI with OIDC; honest `unavailable` fallback locally) |
 | `eval-dashboards verify` | Re-validate a check-result artifact's digest and signature; fails closed on tampering, staleness, or a missing/unavailable signature |

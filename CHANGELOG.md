@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Calibration preflight controls: `--calibration-preflight`, `--no-calibration-preflight`, and `gates.calibration.enabled` for explicit force-enable/disable behavior.
 - Dataset governance lint checks for coverage/versioning gaps (4E.5).
 - JSONL input support for `import`, in addition to JSON (4E.10).
+- `import --from=otel-genai` maps OpenTelemetry GenAI `gen_ai.evaluation.result` events (span-event or log-record encoding, JSON or collector JSONL) to `llm-judge` rows with trace references (4J.1).
+- Runner adapter default row mapper now passes `trace` through from case results.
 - Ragas and Langfuse coded import adapters (4E.9 partial), plus an OpenAI eval-outputs import adapter (4E.9 complete) and an eval-ai-library import adapter (4F.11 docs / 4E.11).
 - `schema` CLI command prints the bundled eval-report/v1 JSON Schema (Draft 7) to stdout, so third-party runners can discover and pipe it without reaching into `node_modules` or GitHub raw.
 - Two-reviewer-by-default adjudication requirement (4E.4).

@@ -41,6 +41,7 @@ export type RunnerEvalCaseResult = {
   reason?: string;
   durationMs?: number;
   metadata?: EvalRow['metadata'];
+  trace?: EvalRow['trace'];
 };
 
 export type RunnerEvalResult<CaseResult extends RunnerEvalCaseResult = RunnerEvalCaseResult> = {
@@ -96,6 +97,7 @@ const createDefaultRow = <CaseResult extends RunnerEvalCaseResult>(
   reason: caseResult.reason,
   durationMs: caseResult.durationMs,
   metadata: caseResult.metadata,
+  trace: caseResult.trace,
 });
 
 const defaultRowMetadata = (): NonNullable<EvalRow['metadata']> => ({

@@ -12,12 +12,13 @@ export type ImportSource =
   | 'phoenix'
   | 'braintrust'
   | 'openai-evals'
-  | 'eval-ai-library';
+  | 'eval-ai-library'
+  | 'otel-genai';
 
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals.
                            openevals is accepted as an alias for agentevals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
@@ -925,6 +926,210 @@ const evalAiLibraryRows = (source: unknown, fallbackSuite: string): RunnerEvalCa
   });
 };
 
+// OpenTelemetry GenAI semantic conventions (Development/unstable status).
+// The `gen_ai.evaluation.result` event first shipped in semantic-conventions
+// v1.38.0 (Oct 2025). It carries `gen_ai.evaluation.name`,
+// `gen_ai.evaluation.score.value`, `gen_ai.evaluation.score.label`,
+// `gen_ai.evaluation.explanation` and, on evaluator failure, `error.type`.
+// This adapter reads both OTLP/JSON encodings of that event:
+//   - span events: `resourceSpans[].scopeSpans[].spans[].events[]`
+//   - log-record events: `resourceLogs[].scopeLogs[].logRecords[]` with
+//     `eventName` (or the older `event.name` attribute)
+// Input may be one export object or JSONL with one export per line (the OTel
+// Collector file exporter format). See docs/integrations/otel-genai.md.
+type OtelAttributeValue = {
+  stringValue?: string;
+  doubleValue?: number;
+  // OTLP/JSON encodes int64 as a decimal string (proto3 JSON mapping).
+  intValue?: number | string;
+  boolValue?: boolean;
+};
+
+type OtelAttribute = { key?: string; value?: OtelAttributeValue };
+
+type OtelSpanEvent = { name?: string; attributes?: OtelAttribute[] };
+
+type OtelSpan = {
+  traceId?: string;
+  spanId?: string;
+  name?: string;
+  events?: OtelSpanEvent[];
+};
+
+type OtelLogRecord = {
+  eventName?: string;
+  traceId?: string;
+  spanId?: string;
+  attributes?: OtelAttribute[];
+};
+
+type OtelExport = {
+  resourceSpans?: Array<{ scopeSpans?: Array<{ spans?: OtelSpan[] }> }>;
+  resourceLogs?: Array<{ scopeLogs?: Array<{ logRecords?: OtelLogRecord[] }> }>;
+};
+
+const OTEL_GENAI_EVALUATION_EVENT = 'gen_ai.evaluation.result';
+
+const otelAttributeValue = (
+  attributes: OtelAttribute[] | undefined,
+  key: string,
+): string | number | boolean | undefined => {
+  const attribute = attributes?.find((candidate) => candidate.key === key);
+  const value = attribute?.value;
+  if (!value) return undefined;
+  if (typeof value.stringValue === 'string') return value.stringValue;
+  if (typeof value.doubleValue === 'number') return value.doubleValue;
+  if (typeof value.intValue === 'number') return value.intValue;
+  if (typeof value.intValue === 'string' && value.intValue.trim() !== '' && Number.isFinite(Number(value.intValue))) {
+    return Number(value.intValue);
+  }
+  if (typeof value.boolValue === 'boolean') return value.boolValue;
+  return undefined;
+};
+
+// Spec example labels include pass/fail, correct/incorrect and
+// relevant/not_relevant. Any other label falls back to the numeric score.
+const OTEL_GENAI_PASS_LABELS = new Set(['pass', 'passed', 'correct', 'relevant', 'true']);
+const OTEL_GENAI_FAIL_LABELS = new Set(['fail', 'failed', 'incorrect', 'not_relevant', 'irrelevant', 'false']);
+
+type OtelEvaluationEvent = {
+  attributes: OtelAttribute[];
+  traceId?: string;
+  spanId?: string;
+  spanName?: string;
+};
+
+const collectOtelEvaluationEvents = (exportObject: OtelExport): OtelEvaluationEvent[] => {
+  const events: OtelEvaluationEvent[] = [];
+
+  for (const resourceSpan of exportObject.resourceSpans ?? []) {
+    for (const scopeSpan of resourceSpan.scopeSpans ?? []) {
+      for (const span of scopeSpan.spans ?? []) {
+        for (const event of span.events ?? []) {
+          if (event.name !== OTEL_GENAI_EVALUATION_EVENT) continue;
+          events.push({
+            attributes: event.attributes ?? [],
+            traceId: span.traceId,
+            spanId: span.spanId,
+            spanName: span.name,
+          });
+        }
+      }
+    }
+  }
+
+  for (const resourceLog of exportObject.resourceLogs ?? []) {
+    for (const scopeLog of resourceLog.scopeLogs ?? []) {
+      for (const record of scopeLog.logRecords ?? []) {
+        const eventName = record.eventName ?? otelAttributeValue(record.attributes, 'event.name');
+        if (eventName !== OTEL_GENAI_EVALUATION_EVENT) continue;
+        events.push({
+          attributes: record.attributes ?? [],
+          traceId: record.traceId || undefined,
+          spanId: record.spanId || undefined,
+        });
+      }
+    }
+  }
+
+  return events;
+};
+
+const otelGenaiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const exports = (Array.isArray(source) ? source : [source]).filter(
+    (candidate): candidate is OtelExport => typeof candidate === 'object' && candidate !== null,
+  );
+
+  if (!exports.some((candidate) => Array.isArray(candidate.resourceSpans) || Array.isArray(candidate.resourceLogs))) {
+    throw Object.assign(
+      new Error(
+        'No OTel GenAI data found. Expected an OTLP/JSON export (or JSONL of exports) with resourceSpans[] or resourceLogs[].',
+      ),
+      { exitCode: 2 },
+    );
+  }
+
+  const events = exports.flatMap(collectOtelEvaluationEvents);
+  if (events.length === 0) {
+    throw Object.assign(
+      new Error('No gen_ai.evaluation.result events found in any span or log record.'),
+      { exitCode: 2 },
+    );
+  }
+
+  const usedIds = new Map<string, number>();
+
+  return events.map((event, index): RunnerEvalCaseResult => {
+    const { attributes } = event;
+    const evaluationName = otelAttributeValue(attributes, 'gen_ai.evaluation.name');
+    const scoreValue = otelAttributeValue(attributes, 'gen_ai.evaluation.score.value');
+    const scoreLabel = otelAttributeValue(attributes, 'gen_ai.evaluation.score.label');
+    const explanation = otelAttributeValue(attributes, 'gen_ai.evaluation.explanation');
+    const errorType = otelAttributeValue(attributes, 'error.type');
+    const metricName = typeof evaluationName === 'string' ? evaluationName : undefined;
+
+    // `<spanId>:<metric>` is unique within one export. spanIds are random per
+    // execution, so this id is NOT stable across runs (see the adapter doc).
+    const baseId = `${event.spanId ?? `${fallbackSuite}-${index + 1}`}${metricName ? `:${metricName}` : ''}`;
+    const seen = usedIds.get(baseId) ?? 0;
+    usedIds.set(baseId, seen + 1);
+    const id = seen === 0 ? baseId : `${baseId}#${seen + 1}`;
+
+    let passed: boolean | undefined;
+    let verdictSource: string | undefined;
+    if (errorType !== undefined) {
+      passed = false;
+      verdictSource = `evaluator error: ${String(errorType)}`;
+    }
+    if (passed === undefined && typeof scoreLabel === 'string') {
+      const normalized = scoreLabel.trim().toLowerCase();
+      if (OTEL_GENAI_PASS_LABELS.has(normalized)) passed = true;
+      if (OTEL_GENAI_FAIL_LABELS.has(normalized)) passed = false;
+      if (passed !== undefined) verdictSource = `score.label=${scoreLabel}`;
+    }
+    if (passed === undefined && typeof scoreValue === 'number') {
+      passed = scoreValue >= RAGAS_METRIC_PASS_THRESHOLD;
+      verdictSource = `score.value=${scoreValue} ${passed ? '>=' : '<'} ${RAGAS_METRIC_PASS_THRESHOLD} threshold (higher is better assumed)`;
+    }
+
+    if (passed === undefined || verdictSource === undefined) {
+      throw Object.assign(
+        new Error(
+          `Unable to infer pass/fail for otel-genai row ${id} (suite: ${fallbackSuite}): no error.type, recognised gen_ai.evaluation.score.label, or numeric score.value found.`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
+    const reasoning = typeof explanation === 'string' ? explanation : undefined;
+    const reason = reasoning ? `${reasoning} (${verdictSource})` : verdictSource;
+
+    return {
+      id,
+      suite: fallbackSuite,
+      passed,
+      kind: 'llm-judge',
+      name: event.spanName,
+      score: typeof scoreValue === 'number' ? scoreValue : undefined,
+      category: metricName,
+      judgeCategory: metricName,
+      // An evaluator error is not a judge verdict, so leave it unset.
+      judgeVerdict: errorType === undefined ? passed : undefined,
+      judgeReasoning: reasoning ?? verdictSource,
+      reason,
+      trace: event.traceId || event.spanId ? { traceId: event.traceId, spanId: event.spanId } : undefined,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from OpenTelemetry GenAI gen_ai.evaluation.result event',
+          sourceRef: 'otel-genai',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
 export const resolveImportSource = (rawSource: string): ImportSource => {
   const normalized = rawSource.trim().toLowerCase();
   if (normalized === 'openevals') {
@@ -939,14 +1144,15 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
     normalized === 'phoenix' ||
     normalized === 'braintrust' ||
     normalized === 'openai-evals' ||
-    normalized === 'eval-ai-library'
+    normalized === 'eval-ai-library' ||
+    normalized === 'otel-genai'
   ) {
     return normalized;
   }
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, openevals.`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals.`,
     ),
     { exitCode: 2 },
   );
@@ -978,7 +1184,9 @@ export const importFromSource = async (options: {
                   ? braintrustRows(parsed, fallbackSuite)
                   : options.source === 'openai-evals'
                     ? openAiEvalsRows(parsed, fallbackSuite)
-                    : evalAiLibraryRows(parsed, fallbackSuite);
+                    : options.source === 'eval-ai-library'
+                      ? evalAiLibraryRows(parsed, fallbackSuite)
+                      : otelGenaiRows(parsed, fallbackSuite);
 
   await writeEvalReportArtifact(
     options.outPath,
@@ -998,7 +1206,7 @@ export const importFromSource = async (options: {
         id: caseResult.id ?? `${caseResult.suite}-${index + 1}`,
         suite: caseResult.suite,
         passed: caseResult.passed,
-        kind: 'deterministic',
+        kind: caseResult.kind ?? 'deterministic',
         severity: caseResult.severity ?? 'none',
         name: caseResult.name,
         question: caseResult.question,
@@ -1007,9 +1215,13 @@ export const importFromSource = async (options: {
         expected: caseResult.expected,
         score: caseResult.score,
         category: caseResult.category,
+        judgeCategory: caseResult.judgeCategory,
+        judgeVerdict: caseResult.judgeVerdict,
+        judgeReasoning: caseResult.judgeReasoning,
         reason: caseResult.reason,
         durationMs: caseResult.durationMs,
         metadata: caseResult.metadata,
+        trace: caseResult.trace,
       }),
     },
   );
