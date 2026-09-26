@@ -1479,11 +1479,27 @@ const main = async (): Promise<void> => {
     const source = resolveImportSource(rawSource);
     const outPath = optionString(options, 'out', path.join('.evals_output', `import-${source}.json`));
     const suiteName = optionString(options, 'suite', '');
+    const rawCaseIdAttribute = options['case-id-attribute'];
+    if (
+      rawCaseIdAttribute !== undefined &&
+      (typeof rawCaseIdAttribute !== 'string' || rawCaseIdAttribute.trim() === '')
+    ) {
+      throw Object.assign(new Error('--case-id-attribute needs exactly one non-empty attribute key.'), {
+        exitCode: 2,
+      });
+    }
+    const caseIdAttribute = typeof rawCaseIdAttribute === 'string' ? rawCaseIdAttribute.trim() : '';
+    if (caseIdAttribute && source !== 'otel-genai') {
+      throw Object.assign(new Error('--case-id-attribute is only supported with --from=otel-genai.'), {
+        exitCode: 2,
+      });
+    }
     const imported = await importFromSource({
       source,
       inputPath,
       outPath,
       suiteName: suiteName || undefined,
+      caseIdAttribute: caseIdAttribute || undefined,
     });
 
     console.log(`Imported ${imported.rowCount} row(s) from ${source} to ${imported.outPath}`);

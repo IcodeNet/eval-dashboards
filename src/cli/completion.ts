@@ -115,7 +115,7 @@ const reportFlags = [
   '--min-pass-rate-delta',
 ] as const;
 
-const importFlags = ['--from', '--input', '--out', '--suite', '--help'] as const;
+const importFlags = ['--from', '--input', '--out', '--suite', '--case-id-attribute', '--help'] as const;
 
 const adjudicateFlags = [
   '--help',
@@ -133,7 +133,19 @@ const optionValues = {
   runner: ['vitest', 'jest', 'node', 'python'],
   ci: ['github', 'azure', 'none'],
   shell: ['bash', 'zsh', 'fish'],
-  importSource: ['promptfoo', 'deepeval', 'agentevals', 'openevals'],
+  importSource: [
+    'promptfoo',
+    'deepeval',
+    'agentevals',
+    'ragas',
+    'langfuse',
+    'phoenix',
+    'braintrust',
+    'openai-evals',
+    'eval-ai-library',
+    'otel-genai',
+    'openevals',
+  ],
   reportProfile: ['default', 'guardrail'],
   statisticalMode: ['off', 'bootstrap'],
   notifyChannel: ['slack', 'teams', 'email'],

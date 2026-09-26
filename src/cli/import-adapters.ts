@@ -25,6 +25,12 @@ Options:
                            Default: .evals_output/import-<source>.json
   --suite=<name>           Fallback suite name when source data has no suite.
                            Default: <source>-import
+  --case-id-attribute=<key>
+                           otel-genai only. Attribute holding a stable case id
+                           (read from the event or log record, then the span
+                           for span events, then the resource).
+                           Row ids become <caseId>:<metric> and stay stable
+                           across runs. Every event must carry it.
 `;
 
 type ImportableSeverity = 'none' | 'low' | 'medium' | 'high' | 'critical';
@@ -953,8 +959,11 @@ type OtelSpan = {
   traceId?: string;
   spanId?: string;
   name?: string;
+  attributes?: OtelAttribute[];
   events?: OtelSpanEvent[];
 };
+
+type OtelResource = { attributes?: OtelAttribute[] };
 
 type OtelLogRecord = {
   eventName?: string;
@@ -964,8 +973,8 @@ type OtelLogRecord = {
 };
 
 type OtelExport = {
-  resourceSpans?: Array<{ scopeSpans?: Array<{ spans?: OtelSpan[] }> }>;
-  resourceLogs?: Array<{ scopeLogs?: Array<{ logRecords?: OtelLogRecord[] }> }>;
+  resourceSpans?: Array<{ resource?: OtelResource; scopeSpans?: Array<{ spans?: OtelSpan[] }> }>;
+  resourceLogs?: Array<{ resource?: OtelResource; scopeLogs?: Array<{ logRecords?: OtelLogRecord[] }> }>;
 };
 
 const OTEL_GENAI_EVALUATION_EVENT = 'gen_ai.evaluation.result';
@@ -994,6 +1003,11 @@ const OTEL_GENAI_FAIL_LABELS = new Set(['fail', 'failed', 'incorrect', 'not_rele
 
 type OtelEvaluationEvent = {
   attributes: OtelAttribute[];
+  // Attribute sets searched, in order, for a caller-named case-id attribute:
+  // the event or log record, then its span (span-event encoding only), then
+  // the resource.
+  caseIdScopes: OtelAttribute[][];
+  encoding: 'span event' | 'log record';
   traceId?: string;
   spanId?: string;
   spanName?: string;
@@ -1009,6 +1023,8 @@ const collectOtelEvaluationEvents = (exportObject: OtelExport): OtelEvaluationEv
           if (event.name !== OTEL_GENAI_EVALUATION_EVENT) continue;
           events.push({
             attributes: event.attributes ?? [],
+            caseIdScopes: [event.attributes ?? [], span.attributes ?? [], resourceSpan.resource?.attributes ?? []],
+            encoding: 'span event',
             traceId: span.traceId,
             spanId: span.spanId,
             spanName: span.name,
@@ -1025,6 +1041,8 @@ const collectOtelEvaluationEvents = (exportObject: OtelExport): OtelEvaluationEv
         if (eventName !== OTEL_GENAI_EVALUATION_EVENT) continue;
         events.push({
           attributes: record.attributes ?? [],
+          caseIdScopes: [record.attributes ?? [], resourceLog.resource?.attributes ?? []],
+          encoding: 'log record',
           traceId: record.traceId || undefined,
           spanId: record.spanId || undefined,
         });
@@ -1035,7 +1053,38 @@ const collectOtelEvaluationEvents = (exportObject: OtelExport): OtelEvaluationEv
   return events;
 };
 
-const otelGenaiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+export type OtelGenaiImportOptions = {
+  // Attribute key holding a stable per-case id (e.g. a dataset case id the
+  // eval harness sets on the span). When set, row ids are `<caseId>:<metric>`
+  // and stay the same across runs; spanIds are random per execution.
+  caseIdAttribute?: string;
+};
+
+// Case ids are read as text so int64 values keep every digit: OTLP/JSON
+// sends them as decimal strings, and Number() would round ids above 2^53.
+const otelAttributeText = (attributes: OtelAttribute[], key: string): string | undefined => {
+  const value = attributes.find((candidate) => candidate.key === key)?.value;
+  if (!value) return undefined;
+  const raw =
+    value.stringValue ?? value.intValue ?? value.doubleValue ?? (typeof value.boolValue === 'boolean' ? value.boolValue : undefined);
+  if (raw === undefined) return undefined;
+  const text = String(raw).trim();
+  return text === '' ? undefined : text;
+};
+
+const otelCaseId = (event: OtelEvaluationEvent, key: string): string | undefined => {
+  for (const scope of event.caseIdScopes) {
+    const text = otelAttributeText(scope, key);
+    if (text !== undefined) return text;
+  }
+  return undefined;
+};
+
+const otelGenaiRows = (
+  source: unknown,
+  fallbackSuite: string,
+  options: OtelGenaiImportOptions = {},
+): RunnerEvalCaseResult[] => {
   const exports = (Array.isArray(source) ? source : [source]).filter(
     (candidate): candidate is OtelExport => typeof candidate === 'object' && candidate !== null,
   );
@@ -1068,9 +1117,25 @@ const otelGenaiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     const errorType = otelAttributeValue(attributes, 'error.type');
     const metricName = typeof evaluationName === 'string' ? evaluationName : undefined;
 
-    // `<spanId>:<metric>` is unique within one export. spanIds are random per
-    // execution, so this id is NOT stable across runs (see the adapter doc).
-    const baseId = `${event.spanId ?? `${fallbackSuite}-${index + 1}`}${metricName ? `:${metricName}` : ''}`;
+    // With --case-id-attribute the id is `<caseId>:<metric>` and is stable
+    // across runs. Without it, `<spanId>:<metric>` is unique within one export
+    // only, because spanIds are random per execution (see the adapter doc).
+    let idPrefix: string;
+    if (options.caseIdAttribute) {
+      const caseId = otelCaseId(event, options.caseIdAttribute);
+      if (caseId === undefined) {
+        throw Object.assign(
+          new Error(
+            `otel-genai ${event.encoding} ${index + 1} (span ${event.spanId ?? 'unknown'}, metric ${metricName ?? 'unknown'}) has no ${options.caseIdAttribute} attribute on the ${event.encoding === 'span event' ? 'event, span, or resource' : 'log record or resource'}. Every event needs a case id when --case-id-attribute is set.`,
+          ),
+          { exitCode: 2 },
+        );
+      }
+      idPrefix = caseId;
+    } else {
+      idPrefix = event.spanId ?? `${fallbackSuite}-${index + 1}`;
+    }
+    const baseId = `${idPrefix}${metricName ? `:${metricName}` : ''}`;
     const seen = usedIds.get(baseId) ?? 0;
     usedIds.set(baseId, seen + 1);
     const id = seen === 0 ? baseId : `${baseId}#${seen + 1}`;
@@ -1163,6 +1228,7 @@ export const importFromSource = async (options: {
   inputPath: string;
   outPath: string;
   suiteName?: string;
+  caseIdAttribute?: string;
 }): Promise<{ outPath: string; rowCount: number }> => {
   const parsed = await parseJsonFile(options.inputPath);
   const fallbackSuite = options.suiteName || `${options.source}-import`;
@@ -1186,7 +1252,7 @@ export const importFromSource = async (options: {
                     ? openAiEvalsRows(parsed, fallbackSuite)
                     : options.source === 'eval-ai-library'
                       ? evalAiLibraryRows(parsed, fallbackSuite)
-                      : otelGenaiRows(parsed, fallbackSuite);
+                      : otelGenaiRows(parsed, fallbackSuite, { caseIdAttribute: options.caseIdAttribute });
 
   await writeEvalReportArtifact(
     options.outPath,

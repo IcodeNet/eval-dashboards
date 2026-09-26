@@ -8,4 +8,10 @@ Options:
                            Default: .evals_output/import-<source>.json
   --suite=<name>           Fallback suite name when source data has no suite.
                            Default: <source>-import
+  --case-id-attribute=<key>
+                           otel-genai only. Attribute holding a stable case id
+                           (read from the event or log record, then the span
+                           for span events, then the resource).
+                           Row ids become <caseId>:<metric> and stay stable
+                           across runs. Every event must carry it.
 

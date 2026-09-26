@@ -43,24 +43,40 @@ third-party survey linked from `docs/ROADMAP.md` 4J; check your vendor's docs).
 | `gen_ai.evaluation.explanation` | `judgeReasoning`, `reason` | Free-text rationale from the evaluator. |
 | `error.type` | `passed: false`, `reason` | An evaluator error becomes a failed row (`evaluator error: <type>`) with `judgeVerdict` unset; it does not abort the import. |
 | `traceId` | `trace.traceId` | Correlates the evaluation event back to the originating trace. |
-| `spanId` | `trace.spanId`, and the `id` prefix | Correlates the evaluation event to the span it evaluated. |
+| `spanId` | `trace.spanId`, and the `id` prefix unless `--case-id-attribute` is set | Correlates the evaluation event to the span it evaluated. |
 | span `name` | `name` | For example `chat gpt-4`. Span-event encoding only. |
 
 Every imported row gets `kind: "llm-judge"`.
 
-### Row ids are not stable across runs
+### Stable row ids across runs
 
-The row `id` is `<spanId>:<evaluation.name>`. A repeated id within one file
-gets a `#2`, `#3` suffix. This makes ids unique within one export, but OTel
-generates a new random `spanId` for every execution. So the same case gets a
-different id in the next run, and a baseline comparison will show every
-failure as "new" rather than "persistent".
+OTel generates a new random `spanId` for every execution. So by default the
+row `id` (`<spanId>:<evaluation.name>`) changes each run, and a baseline
+comparison shows every failure as "new" instead of "persistent".
 
-For cross-run tracking, give each case a stable key yourself: build the
-report with the runner adapter helpers (`src/adapters/runner.ts`) and set the
-row `id` from your dataset case id. Events without a `spanId` get a
+Fix this with `--case-id-attribute=<key>`. Name an attribute your eval harness
+sets to a stable case id (for example a dataset case id):
+
+```sh
+eval-dashboards import --from=otel-genai --input=traces.json \
+  --case-id-attribute=eval.case.id
+```
+
+- Row ids become `<caseId>:<evaluation.name>`, for example
+  `case-refund-policy:relevance`, and stay the same across runs.
+- The attribute is read from the evaluation event (or log record) first,
+  then its span (span-event encoding only; log records have no span
+  attributes), then the resource. The first non-empty value wins.
+- The value is used as text. Integer ids keep every digit, including
+  OTLP/JSON int64 strings above 2^53.
+- Every event must carry it; if one does not, the import fails with exit
+  code 2 and names the event.
+- `trace.spanId` is still recorded, so trace links keep working.
+
+Without the option, ids are unique within one export only. A repeated id
+within one file gets a `#2`, `#3` suffix. Events without a `spanId` get a
 positional id. `gen_ai.response.id` (the spec's correlation fallback) is not
-mapped yet.
+mapped.
 
 ### Pass/fail inference
 
@@ -99,7 +115,8 @@ event; `test/import-adapters-otel-genai.test.ts` asserts the resulting
 `eval-report/v1` row has `category`, `judgeCategory`, `judgeVerdict`,
 `score`, `judgeReasoning`, `reason` and `trace.traceId`/`trace.spanId`
 populated and correct. The same test file covers JSONL collector exports,
-log-record events, `error.type`, and duplicate ids. Taxonomy lint reports no
+log-record events, `error.type`, duplicate ids, and `--case-id-attribute`
+(including a two-run baseline comparison that reports a persistent failure). Taxonomy lint reports no
 errors; expect a `missing-judge-model` warning, because the OTel event has no
 judge-model attribute.
 

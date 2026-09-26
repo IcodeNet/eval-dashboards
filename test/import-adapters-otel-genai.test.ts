@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { validateEvalReport } from '../src/model/validate.js';
 import { lintReportTaxonomy } from '../src/gates/lint-taxonomy.js';
 import { importFromSource, resolveImportSource } from '../src/cli/import-adapters.js';
+import { compareRuns } from '../src/history/history.js';
 
 const fixturesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
@@ -259,6 +260,158 @@ describe('otel-genai import adapter', () => {
       ),
     );
     expect(rows[0]?.passed).toBe(false);
+  });
+
+  describe('--case-id-attribute (stable ids across runs)', () => {
+    const caseAttr = (id: string) => ({ key: 'eval.case.id', value: { stringValue: id } });
+
+    // One run = two cases, each on its own span with random-looking ids.
+    // The case id sits on the span; the resource carries a run-level default
+    // that must NOT win over the span value.
+    const runExport = (spanIds: [string, string], labels: [string, string]) => ({
+      resourceSpans: [
+        {
+          resource: { attributes: [caseAttr('resource-level-default')] },
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  traceId: `trace-${spanIds[0]}`,
+                  spanId: spanIds[0],
+                  attributes: [caseAttr('case-refund-policy')],
+                  events: [{ name: 'gen_ai.evaluation.result', attributes: [nameAttr('relevance'), labelAttr(labels[0])] }],
+                },
+                {
+                  traceId: `trace-${spanIds[1]}`,
+                  spanId: spanIds[1],
+                  attributes: [caseAttr('case-shipping-eta')],
+                  events: [{ name: 'gen_ai.evaluation.result', attributes: [nameAttr('relevance'), labelAttr(labels[1])] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const importReport = async (inputPath: string, caseIdAttribute?: string) => {
+      const outPath = path.join(path.dirname(inputPath), '.evals_output', 'import-otel-genai.json');
+      await importFromSource({ source: 'otel-genai', inputPath, outPath, caseIdAttribute });
+      const validated = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+      if (!validated.ok) throw new Error('invalid report');
+      return validated.report;
+    };
+
+    it('uses the case id so a baseline comparison sees persistent failures, not new ones', async () => {
+      const run1 = await importReport(
+        await writeJson('run1.json', runExport(['aaaa1111', 'bbbb2222'], ['fail', 'pass'])),
+        'eval.case.id',
+      );
+      const run2 = await importReport(
+        await writeJson('run2.json', runExport(['cccc3333', 'dddd4444'], ['fail', 'fail'])),
+        'eval.case.id',
+      );
+
+      expect(run2.rows.map((row) => row.id)).toEqual(['case-refund-policy:relevance', 'case-shipping-eta:relevance']);
+      // spanId still kept for trace linking.
+      expect(run2.rows[0]?.trace?.spanId).toBe('cccc3333');
+
+      const comparison = compareRuns(run2, run1);
+      expect(comparison.persistentFailures.map((row) => row.id)).toEqual(['case-refund-policy:relevance']);
+      expect(comparison.newlyFailing.map((row) => row.id)).toEqual(['case-shipping-eta:relevance']);
+      expect(comparison.disappeared).toHaveLength(0);
+    });
+
+    it('without the option, the same two runs show every failure as new (the gap this option fixes)', async () => {
+      const run1 = await importReport(await writeJson('run1.json', runExport(['aaaa1111', 'bbbb2222'], ['fail', 'pass'])));
+      const run2 = await importReport(await writeJson('run2.json', runExport(['cccc3333', 'dddd4444'], ['fail', 'fail'])));
+
+      const comparison = compareRuns(run2, run1);
+      expect(comparison.persistentFailures).toHaveLength(0);
+      expect(comparison.newlyFailing).toHaveLength(2);
+      expect(comparison.disappeared).toHaveLength(2);
+    });
+
+    it('reads the case id from the event first, then the resource', async () => {
+      const report = await importReport(
+        await writeJson('scopes.json', {
+          resourceLogs: [
+            {
+              resource: { attributes: [caseAttr('from-resource')] },
+              scopeLogs: [
+                {
+                  logRecords: [
+                    {
+                      eventName: 'gen_ai.evaluation.result',
+                      spanId: 's1',
+                      attributes: [caseAttr('from-event'), nameAttr('relevance'), labelAttr('pass')],
+                    },
+                    {
+                      eventName: 'gen_ai.evaluation.result',
+                      spanId: 's2',
+                      attributes: [nameAttr('groundedness'), labelAttr('pass')],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+        'eval.case.id',
+      );
+
+      expect(report.rows.map((row) => row.id)).toEqual(['from-event:relevance', 'from-resource:groundedness']);
+    });
+
+    it('keeps non-string case ids exact: large int64, zero, false, and skips blank values', async () => {
+      const event = (spanId: string, caseValue: Record<string, unknown>) => ({
+        traceId: `t-${spanId}`,
+        spanId,
+        attributes: [{ key: 'eval.case.id', value: caseValue }],
+        events: [{ name: 'gen_ai.evaluation.result', attributes: [nameAttr('relevance'), labelAttr('pass')] }],
+      });
+      const report = await importReport(
+        await writeJson('typed.json', {
+          resourceSpans: [
+            {
+              resource: { attributes: [caseAttr('resource-fallback')] },
+              scopeSpans: [
+                {
+                  spans: [
+                    // Above 2^53: Number() would round this to ...992.
+                    event('s1', { intValue: '9007199254740993' }),
+                    event('s2', { intValue: 0 }),
+                    event('s3', { boolValue: false }),
+                    // Blank on the span: fall through to the resource value.
+                    event('s4', { stringValue: '   ' }),
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+        'eval.case.id',
+      );
+
+      expect(report.rows.map((row) => row.id)).toEqual([
+        '9007199254740993:relevance',
+        '0:relevance',
+        'false:relevance',
+        'resource-fallback:relevance',
+      ]);
+    });
+
+    it('fails clearly when an event has no case id', async () => {
+      const inputPath = await writeJson('missing.json', spanExport('s1', [nameAttr('relevance'), labelAttr('pass')]));
+      await expect(
+        importFromSource({
+          source: 'otel-genai',
+          inputPath,
+          outPath: path.join(path.dirname(inputPath), '.evals_output', 'out.json'),
+          caseIdAttribute: 'eval.case.id',
+        }),
+      ).rejects.toThrow('has no eval.case.id attribute on the event, span, or resource');
+    });
   });
 
   it('fails clearly when no gen_ai.evaluation.result events are present', async () => {

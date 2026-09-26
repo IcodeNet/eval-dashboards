@@ -126,7 +126,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--playbook',
   ],
   completion: ['--shell'],
-  import: ['--from', '--input', '--out', '--suite'],
+  import: ['--from', '--input', '--out', '--suite', '--case-id-attribute'],
   adjudicate: ['--input', '--run-id', '--out', '--bundle', '--include-passed', '--allow-single-reviewer'],
   'heartbeat-verify': ['--heartbeat', '--max-age-hours'],
   'org-rollup': ['--input', '--out', '--locale'],
