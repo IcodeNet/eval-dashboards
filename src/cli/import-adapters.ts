@@ -1115,11 +1115,15 @@ const otelGenaiRows = (
     const scoreLabel = otelAttributeValue(attributes, 'gen_ai.evaluation.score.label');
     const explanation = otelAttributeValue(attributes, 'gen_ai.evaluation.explanation');
     const errorType = otelAttributeValue(attributes, 'error.type');
+    const responseId = otelAttributeText(attributes, 'gen_ai.response.id');
+    const requestId = otelAttributeText(attributes, 'gen_ai.request.id');
     const metricName = typeof evaluationName === 'string' ? evaluationName : undefined;
 
     // With --case-id-attribute the id is `<caseId>:<metric>` and is stable
     // across runs. Without it, `<spanId>:<metric>` is unique within one export
     // only, because spanIds are random per execution (see the adapter doc).
+    // If spanId is missing (common for some log-record exports), fall back to
+    // gen_ai.response.id before using a positional id.
     let idPrefix: string;
     if (options.caseIdAttribute) {
       const caseId = otelCaseId(event, options.caseIdAttribute);
@@ -1133,7 +1137,7 @@ const otelGenaiRows = (
       }
       idPrefix = caseId;
     } else {
-      idPrefix = event.spanId ?? `${fallbackSuite}-${index + 1}`;
+      idPrefix = event.spanId ?? responseId ?? `${fallbackSuite}-${index + 1}`;
     }
     const baseId = `${idPrefix}${metricName ? `:${metricName}` : ''}`;
     const seen = usedIds.get(baseId) ?? 0;
@@ -1190,6 +1194,8 @@ const otelGenaiRows = (
           sourceRef: 'otel-genai',
         },
         lifecycle: { status: 'active' },
+        ...(responseId ? { sourceResponseId: responseId } : {}),
+        ...(requestId ? { sourceRequestId: requestId } : {}),
       },
     };
   });

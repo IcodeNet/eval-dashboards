@@ -1740,6 +1740,19 @@ Acceptance criteria:
   the OTel GenAI evaluation-event mapping explicitly instead of only naming
   OpenTelemetry as a supported trace backend in passing.
 
+### 4J.2 Preserve provider request/response correlation ids from OTel imports (P1, S)
+
+- [ ] Extend the `otel-genai` importer to map `gen_ai.response.id` and (when present) `gen_ai.request.id` into row evidence metadata, and use `gen_ai.response.id` as the row-id prefix fallback when `spanId` is absent.
+- [ ] Add adapter tests covering log-record events without `spanId` that still produce stable non-positional ids and retain both correlation ids in metadata.
+- [ ] Update `docs/integrations/otel-genai.md` mapping table and id-stability notes to document the new behavior.
+
+Acceptance criteria:
+
+- A fixture/log-record case with no `spanId` but with `gen_ai.response.id` imports to `id=<responseId>:<metric>` instead of a positional id.
+- Imported rows preserve `metadata.sourceResponseId` (and `metadata.sourceRequestId` when emitted), with passing adapter tests.
+
+Rationale: Inspect AI added provider request/response id logging for every model call on 2026-10-04, increasing pressure for portable evaluation artifacts to carry those correlation handles too: https://github.com/UKGovernmentBEIS/inspect_ai/commit/15c4a65ab80848f1d5011e915fa5071079099746
+
 ---
 
 ## Product philosophy

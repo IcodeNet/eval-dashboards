@@ -44,6 +44,8 @@ third-party survey linked from `docs/ROADMAP.md` 4J; check your vendor's docs).
 | `error.type` | `passed: false`, `reason` | An evaluator error becomes a failed row (`evaluator error: <type>`) with `judgeVerdict` unset; it does not abort the import. |
 | `traceId` | `trace.traceId` | Correlates the evaluation event back to the originating trace. |
 | `spanId` | `trace.spanId`, and the `id` prefix unless `--case-id-attribute` is set | Correlates the evaluation event to the span it evaluated. |
+| `gen_ai.response.id` | `metadata.sourceResponseId`, and id-prefix fallback when `spanId` is missing | Preserved as provider correlation evidence; used to avoid positional ids for log records that do not carry `spanId`. |
+| `gen_ai.request.id` | `metadata.sourceRequestId` | Optional provider-side request correlation id, when emitted by instrumentation. |
 | span `name` | `name` | For example `chat gpt-4`. Span-event encoding only. |
 
 Every imported row gets `kind: "llm-judge"`.
@@ -74,9 +76,8 @@ eval-dashboards import --from=otel-genai --input=traces.json \
 - `trace.spanId` is still recorded, so trace links keep working.
 
 Without the option, ids are unique within one export only. A repeated id
-within one file gets a `#2`, `#3` suffix. Events without a `spanId` get a
-positional id. `gen_ai.response.id` (the spec's correlation fallback) is not
-mapped.
+within one file gets a `#2`, `#3` suffix. Events without a `spanId` fall back
+to `gen_ai.response.id` when present, then to a positional id.
 
 ### Pass/fail inference
 
