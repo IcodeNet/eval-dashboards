@@ -31,5 +31,6 @@ The importer preserves key Promptfoo evidence fields when present:
 - `gradingResult.reason` / `gradingResult.comment` -> `rows[].reason`
 - `latencyMs` (or `response.latencyMs`) -> `rows[].durationMs`
 - `metadata.sessionId` -> `rows[].metadata.sourceSessionId`
+- missing row ids -> deterministic `promptfoo-<sha1>` ids derived from suite + case payload (`#2` suffix for duplicates in one file), so row identity does not depend on array position
 
 Related risks: [integration risk register](./risk-register.md)

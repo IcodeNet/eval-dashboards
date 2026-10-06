@@ -63,6 +63,52 @@ describe('import adapters', () => {
     );
   });
 
+  it('generates stable promptfoo ids when source rows do not provide one', async () => {
+    const dir = await createTempDir();
+    const firstInputPath = path.join(dir, 'promptfoo-no-id-first.json');
+    const secondInputPath = path.join(dir, 'promptfoo-no-id-second.json');
+    const firstOutPath = path.join(dir, '.evals_output', 'import-promptfoo-no-id-first.json');
+    const secondOutPath = path.join(dir, '.evals_output', 'import-promptfoo-no-id-second.json');
+
+    const rowA = {
+      description: 'hf row A',
+      vars: { question: 'What is policy A?' },
+      gradingResult: { pass: true, score: 1 },
+      testCase: { metadata: { suite: 'hf-regression' } },
+    };
+    const rowB = {
+      description: 'hf row B',
+      vars: { question: 'What is policy B?' },
+      gradingResult: { pass: false, score: 0 },
+      testCase: { metadata: { suite: 'hf-regression' } },
+    };
+
+    await writeFile(firstInputPath, JSON.stringify({ results: [rowA, rowB, rowA] }, null, 2), 'utf8');
+    await writeFile(secondInputPath, JSON.stringify({ results: [rowB, rowA] }, null, 2), 'utf8');
+
+    await importFromSource({ source: 'promptfoo', inputPath: firstInputPath, outPath: firstOutPath });
+    await importFromSource({ source: 'promptfoo', inputPath: secondInputPath, outPath: secondOutPath });
+
+    const first = validateEvalReport(JSON.parse(await readFile(firstOutPath, 'utf8')) as unknown);
+    const second = validateEvalReport(JSON.parse(await readFile(secondOutPath, 'utf8')) as unknown);
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+
+    const firstRowA = first.report.rows.filter((row) => row.question === 'hf row A').map((row) => row.id);
+    const firstRowB = first.report.rows.find((row) => row.question === 'hf row B')?.id;
+    const secondRowA = second.report.rows.find((row) => row.question === 'hf row A')?.id;
+    const secondRowB = second.report.rows.find((row) => row.question === 'hf row B')?.id;
+
+    expect(firstRowA).toHaveLength(2);
+    expect(firstRowA[0]).toMatch(/^promptfoo-[0-9a-f]{12}$/);
+    expect(firstRowA[1]).toBe(`${firstRowA[0]}#2`);
+    expect(secondRowA).toBe(firstRowA[0]);
+    expect(firstRowB).toMatch(/^promptfoo-[0-9a-f]{12}$/);
+    expect(secondRowB).toBe(firstRowB);
+  });
+
   it('imports promptfoo results into a valid eval-report/v1 artifact', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-results.json');
