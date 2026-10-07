@@ -18,7 +18,9 @@ Teams already instrumented with OpenTelemetry GenAI semantic conventions
 mapping path instead of ad hoc field guessing — see
 [OpenTelemetry GenAI evaluation events](./integrations/otel-genai.md) and
 the trace-first evidence example in
-[Trace/observability stacks](./integrations/trace-stacks.md).
+[Trace/observability stacks](./integrations/trace-stacks.md). Pass
+`--case-id-attribute=<key>` so row ids stay stable across runs; without it,
+random span ids make every failure look new in baseline comparisons.
 
 ## Candidate 1: OpenAI — openai/evals
 

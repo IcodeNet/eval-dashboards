@@ -1,6 +1,6 @@
 {
   "name": "@icodenet/eval-dashboards",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Beautiful, themeable HTML dashboards, quality gates, and publishing for AI agent eval runs.",
   "type": "module",
   "author": "icodenet <byronth@gmail.com>",
@@ -54,8 +54,6 @@
     "metrics:adoption": "tsx scripts/collect-adoption-metrics.ts",
     "prepare": "node -e \"const fs=require('fs'); if (!fs.existsSync('.git')) { console.log('skip lefthook install (no .git)'); process.exit(0); } try { require('child_process').execSync('lefthook install', { stdio: 'inherit' }); } catch (error) { console.warn('skip lefthook install (optional binary unavailable):', error && error.message ? error.message : error); }\"",
     "prepack": "pnpm build",
-    "release": "semantic-release",
-    "release:dry": "semantic-release --dry-run --no-ci",
     "release:prepare": "pnpm check && pnpm assets:verify",
     "schema:generate": "tsx scripts/sync-eval-report-v1-schema.ts",
     "schema:check": "pnpm schema:generate && git diff --exit-code -- schemas/eval-report-v1.schema.json",
@@ -63,8 +61,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm typecheck && pnpm test && pnpm teach:verify && pnpm build",
-    "teach:verify": "tsx scripts/verify-teaching-docs.ts"
+    "check": "pnpm typecheck && pnpm test && pnpm teach:verify && pnpm docs:flags && pnpm build && pnpm test:commit-hooks",
+    "teach:verify": "tsx scripts/verify-teaching-docs.ts",
+    "docs:flags": "tsx scripts/verify-flag-docs.ts",
+    "verify:package": "node scripts/verify-packed-package.mjs",
+    "test:commit-hooks": "node --test scripts/commit-evidence.test.mjs",
+    "quality:record": "node scripts/commit-evidence.mjs check",
+    "quality:review": "node scripts/commit-evidence.mjs review",
+    "quality:verify": "node scripts/commit-evidence.mjs verify",
+    "audit:ci": "pnpm audit --audit-level=high"
   },
   "keywords": [
     "evals",
@@ -91,20 +96,13 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^11.0.6",
-    "@semantic-release/npm": "^12.0.2",
-    "@semantic-release/release-notes-generator": "^14.0.3",
     "@types/node": "^22.0.0",
     "lefthook": "^1.13.4",
     "playwright": "^1.55.0",
-    "semantic-release": "^24.2.7",
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "@octokit/rest": "^22.0.1"

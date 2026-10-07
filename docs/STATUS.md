@@ -54,8 +54,10 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Add concrete report-power artifact fixture with tracked history/progress/gate/detail outputs and deterministic regeneration script.
 - [x] Add teach delivery-stage labs plus FDE role workflow guidance grounded in report artifacts and required evidence outputs.
 
-- [x] Add npm publishing workflow and semantic version tagging (GitHub Actions).
-  - Audit 2026-09-15: `publish.yml`/`release.yml` are `workflow_dispatch`-only — there is no `push: tags` trigger, so tag-triggered publishing is not implemented yet; manual dispatch works.
+- [x] Add npm trusted-publishing workflow and semantic version tagging (GitHub Actions).
+  - Release review 2026-10-07: `publish.yml` is the sole supported release
+    workflow. It is dispatched manually from verified `main`, publishes through
+    npm OIDC, and creates the version tag and GitHub release after publishing.
 
 ## Release Notes
 
@@ -87,7 +89,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
   - Audit 2026-09-15: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only, no PR opened; ROADMAP.md tracks this item as unchecked/blocked for the same reason. Corrected here to match.
 - [x] reference integration: create first published dashboard baseline and document quality gaps.
 - [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
-  - Audit 2026-09-15: `dist/*.d.ts` ship correctly, but the packed-package consumer smoke test named in this slice is still missing — the downstream compile was a one-off manual check, not a checked-in test (matches ROADMAP.md's caveat on the same item).
+  - Verified 2026-10-07: `pnpm verify:package` installs the actual tarball into an isolated consumer, compiles public types, and executes public runtime/schema exports and CLI help. Node 22 run passed; remote CI for the new step remains pending.
 - [x] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
 - [x] eval-dashboards: decide which setup concepts belong in schema fields/enums, preset files, examples, or docs.
 - [x] eval-dashboards: design setup scaffolding for common agent eval programs, such as `init --preset agent-quality`.
@@ -184,3 +186,32 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 - Diff views between any two runs
 - AI-powered suggestions for suite manifests and rubric versions
 
+
+
+## Verification update — 2026-10-07
+
+- Release readiness is now the first priority: complete a green reviewed
+  milestone, merge it through a PR to `main`, verify `main`, publish through the
+  trusted npm workflow from `main`, and confirm the registry artifact before
+  continuing assistant-ui measurement and its upstream PR.
+- 4C.11 OpenAI Evals aliases and migration guidance verified against the importer,
+  tests, completion/help, and real CLI commands. The guide explicitly excludes
+  arbitrary hosted API export formats and unsupported `score_model` events.
+- 4J.2 provider request/response correlation metadata and response-id fallback
+  verified by the existing log-record regression test and the full Node 22 suite.
+- Added `pnpm verify:package`, Codex `PreToolUse` hook definitions, and a Lefthook
+  pre-commit gate requiring matching check logs and a cited review of the staged
+  tree. Hook trust remains the user's action. See `docs/commit-quality.md`.
+- Reference integration prepared in a local assistant-ui checkout:
+  dependency, trial adapter, CLI wiring, tests, and the docs-app dashboard route.
+  Synthetic verification is not a live model quality measurement. No upstream
+  integration commit/PR exists yet; do not mark external adoption complete.
+- Roadmap 4C.4 now requires the remaining upstream sequence explicitly: expand
+  the eval suites, collect and review real model-run artifacts through
+  eval-dashboards, fix and rerun findings, then open a draft assistant-ui PR
+  that links the evidence. None of those steps is marked complete.
+- The local release audit now exits 0 after removing the unused legacy Semantic
+  Release toolchain that solely introduced high-severity `braces@3.0.3`.
+  Three lower-severity findings remain (two moderate, one low). No threshold
+  was weakened; remote CI for the proposed milestone remains pending.
+- Evidence and reviewed limitations: `docs/reviews/2026-10-07-deliverables.md`.

@@ -207,12 +207,15 @@ Quick summary:
 
 1. Update `package.json` version (semantic versioning)
 2. Update `CHANGELOG.md` with release notes
-3. Merge to `main` via PR
-4. Create a git tag: `git tag v0.2.0 && git push origin v0.2.0`
-5. GitHub Actions automatically publishes to npm
+3. Run the required release checks and merge the reviewed PR to `main`
+4. Verify the resulting `main` commit and its required GitHub Actions checks
+5. Manually run the `Publish to npm` workflow from `main` with the version in
+   `package.json`
+6. Inspect its raw log, then verify the GitHub release/tag and npm registry
+   version
 
-The workflow requires `NPM_TOKEN` secret configured in GitHub repository settings.
-- Opening issues for UX improvements based on real usage
+The supported workflow uses npm trusted publishing through GitHub Actions OIDC;
+it does not require an `NPM_TOKEN` secret.
 
 ## Questions?
 

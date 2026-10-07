@@ -4,7 +4,9 @@ This page applies to trace systems such as OpenTelemetry backends, Langfuse, Pho
 
 For a documented, tested field mapping from the OpenTelemetry GenAI
 semantic conventions' `gen_ai.evaluation.result` event to `EvalRow`, see
-[OpenTelemetry GenAI evaluation events](./otel-genai.md).
+[OpenTelemetry GenAI evaluation events](./otel-genai.md). For baseline comparison
+across runs, import with `--case-id-attribute=<key>` so row ids come from a
+stable case id instead of the per-run span id.
 
 ## What trace stacks do well
 

@@ -1259,8 +1259,7 @@ const renderCollapsibleSection = ({
           </button>
           <span class="section-summary section-summary-${e(summaryTone)}">${e(summary)}</span>
         </div>
-        ${rightControls ?? ''}
-      </div>
+${rightControls ? `        ${rightControls}\n` : ''}      </div>
       <div id="section-body-${e(id)}" class="section-body">${body}</div>
     </div>`;
 };
@@ -1771,9 +1770,7 @@ ${renderCssVariables(theme)}
         ${run.branch ? `<span>Branch&nbsp;<strong>${e(run.branch)}</strong></span>` : ''}
         ${run.commit ? `<span>Commit&nbsp;<strong>${e(run.commit)}</strong></span>` : ''}
         ${run.buildId ? `<span>Build&nbsp;<strong>${e(run.buildId)}</strong></span>` : ''}
-        ${run.experimentId ? `<span>Experiment&nbsp;<strong>${e(run.experimentId)}</strong></span>` : ''}
-        ${run.variantLabel ? `<span>Variant&nbsp;<strong>${e(run.variantLabel)}</strong></span>` : ''}
-        <span>Provenance&nbsp;<strong><span class="provenance-badge provenance-${e(provenance.className)}">${e(provenance.label)}</span></strong></span>
+${run.experimentId ? `        <span>Experiment&nbsp;<strong>${e(run.experimentId)}</strong></span>\n` : ''}${run.variantLabel ? `        <span>Variant&nbsp;<strong>${e(run.variantLabel)}</strong></span>\n` : ''}        <span>Provenance&nbsp;<strong><span class="provenance-badge provenance-${e(provenance.className)}">${e(provenance.label)}</span></strong></span>
         ${totalDurationMs > 0 ? `<span>Duration&nbsp;<strong>${e(formatDuration(totalDurationMs))}</strong></span>` : ''}
       </div>
     </div>
@@ -1834,7 +1831,7 @@ ${renderCssVariables(theme)}
       summaryTone: compatibilityTone,
     })}
 
-    ${complianceCoverage.length > 0
+${complianceCoverage.length > 0
       ? renderCollapsibleSection({
         id: 'compliance-coverage',
         title: 'Compliance coverage',
@@ -1854,7 +1851,7 @@ ${renderCssVariables(theme)}
       })
       : ''}
 
-    ${statisticalSummary
+${statisticalSummary
       ? renderCollapsibleSection({
         id: 'statistical-context',
         title: 'Statistical context',
