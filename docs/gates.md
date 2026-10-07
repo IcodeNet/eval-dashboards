@@ -265,6 +265,11 @@ export default {
 ```
 - Typical usage: `--require-suite-pass=preflight` before live/judge gates.
 
+Run selection:
+
+- `--run-id=<id>`: the run `check` gates. Default: the latest run found in
+  `--input`.
+
 Baseline-aware options:
 
 - `--baseline-run-id=<run-id>`: explicit baseline.
@@ -430,6 +435,37 @@ eval-dashboards history --input=.evals_output --bypass-log=eval-report/bypass-lo
 `org-rollup` then surfaces a per-repo `bypassCount` column and an org-wide
 `totalBypassCount` summary card, so bypass erosion is visible as a trend across
 repos instead of only discoverable by reading CI logs during an audit.
+
+## Evidence bundle for examiners (4F.11)
+
+`eval-dashboards evidence-export` packs one release's evidence into a single
+`eval-evidence-bundle/v1` JSON file. Each input is hashed (sha256) and its
+exact bytes are embedded, with a top-level digest over all entries. An
+examiner can then check the bundle with nothing but the file itself.
+
+```sh
+eval-dashboards evidence-export \
+  --report=.evals_output/run.json \
+  --check-result=eval-report/check-result.json \
+  --waiver-file=eval-waivers.json \
+  --bypass-log=eval-report/bypass-log.jsonl \
+  --approval-trail=eval-report/approvals.json \
+  --signature=eval-report/check-result.sig.json \
+  --run-id=run-2026-09-26 --baseline-run-id=run-2026-09-19 \
+  --out=eval-report/evidence-bundle.json
+
+eval-dashboards evidence-verify --bundle=eval-report/evidence-bundle.json
+```
+
+- `--report` and `--check-result` are required: the `eval-report/v1`
+  artifact and the `eval-check-result/v1` or `/v2` output of `check`.
+- `--waiver-file`, `--bypass-log`, `--approval-trail` and `--signature` (the
+  file written by `sign`) are optional. Include each one the release used.
+- `--run-id` and `--baseline-run-id` are recorded on the bundle for the
+  reader. They are informational and do not select runs.
+- `evidence-verify --bundle=<path>` recomputes every entry digest and the
+  top-level digest. It exits `1` on any mismatch or a missing or malformed
+  bundle.
 
 ## CI dependency-audit gate (4F.12)
 

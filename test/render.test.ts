@@ -27,7 +27,7 @@ describe('render html safety and taxonomy scoring', () => {
       run: {
         id: 'run-1',
         generatedAt: '2026-08-03T12:00:00.000Z',
-        project: 'flagstone internal project',
+        project: 'icodenet internal project',
       },
       suites: [{ id: 'quality', total: 1, passed: 0, failed: 1 }],
       rows: [
@@ -37,7 +37,7 @@ describe('render html safety and taxonomy scoring', () => {
           passed: false,
           severity: 'high',
           category: 'policy',
-          reason: 'Contains flagstone-only reference in output.',
+          reason: 'Contains icodenet-only reference in output.',
         },
       ],
     };
@@ -54,7 +54,8 @@ describe('render html safety and taxonomy scoring', () => {
     );
 
     const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
-    expect(html.toLowerCase()).not.toContain('flagstone');
+    expect(html).not.toContain('icodenet internal project');
+    expect(html).not.toContain('icodenet-only');
     expect(html).toContain('[redacted]');
   });
 

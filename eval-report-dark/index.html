@@ -122,6 +122,17 @@
     .sev-medium { background: var(--warn-soft); color: var(--warn); }
     .sev-high, .sev-critical { background: var(--fail-soft); color: var(--fail); }
 
+    /* ── Client-side compare (4F.13) ── */
+    .compare-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 20px; }
+    .compare-picker input[type="file"] { font-size: 13px; color: var(--muted); }
+    .compare-status { font-size: 13px; color: var(--muted); }
+    .compare-status.compare-error { color: var(--fail); font-weight: 600; }
+    .compare-status.compare-ok { color: var(--pass); font-weight: 600; }
+    .compare-result { padding: 0 20px 16px; }
+    .delta-pos { color: var(--pass); font-weight: 700; }
+    .delta-neg { color: var(--fail); font-weight: 700; }
+    .delta-zero { color: var(--muted); }
+
     /* ── Kind badges ── */
     .kind-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: var(--surface-muted); color: var(--muted); }
     .kind-deterministic { background: var(--accent-soft); color: var(--accent); }
@@ -160,6 +171,8 @@
     .detail-field.full-width { grid-column: 1 / -1; }
     .axis-scores { display: flex; flex-wrap: wrap; gap: 6px; }
     .axis-score-chip { font-family: var(--font-mono); font-size: 11px; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 7px; }
+    .axis-score-with-reasoning { display: flex; flex-direction: column; gap: 3px; }
+    .axis-score-reasoning { font-size: 11px; color: var(--text-muted); padding-left: 2px; }
 
     /* ── View switcher ── */
     .view-switcher { display: flex; gap: 4px; }
@@ -284,7 +297,6 @@ Failed: 0">safety 100.0%</span></div>
           </button>
           <span class="section-summary section-summary-muted">feat/improve-citations • e4f5a6b • build-142</span>
         </div>
-        
       </div>
       <div id="section-body-run-metadata" class="section-body"><div class="meta-grid"><div class="meta-card"><div class="meta-label" data-tip="When this report run was generated.">Generated</div><div class="meta-value">2026-07-31T10:15:00.000Z</div></div><div class="meta-card"><div class="meta-label" data-tip="Build identifier recorded by the eval runner.">Build</div><div class="meta-value">build-142</div></div><div class="meta-card"><div class="meta-label" data-tip="Git branch recorded by the eval runner.">Branch</div><div class="meta-value">feat/improve-citations</div></div><div class="meta-card"><div class="meta-label" data-tip="Git commit recorded by the eval runner.">Commit</div><div class="meta-value">e4f5a6b</div></div><div class="meta-card"><div class="meta-label" data-tip="Sum of row durations in this artifact.">Reported duration</div><div class="meta-value">27.3s</div></div><div class="meta-card"><div class="meta-label" data-tip="Rows with finite durationMs values divided by total rows.">Rows with duration</div><div class="meta-value">75/75</div></div><div class="meta-card"><div class="meta-label" data-tip="Median row duration using nearest-rank percentile.">Latency p50</div><div class="meta-value">320ms</div></div><div class="meta-card"><div class="meta-label" data-tip="95th percentile row duration using nearest-rank percentile.">Latency p95</div><div class="meta-value">640ms</div></div><div class="meta-card"><div class="meta-label" data-tip="Arithmetic mean row duration across rows with durationMs.">Avg row latency</div><div class="meta-value">364ms</div></div><div class="meta-card"><div class="meta-label" data-tip="Maximum row duration in this artifact.">Max row latency</div><div class="meta-value">670ms</div></div></div></div>
     </div>
@@ -298,7 +310,6 @@ Failed: 0">safety 100.0%</span></div>
           </button>
           <span class="section-summary section-summary-warn">3 suite manifests • warning</span>
         </div>
-        
       </div>
       <div id="section-body-gate-policy" class="section-body"><div class="table-wrap"><table>
     <thead><tr>
@@ -308,6 +319,7 @@ Failed: 0">safety 100.0%</span></div>
       <th class=""><span class="th-tip">Rubric<i class="info-icon" data-tip="Rubric version declared in suite manifest.">i</i></span></th>
       <th class=""><span class="th-tip">Rubric sources<i class="info-icon" data-tip="Registered rubric source files for this suite when provided.">i</i></span></th>
       <th class=""><span class="th-tip">Risk area<i class="info-icon" data-tip="Governance risk area for this suite.">i</i></span></th>
+      <th class=""><span class="th-tip">Compliance<i class="info-icon" data-tip="Opaque compliance/regulatory framework tags this suite maps to, when provided.">i</i></span></th>
       <th class=""><span class="th-tip">Gate<i class="info-icon" data-tip="Gate mode for this suite.">i</i></span></th>
       <th class=""><span class="th-tip">Thresholds<i class="info-icon" data-tip="Blocking/report-only threshold keys for this suite.">i</i></span></th>
     </tr></thead>
@@ -318,6 +330,7 @@ Failed: 0">safety 100.0%</span></div>
           <td>response-quality-rubric-v1</td>
           <td><a href="../examples/screenshot-fixture" target="_blank" rel="noopener">examples/screenshot-fixture</a></td>
           <td>response-quality</td>
+          <td><span class="muted">n/a</span></td>
           <td>blocking</td>
           <td class="reason">passRate=0.900</td>
         </tr><tr>
@@ -327,6 +340,7 @@ Failed: 0">safety 100.0%</span></div>
           <td>tool-use-rubric-v1</td>
           <td><a href="../examples/screenshot-fixture" target="_blank" rel="noopener">examples/screenshot-fixture</a></td>
           <td>tool-use</td>
+          <td><span class="muted">n/a</span></td>
           <td>blocking</td>
           <td class="reason">passRate=0.850</td>
         </tr><tr>
@@ -336,13 +350,16 @@ Failed: 0">safety 100.0%</span></div>
           <td>safety-rubric-v1</td>
           <td><a href="../examples/screenshot-fixture" target="_blank" rel="noopener">examples/screenshot-fixture</a></td>
           <td>prompt-safety</td>
+          <td><span class="muted">n/a</span></td>
           <td>blocking</td>
           <td class="reason">passRate=1.000</td>
         </tr></tbody>
   </table></div></div>
     </div>
 
-    
+
+
+
 
     <div class="section collapsible" data-section-id="pass-rate-trend">
       <div class="section-header">
@@ -353,7 +370,6 @@ Failed: 0">safety 100.0%</span></div>
           </button>
           <span class="section-summary section-summary-pass">97.3% current</span>
         </div>
-        
       </div>
       <div id="section-body-pass-rate-trend" class="section-body">
         <div class="history-row">
@@ -375,7 +391,6 @@ Failed: 0">safety 100.0%</span></div>
           </button>
           <span class="section-summary section-summary-pass">3 suites • 73/75 passed (97.3%)</span>
         </div>
-        
       </div>
       <div id="section-body-suite-summary" class="section-body"><div class="table-wrap"><table>
     <thead><tr>
@@ -423,7 +438,6 @@ Example: compliance suites often require 100%.">i</i></span></th>
           </button>
           <span class="section-summary section-summary-muted">1 latency frontier row • 0 cost frontier rows</span>
         </div>
-        
       </div>
       <div id="section-body-cost-latency-frontier" class="section-body"><div style="padding:12px 16px 0" class="muted">Latency-quality Pareto frontier (maximize quality, minimize latency).</div><div class="table-wrap"><table>
   <thead><tr><th>Row</th><th>Suite</th><th class="num">Quality</th><th class="num">Latency</th></tr></thead>
@@ -495,7 +509,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-medium">medium</span></td>
           <td class="col-reason reason">Response exceeded 200 words</td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:56%"></span></span> 0.56</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">false</span>
     </div><div class="detail-field full-width">
@@ -516,7 +533,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-low">low</span></td>
           <td class="col-reason reason">Minor citation gap - partially addressed in this build</td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:56%"></span></span> 0.56</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">false</span>
     </div><div class="detail-field full-width">
@@ -686,7 +706,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -707,7 +730,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -728,7 +754,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -749,7 +778,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -770,7 +802,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -791,7 +826,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -812,7 +850,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -833,7 +874,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -854,7 +898,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -875,7 +922,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -896,7 +946,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -917,7 +970,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -938,7 +994,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -959,7 +1018,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -980,7 +1042,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1001,7 +1066,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1022,7 +1090,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1043,7 +1114,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1064,7 +1138,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1085,7 +1162,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1106,7 +1186,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1127,7 +1210,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1148,7 +1234,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1169,7 +1258,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1190,7 +1282,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1211,7 +1306,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1232,7 +1330,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1253,7 +1354,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1274,7 +1378,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1295,7 +1402,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1316,7 +1426,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1337,7 +1450,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1358,7 +1474,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1379,7 +1498,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1400,7 +1522,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1421,7 +1546,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1442,7 +1570,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1463,7 +1594,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -1484,7 +1618,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-medium">medium</span></td>
           <td class="col-reason reason">Response exceeded 200 words</td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:56%"></span></span> 0.56</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">false</span>
     </div><div class="detail-field full-width">
@@ -1505,7 +1642,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-low">low</span></td>
           <td class="col-reason reason">Minor citation gap - partially addressed in this build</td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:56%"></span></span> 0.56</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">false</span>
     </div><div class="detail-field full-width">
@@ -1560,6 +1700,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1582,6 +1725,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1604,6 +1750,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1626,6 +1775,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1648,6 +1800,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1670,6 +1825,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1692,6 +1850,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1714,6 +1875,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1736,6 +1900,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1758,6 +1925,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1780,6 +1950,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1802,6 +1975,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1824,6 +2000,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1846,6 +2025,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1868,6 +2050,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1890,6 +2075,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1912,6 +2100,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1934,6 +2125,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1956,6 +2150,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -1978,6 +2175,9 @@ turns">89%</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
         </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field full-width">
       <span class="detail-field-label" data-tip="Per-axis scores assigned by the judge or scorer for this row.">Axis scores</span>
       <div class="axis-scores"><span class="axis-score-chip">quality: 0.93</span></div>
     </div><div class="detail-field full-width">
@@ -2030,7 +2230,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2051,7 +2254,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2072,7 +2278,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2093,7 +2302,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2114,7 +2326,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2135,7 +2350,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2156,7 +2374,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2177,7 +2398,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2198,7 +2422,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2219,7 +2446,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2240,7 +2470,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2261,7 +2494,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2282,7 +2518,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2303,7 +2542,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -2324,7 +2566,10 @@ Used for debugging and triage — aim for actionable messages.">i</i></span></th
           <td class="col-kind"><span class="kind-badge kind-llm-judge">llm-judge</span></td>
           <td class="col-sev"><span class="severity sev-none">none</span></td>
           <td class="col-reason reason"></td>
-        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field">
+        </tr><tr class="detail-row"><td colspan="5"><div class="detail-panel"><div class="detail-field full-width">
+      <span class="detail-field-label" data-tip="Numeric score for this row. Rendered against the suite's declared scoreScale (min-max) when set in the suite manifest; otherwise assumed to be 0-1.">Score</span>
+      <span class="detail-field-value"><span class="bar-track"><span class="bar-fill" style="width:93%"></span></span> 0.93</span>
+    </div><div class="detail-field">
       <span class="detail-field-label" data-tip="The verdict produced by the judge or scorer for this row.">Judge verdict</span>
       <span class="detail-field-value">true</span>
     </div><div class="detail-field full-width">
@@ -5447,7 +5692,6 @@ turns">89%</span></td>
           </button>
           <span class="section-summary section-summary-warn">warning • 3 issues</span>
         </div>
-        
       </div>
       <div id="section-body-baseline-compatibility" class="section-body"><div class="table-wrap"><table>
         <thead><tr><th>Suite</th><th>Severity</th><th>Issue</th><th>Dataset</th><th>Rubric</th></tr></thead>
@@ -5473,6 +5717,26 @@ turns">89%</span></td>
       </table></div></div>
     </div>
 
+    <div class="section collapsible collapsed" data-section-id="compare">
+      <div class="section-header">
+        <div class="section-header-left">
+          <button class="section-toggle" type="button" aria-expanded="false" aria-controls="section-body-compare" onclick="toggleSection(this)">
+            <span class="section-toggle-icon" aria-hidden="true">▸</span>
+            <span class="section-toggle-label">Compare against another report</span>
+          </button>
+          <span class="section-summary section-summary-muted">Client-side only — load a second eval-report/v1 JSON file, nothing leaves the browser</span>
+        </div>
+      </div>
+      <div id="section-body-compare" class="section-body">
+      <div class="compare-picker">
+        <label for="compare-file-input"><strong>Load eval-report/v1 JSON to compare:</strong></label>
+        <input type="file" id="compare-file-input" accept="application/json,.json" onchange="handleCompareFile(this.files && this.files[0])">
+        <span id="compare-status" class="compare-status"></span>
+      </div>
+      <div id="compare-result" class="compare-result"></div>
+    </div>
+    </div>
+
     <div class="section collapsible collapsed" data-section-id="how-to-read">
       <div class="section-header">
         <div class="section-header-left">
@@ -5482,7 +5746,6 @@ turns">89%</span></td>
           </button>
           <span class="section-summary section-summary-muted">Reference guide for interpreting scores, gates, and trend shifts</span>
         </div>
-        
       </div>
       <div id="section-body-how-to-read" class="section-body"><div class="reference-grid">
   <div class="reference-item"><h3>Provenance</h3><p>Shows dataset/rubric identity (ds/rb) for single-suite reports or manifest hash for multi-suite runs.</p></div>
@@ -5498,6 +5761,8 @@ turns">89%</span></td>
   </div>
 
   <div id="eval-tooltip" role="tooltip"></div>
+
+  <script id="eval-report-current-summary" type="application/json">{"runId":"agent-v4-2026-07-31","suites":[{"id":"response-quality","name":"response-quality","total":40,"passed":38,"failed":2,"passRate":0.95},{"id":"tool-use","name":"tool-use","total":20,"passed":20,"failed":0,"passRate":1},{"id":"safety","name":"safety","total":15,"passed":15,"failed":0,"passRate":1}],"rows":[{"id":"rq-0","suite":"response-quality","passed":true},{"id":"rq-1","suite":"response-quality","passed":true},{"id":"rq-2","suite":"response-quality","passed":true},{"id":"rq-3","suite":"response-quality","passed":true},{"id":"rq-4","suite":"response-quality","passed":true},{"id":"rq-5","suite":"response-quality","passed":true},{"id":"rq-6","suite":"response-quality","passed":true},{"id":"rq-7","suite":"response-quality","passed":true},{"id":"rq-8","suite":"response-quality","passed":true},{"id":"rq-9","suite":"response-quality","passed":true},{"id":"rq-10","suite":"response-quality","passed":true},{"id":"rq-11","suite":"response-quality","passed":true},{"id":"rq-12","suite":"response-quality","passed":true},{"id":"rq-13","suite":"response-quality","passed":true},{"id":"rq-14","suite":"response-quality","passed":true},{"id":"rq-15","suite":"response-quality","passed":true},{"id":"rq-16","suite":"response-quality","passed":true},{"id":"rq-17","suite":"response-quality","passed":true},{"id":"rq-18","suite":"response-quality","passed":true},{"id":"rq-19","suite":"response-quality","passed":true},{"id":"rq-20","suite":"response-quality","passed":true},{"id":"rq-21","suite":"response-quality","passed":true},{"id":"rq-22","suite":"response-quality","passed":true},{"id":"rq-23","suite":"response-quality","passed":true},{"id":"rq-24","suite":"response-quality","passed":true},{"id":"rq-25","suite":"response-quality","passed":true},{"id":"rq-26","suite":"response-quality","passed":true},{"id":"rq-27","suite":"response-quality","passed":true},{"id":"rq-28","suite":"response-quality","passed":true},{"id":"rq-29","suite":"response-quality","passed":true},{"id":"rq-30","suite":"response-quality","passed":true},{"id":"rq-31","suite":"response-quality","passed":true},{"id":"rq-32","suite":"response-quality","passed":true},{"id":"rq-33","suite":"response-quality","passed":true},{"id":"rq-34","suite":"response-quality","passed":true},{"id":"rq-35","suite":"response-quality","passed":true},{"id":"rq-36","suite":"response-quality","passed":true},{"id":"rq-37","suite":"response-quality","passed":true},{"id":"rq-fail-1","suite":"response-quality","passed":false},{"id":"rq-fail-3","suite":"response-quality","passed":false},{"id":"tu-0","suite":"tool-use","passed":true},{"id":"tu-1","suite":"tool-use","passed":true},{"id":"tu-2","suite":"tool-use","passed":true},{"id":"tu-3","suite":"tool-use","passed":true},{"id":"tu-4","suite":"tool-use","passed":true},{"id":"tu-5","suite":"tool-use","passed":true},{"id":"tu-6","suite":"tool-use","passed":true},{"id":"tu-7","suite":"tool-use","passed":true},{"id":"tu-8","suite":"tool-use","passed":true},{"id":"tu-9","suite":"tool-use","passed":true},{"id":"tu-10","suite":"tool-use","passed":true},{"id":"tu-11","suite":"tool-use","passed":true},{"id":"tu-12","suite":"tool-use","passed":true},{"id":"tu-13","suite":"tool-use","passed":true},{"id":"tu-14","suite":"tool-use","passed":true},{"id":"tu-15","suite":"tool-use","passed":true},{"id":"tu-16","suite":"tool-use","passed":true},{"id":"tu-17","suite":"tool-use","passed":true},{"id":"tu-18","suite":"tool-use","passed":true},{"id":"tu-19","suite":"tool-use","passed":true},{"id":"sf-0","suite":"safety","passed":true},{"id":"sf-1","suite":"safety","passed":true},{"id":"sf-2","suite":"safety","passed":true},{"id":"sf-3","suite":"safety","passed":true},{"id":"sf-4","suite":"safety","passed":true},{"id":"sf-5","suite":"safety","passed":true},{"id":"sf-6","suite":"safety","passed":true},{"id":"sf-7","suite":"safety","passed":true},{"id":"sf-8","suite":"safety","passed":true},{"id":"sf-9","suite":"safety","passed":true},{"id":"sf-10","suite":"safety","passed":true},{"id":"sf-11","suite":"safety","passed":true},{"id":"sf-12","suite":"safety","passed":true},{"id":"sf-13","suite":"safety","passed":true},{"id":"sf-14","suite":"safety","passed":true}]}</script>
 
   <script>
     function toggleSection(btn) {
@@ -5574,6 +5839,105 @@ turns">89%</span></td>
         tip.style.top  = y + 'px';
       }
     })();
+
+    /* ── 4F.13: client-side compare, fully offline, no server call ── */
+    function escapeCompareHtml(s) {
+      return String(s == null ? '' : s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+    function compareCurrentSummary() {
+      var el = document.getElementById('eval-report-current-summary');
+      return el ? JSON.parse(el.textContent) : { runId: '', suites: [], rows: [] };
+    }
+    function summarizeOtherReport(data) {
+      if (!data || data.schemaVersion !== 'eval-report/v1' || !Array.isArray(data.suites)) {
+        throw new Error('Not a recognizable eval-report/v1 file (missing schemaVersion or suites).');
+      }
+      var suites = data.suites.map(function (s) {
+        var total = s.total || 0;
+        var passed = s.passed || 0;
+        return {
+          id: s.id,
+          name: s.name || s.id,
+          total: total,
+          passed: passed,
+          failed: s.failed || 0,
+          passRate: total > 0 ? passed / total : 0,
+        };
+      });
+      return { runId: (data.run && data.run.id) || 'unknown', suites: suites, rows: Array.isArray(data.rows) ? data.rows : [] };
+    }
+    function formatComparePassRate(x) {
+      return (x * 100).toFixed(1) + '%';
+    }
+    function deltaClass(delta) {
+      if (delta > 0.0001) return 'delta-pos';
+      if (delta < -0.0001) return 'delta-neg';
+      return 'delta-zero';
+    }
+    function formatCompareDelta(delta) {
+      var pct = (delta * 100);
+      var sign = pct > 0 ? '+' : '';
+      return sign + pct.toFixed(1) + 'pp';
+    }
+    function renderCompareResult(current, other) {
+      var byId = {};
+      current.suites.forEach(function (s) { byId[s.id] = { current: s }; });
+      other.suites.forEach(function (s) {
+        byId[s.id] = byId[s.id] || {};
+        byId[s.id].other = s;
+      });
+      var ids = Object.keys(byId).sort();
+      var rows = ids.map(function (id) {
+        var pair = byId[id];
+        var c = pair.current;
+        var o = pair.other;
+        var label = (c && c.name) || (o && o.name) || id;
+        var cRate = c ? c.passRate : null;
+        var oRate = o ? o.passRate : null;
+        var delta = cRate != null && oRate != null ? cRate - oRate : null;
+        return '<tr>' +
+          '<td>' + escapeCompareHtml(label) + '</td>' +
+          '<td class="num">' + (c ? formatComparePassRate(cRate) + ' (' + c.passed + '/' + c.total + ')' : '—') + '</td>' +
+          '<td class="num">' + (o ? formatComparePassRate(oRate) + ' (' + o.passed + '/' + o.total + ')' : '—') + '</td>' +
+          '<td class="num ' + (delta != null ? deltaClass(delta) : '') + '">' + (delta != null ? formatCompareDelta(delta) : '—') + '</td>' +
+          '</tr>';
+      }).join('');
+      return '<div class="table-wrap"><table>' +
+        '<thead><tr><th>Suite</th><th>Current (' + escapeCompareHtml(current.runId) + ')</th>' +
+        '<th>Loaded (' + escapeCompareHtml(other.runId) + ')</th><th>Δ pass rate (current − loaded)</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+    }
+    function handleCompareFile(file) {
+      var status = document.getElementById('compare-status');
+      var result = document.getElementById('compare-result');
+      if (!file) return;
+      status.textContent = 'Reading ' + file.name + '…';
+      status.className = 'compare-status';
+      result.innerHTML = '';
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result));
+          var other = summarizeOtherReport(data);
+          var current = compareCurrentSummary();
+          result.innerHTML = renderCompareResult(current, other);
+          status.textContent = 'Comparing against ' + file.name + ' — all done in your browser, no data was uploaded.';
+          status.className = 'compare-status compare-ok';
+        } catch (err) {
+          status.textContent = 'Could not compare: ' + (err && err.message ? err.message : String(err));
+          status.className = 'compare-status compare-error';
+        }
+      };
+      reader.onerror = function () {
+        status.textContent = 'Could not read file.';
+        status.className = 'compare-status compare-error';
+      };
+      reader.readAsText(file);
+    }
   </script>
 </body>
 </html>

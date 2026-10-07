@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-09-13
+**Last updated:** 2026-10-07
 
 ---
 
@@ -186,7 +186,7 @@ Per user directive: "adoption and shipping should be done last when we are ready
 - Add adoption metrics snapshot script and manual signal tracker
 
 **Phase 4 prerequisites:**
-- [x] npm publishing workflow (manual `workflow_dispatch` publish). Audit 2026-09-14: `publish.yml` and `release.yml` are `workflow_dispatch`-only; there is no `push: tags` trigger, so tag-triggered publishing is not implemented.
+- [x] npm trusted-publishing workflow (manual `workflow_dispatch` from verified `main`; the workflow publishes through OIDC, then creates the version tag and GitHub release).
 - [x] Community seeding loop infrastructure (outreach log + metrics cadence)
 
 **External outcomes remain ongoing:**
@@ -195,6 +195,17 @@ Per user directive: "adoption and shipping should be done last when we are ready
 ---
 
 ## 🚧 Phase 4A: Reference Integration Proving Ground & Setup Layer (PARTIALLY COMPLETE; NEXT SLICES REMAIN)
+
+### Immediate release milestone (P0)
+
+- [ ] Finish one coherent eval-dashboards milestone with all required local checks, dependency audit, packed-package verification, release assets, and evidence-backed review passing for the exact proposed tree.
+- [ ] Open a reviewable eval-dashboards PR, inspect its required raw CI logs, resolve findings, and merge the approved milestone to `main`.
+- [ ] Verify the resulting `main` commit and run the trusted `Publish to npm` workflow from `main`; inspect the raw publish log and confirm both the GitHub release/tag and the npm registry version.
+- [ ] Update the assistant-ui integration to consume that published version before collecting real model-run evidence or opening its upstream draft PR.
+
+Release order is mandatory: milestone evidence -> PR and green CI -> merge to
+`main` -> verify `main` -> publish from `main` -> verify npm -> assistant-ui
+measurement and upstream PR.
 
 This phase runs two parallel streams that feed each other:
 
@@ -215,9 +226,11 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 - [ ] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard. Audit 2026-09-14: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only and no PR has been opened.
 - [x] Generate a first dashboard baseline locally and document initial quality gaps. Audit 2026-09-14: the quality-gap findings are substantive; no published baseline URL or committed baseline history manifest exists.
 
+Local integration update 2026-10-07: a fresh `assistant-ui/assistant-ui` checkout now has an explicit published-package dependency, tested trial adapter, lint/check/report commands, and a verified docs-app `/eval-dashboard/` route. No external integration commit or PR has been published, so the external completion boxes above remain open. Dated record: `docs/case-studies/assistant-ui/2026-10-07-integration.md`.
+
 ### Stream B: eval-dashboards setup-layer evolution
 
-- [x] Publish TypeScript declaration files for package consumers (`dts: true` in `tsup.config.ts`; `main`/`types`/`exports` in `package.json`). Audit 2026-09-14: the packed-package consumer smoke test named in this slice is still missing — the downstream compile was a one-off manual check, not a checked-in test.
+- [x] Publish TypeScript declaration files for package consumers (`dts: true` in `tsup.config.ts`; `main`/`types`/`exports` in `package.json`). Verified 2026-10-07: `scripts/verify-packed-package.mjs` packs the package, installs it into an isolated consumer, compiles public types, and executes runtime/schema/CLI exports. `pnpm verify:package` passed under Node 22; CI wiring is added but has not run remotely for this uncommitted change. See `docs/reviews/2026-10-07-deliverables.md`.
    - Generate `.d.ts` files in `dist` during `pnpm build`.
    - Add package metadata (`types` / export typings) so imports like `import type { EvalReportV1 } from '@icodenet/eval-dashboards'` resolve in downstream projects.
    - Add a package-consumer smoke test that installs/builds against the packed package and verifies public types resolve.
@@ -541,10 +554,15 @@ Acceptance criteria:
 - [x] Use assistant-ui integration as the living reference example for agent-eval adoption docs.
 - [x] Publish a case-study style walkthrough: baseline setup, emitted artifacts, lint/check/report wiring, dashboard publish flow, and key lessons.
 - [ ] Keep example aligned with current branch/PR state and update docs when integration steps change. Audit 2026-09-14: no sync mechanism, CI check, or dated sync record exists, so this cannot be evidenced. Needs either a scheduled check or a dated review log.
+- [ ] Expand the assistant-ui eval program beyond its current comment-hygiene cases with additional named suites whose baselines reproduce a documented product or contributor risk and whose rubrics can be reviewed independently.
+- [ ] Run the expanded suites against real configured agent and judge models, preserve the raw `eval-report/v1` artifacts, and use `eval-dashboards lint`, `check`, and `report` to measure them. Synthetic smoke fixtures verify plumbing only and do not satisfy this item.
+- [ ] Review the measured dashboard row by row, record model versions, trial counts, failures, limitations, and resulting fixes, then rerun the affected suites to produce comparable evidence.
+- [ ] Open a draft PR in `assistant-ui/assistant-ui` containing the integration and suite changes, with the measured dashboard evidence and exact verification commands linked in the PR description. Do not mark the upstream integration complete until that PR exists and its checks have been inspected.
 
 Acceptance criteria:
 
 - The docs site contains an end-to-end reference integration page tied to real repo artifacts and reproducible commands.
+- The upstream draft PR is based on real model runs from the expanded suites, rather than only the synthetic adapter smoke test, and states both positive results and unresolved findings.
 
 ### 4C.5 Adoption measurement for docs effectiveness (P1)
 
@@ -615,6 +633,19 @@ Acceptance criteria:
 - Adopt-now page is linked from the docs-site index and includes a copy-paste flow.
 - Adoption map documents candidate-only positioning, evidence anchors, and risk notes.
 - Public docs surfaces include non-endorsement language for external candidate repos.
+
+### 4C.11 OpenAI Evals sunset migration path (P0)
+
+- [x] Add a dedicated OpenAI Evals migration guide and import-source aliases (`oaieval`, `oaievals`, `openai-eval`) that normalize to `--from=openai-evals` so teams can keep CI running while migrating before shutdown.
+
+Acceptance criteria:
+
+- `eval-dashboards import` accepts `oaieval`, `oaievals`, and `openai-eval` as aliases for `openai-evals` with completion/help text updated.
+- Integrations docs include a concrete migration path from OpenAI Evals exports to `eval-report/v1` plus known limitations.
+
+Rationale: OpenAI states the Evals platform becomes read-only on 2026-10-31 and is scheduled to shut down on 2026-11-30, so low-friction migration paths are time-sensitive for adopters (https://developers.openai.com/api/docs/guides/evals).
+
+Verification 2026-10-07: aliases and conversion are covered by `test/import-adapters-openai-evals.test.ts:25`; completion by `test/completion.test.ts:26`; guide at `docs/integrations/openai-evals.md`. The guide now distinguishes supported oaieval logs from arbitrary hosted API exports and lists only supported event types. Real CLI runs verified all aliases and expected passing/failing gates; see `docs/reviews/2026-10-07-deliverables.md`.
 
 ### 4C execution order
 
@@ -1197,7 +1228,7 @@ hand-edited-bundle detection).
       Verified locally (2026-09-15): before this change `pnpm audit
       --audit-level=high` reported 8 high-severity advisories (fast-uri x5,
       js-yaml x2, nanoid x1, all transitive devDependencies of
-      commitlint/semantic-release/tsup/vitest); fixed by pinning patched
+      commitlint/release tooling/tsup/vitest); fixed by pinning patched
       versions via `overrides` in `pnpm-workspace.yaml:6-9` (`fast-uri
       >=3.1.6`, `js-yaml >=4.3.2`, `nanoid >=3.3.18`). After `pnpm install`,
       `pnpm audit --audit-level=high` exits `0` (3 remaining findings are 1
@@ -1533,7 +1564,7 @@ Acceptance criteria:
 ### 4I.2 Versioned, marketplace-listed composite GitHub Action (P1, S)
 
 - [x] Package the existing example workflow YAML as a versioned composite
-      Action (`uses: IcodeNet/eval-dashboards@v0.7.0`) instead of a
+      Action (`uses: IcodeNet/eval-dashboards@v0.8.0`) instead of a
       copy-paste snippet, lowering adoption friction to match competitor
       packaging.
 
@@ -1739,6 +1770,21 @@ Acceptance criteria:
 - `docs/integrations/trace-stacks.md` (or the new OTel-specific page) states
   the OTel GenAI evaluation-event mapping explicitly instead of only naming
   OpenTelemetry as a supported trace backend in passing.
+
+### 4J.2 Preserve provider request/response correlation ids from OTel imports (P1, S)
+
+- [x] Extend the `otel-genai` importer to map `gen_ai.response.id` and (when present) `gen_ai.request.id` into row evidence metadata, and use `gen_ai.response.id` as the row-id prefix fallback when `spanId` is absent.
+- [x] Add adapter tests covering log-record events without `spanId` that still produce stable non-positional ids and retain both correlation ids in metadata.
+- [x] Update `docs/integrations/otel-genai.md` mapping table and id-stability notes to document the new behavior.
+
+Acceptance criteria:
+
+- A fixture/log-record case with no `spanId` but with `gen_ai.response.id` imports to `id=<responseId>:<metric>` instead of a positional id.
+- Imported rows preserve `metadata.sourceResponseId` (and `metadata.sourceRequestId` when emitted), with passing adapter tests.
+
+Verification 2026-10-07: mapping in `src/cli/import-adapters.ts:1119`, log-record regression test in `test/import-adapters-otel-genai.test.ts:188`, and mapping notes in `docs/integrations/otel-genai.md:47`; the full Node 22 suite passed.
+
+Rationale: Inspect AI added provider request/response id logging for every model call on 2026-10-04, increasing pressure for portable evaluation artifacts to carry those correlation handles too: https://github.com/UKGovernmentBEIS/inspect_ai/commit/15c4a65ab80848f1d5011e915fa5071079099746
 
 ---
 

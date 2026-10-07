@@ -7,11 +7,14 @@ This document explains how `@icodenet/eval-dashboards` is published to npm.
 Primary release path uses the trusted-publishing workflow:
 
 - Trigger `.github/workflows/publish.yml` manually with the version in `package.json`
+- Trigger it only after the release PR has merged and the selected ref is `main`
 - Publishes to npm using GitHub Actions OIDC trusted publishing
 - Creates GitHub release + tag (`vX.Y.Z`)
 - Does not require an `NPM_TOKEN` secret
 
-Legacy Semantic Release config remains available in `.github/workflows/release.yml` for manual experiments only. It is not run on every `main` push because `@semantic-release/npm` requires `NPM_TOKEN`, while this package is configured for trusted publishing.
+The former Semantic Release experiment was removed. It required a separate
+token-based release path and duplicated version, changelog, tag, and publish
+responsibilities. The trusted-publishing workflow is the sole supported path.
 
 ## Required Secrets
 
@@ -19,18 +22,10 @@ Legacy Semantic Release config remains available in `.github/workflows/release.y
 
 Configure the package on npm for trusted publishing from this GitHub repository and the `Publish to npm` workflow. No npm automation token is required for the primary path.
 
-### NPM_TOKEN (legacy semantic-release only)
-
-Only needed if running `.github/workflows/release.yml` manually:
-
-1. Login to npm as the `@icodenet` owner
-2. Go to https://www.npmjs.com/settings/tokens
-3. Create an **Automation** token
-4. Add it to GitHub repo secrets as `NPM_TOKEN`
-
 ## Conventional Commit Rules
 
-Semantic Release depends on conventional commits:
+The repository uses conventional commits for reviewable history and release
+notes:
 
 - `feat:` -> minor bump
 - `fix:` -> patch bump
@@ -45,14 +40,23 @@ This repository also accepts ticket/initial prefixes before the type, for exampl
 
 ## Publish Flow
 
-1. Update `package.json` and `CHANGELOG.md` for the intended version.
-2. Merge or push the release commit to `main`.
-3. Run `.github/workflows/publish.yml` manually with the version input.
-4. The workflow runs `pnpm release:prepare` before publish, which enforces:
+1. Finish the milestone on a branch and make all required quality, audit,
+   package-consumer, asset, and review checks pass.
+2. Update `package.json` and `CHANGELOG.md` for the intended version in the
+   release PR.
+3. Merge the reviewed release PR to `main`.
+4. Verify the resulting `main` commit and its required GitHub Actions checks.
+5. From the `main` branch in GitHub Actions, run `.github/workflows/publish.yml`
+   manually with the version input.
+6. The workflow runs `pnpm release:prepare` before publish, which enforces:
 	- project checks (`pnpm check`)
-	- deterministic regeneration of release dashboards/screenshots (`pnpm assets:regenerate`)
-	- no drift in tracked release assets (`git diff --exit-code -- eval-report eval-report-dark docs/images`)
-5. Publish proceeds only when all checks pass, then creates the npm package and GitHub release.
+	- deterministic regeneration of release dashboards/screenshots
+	- byte-for-byte equality between the candidate assets and the regenerated
+	  assets (`docs/images` is checked locally; CI checks the HTML/report files
+	  to avoid cross-platform rasterization drift)
+7. Publish proceeds only when all checks pass, then creates the npm package and GitHub release.
+8. Inspect the raw publish log, confirm the GitHub release/tag points to the
+   verified `main` commit, and verify the registry version with `npm view`.
 
 ## Local Dry Run
 
@@ -61,7 +65,7 @@ Use dry run to preview next release without publishing:
 ```bash
 pnpm install
 pnpm release:prepare
-pnpm release:dry
+npm pack --dry-run
 ```
 
 ## Manual Publish
@@ -83,7 +87,6 @@ The install step in this workflow supports both cases:
 | Push to main does not publish | Run `.github/workflows/publish.yml` with the version from `package.json` |
 | PR title lint fails | Rename PR title to conventional format |
 | npm publish fails with trusted publishing | Verify the npm package trusted publisher points at this repository and workflow |
-| Legacy semantic-release fails with `ENONPMTOKEN` | Either use `publish.yml`, or add an `NPM_TOKEN` before running `release.yml` manually |
 | Manual publish version mismatch | Ensure `package.json` version matches manual `version` input |
 
 ## Verification

@@ -1,0 +1,18 @@
+{
+  "description": "Require matching quality-check logs and evidence-backed review before committing eval-dashboards. Review and trust this hook in Codex; trust is never set by the installer.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|exec_command|exec$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/commit-policy.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking staged changes, quality logs, and review evidence"
+          }
+        ]
+      }
+    ]
+  }
+}

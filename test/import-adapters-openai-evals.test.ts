@@ -22,8 +22,11 @@ afterEach(async () => {
 });
 
 describe('openai-evals import adapter', () => {
-  it('resolves openai-evals as a valid import source', () => {
+  it('resolves openai-evals aliases as valid import sources', () => {
     expect(resolveImportSource('openai-evals')).toBe('openai-evals');
+    expect(resolveImportSource('oaievals')).toBe('openai-evals');
+    expect(resolveImportSource('oaieval')).toBe('openai-evals');
+    expect(resolveImportSource('openai-eval')).toBe('openai-evals');
   });
 
   it('imports an oaieval JSONL events log into a valid eval-report/v1 artifact', async () => {
