@@ -18,8 +18,9 @@ export type ImportSource =
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals|oaievals.
                            openevals is accepted as an alias for agentevals.
+                           oaievals, oaieval, and openai-eval are accepted aliases for openai-evals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
                            Default: .evals_output/import-<source>.json
@@ -1206,6 +1207,9 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
   if (normalized === 'openevals') {
     return 'agentevals';
   }
+  if (normalized === 'oaievals' || normalized === 'oaieval' || normalized === 'openai-eval') {
+    return 'openai-evals';
+  }
   if (
     normalized === 'promptfoo' ||
     normalized === 'deepeval' ||
@@ -1223,7 +1227,7 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals.`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals, oaievals (also oaieval/openai-eval aliases).`,
     ),
     { exitCode: 2 },
   );

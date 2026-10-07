@@ -616,6 +616,17 @@ Acceptance criteria:
 - Adoption map documents candidate-only positioning, evidence anchors, and risk notes.
 - Public docs surfaces include non-endorsement language for external candidate repos.
 
+### 4C.11 OpenAI Evals sunset migration path (P0)
+
+- [ ] Add a dedicated OpenAI Evals migration guide and import-source aliases (`oaieval`, `oaievals`, `openai-eval`) that normalize to `--from=openai-evals` so teams can keep CI running while migrating before shutdown.
+
+Acceptance criteria:
+
+- `eval-dashboards import` accepts `oaieval`, `oaievals`, and `openai-eval` as aliases for `openai-evals` with completion/help text updated.
+- Integrations docs include a concrete migration path from OpenAI Evals exports to `eval-report/v1` plus known limitations.
+
+Rationale: OpenAI states the Evals platform becomes read-only on 2026-10-31 and is scheduled to shut down on 2026-11-30, so low-friction migration paths are time-sensitive for adopters (https://developers.openai.com/api/docs/guides/evals).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
