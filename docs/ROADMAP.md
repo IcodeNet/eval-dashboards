@@ -1717,7 +1717,7 @@ span-attribute mapping exists. This repo's `TraceReference` (`traceId`,
 documented way to round-trip against `gen_ai.evaluation.result`, so a team
 piping OTel-instrumented agent traces into `eval-report/v1` has to invent the
 mapping from scratch. Source:
-https://john-hodge.com/blog/opentelemetry-genai-semantic-conventions (state
+https://opentelemetry.io/docs/specs/semconv/gen-ai/ (state
 of the spec as of July 2026, confirms `gen_ai.evaluation.result` landed in
 v1.38.0 and the GenAI surface remains Development/unstable, so document as
 best-effort/versioned guidance, not a hard schema dependency).

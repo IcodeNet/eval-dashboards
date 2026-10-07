@@ -735,7 +735,7 @@ const e = (s: unknown): string =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
-const FORBIDDEN_OUTPUT_TOKENS = [/\bflagstone\b/gi];
+const FORBIDDEN_OUTPUT_TOKENS = [/\bicodenet\b/gi];
 const REDACTED_TOKEN = '[redacted]';
 
 function sanitizeForDashboardOutput(input: string): string {
