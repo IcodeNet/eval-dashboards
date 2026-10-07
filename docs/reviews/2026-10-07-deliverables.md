@@ -15,7 +15,7 @@ have passed GitHub Actions.
   installed the tarball in an isolated consumer, compiled imports of the
   public types, exercised runtime and schema exports, and invoked CLI help.
 - `pnpm release:prepare` exited 0 after running the full check plus a fresh
-  byte-for-byte regeneration of 12 release-asset files.
+  byte-for-byte regeneration of the tracked release-asset files.
 - The built CLI imported the same two-row OpenAI Evals fixture through
   `openai-evals`, `oaieval`, `oaievals`, and `openai-eval`. Each alias passed a
   0.5 pass-rate gate and failed a 1.0 pass-rate gate as expected.
@@ -48,7 +48,8 @@ summary.
 - Release-asset verification compared generated assets with `HEAD`, so a release
   PR that intentionally refreshed assets could never pass before commit. It now
   snapshots the candidate files, regenerates them, and fails only when those
-  candidate bytes were stale. The corrected check reproduced all 12 files.
+  candidate bytes were stale. A clean-runner reproduction with the ignored
+  `eval-report/` directory initially absent reproduced all nine tracked files.
 - Public documentation contained machine-specific checkout paths. Those paths
   were removed from the package candidate.
 
@@ -64,10 +65,12 @@ summary.
 
 ## Remaining limitations and blockers
 
-- The latest raw GitHub Actions log inspected for the current repository HEAD
-  is run `37582557220`; it fails the required dependency audit. The workflow
-  additions and dependency cleanup in this uncommitted tree have not run
-  remotely, so that older failure is not represented as current success.
+- PR run `37681624594` reached the new release-asset step, then failed because
+  the first verifier revision tried to scan ignored `eval-report/` before it
+  existed on the clean runner. Its raw failed log was inspected. The follow-up
+  verifier hashes only Git-tracked candidate assets and passes the same missing-
+  directory reproduction locally; that follow-up had not run remotely when
+  this record was written.
 - No passing commit-evidence receipt had been created when this durable review
   record was written. Staging and the exact-tree evidence run follow this
   review; `pnpm quality:verify` remains the authoritative receipt check.

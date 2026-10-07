@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
@@ -28,21 +28,16 @@ const run = async (command: string, args: string[]): Promise<void> => {
 
 const assetSnapshot = async (paths: string[]): Promise<Map<string, string>> => {
   const snapshot = new Map<string, string>();
-  const visit = async (relativePath: string): Promise<void> => {
-    const absolutePath = path.join(repoRoot, relativePath);
-    const entries = await readdir(absolutePath, { withFileTypes: true });
-    for (const entry of entries) {
-      const child = path.join(relativePath, entry.name);
-      if (entry.isDirectory()) await visit(child);
-      else if (entry.isFile()) {
-        snapshot.set(
-          child,
-          createHash('sha256').update(await readFile(path.join(repoRoot, child))).digest('hex'),
-        );
-      }
-    }
-  };
-  for (const relativePath of paths) await visit(relativePath);
+  const tracked = execFileSync('git', ['ls-files', '-z', '--', ...paths], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  }).split('\0').filter(Boolean);
+  for (const file of tracked) {
+    snapshot.set(
+      file,
+      createHash('sha256').update(await readFile(path.join(repoRoot, file))).digest('hex'),
+    );
+  }
   return snapshot;
 };
 
