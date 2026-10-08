@@ -10,6 +10,7 @@ If you can export rows and map them into `eval-report/v1`, you can use the same 
 eval-dashboards import --from=promptfoo --input=./promptfoo.json --out=.evals_output/promptfoo.json
 eval-dashboards import --from=deepeval --input=./deepeval.json --out=.evals_output/deepeval.json
 eval-dashboards import --from=openevals --input=./agentevals-like.json --out=.evals_output/openevals.json
+eval-dashboards import --from=langsmith --input=./langsmith-runs.json --out=.evals_output/langsmith.json
 eval-dashboards import --from=otel-genai --input=./otel-genai-spans.json --out=.evals_output/otel-genai.json
 ```
 
@@ -27,6 +28,7 @@ eval-dashboards import --from=otel-genai --input=./otel-genai-spans.json --out=.
 - [Arize Phoenix](./arize-phoenix.md)
 - [Braintrust](./braintrust.md)
 - [Ragas](./ragas.md)
+- [LangSmith](./langsmith.md)
 - [TruLens](./trulens.md)
 - [Patronus](./patronus.md)
 - [Trace/observability stacks](./trace-stacks.md)

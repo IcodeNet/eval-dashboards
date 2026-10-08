@@ -647,6 +647,18 @@ Rationale: OpenAI states the Evals platform becomes read-only on 2026-10-31 and 
 
 Verification 2026-10-07: aliases and conversion are covered by `test/import-adapters-openai-evals.test.ts:25`; completion by `test/completion.test.ts:26`; guide at `docs/integrations/openai-evals.md`. The guide now distinguishes supported oaieval logs from arbitrary hosted API exports and lists only supported event types. Real CLI runs verified all aliases and expected passing/failing gates; see `docs/reviews/2026-10-07-deliverables.md`.
 
+
+### 4C.12 LangSmith runs import path (P1)
+
+- [ ] Add first-class `--from=langsmith` import support plus a LangSmith integration guide that maps recent `query_runs`/`fetch_runs` outputs to `eval-report/v1` with explicit pass/fail inference rules.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=langsmith --input=<path>` accepts array and `runs[]`/`data[]` containers and emits a schema-valid artifact.
+- Pass/fail inference is deterministic and documented (status/error/score/feedback precedence) with regression tests for ambiguous input.
+
+Rationale: LangSmith’s Cloud changelog now promotes run-query tooling for costs/tokens and cursor pagination (`query_runs`, with `fetch_runs` deprecated), so a direct adapter removes migration friction for teams standardizing on LangSmith exports (https://docs.langchain.com/langsmith/changelog).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
