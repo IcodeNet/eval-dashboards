@@ -124,12 +124,13 @@ Phase 4B for the shipped change.
 
 ## Status
 
-This adapter and CLI wiring exist **locally only**, in a worktree of
-`assistant-ui/assistant-ui`. No PR has been opened — see
-`docs/ROADMAP.md` Phase 4B and `docs/community-partnership-log.md` for the
-adoption-funnel decision to hold off on a real PR until deliberately chosen
-to send one. This case study documents the integration and its real findings
-regardless of whether a PR follows.
+The adapter, expanded suites, raw real-model evidence, and docs route are now
+published for review in
+[assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044).
+The PR records both successful reruns and unresolved findings, including the
+final `delete-stale` 0/3 result. GitHub Actions passed after raw-log inspection;
+the external Rupic review remains pending. This is a submitted pilot rather
+than an accepted upstream adoption.
 
 ## Why this matters for the roadmap
 

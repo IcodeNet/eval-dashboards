@@ -7,7 +7,7 @@ Use this file to track outreach and pilot conversations for early runner partner
 | Date | Channel | Contact/Org | Stage | Outcome | Next action |
 |---|---|---|---|---|---|
 | 2026-08-04 | GitHub discussion | TBD | planned | Added to outreach queue | Send intro with examples/vitest-evals |
-| 2026-09-03 | Self-initiated integration (no outreach sent) | assistant-ui/assistant-ui | pilot | Built and verified a local adapter against their real `evals/` harness (18 real rows, reproduced their own documented A/B finding). Full write-up: `docs/case-studies/assistant-ui/README.md`. Not yet `adopted` — integration is local-only, no PR opened. | Decide whether to open a real PR upstream; if yes, lead with the case study's findings rather than a cold "please adopt this schema" pitch |
+| 2026-09-03 | Self-initiated integration; draft PR submitted 2026-10-08 | assistant-ui/assistant-ui | pilot | Built and verified an adapter against the real `evals/` harness, expanded it with two reproducible repository-risk suites, preserved real Claude agent/judge evidence, and opened [draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044). This remains a pilot until maintainers accept and use it. | Inspect the pending external review, address valid findings, and wait for maintainer feedback |
 
 ## Stage definitions
 
