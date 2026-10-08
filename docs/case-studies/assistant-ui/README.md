@@ -49,8 +49,8 @@ hand-rolling the JSON shape.
 JUDGE_MODEL=claude-sonnet-5 AGENT_MODEL=claude-sonnet-5 TRIALS=1 node src/cli.ts
 ```
 
-18 rows (3 cases × 6 candidates), reproducing the harness's own documented
-finding exactly:
+This earlier exploratory run produced 18 rows (3 cases × 6 candidates) and
+reproduced the harness's then-documented finding:
 
 | Case | baseline | describe-now | no-history | why-not-what | delete-stale | drop-tombstones |
 |---|---|---|---|---|---|---|
@@ -66,6 +66,11 @@ Suite total: **14/18 passed (77.8%)**. The real judge's stated reason for the
 > change."
 
 Full artifact: [`run-artifact.json`](./run-artifact.json).
+
+This snapshot is retained as historical evidence and was superseded by the
+final three-trial paired rerun. In that final evidence, both `baseline` and
+`delete-stale` scored 0/3 for `pr-review-comments`; see
+[`pr-review-comments.json`](https://github.com/assistant-ui/assistant-ui/blob/270f3f98fef3e66282798c93a29b86aaefa8754b/evals/evidence/2026-10-08/pr-review-comments.json).
 
 ```sh
 eval-dashboards lint --input=.evals_output      # 0 errors, 18 warnings (see below)
