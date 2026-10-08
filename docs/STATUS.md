@@ -78,8 +78,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 ### Parallel reference integration + eval-dashboards workstreams
 
 - [x] reference integration: inspect existing eval runner, dataset shape, scoring, and CI workflow.
-- [ ] reference integration: add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency.
-  - Audit 2026-09-15: unverifiable from this repo — no external commit/PR link recorded; ROADMAP.md tracks this item as unchecked/blocked for the same reason. Corrected here to match.
+- [ ] reference integration: add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in an upstream commit.
+  - Local verification 2026-10-08 confirms the standalone assistant-ui `evals` harness resolves the published 0.8.0 package. No external commit/PR link exists, so ROADMAP.md and STATUS.md keep the external item unchecked.
 - [x] reference integration: map current eval output into `eval-report/v1` without replacing the existing runner.
 - [x] reference integration: emit `.evals_output/*.json` artifacts with suite summaries and row-level evidence.
 - [x] reference integration: add suite manifests, dataset versions, rubric versions, and dashboard gates.
@@ -89,7 +89,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
   - Audit 2026-09-15: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only, no PR opened; ROADMAP.md tracks this item as unchecked/blocked for the same reason. Corrected here to match.
 - [x] reference integration: create first published dashboard baseline and document quality gaps.
 - [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
-  - Verified 2026-10-07: `pnpm verify:package` installs the actual tarball into an isolated consumer, compiles public types, and executes public runtime/schema exports and CLI help. Node 22 run passed; remote CI for the new step remains pending.
+  - Verified 2026-10-07: `pnpm verify:package` installs the actual tarball into an isolated consumer, compiles public types, and executes public runtime/schema exports and CLI help. The local run and exact-main CI run 37684094244 passed; version 0.8.0 was then published through trusted publishing.
 - [x] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
 - [x] eval-dashboards: decide which setup concepts belong in schema fields/enums, preset files, examples, or docs.
 - [x] eval-dashboards: design setup scaffolding for common agent eval programs, such as `init --preset agent-quality`.
@@ -188,12 +188,13 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 
 
 
-## Verification update — 2026-10-07
+## Verification update — 2026-10-08
 
-- Release readiness is now the first priority: complete a green reviewed
-  milestone, merge it through a PR to `main`, verify `main`, publish through the
-  trusted npm workflow from `main`, and confirm the registry artifact before
-  continuing assistant-ui measurement and its upstream PR.
+- Release milestone completed: PR #7 merged as
+  `966ef2fe64e296b685dadcf7f68e7fe0e30556d7`; exact-main CI run 37684094244
+  passed and its raw logs were inspected; publish run 37686201637 published
+  `@icodenet/eval-dashboards@0.8.0` with signed provenance; npm `latest` and the
+  `v0.8.0` GitHub tag both resolve to the verified release.
 - 4C.11 OpenAI Evals aliases and migration guidance verified against the importer,
   tests, completion/help, and real CLI commands. The guide explicitly excludes
   arbitrary hosted API export formats and unsupported `score_model` events.
@@ -203,15 +204,17 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
   pre-commit gate requiring matching check logs and a cited review of the staged
   tree. Hook trust remains the user's action. See `docs/commit-quality.md`.
 - Reference integration prepared in a local assistant-ui checkout:
-  dependency, trial adapter, CLI wiring, tests, and the docs-app dashboard route.
+  published 0.8.0 dependency, trial adapter, five registered cases, CLI wiring,
+  tests, and the docs-app dashboard route.
   Synthetic verification is not a live model quality measurement. No upstream
-  integration commit/PR exists yet; do not mark external adoption complete.
+  integration commit/PR exists yet, and Claude CLI authentication is currently
+  unavailable for the real runs; do not mark external adoption complete.
 - Roadmap 4C.4 now requires the remaining upstream sequence explicitly: expand
   the eval suites, collect and review real model-run artifacts through
   eval-dashboards, fix and rerun findings, then open a draft assistant-ui PR
   that links the evidence. None of those steps is marked complete.
-- The local release audit now exits 0 after removing the unused legacy Semantic
+- The release audit exits 0 after removing the unused legacy Semantic
   Release toolchain that solely introduced high-severity `braces@3.0.3`.
   Three lower-severity findings remain (two moderate, one low). No threshold
-  was weakened; remote CI for the proposed milestone remains pending.
+  was weakened; exact-main CI and the trusted publish workflow passed.
 - Evidence and reviewed limitations: `docs/reviews/2026-10-07-deliverables.md`.

@@ -198,10 +198,10 @@ Per user directive: "adoption and shipping should be done last when we are ready
 
 ### Immediate release milestone (P0)
 
-- [ ] Finish one coherent eval-dashboards milestone with all required local checks, dependency audit, packed-package verification, release assets, and evidence-backed review passing for the exact proposed tree.
-- [ ] Open a reviewable eval-dashboards PR, inspect its required raw CI logs, resolve findings, and merge the approved milestone to `main`.
-- [ ] Verify the resulting `main` commit and run the trusted `Publish to npm` workflow from `main`; inspect the raw publish log and confirm both the GitHub release/tag and the npm registry version.
-- [ ] Update the assistant-ui integration to consume that published version before collecting real model-run evidence or opening its upstream draft PR.
+- [x] Finish one coherent eval-dashboards milestone with all required local checks, dependency audit, packed-package verification, release assets, and evidence-backed review passing for the exact proposed tree. Completed in the 0.8.0 milestone; the exact-tree evidence is recorded in `docs/reviews/2026-10-07-deliverables.md`.
+- [x] Open a reviewable eval-dashboards PR, inspect its required raw CI logs, resolve findings, and merge the approved milestone to `main`. [PR #7](https://github.com/IcodeNet/eval-dashboards/pull/7) merged as `966ef2fe64e296b685dadcf7f68e7fe0e30556d7`; the exact-main [CI run](https://github.com/IcodeNet/eval-dashboards/actions/runs/37684094244) passed after raw-log inspection.
+- [x] Verify the resulting `main` commit and run the trusted `Publish to npm` workflow from `main`; inspect the raw publish log and confirm both the GitHub release/tag and the npm registry version. [Publish run 37686201637](https://github.com/IcodeNet/eval-dashboards/actions/runs/37686201637) published `@icodenet/eval-dashboards@0.8.0` with signed provenance; [release `v0.8.0`](https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.8.0) points to `966ef2fe64e296b685dadcf7f68e7fe0e30556d7`.
+- [x] Update the assistant-ui integration to consume that published version before collecting real model-run evidence or opening its upstream draft PR. The local integration branch resolves `@icodenet/eval-dashboards@0.8.0`; external completion remains gated on the upstream draft PR below.
 
 Release order is mandatory: milestone evidence -> PR and green CI -> merge to
 `main` -> verify `main` -> publish from `main` -> verify npm -> assistant-ui
@@ -217,7 +217,7 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 ### Stream A: reference integration eval stream
 
 - [x] Inspect the existing reference integration eval runner, datasets, and CI wiring
-- [ ] Add `@icodenet/eval-dashboards` as an explicit dev dependency in the reference integration repo. Audit 2026-09-14: unverifiable from this repo — no external commit/PR link recorded. Re-mark only with a link to the external change.
+- [ ] Add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in the reference integration repo. Local verification 2026-10-08 confirms the standalone `evals` harness resolves 0.8.0, but no external commit/PR link exists. Re-mark only with a link to the upstream change.
 - [x] Map current reference integration eval results into `eval-report/v1`
 - [x] Emit `.evals_output/*.json` artifacts from existing eval runs
 - [x] Add suite manifests, dataset versions, rubric versions, and dashboard gates
@@ -226,11 +226,11 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 - [ ] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard. Audit 2026-09-14: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only and no PR has been opened.
 - [x] Generate a first dashboard baseline locally and document initial quality gaps. Audit 2026-09-14: the quality-gap findings are substantive; no published baseline URL or committed baseline history manifest exists.
 
-Local integration update 2026-10-07: a fresh `assistant-ui/assistant-ui` checkout now has an explicit published-package dependency, tested trial adapter, lint/check/report commands, and a verified docs-app `/eval-dashboard/` route. No external integration commit or PR has been published, so the external completion boxes above remain open. Dated record: `docs/case-studies/assistant-ui/2026-10-07-integration.md`.
+Local integration update 2026-10-08: a fresh `assistant-ui/assistant-ui` checkout now resolves the published 0.8.0 package and has a tested trial adapter, five registered behavior cases, lint/check/report commands, and a verified docs-app `/eval-dashboard/` route. Six focused eval tests, eval typecheck, the synthetic dashboard smoke test, and four docs-route tests pass. No external integration commit or PR has been published, and real agent/judge runs remain blocked on Claude CLI authentication, so the external completion boxes above remain open. Dated record: `docs/case-studies/assistant-ui/2026-10-07-integration.md`.
 
 ### Stream B: eval-dashboards setup-layer evolution
 
-- [x] Publish TypeScript declaration files for package consumers (`dts: true` in `tsup.config.ts`; `main`/`types`/`exports` in `package.json`). Verified 2026-10-07: `scripts/verify-packed-package.mjs` packs the package, installs it into an isolated consumer, compiles public types, and executes runtime/schema/CLI exports. `pnpm verify:package` passed under Node 22; CI wiring is added but has not run remotely for this uncommitted change. See `docs/reviews/2026-10-07-deliverables.md`.
+- [x] Publish TypeScript declaration files for package consumers (`dts: true` in `tsup.config.ts`; `main`/`types`/`exports` in `package.json`). Verified 2026-10-07: `scripts/verify-packed-package.mjs` packs the package, installs it into an isolated consumer, compiles public types, and executes runtime/schema/CLI exports. `pnpm verify:package` passed locally and in the exact-main [CI run](https://github.com/IcodeNet/eval-dashboards/actions/runs/37684094244); the verified package was published as 0.8.0. See `docs/reviews/2026-10-07-deliverables.md`.
    - Generate `.d.ts` files in `dist` during `pnpm build`.
    - Add package metadata (`types` / export typings) so imports like `import type { EvalReportV1 } from '@icodenet/eval-dashboards'` resolve in downstream projects.
    - Add a package-consumer smoke test that installs/builds against the packed package and verifies public types resolve.
