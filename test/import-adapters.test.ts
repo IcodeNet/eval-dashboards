@@ -137,6 +137,61 @@ describe('import adapters', () => {
     expect(lint.issues.filter((issue) => issue.code === 'missing-severity')).toHaveLength(0);
   });
 
+
+  it('imports promptfoo provider-error rows as failed cases', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'promptfoo-errors.json');
+    const outPath = path.join(dir, '.evals_output', 'import-promptfoo-errors.json');
+
+    await writeFile(
+      inputPath,
+      JSON.stringify(
+        {
+          results: [
+            {
+              id: 'case-pass',
+              description: 'healthy row',
+              gradingResult: { pass: true, score: 1 },
+              testCase: { metadata: { suite: 'retrieval-recall' } },
+            },
+            {
+              id: 'case-error',
+              description: 'provider timeout',
+              failureReason: 2,
+              error: { message: 'provider timeout after 30s' },
+              testCase: { metadata: { suite: 'retrieval-recall', severity: 'high' } },
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    const imported = await importFromSource({
+      source: 'promptfoo',
+      inputPath,
+      outPath,
+    });
+
+    expect(imported.rowCount).toBe(2);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows[1]).toEqual(
+      expect.objectContaining({
+        id: 'case-error',
+        passed: false,
+        score: 0,
+        reason: 'provider timeout after 30s',
+      }),
+    );
+  });
+
   it('fails clearly when pass/fail cannot be inferred', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-results.json');

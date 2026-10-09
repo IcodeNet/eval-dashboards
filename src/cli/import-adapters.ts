@@ -47,7 +47,7 @@ type PromptfooResult = {
   expected?: string;
   output?: string;
   latencyMs?: number;
-  response?: { output?: string; text?: string; latencyMs?: number };
+  response?: { output?: string; text?: string; latencyMs?: number; error?: unknown };
   gradingResult?: {
     pass?: boolean;
     score?: number;
@@ -63,6 +63,9 @@ type PromptfooResult = {
     metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
   };
   metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
+  providerResponse?: { error?: unknown };
+  error?: unknown;
+  failureReason?: number | string;
 };
 
 type DeepEvalResult = {
@@ -141,6 +144,7 @@ const parseJsonFile = async (filePath: string): Promise<unknown> => {
   }
 };
 
+
 const stringifyIfObject = (value: unknown): string | undefined => {
   if (value === undefined || value === null) return undefined;
   if (typeof value === 'string') return value;
@@ -149,6 +153,19 @@ const stringifyIfObject = (value: unknown): string | undefined => {
   } catch {
     return String(value);
   }
+};
+
+const promptfooErrorText = (value: unknown): string | undefined => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const message = (value as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim().length > 0) return message.trim();
+  }
+  return stringifyIfObject(value);
 };
 
 const inferPassFromSignals = (
@@ -261,8 +278,19 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       if (verdict === 'fail') signals.push({ source: 'gradingResult.verdict', value: false });
     }
 
-    const passed = inferPassFromSignals(rowLabel, signals);
+    let passed = inferPassFromSignals(rowLabel, signals);
     const suite = row.testCase?.metadata?.suite ?? row.metadata?.suite ?? fallbackSuite;
+
+    const promptfooError =
+      promptfooErrorText(row.error) ??
+      promptfooErrorText(row.response?.error) ??
+      promptfooErrorText(row.providerResponse?.error);
+    const hasProviderError =
+      promptfooError !== undefined || row.failureReason === 2 || row.failureReason === 'error' || row.failureReason === 'provider-error';
+
+    if (passed === undefined && hasProviderError) {
+      passed = false;
+    }
 
     if (passed === undefined) {
       throw Object.assign(
@@ -288,10 +316,21 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       input: stringifyIfObject(row.vars ?? row.testCase?.vars ?? row.prompt),
       output: row.output ?? row.response?.output ?? row.response?.text,
       expected: stringifyIfObject(row.expected ?? expectedFromAssert),
-      score: typeof row.score === 'number' ? row.score : row.gradingResult?.score,
+      score:
+        typeof row.score === 'number'
+          ? row.score
+          : typeof row.gradingResult?.score === 'number'
+            ? row.gradingResult.score
+            : hasProviderError
+              ? 0
+              : undefined,
       severity: row.testCase?.metadata?.severity ?? row.metadata?.severity,
       category: row.testCase?.metadata?.category ?? row.metadata?.category,
-      reason: row.gradingResult?.reason ?? row.gradingResult?.comment,
+      reason:
+        row.gradingResult?.reason ??
+        row.gradingResult?.comment ??
+        promptfooError ??
+        (row.failureReason !== undefined ? `promptfoo failureReason=${String(row.failureReason)}` : undefined),
       durationMs: row.latencyMs ?? row.response?.latencyMs,
       metadata: {
         provenance: {
