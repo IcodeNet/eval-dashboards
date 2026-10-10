@@ -21,7 +21,7 @@ The adapter accepts:
   - `pass` / `passed` / `success` booleans
   - `status` (`error|failed|failure` => fail; `success|succeeded|completed|ok` => pass only when no boolean verdict, feedback verdict, or numeric score is available)
   - `error` present => fail
-  - numeric `score` or feedback/feedback-stats numeric score (>= 0.5 => pass)
+  - numeric `score` or feedback/feedback-stats numeric scores (>= 0.5 => pass); when an export contains multiple numeric feedback metrics, the lowest score determines the row verdict so a later failing metric cannot be hidden by container order
 
 ## Mapping notes
 

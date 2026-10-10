@@ -714,17 +714,18 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     let score = typeof row.score === 'number' ? row.score : undefined;
     let category = row.metadata?.category;
     let reason: string | undefined;
+    const numericFeedbackScores: Array<{ key?: string; score: number }> = [];
+    let fallbackFeedbackCategory: string | undefined;
 
     if (Array.isArray(row.feedback) && row.feedback.length > 0) {
       const firstFeedback = row.feedback.find((feedback) => typeof feedback?.key === 'string');
-      if (category === undefined && firstFeedback?.key) {
-        category = firstFeedback.key;
-      }
+      fallbackFeedbackCategory = firstFeedback?.key;
 
-      if (score === undefined) {
-        const feedbackScore = row.feedback.find((feedback) => typeof feedback?.score === 'number')?.score;
-        if (typeof feedbackScore === 'number') {
-          score = feedbackScore;
+      for (const feedback of row.feedback) {
+        if (typeof feedback?.score === 'number') {
+          numericFeedbackScores.push({ key: feedback.key, score: feedback.score });
+        } else if (typeof feedback?.value === 'number') {
+          numericFeedbackScores.push({ key: feedback.key, score: feedback.value });
         }
       }
 
@@ -752,9 +753,8 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     if (score === undefined && row.feedback_stats && typeof row.feedback_stats === 'object') {
       for (const [feedbackKey, metric] of Object.entries(row.feedback_stats)) {
         if (typeof metric === 'number') {
-          score = metric;
-          if (category === undefined) category = feedbackKey;
-          break;
+          numericFeedbackScores.push({ key: feedbackKey, score: metric });
+          continue;
         }
         if (metric && typeof metric === 'object') {
           const feedbackScore =
@@ -764,13 +764,20 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
                 ? metric.mean
                 : metric.score;
           if (typeof feedbackScore === 'number') {
-            score = feedbackScore;
-            if (category === undefined) category = feedbackKey;
-            break;
+            numericFeedbackScores.push({ key: feedbackKey, score: feedbackScore });
           }
         }
       }
     }
+
+    if (score === undefined && numericFeedbackScores.length > 0) {
+      const lowestFeedback = numericFeedbackScores.reduce((lowest, candidate) =>
+        candidate.score < lowest.score ? candidate : lowest,
+      );
+      score = lowestFeedback.score;
+      if (category === undefined && lowestFeedback.key) category = lowestFeedback.key;
+    }
+    if (category === undefined && fallbackFeedbackCategory) category = fallbackFeedbackCategory;
 
     let passed = inferPassFromSignals(rowLabel, signals);
     if (passed === undefined && typeof score === 'number') {

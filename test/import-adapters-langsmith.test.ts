@@ -84,6 +84,24 @@ describe('langsmith import adapter', () => {
       }),
     ).rejects.toThrow('Unable to infer pass/fail');
   });
+
+  it('rejects conflicting explicit pass/fail signals', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'langsmith-conflict.json');
+    await writeFile(
+      inputPath,
+      JSON.stringify({ runs: [{ id: 'ls-conflict', pass: true, passed: false }] }),
+      'utf8',
+    );
+
+    await expect(
+      importFromSource({
+        source: 'langsmith',
+        inputPath,
+        outPath: path.join(dir, '.evals_output', 'import-langsmith.json'),
+      }),
+    ).rejects.toThrow('Conflicting pass/fail signals');
+  });
 });
 
 it.each([
@@ -103,4 +121,20 @@ it.each([
   const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
   expect(result.ok).toBe(true);
   if (result.ok) expect(result.report.rows[0]?.passed).toBe(passed);
+});
+
+it.each([
+  { feedback: [{ key: 'correctness', score: 0.9 }, { key: 'safety', score: 0.2 }] },
+  { feedback_stats: { correctness: { avg: 0.9 }, safety: { avg: 0.2 } } },
+])('uses the lowest numeric feedback metric regardless of container order: %j', async (metrics) => {
+  const dir = await createTempDir();
+  const inputPath = path.join(dir, 'input.json');
+  const outPath = path.join(dir, 'report.json');
+  await writeFile(inputPath, JSON.stringify({ runs: [{ id: 'run', status: 'completed', ...metrics }] }));
+  await importFromSource({ source: 'langsmith', inputPath, outPath });
+  const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.report.rows[0]).toEqual(expect.objectContaining({ passed: false, score: 0.2, category: 'safety' }));
+  }
 });
