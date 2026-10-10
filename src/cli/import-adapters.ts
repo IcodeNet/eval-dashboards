@@ -8,6 +8,7 @@ export type ImportSource =
   | 'promptfoo'
   | 'deepeval'
   | 'agentevals'
+  | 'langsmith'
   | 'ragas'
   | 'langfuse'
   | 'phoenix'
@@ -19,7 +20,7 @@ export type ImportSource =
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals|oaievals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|langsmith|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals|oaievals.
                            openevals is accepted as an alias for agentevals.
                            oaievals, oaieval, and openai-eval are accepted aliases for openai-evals.
   --input=<path>           Source JSON/JSONL path to convert.
@@ -48,7 +49,7 @@ type PromptfooResult = {
   expected?: string;
   output?: string;
   latencyMs?: number;
-  response?: { output?: string; text?: string; latencyMs?: number };
+  response?: { output?: string; text?: string; latencyMs?: number; error?: unknown };
   gradingResult?: {
     pass?: boolean;
     score?: number;
@@ -64,6 +65,9 @@ type PromptfooResult = {
     metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
   };
   metadata?: (Record<string, unknown> & { suite?: string; category?: string; severity?: ImportableSeverity });
+  providerResponse?: { error?: unknown };
+  error?: unknown;
+  failureReason?: number | string;
 };
 
 type DeepEvalResult = {
@@ -142,6 +146,7 @@ const parseJsonFile = async (filePath: string): Promise<unknown> => {
   }
 };
 
+
 const stringifyIfObject = (value: unknown): string | undefined => {
   if (value === undefined || value === null) return undefined;
   if (typeof value === 'string') return value;
@@ -178,6 +183,19 @@ const promptfooGeneratedId = (row: PromptfooResult, suite: string): string => {
 
   const digest = createHash('sha1').update(fingerprint).digest('hex').slice(0, 12);
   return `promptfoo-${digest}`;
+};
+
+const promptfooErrorText = (value: unknown): string | undefined => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const message = (value as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim().length > 0) return message.trim();
+  }
+  return stringifyIfObject(value);
 };
 
 const inferPassFromSignals = (
@@ -241,6 +259,38 @@ type LangfuseScoreResult = {
   metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
 };
 
+type LangsmithFeedback = {
+  key?: string;
+  score?: number;
+  value?: boolean | number | string;
+  comment?: string;
+};
+
+type LangsmithRun = {
+  id?: string;
+  name?: string;
+  pass?: boolean;
+  passed?: boolean;
+  success?: boolean;
+  status?: string;
+  error?: unknown;
+  score?: number;
+  inputs?: unknown;
+  input?: unknown;
+  outputs?: unknown;
+  output?: unknown;
+  reference_output?: unknown;
+  expected?: unknown;
+  latency_ms?: number;
+  latencyMs?: number;
+  session_name?: string;
+  project_name?: string;
+  feedback?: LangsmithFeedback[];
+  feedback_stats?: Record<string, number | { avg?: number; mean?: number; score?: number }>;
+  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+};
+
+
 const resolveRowsContainer = (
   source: unknown,
   options: { arrayLabel: string; objectLabel: string; keys: string[] },
@@ -266,12 +316,39 @@ const resolveRowsContainer = (
   );
 };
 
+
+const resolvePromptfooRows = (source: unknown): unknown[] => {
+  if (Array.isArray(source)) {
+    return source;
+  }
+
+  if (typeof source === 'object' && source !== null) {
+    const root = source as Record<string, unknown>;
+    if (Array.isArray(root.results)) {
+      return root.results;
+    }
+    const nestedResults = root.results;
+    if (typeof nestedResults === 'object' && nestedResults !== null) {
+      const outputs = (nestedResults as Record<string, unknown>).outputs;
+      if (Array.isArray(outputs)) {
+        return outputs;
+      }
+    }
+    if (Array.isArray(root.outputs)) {
+      return root.outputs;
+    }
+  }
+
+  throw Object.assign(
+    new Error(
+      'No promptfoo result rows found. Expected a JSON array, object with results[], or object with results.outputs[].',
+    ),
+    { exitCode: 2 },
+  );
+};
+
 const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
-  const list = resolveRowsContainer(source, {
-    arrayLabel: 'a JSON array',
-    objectLabel: 'promptfoo result',
-    keys: ['results'],
-  });
+  const list = resolvePromptfooRows(source);
 
   const usedIds = new Set<string>();
   for (const entry of list) {
@@ -306,7 +383,18 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       if (verdict === 'fail') signals.push({ source: 'gradingResult.verdict', value: false });
     }
 
-    const passed = inferPassFromSignals(rowLabel, signals);
+    let passed = inferPassFromSignals(rowLabel, signals);
+
+    const promptfooError =
+      promptfooErrorText(row.error) ??
+      promptfooErrorText(row.response?.error) ??
+      promptfooErrorText(row.providerResponse?.error);
+    const hasProviderError =
+      promptfooError !== undefined || row.failureReason === 2 || row.failureReason === 'error' || row.failureReason === 'provider-error';
+
+    if (hasProviderError) {
+      passed = false;
+    }
 
     if (passed === undefined) {
       throw Object.assign(
@@ -332,10 +420,21 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       input: stringifyIfObject(row.vars ?? row.testCase?.vars ?? row.prompt),
       output: row.output ?? row.response?.output ?? row.response?.text,
       expected: stringifyIfObject(row.expected ?? expectedFromAssert),
-      score: typeof row.score === 'number' ? row.score : row.gradingResult?.score,
+      score:
+        typeof row.score === 'number'
+          ? row.score
+          : typeof row.gradingResult?.score === 'number'
+            ? row.gradingResult.score
+            : hasProviderError
+              ? 0
+              : undefined,
       severity: row.testCase?.metadata?.severity ?? row.metadata?.severity,
       category: row.testCase?.metadata?.category ?? row.metadata?.category,
-      reason: row.gradingResult?.reason ?? row.gradingResult?.comment,
+      reason:
+        (row.gradingResult?.reason?.trim() ? row.gradingResult.reason : undefined) ??
+        (row.gradingResult?.comment?.trim() ? row.gradingResult.comment : undefined) ??
+        promptfooError ??
+        (row.failureReason !== undefined ? `promptfoo failureReason=${String(row.failureReason)}` : undefined),
       durationMs: row.latencyMs ?? row.response?.latencyMs,
       metadata: {
         provenance: {
@@ -625,6 +724,147 @@ type BraintrustResult = {
   tags?: string[];
 };
 
+
+
+const LANGSMITH_PASS_STATUS = new Set(['success', 'succeeded', 'completed', 'ok']);
+const LANGSMITH_FAIL_STATUS = new Set(['error', 'failed', 'failure']);
+
+const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const list = resolveRowsContainer(source, {
+    arrayLabel: 'a JSON array',
+    objectLabel: 'LangSmith result',
+    keys: ['runs', 'data', 'results'],
+  });
+
+  return list.map((entry, index) => {
+    const row = entry as LangsmithRun;
+    const suite = row.session_name ?? row.project_name ?? row.metadata?.suite ?? fallbackSuite;
+    const rowLabel = row.id ?? `${suite}-${index + 1}`;
+
+    const signals: Array<{ source: string; value: boolean }> = [];
+    let successfulStatus = false;
+    if (typeof row.pass === 'boolean') signals.push({ source: 'pass', value: row.pass });
+    if (typeof row.passed === 'boolean') signals.push({ source: 'passed', value: row.passed });
+    if (typeof row.success === 'boolean') signals.push({ source: 'success', value: row.success });
+    if (typeof row.status === 'string') {
+      const status = row.status.trim().toLowerCase();
+      if (LANGSMITH_PASS_STATUS.has(status)) successfulStatus = true;
+      if (LANGSMITH_FAIL_STATUS.has(status)) signals.push({ source: 'status', value: false });
+    }
+    if (row.error !== undefined && row.error !== null) {
+      signals.push({ source: 'error', value: false });
+    }
+
+    let score = typeof row.score === 'number' ? row.score : undefined;
+    let category = row.metadata?.category;
+    let reason: string | undefined;
+    const numericFeedbackScores: Array<{ key?: string; score: number }> = [];
+    let fallbackFeedbackCategory: string | undefined;
+
+    if (Array.isArray(row.feedback) && row.feedback.length > 0) {
+      const firstFeedback = row.feedback.find((feedback) => typeof feedback?.key === 'string');
+      fallbackFeedbackCategory = firstFeedback?.key;
+
+      for (const feedback of row.feedback) {
+        if (typeof feedback?.score === 'number') {
+          numericFeedbackScores.push({ key: feedback.key, score: feedback.score });
+        } else if (typeof feedback?.value === 'number') {
+          numericFeedbackScores.push({ key: feedback.key, score: feedback.value });
+        }
+      }
+
+      const feedbackReason = row.feedback.find((feedback) => typeof feedback?.comment === 'string')?.comment;
+      if (typeof feedbackReason === 'string') {
+        reason = feedbackReason;
+      }
+
+      for (const feedback of row.feedback) {
+        if (typeof feedback?.value === 'boolean') {
+          signals.push({ source: `feedback:${feedback.key ?? 'value'}`, value: feedback.value });
+        }
+        if (typeof feedback?.value === 'string') {
+          const normalized = feedback.value.trim().toLowerCase();
+          if (normalized === 'pass' || normalized === 'passed' || normalized === 'true') {
+            signals.push({ source: `feedback:${feedback.key ?? 'value'}`, value: true });
+          }
+          if (normalized === 'fail' || normalized === 'failed' || normalized === 'false') {
+            signals.push({ source: `feedback:${feedback.key ?? 'value'}`, value: false });
+          }
+        }
+      }
+    }
+
+    if (score === undefined && row.feedback_stats && typeof row.feedback_stats === 'object') {
+      for (const [feedbackKey, metric] of Object.entries(row.feedback_stats)) {
+        if (typeof metric === 'number') {
+          numericFeedbackScores.push({ key: feedbackKey, score: metric });
+          continue;
+        }
+        if (metric && typeof metric === 'object') {
+          const feedbackScore =
+            typeof metric.avg === 'number'
+              ? metric.avg
+              : typeof metric.mean === 'number'
+                ? metric.mean
+                : metric.score;
+          if (typeof feedbackScore === 'number') {
+            numericFeedbackScores.push({ key: feedbackKey, score: feedbackScore });
+          }
+        }
+      }
+    }
+
+    if (score === undefined && numericFeedbackScores.length > 0) {
+      const lowestFeedback = numericFeedbackScores.reduce((lowest, candidate) =>
+        candidate.score < lowest.score ? candidate : lowest,
+      );
+      score = lowestFeedback.score;
+      if (category === undefined && lowestFeedback.key) category = lowestFeedback.key;
+    }
+    if (category === undefined && fallbackFeedbackCategory) category = fallbackFeedbackCategory;
+
+    let passed = inferPassFromSignals(rowLabel, signals);
+    if (passed === undefined && typeof score === 'number') {
+      passed = score >= RAGAS_METRIC_PASS_THRESHOLD;
+    }
+
+    if (passed === undefined && successfulStatus) passed = true;
+
+    if (passed === undefined) {
+      throw Object.assign(
+        new Error(`Unable to infer pass/fail for langsmith row ${rowLabel} (suite: ${suite}).`),
+        { exitCode: 2 },
+      );
+    }
+
+    if (reason === undefined && row.error !== undefined && row.error !== null) {
+      reason = typeof row.error === 'string' ? row.error : stringifyIfObject(row.error);
+    }
+
+    return {
+      id: row.id ?? rowLabel,
+      suite,
+      passed,
+      name: row.name,
+      input: stringifyIfObject(row.inputs ?? row.input),
+      output: stringifyIfObject(row.outputs ?? row.output),
+      expected: stringifyIfObject(row.reference_output ?? row.expected),
+      score,
+      severity: row.metadata?.severity,
+      category,
+      reason,
+      durationMs: row.latency_ms ?? row.latencyMs,
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from LangSmith runs export',
+          sourceRef: 'langsmith',
+        },
+        lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
 const PHOENIX_PASS_LABELS = new Set(['correct', 'pass', 'passed', 'true', 'relevant']);
 const PHOENIX_FAIL_LABELS = new Set(['incorrect', 'fail', 'failed', 'false', 'irrelevant']);
 
@@ -1258,6 +1498,7 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
     normalized === 'promptfoo' ||
     normalized === 'deepeval' ||
     normalized === 'agentevals' ||
+    normalized === 'langsmith' ||
     normalized === 'ragas' ||
     normalized === 'langfuse' ||
     normalized === 'phoenix' ||
@@ -1271,7 +1512,7 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals, oaievals (also oaieval/openai-eval aliases).`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, langsmith, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals, oaievals (also oaieval/openai-eval aliases).`,
     ),
     { exitCode: 2 },
   );
@@ -1294,7 +1535,9 @@ export const importFromSource = async (options: {
         ? deepEvalRows(parsed, fallbackSuite)
         : options.source === 'agentevals'
           ? agentEvalsRows(parsed, fallbackSuite)
-          : options.source === 'ragas'
+          : options.source === 'langsmith'
+            ? langsmithRows(parsed, fallbackSuite)
+            : options.source === 'ragas'
             ? ragasRows(parsed, fallbackSuite)
             : options.source === 'langfuse'
               ? langfuseRows(parsed, fallbackSuite)

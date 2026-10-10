@@ -15,7 +15,7 @@
 
 Use the built-in import adapter.
 
-- Required: promptfoo JSON export.
+- Required: promptfoo JSON/JSONL export (`results[]` rows, `results.outputs[]` rows, or newline-delimited result rows).
 - Output: one `eval-report/v1` artifact under `.evals_output/`.
 
 ## Concrete command/pattern
@@ -32,6 +32,7 @@ The importer preserves key Promptfoo evidence fields when present:
 - `latencyMs` (or `response.latencyMs`) -> `rows[].durationMs`
 - `metadata.sessionId` -> `rows[].metadata.sourceSessionId`
 - missing row ids -> deterministic `promptfoo-<sha1>` ids derived from suite + case payload (`#2` suffix for duplicates in one file), so row identity does not depend on array position
+- provider/eval error rows (`error`, `response.error`, `providerResponse.error`, or `failureReason: 2`) -> imported as failed rows with the numeric `row.score` or `gradingResult.score` preserved, defaulting to `score: 0` only when neither is numeric; available error reasons are preserved
 
 Related risks: [integration risk register](./risk-register.md)
 
