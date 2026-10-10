@@ -8,3 +8,4 @@ overrides:
   js-yaml: ">=4.3.2"
   nanoid: ">=3.3.18"
 
+  source-map-js: "^1.2.2"

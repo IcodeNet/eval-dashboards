@@ -54,8 +54,10 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 - [x] Add concrete report-power artifact fixture with tracked history/progress/gate/detail outputs and deterministic regeneration script.
 - [x] Add teach delivery-stage labs plus FDE role workflow guidance grounded in report artifacts and required evidence outputs.
 
-- [x] Add npm publishing workflow and semantic version tagging (GitHub Actions).
-  - Audit 2026-09-15: `publish.yml`/`release.yml` are `workflow_dispatch`-only — there is no `push: tags` trigger, so tag-triggered publishing is not implemented yet; manual dispatch works.
+- [x] Add npm trusted-publishing workflow and semantic version tagging (GitHub Actions).
+  - Release review 2026-10-07: `publish.yml` is the sole supported release
+    workflow. It is dispatched manually from verified `main`, publishes through
+    npm OIDC, and creates the version tag and GitHub release after publishing.
 
 ## Release Notes
 
@@ -76,18 +78,18 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 ### Parallel reference integration + eval-dashboards workstreams
 
 - [x] reference integration: inspect existing eval runner, dataset shape, scoring, and CI workflow.
-- [ ] reference integration: add `@icodenet/eval-dashboards@0.3.0` as an explicit dev dependency.
-  - Audit 2026-09-15: unverifiable from this repo — no external commit/PR link recorded; ROADMAP.md tracks this item as unchecked/blocked for the same reason. Corrected here to match.
+- [x] reference integration: add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in an upstream commit.
+  - [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) contains the published dependency and lockfile; the standalone `evals` harness resolves 0.8.0.
 - [x] reference integration: map current eval output into `eval-report/v1` without replacing the existing runner.
 - [x] reference integration: emit `.evals_output/*.json` artifacts with suite summaries and row-level evidence.
 - [x] reference integration: add suite manifests, dataset versions, rubric versions, and dashboard gates.
 - [x] reference integration: wire `eval-dashboards lint`, `check`, and `report` into local/CI eval commands.
 - [x] reference integration: add rubric contracts plus row provenance and lifecycle metadata.
-- [ ] reference integration: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
-  - Audit 2026-09-15: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only, no PR opened; ROADMAP.md tracks this item as unchecked/blocked for the same reason. Corrected here to match.
+- [x] reference integration: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
+  - [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) adds the docs-app rewrite and tests both route forms.
 - [x] reference integration: create first published dashboard baseline and document quality gaps.
 - [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
-  - Audit 2026-09-15: `dist/*.d.ts` ship correctly, but the packed-package consumer smoke test named in this slice is still missing — the downstream compile was a one-off manual check, not a checked-in test (matches ROADMAP.md's caveat on the same item).
+  - Verified 2026-10-07: `pnpm verify:package` installs the actual tarball into an isolated consumer, compiles public types, and executes public runtime/schema exports and CLI help. The local run and exact-main CI run 37684094244 passed; version 0.8.0 was then published through trusted publishing.
 - [x] eval-dashboards: define agent-quality suite presets (`retrieval-recall`, `answer-groundedness`, `answer-quality`, `refusal-safety`, `prompt-injection-resilience`, `mcp-routing`, `content-coverage`, `regression-incidents`, `judge-calibration`).
 - [x] eval-dashboards: decide which setup concepts belong in schema fields/enums, preset files, examples, or docs.
 - [x] eval-dashboards: design setup scaffolding for common agent eval programs, such as `init --preset agent-quality`.
@@ -184,3 +186,34 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 - Diff views between any two runs
 - AI-powered suggestions for suite manifests and rubric versions
 
+
+
+## Verification update — 2026-10-08
+
+- Release milestone completed: PR #7 merged as
+  `966ef2fe64e296b685dadcf7f68e7fe0e30556d7`; exact-main CI run 37684094244
+  passed and its raw logs were inspected; publish run 37686201637 published
+  `@icodenet/eval-dashboards@0.8.0` with signed provenance; npm `latest` and the
+  `v0.8.0` GitHub tag both resolve to the verified release.
+- 4C.11 OpenAI Evals aliases and migration guidance verified against the importer,
+  tests, completion/help, and real CLI commands. The guide explicitly excludes
+  arbitrary hosted API export formats and unsupported `score_model` events.
+- 4J.2 provider request/response correlation metadata and response-id fallback
+  verified by the existing log-record regression test and the full Node 22 suite.
+- Added `pnpm verify:package`, Codex `PreToolUse` hook definitions, and a Lefthook
+  pre-commit gate requiring matching check logs and a cited review of the staged
+  tree. Hook trust remains the user's action. See `docs/commit-quality.md`.
+- [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044)
+  contains the published 0.8.0 dependency, trial adapter, five registered cases,
+  real-model artifacts, CLI wiring, tests, and the docs-app dashboard route.
+  The real runs used `claude-haiku-4-5` as agent and `claude-sonnet-5` as judge.
+  Synthetic verification remains labelled as plumbing-only evidence.
+- Roadmap 4C.4 records the two new reproducible suites, reviewed real-model
+  artifacts, fixes and reruns. GitHub Actions passed and raw quality/coverage
+  logs were inspected. The PR remains draft and the external Rupic review is
+  pending, so upstream adoption is not marked complete.
+- The release audit exits 0 after removing the unused legacy Semantic
+  Release toolchain that solely introduced high-severity `braces@3.0.3`.
+  Three lower-severity findings remain (two moderate, one low). No threshold
+  was weakened; exact-main CI and the trusted publish workflow passed.
+- Evidence and reviewed limitations: `docs/reviews/2026-10-07-deliverables.md`.

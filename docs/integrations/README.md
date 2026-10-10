@@ -19,6 +19,7 @@ eval-dashboards import --from=otel-genai --input=./otel-genai-spans.json --out=.
 
 - [Promptfoo](./promptfoo.md)
 - [DeepEval](./deepeval.md)
+- [OpenAI Evals (sunset migration)](./openai-evals.md)
 - [OpenAI eval surfaces / AgentEvals](./openevals-agentevals.md)
 - [Anthropic eval methodology](./anthropic-eval-methodology.md)
 - [Langfuse](./langfuse.md)

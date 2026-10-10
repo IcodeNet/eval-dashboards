@@ -482,6 +482,13 @@ eval-dashboards adjudicate import --input=.evals_output --bundle=eval-report/adj
 ```
 
 Use `--run-id=<id>` on either action when the input directory contains multiple runs.
+`export` bundles rows that do not match their expected outcome. By default it
+skips such rows when they passed; add `--include-passed` to include them too
+(for example, an expected failure that unexpectedly passed).
+`import` needs at least two valid reviewer verdicts per row and skips rows
+with fewer. `--allow-single-reviewer` accepts one verdict per row instead;
+it is an escape hatch that lowers review rigor, so use it only when a second
+reviewer is not available.
 Keep adjudicated outputs outside the artifact input directory to avoid duplicate run ids in discovery.
 
 Bundle contract:

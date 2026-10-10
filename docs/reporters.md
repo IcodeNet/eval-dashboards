@@ -18,6 +18,18 @@ Multiple reporters can be requested in one command:
 eval-dashboards report --input=.evals_output --reporter=html --reporter=text
 ```
 
+Dates are formatted with a BCP 47 locale (default `en-GB`). Numbers such as
+pass rates are not locale-formatted.
+
+- `eval-dashboards report` and `eval-dashboards report-index` use the
+  `locale` config value; `--locale=<tag>` overrides it for one run.
+- `eval-dashboards org-rollup` reads only `--locale=<tag>`; it does not use
+  the config value.
+
+```sh
+eval-dashboards report --input=.evals_output --reporter=html --locale=en-US
+```
+
 Compare any two runs directly in the report flow:
 
 ```sh

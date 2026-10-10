@@ -9,10 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.8.0] — 2026-10-07
 
 ### Added
 
+- OpenAI Evals migration aliases (`oaieval`, `oaievals`, and `openai-eval`)
+  normalize to the existing `openai-evals` importer, with JSONL coverage and a
+  migration guide that documents the supported event formats.
+- OTel GenAI imports retain provider request and response identifiers, and use
+  the response identifier as the stable row-id prefix when no span id exists.
+- A checked-in packed-package consumer verifier installs the actual tarball,
+  compiles public types, and exercises runtime, schema, and CLI exports.
+- Local commit safeguards require successful quality logs and an
+  evidence-backed review for the exact staged tree in both Codex and Lefthook.
 - Cost/latency-quality frontier sections in markdown/html reports when row-level `score` plus `durationMs`/cost metadata are present.
 - Benchmark-pack templates for safety, tool-routing, and groundedness under `examples/benchmark-packs/` with compatibility guidance.
 - Docs-site assistant-ui reference integration page with reproducible lint/check/report/publish command flow.
@@ -48,6 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- npm trusted publishing from `main` is now the sole supported release path;
+  the unused token-based Semantic Release experiment and dependencies were
+  removed.
 - Breaking: calibration preflight now requires independent evidence for blocking suites (same-run calibration rows no longer satisfy blocking checks) and validates calibration rubric metadata before gate evaluation.
 - Benchmark pack fixtures now use valid `datasetSource` enum values and suite-manifest thresholds aligned with implemented gate semantics.
 - Pack compatibility test now validates templates through `validateEvalReport` using `suiteManifests`, not string-shape checks only.
@@ -66,7 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Gates now fail closed on a broken config file instead of silently falling back, and warn on typo'd threshold keys.
 - `report`/`check`/`publish` no longer mistake previously-generated output (`summary.json`, `history.json`, etc. under `--report-dir`) for input artifacts on a rerun against the same `--input` directory; the resolved report directory is now excluded from the recursive artifact scan.
 - `check` no longer silently discards config-file gate thresholds (`minPassRate`, `zeroCritical`, `failOnWarningCodes`, `requiredPassingSuites`, etc.) — the CLI-options-to-gate-overrides merge previously spread explicit `undefined`/default-empty values over real config-file values, meaning a config file's gates were only honored if every corresponding CLI flag also happened to be unset in a way that produced `undefined`; now unset CLI flags are correctly treated as "no override" and never clobber the config file.
-- README/ROADMAP corrected: the GitHub Action's documented `uses:` reference pointed at a non-existent `icodenet/eval-dashboards-action@v1` repo/tag; fixed to the real `IcodeNet/eval-dashboards@v0.7.0`.
+- README/ROADMAP corrected: the GitHub Action's documented `uses:` reference pointed at a non-existent `icodenet/eval-dashboards-action@v1` repo/tag; fixed to the real `IcodeNet/eval-dashboards@v0.8.0`.
 - `ci.yml`, `action-smoke-test.yml`, and `pr-title-lint.yml` now declare an explicit least-privilege `permissions: contents: read` block.
 - `config`/CLI now fail closed on a broken `package.json` instead of silently continuing.
 - The npm package no longer ships a repo-only artifact-regeneration script.

@@ -23,7 +23,7 @@ describe('completion command', () => {
     expect(script).toContain('--from');
     expect(script).toContain('--bundle');
     expect(script).toContain(
-      'promptfoo deepeval agentevals ragas langfuse phoenix braintrust openai-evals eval-ai-library otel-genai openevals',
+      'promptfoo deepeval agentevals ragas langfuse phoenix braintrust openai-evals oaievals oaieval openai-eval eval-ai-library otel-genai openevals',
     );
     expect(script).toContain('--case-id-attribute');
     expect(script).toContain('default guardrail');
