@@ -137,6 +137,64 @@ describe('import adapters', () => {
     expect(lint.issues.filter((issue) => issue.code === 'missing-severity')).toHaveLength(0);
   });
 
+
+  it('imports promptfoo native JSON export shape (results.outputs[])', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'promptfoo-json-export.json');
+    const outPath = path.join(dir, '.evals_output', 'import-promptfoo-json-export.json');
+
+    await writeFile(
+      inputPath,
+      JSON.stringify(
+        {
+          version: 3,
+          timestamp: '2026-10-10T09:00:00Z',
+          results: {
+            prompts: ['Say hi'],
+            providers: ['openai:gpt-4.1'],
+            outputs: [
+              {
+                id: 'json-export-1',
+                description: 'native json export row',
+                success: true,
+                score: 1,
+                response: { output: 'hello' },
+                gradingResult: { pass: true, score: 1, reason: 'ok' },
+                testCase: { metadata: { suite: 'native-json-suite', category: 'smoke' } },
+              },
+            ],
+            stats: { successes: 1, failures: 0 },
+          },
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    const imported = await importFromSource({
+      source: 'promptfoo',
+      inputPath,
+      outPath,
+    });
+
+    expect(imported.rowCount).toBe(1);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows[0]).toEqual(
+      expect.objectContaining({
+        id: 'json-export-1',
+        suite: 'native-json-suite',
+        passed: true,
+        category: 'smoke',
+      }),
+    );
+  });
+
   it('fails clearly when pass/fail cannot be inferred', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-results.json');
