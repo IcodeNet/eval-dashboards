@@ -647,6 +647,18 @@ Rationale: OpenAI states the Evals platform becomes read-only on 2026-10-31 and 
 
 Verification 2026-10-07: aliases and conversion are covered by `test/import-adapters-openai-evals.test.ts:25`; completion by `test/completion.test.ts:26`; guide at `docs/integrations/openai-evals.md`. The guide now distinguishes supported oaieval logs from arbitrary hosted API exports and lists only supported event types. Real CLI runs verified all aliases and expected passing/failing gates; see `docs/reviews/2026-10-07-deliverables.md`.
 
+### 4C.13 Promptfoo native JSON export import compatibility (P1)
+
+- [ ] Extend the Promptfoo import adapter to ingest Promptfoo's documented JSON export shape where rows are nested under `results.outputs[]`, not only `results[]` or JSONL rows.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=promptfoo` accepts exports with `results.outputs[]` and converts rows without requiring pre-transformation.
+- Adapter tests cover at least one `results.outputs[]` payload and validate the imported row identity/suite/pass fields.
+- Promptfoo integration docs explicitly list the supported input shapes (`results[]`, `results.outputs[]`, JSONL rows).
+
+Rationale: Promptfoo's output docs define the default JSON export with rows under `results.outputs[]`; import support should match the primary documented format to reduce migration friction (https://www.promptfoo.dev/docs/configuration/outputs/).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
