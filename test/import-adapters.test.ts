@@ -340,3 +340,39 @@ describe('import adapters', () => {
     expect(() => resolveImportSource('other')).toThrow('Unknown import source other');
   });
 });
+
+it.each([
+  { response: { error: 'provider timeout' } },
+  { providerResponse: { error: 'provider timeout' } },
+  { error: 'provider timeout' },
+  { failureReason: 2 },
+  { failureReason: 'error' },
+  { failureReason: 'provider-error' },
+])('never passes a provider error with success=true: %j', async (error) => {
+  const dir = await createTempDir();
+  const inputPath = path.join(dir, 'input.json');
+  const outPath = path.join(dir, 'report.json');
+  await writeFile(inputPath, JSON.stringify({ results: [{ id: 'error', success: true, ...error }] }));
+  await importFromSource({ source: 'promptfoo', inputPath, outPath });
+  const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result.report.rows[0]?.passed).toBe(false);
+});
+
+it('preserves numeric error scores and falls back from blank grading text', async () => {
+  const dir = await createTempDir();
+  const inputPath = path.join(dir, 'input.json');
+  const outPath = path.join(dir, 'report.json');
+  await writeFile(inputPath, JSON.stringify({ results: [
+    { id: 'row-score', error: 'timeout', score: 0.4, gradingResult: { reason: '', comment: '  ', score: 0.2 } },
+    { id: 'grading-score', error: 'timeout', gradingResult: { reason: '  ', score: 0.2 } },
+    { id: 'default-score', error: 'timeout' },
+  ] }));
+  await importFromSource({ source: 'promptfoo', inputPath, outPath });
+  const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.report.rows.map((row) => row.score)).toEqual([0.4, 0.2, 0]);
+    expect(result.report.rows.map((row) => row.reason)).toEqual(['timeout', 'timeout', 'timeout']);
+  }
+});

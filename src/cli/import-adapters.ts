@@ -288,7 +288,7 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     const hasProviderError =
       promptfooError !== undefined || row.failureReason === 2 || row.failureReason === 'error' || row.failureReason === 'provider-error';
 
-    if (passed === undefined && hasProviderError) {
+    if (hasProviderError) {
       passed = false;
     }
 
@@ -327,8 +327,8 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       severity: row.testCase?.metadata?.severity ?? row.metadata?.severity,
       category: row.testCase?.metadata?.category ?? row.metadata?.category,
       reason:
-        row.gradingResult?.reason ??
-        row.gradingResult?.comment ??
+        (row.gradingResult?.reason?.trim() ? row.gradingResult.reason : undefined) ??
+        (row.gradingResult?.comment?.trim() ? row.gradingResult.comment : undefined) ??
         promptfooError ??
         (row.failureReason !== undefined ? `promptfoo failureReason=${String(row.failureReason)}` : undefined),
       durationMs: row.latencyMs ?? row.response?.latencyMs,
