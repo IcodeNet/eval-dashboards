@@ -632,12 +632,13 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     const rowLabel = row.id ?? `${suite}-${index + 1}`;
 
     const signals: Array<{ source: string; value: boolean }> = [];
+    let successfulStatus = false;
     if (typeof row.pass === 'boolean') signals.push({ source: 'pass', value: row.pass });
     if (typeof row.passed === 'boolean') signals.push({ source: 'passed', value: row.passed });
     if (typeof row.success === 'boolean') signals.push({ source: 'success', value: row.success });
     if (typeof row.status === 'string') {
       const status = row.status.trim().toLowerCase();
-      if (LANGSMITH_PASS_STATUS.has(status)) signals.push({ source: 'status', value: true });
+      if (LANGSMITH_PASS_STATUS.has(status)) successfulStatus = true;
       if (LANGSMITH_FAIL_STATUS.has(status)) signals.push({ source: 'status', value: false });
     }
     if (row.error !== undefined && row.error !== null) {
@@ -709,6 +710,8 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     if (passed === undefined && typeof score === 'number') {
       passed = score >= RAGAS_METRIC_PASS_THRESHOLD;
     }
+
+    if (passed === undefined && successfulStatus) passed = true;
 
     if (passed === undefined) {
       throw Object.assign(

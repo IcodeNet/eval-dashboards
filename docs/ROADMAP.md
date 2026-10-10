@@ -217,16 +217,16 @@ The schema should remain runner-agnostic and portable. Domain-specific suite nam
 ### Stream A: reference integration eval stream
 
 - [x] Inspect the existing reference integration eval runner, datasets, and CI wiring
-- [ ] Add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in the reference integration repo. Local verification 2026-10-08 confirms the standalone `evals` harness resolves 0.8.0, but no external commit/PR link exists. Re-mark only with a link to the upstream change.
+- [x] Add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in the reference integration repo. [assistant-ui PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) contains the published dependency and lockfile; the standalone `evals` harness resolves 0.8.0.
 - [x] Map current reference integration eval results into `eval-report/v1`
 - [x] Emit `.evals_output/*.json` artifacts from existing eval runs
 - [x] Add suite manifests, dataset versions, rubric versions, and dashboard gates
 - [x] Run `eval-dashboards lint`, `check`, and `report` against the reference integration. Audit 2026-09-14: commands were run manually and are documented; they are not wired into a committed CI workflow in the reference repo.
 - [x] Add rubric contracts plus row provenance/lifecycle metadata
-- [ ] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard. Audit 2026-09-14: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only and no PR has been opened.
+- [x] Surface the generated `/eval-dashboard/` report in the host app instead of a bespoke summary-card dashboard. [assistant-ui PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) adds the docs-app rewrite and tests both `/eval-dashboard` and `/eval-dashboard/`.
 - [x] Generate a first dashboard baseline locally and document initial quality gaps. Audit 2026-09-14: the quality-gap findings are substantive; no published baseline URL or committed baseline history manifest exists.
 
-Local integration update 2026-10-08: a fresh `assistant-ui/assistant-ui` checkout now resolves the published 0.8.0 package and has a tested trial adapter, five registered behavior cases, lint/check/report commands, and a verified docs-app `/eval-dashboard/` route. Six focused eval tests, eval typecheck, the synthetic dashboard smoke test, and four docs-route tests pass. No external integration commit or PR has been published, and real agent/judge runs remain blocked on Claude CLI authentication, so the external completion boxes above remain open. Dated record: `docs/case-studies/assistant-ui/2026-10-07-integration.md`.
+Integration update 2026-10-08: [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) now contains the published 0.8.0 dependency, tested trial adapter, five registered behavior cases, lint/check/report commands, raw real-model artifacts, and the docs-app `/eval-dashboard/` route. Seven focused eval tests, eval typecheck, the synthetic dashboard smoke test, and five docs-route tests pass. GitHub Actions completed successfully and its raw quality and coverage logs were inspected; the external Rupic review remains pending. Dated records: `docs/case-studies/assistant-ui/2026-10-07-integration.md` and `docs/reviews/2026-10-08-assistant-ui-upstream-pr.md`.
 
 ### Stream B: eval-dashboards setup-layer evolution
 
@@ -553,11 +553,11 @@ Acceptance criteria:
 
 - [x] Use assistant-ui integration as the living reference example for agent-eval adoption docs.
 - [x] Publish a case-study style walkthrough: baseline setup, emitted artifacts, lint/check/report wiring, dashboard publish flow, and key lessons.
-- [ ] Keep example aligned with current branch/PR state and update docs when integration steps change. Audit 2026-09-14: no sync mechanism, CI check, or dated sync record exists, so this cannot be evidenced. Needs either a scheduled check or a dated review log.
-- [ ] Expand the assistant-ui eval program beyond its current comment-hygiene cases with additional named suites whose baselines reproduce a documented product or contributor risk and whose rubrics can be reviewed independently.
-- [ ] Run the expanded suites against real configured agent and judge models, preserve the raw `eval-report/v1` artifacts, and use `eval-dashboards lint`, `check`, and `report` to measure them. Synthetic smoke fixtures verify plumbing only and do not satisfy this item.
-- [ ] Review the measured dashboard row by row, record model versions, trial counts, failures, limitations, and resulting fixes, then rerun the affected suites to produce comparable evidence.
-- [ ] Open a draft PR in `assistant-ui/assistant-ui` containing the integration and suite changes, with the measured dashboard evidence and exact verification commands linked in the PR description. Do not mark the upstream integration complete until that PR exists and its checks have been inspected.
+- [x] Keep example aligned with current branch/PR state and update docs when integration steps change. The dated sync record in `docs/reviews/2026-10-08-assistant-ui-upstream-pr.md` links the upstream head, raw artifacts, commands, CI runs, and remaining review state.
+- [x] Expand the assistant-ui eval program beyond its current comment-hygiene cases with additional named suites whose baselines reproduce a documented product or contributor risk and whose rubrics can be reviewed independently. `registry-source-of-truth` and `optional-host-sdk-dependency` both reproduced at baseline 0/3.
+- [x] Run the expanded suites against real configured agent and judge models, preserve the raw `eval-report/v1` artifacts, and use `eval-dashboards lint`, `check`, and `report` to measure them. PR #9044 records `claude-haiku-4-5` as agent and `claude-sonnet-5` as judge; its evidence directory preserves seven raw reports.
+- [x] Review the measured dashboard row by row, record model versions, trial counts, failures, limitations, and resulting fixes, then rerun the affected suites to produce comparable evidence. The final new-suite paired runs reached baseline 0/3 and guidance 3/3, while the unresolved `pr-review-comments` guidance regression remains recorded at 0/3.
+- [ ] Open a draft PR in `assistant-ui/assistant-ui` containing the integration and suite changes, with the measured dashboard evidence and exact verification commands linked in the PR description. [Draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) exists and all GitHub Actions checks passed after raw-log inspection; keep this item open until the pending external Rupic review completes and is inspected.
 
 Acceptance criteria:
 

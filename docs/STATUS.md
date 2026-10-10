@@ -78,15 +78,15 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 ### Parallel reference integration + eval-dashboards workstreams
 
 - [x] reference integration: inspect existing eval runner, dataset shape, scoring, and CI workflow.
-- [ ] reference integration: add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in an upstream commit.
-  - Local verification 2026-10-08 confirms the standalone assistant-ui `evals` harness resolves the published 0.8.0 package. No external commit/PR link exists, so ROADMAP.md and STATUS.md keep the external item unchecked.
+- [x] reference integration: add `@icodenet/eval-dashboards@0.8.0` as an explicit dev dependency in an upstream commit.
+  - [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) contains the published dependency and lockfile; the standalone `evals` harness resolves 0.8.0.
 - [x] reference integration: map current eval output into `eval-report/v1` without replacing the existing runner.
 - [x] reference integration: emit `.evals_output/*.json` artifacts with suite summaries and row-level evidence.
 - [x] reference integration: add suite manifests, dataset versions, rubric versions, and dashboard gates.
 - [x] reference integration: wire `eval-dashboards lint`, `check`, and `report` into local/CI eval commands.
 - [x] reference integration: add rubric contracts plus row provenance and lifecycle metadata.
-- [ ] reference integration: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
-  - Audit 2026-09-15: contradicted by `docs/case-studies/assistant-ui/README.md` — adapter and CLI wiring exist in a local worktree only, no PR opened; ROADMAP.md tracks this item as unchecked/blocked for the same reason. Corrected here to match.
+- [x] reference integration: surface the generated `/eval-dashboard/` report in the learning UI instead of the old bespoke summary dashboard.
+  - [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) adds the docs-app rewrite and tests both route forms.
 - [x] reference integration: create first published dashboard baseline and document quality gaps.
 - [x] eval-dashboards: publish TypeScript declaration files and package metadata so downstream imports resolve public types.
   - Verified 2026-10-07: `pnpm verify:package` installs the actual tarball into an isolated consumer, compiles public types, and executes public runtime/schema exports and CLI help. The local run and exact-main CI run 37684094244 passed; version 0.8.0 was then published through trusted publishing.
@@ -203,16 +203,15 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 - Added `pnpm verify:package`, Codex `PreToolUse` hook definitions, and a Lefthook
   pre-commit gate requiring matching check logs and a cited review of the staged
   tree. Hook trust remains the user's action. See `docs/commit-quality.md`.
-- Reference integration prepared in a local assistant-ui checkout:
-  published 0.8.0 dependency, trial adapter, five registered cases, CLI wiring,
-  tests, and the docs-app dashboard route.
-  Synthetic verification is not a live model quality measurement. No upstream
-  integration commit/PR exists yet, and Claude CLI authentication is currently
-  unavailable for the real runs; do not mark external adoption complete.
-- Roadmap 4C.4 now requires the remaining upstream sequence explicitly: expand
-  the eval suites, collect and review real model-run artifacts through
-  eval-dashboards, fix and rerun findings, then open a draft assistant-ui PR
-  that links the evidence. None of those steps is marked complete.
+- [assistant-ui draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044)
+  contains the published 0.8.0 dependency, trial adapter, five registered cases,
+  real-model artifacts, CLI wiring, tests, and the docs-app dashboard route.
+  The real runs used `claude-haiku-4-5` as agent and `claude-sonnet-5` as judge.
+  Synthetic verification remains labelled as plumbing-only evidence.
+- Roadmap 4C.4 records the two new reproducible suites, reviewed real-model
+  artifacts, fixes and reruns. GitHub Actions passed and raw quality/coverage
+  logs were inspected. The PR remains draft and the external Rupic review is
+  pending, so upstream adoption is not marked complete.
 - The release audit exits 0 after removing the unused legacy Semantic
   Release toolchain that solely introduced high-severity `braces@3.0.3`.
   Three lower-severity findings remain (two moderate, one low). No threshold

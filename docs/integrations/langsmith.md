@@ -19,7 +19,7 @@ The adapter accepts:
 - JSON array of runs, or object with `runs[]`, `data[]`, or `results[]`
 - pass/fail evidence from any of:
   - `pass` / `passed` / `success` booleans
-  - `status` (`success|succeeded|completed|ok` => pass, `error|failed|failure` => fail)
+  - `status` (`error|failed|failure` => fail; `success|succeeded|completed|ok` => pass only when no boolean verdict, feedback verdict, or numeric score is available)
   - `error` present => fail
   - numeric `score` or feedback/feedback-stats numeric score (>= 0.5 => pass)
 

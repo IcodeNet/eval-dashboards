@@ -85,3 +85,22 @@ describe('langsmith import adapter', () => {
     ).rejects.toThrow('Unable to infer pass/fail');
   });
 });
+
+it.each([
+  [{ status: 'completed', score: 0.18 }, false],
+  [{ status: 'completed', feedback: [{ key: 'correctness', value: false }] }, false],
+  [{ status: 'completed', feedback: [{ key: 'correctness', score: 0.18 }] }, false],
+  [{ status: 'completed', feedback_stats: { correctness: { avg: 0.18 } } }, false],
+  [{ status: 'completed', score: 0.9 }, true],
+  [{ status: 'completed' }, true],
+  [{ status: 'failed', score: 0.9 }, false],
+])('uses evaluation evidence before successful execution status: %j', async (row, passed) => {
+  const dir = await createTempDir();
+  const inputPath = path.join(dir, 'input.json');
+  const outPath = path.join(dir, 'report.json');
+  await writeFile(inputPath, JSON.stringify({ runs: [{ id: 'run', ...row }] }));
+  await importFromSource({ source: 'langsmith', inputPath, outPath });
+  const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result.report.rows[0]?.passed).toBe(passed);
+});
