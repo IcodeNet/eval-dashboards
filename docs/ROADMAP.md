@@ -660,6 +660,18 @@ Acceptance criteria:
 
 Rationale: Promptfoo documents that `gradingResult`/`componentResults` can be absent on error rows, so importers must handle these rows without dropping the run (https://www.promptfoo.dev/docs/configuration/outputs/).
 
+### 4C.13 Promptfoo native JSON export import compatibility (P1)
+
+- [ ] Extend the Promptfoo import adapter to ingest Promptfoo's documented JSON export shape where rows are nested under `results.outputs[]`, not only `results[]` or JSONL rows.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=promptfoo` accepts exports with `results.outputs[]` and converts rows without requiring pre-transformation.
+- Adapter tests cover at least one `results.outputs[]` payload and validate the imported row identity/suite/pass fields.
+- Promptfoo integration docs explicitly list the supported input shapes (`results[]`, `results.outputs[]`, JSONL rows).
+
+Rationale: Promptfoo's output docs define the default JSON export with rows under `results.outputs[]`; import support should match the primary documented format to reduce migration friction (https://www.promptfoo.dev/docs/configuration/outputs/).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation

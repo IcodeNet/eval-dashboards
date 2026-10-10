@@ -15,7 +15,7 @@
 
 Use the built-in import adapter.
 
-- Required: promptfoo JSON export.
+- Required: promptfoo JSON/JSONL export (`results[]` rows, `results.outputs[]` rows, or newline-delimited result rows).
 - Output: one `eval-report/v1` artifact under `.evals_output/`.
 
 ## Concrete command/pattern
