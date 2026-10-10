@@ -9,6 +9,9 @@ Use this ledger before declaring any task finished.
 - Confirm schema/docs/examples are updated together when contract fields change.
 - Confirm docs truth-sync across `README.md`, `docs/ROADMAP.md`, `docs/STATUS.md`, `docs/publishing.md`, and `docs/examples.md`.
 - Confirm command-help snapshots in `docs/cli-help/*.txt` match live CLI output for: `report`, `check`, `publish`, `import`, `teach`, `init`.
+- Confirm every CLI flag in `src/cli/args.ts` is explained in a guide (README, `docs/`
+  outside `docs/cli-help/`, or `docs-site/`) by running `pnpm docs:flags`. Help snapshots
+  are regenerated from `--help`, so they pass even when no guide mentions a new flag.
 - Confirm teaching-doc output blocks still match the CLI by running `pnpm teach:verify`.
   Every fenced ```text block in `docs/teach-exercises/` and the replayable labs is asserted
   line-by-line against a real replay. Never hand-edit an expected-output block to make it
@@ -85,6 +88,14 @@ Record whether artifact regeneration produced expected diffs and whether those d
 - Always inspect raw GitHub Actions logs for the workflows touched by the change.
 - Do not rely only on green checks; verify no critical step was skipped.
 - Treat silent pipeline issues (for example piped command failures, warnings masking errors, or fallback paths hiding breakage) as blockers until resolved.
+
+## 5a) Commit evidence gate
+
+- Follow `docs/commit-quality.md`: stage the intended change, run `pnpm quality:record`,
+  review the staged tree, and record evidence with `pnpm quality:review <file>`.
+- `pnpm quality:verify` must pass before committing. Never fabricate a review record
+  or bypass the hook to conceal a failed check.
+- Review and trust `.codex/hooks.json` in Codex; hook installation does not grant trust.
 
 ## 6) Finish Gate (must be true)
 

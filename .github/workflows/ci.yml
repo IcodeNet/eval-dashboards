@@ -22,9 +22,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 11.13.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,6 +44,18 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify commit evidence safeguards
+        run: pnpm test:commit-hooks
+
+      - name: Verify packed-package consumer
+        run: pnpm verify:package
+
+      - name: Install release-asset browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify deterministic release assets
+        run: pnpm assets:verify
+
       - name: Verify eval-report schema drift guard
         run: pnpm schema:check
 
@@ -58,6 +70,9 @@ jobs:
 
       - name: Verify teaching docs match real CLI output
         run: pnpm teach:verify
+
+      - name: Verify every CLI flag is documented outside generated help
+        run: pnpm docs:flags
 
       - name: Dependency audit (fails on high/critical)
         run: pnpm audit --audit-level=high
@@ -75,9 +90,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 11.13.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

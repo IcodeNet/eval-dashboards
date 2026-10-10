@@ -19,8 +19,9 @@ export type ImportSource =
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals|oaievals.
                            openevals is accepted as an alias for agentevals.
+                           oaievals, oaieval, and openai-eval are accepted aliases for openai-evals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
                            Default: .evals_output/import-<source>.json
@@ -158,7 +159,7 @@ const stableSerialize = (value: unknown): string => {
 
   if (value && typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`);
     return `{${entries.join(',')}}`;
   }
@@ -272,16 +273,24 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     keys: ['results'],
   });
 
-  const usedIds = new Map<string, number>();
+  const usedIds = new Set<string>();
+  for (const entry of list) {
+    const row = entry as PromptfooResult;
+    const explicitId = row.id ?? row.testCase?.id;
+    if (explicitId !== undefined) usedIds.add(explicitId);
+  }
 
   return list.map((entry, index) => {
     const row = entry as PromptfooResult;
     const suite = row.testCase?.metadata?.suite ?? row.metadata?.suite ?? fallbackSuite;
     const explicitId = row.id ?? row.testCase?.id;
     const baseId = explicitId ?? promptfooGeneratedId(row, suite);
-    const seen = usedIds.get(baseId) ?? 0;
-    usedIds.set(baseId, seen + 1);
-    const id = seen === 0 ? baseId : `${baseId}#${seen + 1}`;
+    let id = baseId;
+    if (explicitId === undefined) {
+      let suffix = 2;
+      while (usedIds.has(id)) id = `${baseId}#${suffix++}`;
+      usedIds.add(id);
+    }
     const rowLabel = explicitId ?? id;
     const signals: Array<{ source: string; value: boolean }> = [];
 
@@ -1151,11 +1160,15 @@ const otelGenaiRows = (
     const scoreLabel = otelAttributeValue(attributes, 'gen_ai.evaluation.score.label');
     const explanation = otelAttributeValue(attributes, 'gen_ai.evaluation.explanation');
     const errorType = otelAttributeValue(attributes, 'error.type');
+    const responseId = otelAttributeText(attributes, 'gen_ai.response.id');
+    const requestId = otelAttributeText(attributes, 'gen_ai.request.id');
     const metricName = typeof evaluationName === 'string' ? evaluationName : undefined;
 
     // With --case-id-attribute the id is `<caseId>:<metric>` and is stable
     // across runs. Without it, `<spanId>:<metric>` is unique within one export
     // only, because spanIds are random per execution (see the adapter doc).
+    // If spanId is missing (common for some log-record exports), fall back to
+    // gen_ai.response.id before using a positional id.
     let idPrefix: string;
     if (options.caseIdAttribute) {
       const caseId = otelCaseId(event, options.caseIdAttribute);
@@ -1169,7 +1182,7 @@ const otelGenaiRows = (
       }
       idPrefix = caseId;
     } else {
-      idPrefix = event.spanId ?? `${fallbackSuite}-${index + 1}`;
+      idPrefix = event.spanId ?? responseId ?? `${fallbackSuite}-${index + 1}`;
     }
     const baseId = `${idPrefix}${metricName ? `:${metricName}` : ''}`;
     const seen = usedIds.get(baseId) ?? 0;
@@ -1226,6 +1239,8 @@ const otelGenaiRows = (
           sourceRef: 'otel-genai',
         },
         lifecycle: { status: 'active' },
+        ...(responseId ? { sourceResponseId: responseId } : {}),
+        ...(requestId ? { sourceRequestId: requestId } : {}),
       },
     };
   });
@@ -1235,6 +1250,9 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
   const normalized = rawSource.trim().toLowerCase();
   if (normalized === 'openevals') {
     return 'agentevals';
+  }
+  if (normalized === 'oaievals' || normalized === 'oaieval' || normalized === 'openai-eval') {
+    return 'openai-evals';
   }
   if (
     normalized === 'promptfoo' ||
@@ -1253,7 +1271,7 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals.`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals, oaievals (also oaieval/openai-eval aliases).`,
     ),
     { exitCode: 2 },
   );

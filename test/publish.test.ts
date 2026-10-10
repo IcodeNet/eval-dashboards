@@ -1,18 +1,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { publishReport } from '../src/publish/publish.js';
 
-const octokitState: {
-  listComments: ReturnType<typeof vi.fn>;
-  createComment: ReturnType<typeof vi.fn>;
-  updateComment: ReturnType<typeof vi.fn>;
-} = {
+const octokitState = vi.hoisted(() => ({
   listComments: vi.fn(),
   createComment: vi.fn(),
   updateComment: vi.fn(),
-};
+}));
 
 vi.mock('@octokit/rest', () => ({
-  Octokit: vi.fn().mockImplementation(() => ({
+  Octokit: vi.fn().mockImplementation(function () { return {
     paginate: {
       iterator: (fn: unknown, opts: unknown) => octokitState.listComments(fn, opts),
     },
@@ -23,7 +19,7 @@ vi.mock('@octokit/rest', () => ({
         updateComment: octokitState.updateComment,
       },
     },
-  })),
+  }; }),
 }));
 
 describe('publishReport', () => {

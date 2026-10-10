@@ -206,6 +206,8 @@ describe('otel-genai import adapter', () => {
                       nameAttr('coherence'),
                       { key: 'gen_ai.evaluation.score.value', value: { doubleValue: 0.9 } },
                       { key: 'gen_ai.evaluation.score.label', value: { stringValue: 'coherent' } },
+                      { key: 'gen_ai.response.id', value: { stringValue: 'resp_456' } },
+                      { key: 'gen_ai.request.id', value: { stringValue: 'req_123' } },
                     ],
                   },
                   { eventName: 'gen_ai.client.inference.operation.details', attributes: [] },
@@ -226,10 +228,12 @@ describe('otel-genai import adapter', () => {
       }),
     );
     // Unrecognised label ("coherent") falls back to the numeric score; with no
-    // spanId the id is positional.
-    expect(rows[1]?.id).toBe('otel-genai-import-2:coherence');
+    // spanId the adapter falls back to gen_ai.response.id before positional ids.
+    expect(rows[1]?.id).toBe('resp_456:coherence');
     expect(rows[1]?.passed).toBe(true);
     expect(rows[1]?.trace).toBeUndefined();
+    expect(rows[1]?.metadata?.sourceResponseId).toBe('resp_456');
+    expect(rows[1]?.metadata?.sourceRequestId).toBe('req_123');
     expect(rows[1]?.reason).toContain('score.value=0.9 >= 0.5 threshold');
   });
 

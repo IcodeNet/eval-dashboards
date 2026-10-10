@@ -331,3 +331,41 @@ describe('import adapters', () => {
     expect(() => resolveImportSource('other')).toThrow('Unknown import source other');
   });
 });
+
+it('orders distinct Unicode keys independently of insertion order', async () => {
+  const dir = await createTempDir();
+  const ids: string[] = [];
+  for (const vars of [{ 'é': 1, 'e\u0301': 2 }, { 'e\u0301': 2, 'é': 1 }]) {
+    const inputPath = path.join(dir, 'input.json');
+    const outPath = path.join(dir, 'report.json');
+    await writeFile(inputPath, JSON.stringify({ results: [{ vars, success: true }] }));
+    await importFromSource({ source: 'promptfoo', inputPath, outPath });
+    const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+    expect(result.ok).toBe(true);
+    if (result.ok) ids.push(result.report.rows[0]!.id);
+  }
+  expect(ids[0]).toBe(ids[1]);
+});
+
+it('preserves explicit IDs and reserves later explicit suffixes before generating IDs', async () => {
+  const dir = await createTempDir();
+  const inputPath = path.join(dir, 'input.json');
+  const outPath = path.join(dir, 'report.json');
+  const row = { description: 'same case', success: true };
+  await writeFile(inputPath, JSON.stringify({ results: [row] }));
+  await importFromSource({ source: 'promptfoo', inputPath, outPath });
+  const first = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(first.ok).toBe(true);
+  if (!first.ok) return;
+  const base = first.report.rows[0]!.id;
+  await writeFile(inputPath, JSON.stringify({ results: [
+    row, row, { ...row, id: base }, { ...row, id: `${base}#2` },
+    { ...row, id: 'case' }, { ...row, id: 'case' }, { ...row, testCase: { id: 'case#2' } },
+  ] }));
+  await importFromSource({ source: 'promptfoo', inputPath, outPath });
+  const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result.report.rows.map((item) => item.id)).toEqual([
+    `${base}#3`, `${base}#4`, base, `${base}#2`, 'case', 'case', 'case#2',
+  ]);
+});
