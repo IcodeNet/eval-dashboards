@@ -475,6 +475,18 @@ Acceptance criteria:
 
 Rationale (2026-09-16 scan): Promptfoo release notes call out `metadata.sessionId` export visibility and richer export context, so preserving those fields removes migration friction for teams already standardizing on Promptfoo outputs. Source: https://www.promptfoo.dev/docs/releases
 
+### 4B.10 Promptfoo fallback-id stability for partial dataset fetches (P1)
+
+- [ ] When importing Promptfoo rows with no explicit `id`/`testCase.id`, derive a deterministic fallback id from stable case payload fields (suite + prompt/vars/expected/description) instead of array position.
+- [ ] Keep duplicate safety by suffixing repeated derived ids inside one file (`#2`, `#3`) and add tests proving ids remain stable when row order changes between runs.
+- [ ] Document the fallback-id rule in `docs/integrations/promptfoo.md` so baseline comparisons remain meaningful for Promptfoo exports that include partial dataset fetch results.
+
+Acceptance criteria:
+
+- Promptfoo imports without row ids no longer emit index-based ids; tests demonstrate the same case keeps the same id across reordered inputs and duplicate rows are disambiguated deterministically.
+
+Rationale (2026-10-06 scan): Promptfoo shipped eval robustness fixes for partial HuggingFace dataset fetches (`fix(eval): keep HuggingFace rows when a prefetch fails`), which makes row-order-dependent ids noisy in downstream baseline diffs. Source: https://github.com/promptfoo/promptfoo/commit/13f82c3f15fedc62a7d667b33cce28d05870cfd8
+
 ### 4B execution order
 
 1. 4B.1 Initializer profiles and setup flags

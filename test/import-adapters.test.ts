@@ -63,6 +63,52 @@ describe('import adapters', () => {
     );
   });
 
+  it('generates stable promptfoo ids when source rows do not provide one', async () => {
+    const dir = await createTempDir();
+    const firstInputPath = path.join(dir, 'promptfoo-no-id-first.json');
+    const secondInputPath = path.join(dir, 'promptfoo-no-id-second.json');
+    const firstOutPath = path.join(dir, '.evals_output', 'import-promptfoo-no-id-first.json');
+    const secondOutPath = path.join(dir, '.evals_output', 'import-promptfoo-no-id-second.json');
+
+    const rowA = {
+      description: 'hf row A',
+      vars: { question: 'What is policy A?' },
+      gradingResult: { pass: true, score: 1 },
+      testCase: { metadata: { suite: 'hf-regression' } },
+    };
+    const rowB = {
+      description: 'hf row B',
+      vars: { question: 'What is policy B?' },
+      gradingResult: { pass: false, score: 0 },
+      testCase: { metadata: { suite: 'hf-regression' } },
+    };
+
+    await writeFile(firstInputPath, JSON.stringify({ results: [rowA, rowB, rowA] }, null, 2), 'utf8');
+    await writeFile(secondInputPath, JSON.stringify({ results: [rowB, rowA] }, null, 2), 'utf8');
+
+    await importFromSource({ source: 'promptfoo', inputPath: firstInputPath, outPath: firstOutPath });
+    await importFromSource({ source: 'promptfoo', inputPath: secondInputPath, outPath: secondOutPath });
+
+    const first = validateEvalReport(JSON.parse(await readFile(firstOutPath, 'utf8')) as unknown);
+    const second = validateEvalReport(JSON.parse(await readFile(secondOutPath, 'utf8')) as unknown);
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+
+    const firstRowA = first.report.rows.filter((row) => row.question === 'hf row A').map((row) => row.id);
+    const firstRowB = first.report.rows.find((row) => row.question === 'hf row B')?.id;
+    const secondRowA = second.report.rows.find((row) => row.question === 'hf row A')?.id;
+    const secondRowB = second.report.rows.find((row) => row.question === 'hf row B')?.id;
+
+    expect(firstRowA).toHaveLength(2);
+    expect(firstRowA[0]).toMatch(/^promptfoo-[0-9a-f]{12}$/);
+    expect(firstRowA[1]).toBe(`${firstRowA[0]}#2`);
+    expect(secondRowA).toBe(firstRowA[0]);
+    expect(firstRowB).toMatch(/^promptfoo-[0-9a-f]{12}$/);
+    expect(secondRowB).toBe(firstRowB);
+  });
+
   it('imports promptfoo results into a valid eval-report/v1 artifact', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-results.json');
@@ -399,6 +445,44 @@ describe('import adapters', () => {
     expect(resolveImportSource('openevals')).toBe('agentevals');
     expect(() => resolveImportSource('other')).toThrow('Unknown import source other');
   });
+});
+
+it('orders distinct Unicode keys independently of insertion order', async () => {
+  const dir = await createTempDir();
+  const ids: string[] = [];
+  for (const vars of [{ 'é': 1, 'e\u0301': 2 }, { 'e\u0301': 2, 'é': 1 }]) {
+    const inputPath = path.join(dir, 'input.json');
+    const outPath = path.join(dir, 'report.json');
+    await writeFile(inputPath, JSON.stringify({ results: [{ vars, success: true }] }));
+    await importFromSource({ source: 'promptfoo', inputPath, outPath });
+    const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+    expect(result.ok).toBe(true);
+    if (result.ok) ids.push(result.report.rows[0]!.id);
+  }
+  expect(ids[0]).toBe(ids[1]);
+});
+
+it('preserves explicit IDs and reserves later explicit suffixes before generating IDs', async () => {
+  const dir = await createTempDir();
+  const inputPath = path.join(dir, 'input.json');
+  const outPath = path.join(dir, 'report.json');
+  const row = { description: 'same case', success: true };
+  await writeFile(inputPath, JSON.stringify({ results: [row] }));
+  await importFromSource({ source: 'promptfoo', inputPath, outPath });
+  const first = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(first.ok).toBe(true);
+  if (!first.ok) return;
+  const base = first.report.rows[0]!.id;
+  await writeFile(inputPath, JSON.stringify({ results: [
+    row, row, { ...row, id: base }, { ...row, id: `${base}#2` },
+    { ...row, id: 'case' }, { ...row, id: 'case' }, { ...row, testCase: { id: 'case#2' } },
+  ] }));
+  await importFromSource({ source: 'promptfoo', inputPath, outPath });
+  const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result.report.rows.map((item) => item.id)).toEqual([
+    `${base}#3`, `${base}#4`, base, `${base}#2`, 'case', 'case', 'case#2',
+  ]);
 });
 
 it.each([

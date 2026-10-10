@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeEvalReportArtifact, type RunnerEvalCaseResult } from '../adapters/runner.js';
@@ -154,6 +155,34 @@ const stringifyIfObject = (value: unknown): string | undefined => {
   } catch {
     return String(value);
   }
+};
+
+const stableSerialize = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableSerialize(entry)).join(',')}]`;
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`);
+    return `{${entries.join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+};
+
+const promptfooGeneratedId = (row: PromptfooResult, suite: string): string => {
+  const fingerprint = stableSerialize({
+    suite,
+    description: row.description ?? null,
+    vars: row.vars ?? row.testCase?.vars ?? null,
+    prompt: row.prompt ?? null,
+    expected: row.expected ?? row.testCase?.assert?.[0]?.value ?? null,
+  });
+
+  const digest = createHash('sha1').update(fingerprint).digest('hex').slice(0, 12);
+  return `promptfoo-${digest}`;
 };
 
 const promptfooErrorText = (value: unknown): string | undefined => {
@@ -321,9 +350,25 @@ const resolvePromptfooRows = (source: unknown): unknown[] => {
 const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
   const list = resolvePromptfooRows(source);
 
+  const usedIds = new Set<string>();
+  for (const entry of list) {
+    const row = entry as PromptfooResult;
+    const explicitId = row.id ?? row.testCase?.id;
+    if (explicitId !== undefined) usedIds.add(explicitId);
+  }
+
   return list.map((entry, index) => {
     const row = entry as PromptfooResult;
-    const rowLabel = row.id ?? row.testCase?.id ?? `index ${index}`;
+    const suite = row.testCase?.metadata?.suite ?? row.metadata?.suite ?? fallbackSuite;
+    const explicitId = row.id ?? row.testCase?.id;
+    const baseId = explicitId ?? promptfooGeneratedId(row, suite);
+    let id = baseId;
+    if (explicitId === undefined) {
+      let suffix = 2;
+      while (usedIds.has(id)) id = `${baseId}#${suffix++}`;
+      usedIds.add(id);
+    }
+    const rowLabel = explicitId ?? id;
     const signals: Array<{ source: string; value: boolean }> = [];
 
     if (typeof row.pass === 'boolean') signals.push({ source: 'pass', value: row.pass });
@@ -339,7 +384,6 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     }
 
     let passed = inferPassFromSignals(rowLabel, signals);
-    const suite = row.testCase?.metadata?.suite ?? row.metadata?.suite ?? fallbackSuite;
 
     const promptfooError =
       promptfooErrorText(row.error) ??
@@ -368,7 +412,7 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
       (typeof row.metadata?.sessionId === 'string' ? row.metadata.sessionId : undefined);
 
     return {
-      id: rowLabel,
+      id,
       suite,
       passed,
       name: row.description,
