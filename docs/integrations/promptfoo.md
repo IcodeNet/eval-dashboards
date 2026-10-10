@@ -31,5 +31,6 @@ The importer preserves key Promptfoo evidence fields when present:
 - `gradingResult.reason` / `gradingResult.comment` -> `rows[].reason`
 - `latencyMs` (or `response.latencyMs`) -> `rows[].durationMs`
 - `metadata.sessionId` -> `rows[].metadata.sourceSessionId`
+- provider/eval error rows (`error`, `response.error`, `providerResponse.error`, or `failureReason: 2`) -> imported as failed rows with the numeric `row.score` or `gradingResult.score` preserved, defaulting to `score: 0` only when neither is numeric; available error reasons are preserved
 
 Related risks: [integration risk register](./risk-register.md)

@@ -647,6 +647,19 @@ Rationale: OpenAI states the Evals platform becomes read-only on 2026-10-31 and 
 
 Verification 2026-10-07: aliases and conversion are covered by `test/import-adapters-openai-evals.test.ts:25`; completion by `test/completion.test.ts:26`; guide at `docs/integrations/openai-evals.md`. The guide now distinguishes supported oaieval logs from arbitrary hosted API exports and lists only supported event types. Real CLI runs verified all aliases and expected passing/failing gates; see `docs/reviews/2026-10-07-deliverables.md`.
 
+
+### 4C.12 Promptfoo error-row import resilience (P1)
+
+- [ ] Extend the Promptfoo import adapter so provider/eval error rows (where `gradingResult` may be absent) import as explicit failed `eval-report/v1` rows instead of aborting conversion.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=promptfoo` maps Promptfoo error rows (`error`, `response.error`, `providerResponse.error`, or `failureReason: 2`) to `passed: false` rows with preserved failure reasons.
+- Adapter tests include at least one mixed payload (normal assertion rows + provider error rows) proving conversion succeeds and marks only error rows as failures.
+- Promptfoo integration docs call out the error-row mapping so CI users can distinguish transport/evaluator errors from assertion failures after import.
+
+Rationale: Promptfoo documents that `gradingResult`/`componentResults` can be absent on error rows, so importers must handle these rows without dropping the run (https://www.promptfoo.dev/docs/configuration/outputs/).
+
 ### 4C.13 Promptfoo native JSON export import compatibility (P1)
 
 - [ ] Extend the Promptfoo import adapter to ingest Promptfoo's documented JSON export shape where rows are nested under `results.outputs[]`, not only `results[]` or JSONL rows.
