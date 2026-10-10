@@ -1,0 +1,46 @@
+{
+  "runs": [
+    {
+      "id": "ls-run-1",
+      "name": "answer quality",
+      "status": "completed",
+      "session_name": "langsmith-agent-evals",
+      "inputs": {
+        "question": "What is the return window?"
+      },
+      "outputs": {
+        "answer": "Returns are accepted within 30 days."
+      },
+      "reference_output": "30 days",
+      "feedback": [
+        {
+          "key": "correctness",
+          "score": 0.94,
+          "comment": "Matches policy."
+        }
+      ],
+      "latency_ms": 412
+    },
+    {
+      "id": "ls-run-2",
+      "name": "answer quality",
+      "status": "error",
+      "session_name": "langsmith-agent-evals",
+      "inputs": {
+        "question": "What is the support SLA?"
+      },
+      "outputs": {
+        "answer": "I am not sure."
+      },
+      "reference_output": "Respond in under 24 hours",
+      "error": {
+        "message": "tool timeout"
+      },
+      "feedback_stats": {
+        "correctness": {
+          "avg": 0.18
+        }
+      }
+    }
+  ]
+}

@@ -137,6 +137,7 @@ const optionValues = {
     'promptfoo',
     'deepeval',
     'agentevals',
+    'langsmith',
     'ragas',
     'langfuse',
     'phoenix',
