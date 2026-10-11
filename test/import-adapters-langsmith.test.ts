@@ -71,6 +71,41 @@ describe('langsmith import adapter', () => {
     expect(lint.issues.filter((issue) => issue.code === 'missing-kind')).toHaveLength(0);
   });
 
+  it('uses LangSmith address as stable row id when id is absent and keeps revision metadata', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'langsmith-address.json');
+    await writeFile(
+      inputPath,
+      JSON.stringify({
+        runs: [
+          {
+            address: 'agent://org/project/run-123',
+            status: 'completed',
+            score: 0.91,
+            revision_id: 'rev-2026-10-08',
+            session_name: 'langsmith-agent-evals',
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const outPath = path.join(dir, '.evals_output', 'import-langsmith-address.json');
+    await importFromSource({ source: 'langsmith', inputPath, outPath });
+
+    const validated = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows[0]).toEqual(
+      expect.objectContaining({
+        id: 'agent://org/project/run-123',
+        passed: true,
+        metadata: expect.objectContaining({ langsmithRevisionId: 'rev-2026-10-08' }),
+      }),
+    );
+  });
+
   it('fails clearly when pass/fail cannot be inferred', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'langsmith-ambiguous.json');

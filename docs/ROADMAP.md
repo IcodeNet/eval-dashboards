@@ -695,6 +695,18 @@ Acceptance criteria:
 
 Rationale: LangSmith’s Cloud changelog now promotes run-query tooling for costs/tokens and cursor pagination (`query_runs`, with `fetch_runs` deprecated), so a direct adapter removes migration friction for teams standardizing on LangSmith exports (https://docs.langchain.com/langsmith/changelog).
 
+### 4C.15 LangSmith address + revision import compatibility (P1)
+
+- [ ] Extend the LangSmith import adapter to treat `address` as the stable row id fallback when `id` is absent, and preserve `revision_id`/`revisionId` as row metadata.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=langsmith` emits `rows[].id` from `id` or `address` (before positional fallback), preserving cross-run identity for newer address-based exports.
+- `revision_id`/`revisionId` values in LangSmith exports are preserved in `rows[].metadata.langsmithRevisionId`.
+- Adapter tests cover an address-only row and assert both stable id mapping and revision mapping.
+
+Rationale: LangSmith SDK v0.14.5 added typed addresses (AgentAddress/ExperimentAddress/EvaluatorAddress) plus revision-id support, so imports should preserve these identity/provenance signals instead of falling back to array position (https://github.com/langchain-ai/langsmith-sdk/releases/tag/v0.14.5).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation

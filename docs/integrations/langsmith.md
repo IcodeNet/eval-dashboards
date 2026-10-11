@@ -26,6 +26,8 @@ The adapter accepts:
 ## Mapping notes
 
 - `suite` from `session_name` or `project_name` (fallback: `--suite` / default)
+- `id` from `id` (fallback: `address`, then deterministic suite+index fallback)
+- `metadata.langsmithRevisionId` from `revision_id` / `revisionId` when present
 - `input` from `inputs` (or `input`)
 - `output` from `outputs` (or `output`)
 - `expected` from `reference_output` (or `expected`)
