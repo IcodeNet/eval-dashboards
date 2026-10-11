@@ -94,6 +94,7 @@ describe('langsmith import adapter', () => {
             address: sharedAddress,
             status: 'completed',
             score: 0.84,
+            revision_id: '',
             revisionId: 'rev-2026-10-09',
             session_name: 'langsmith-agent-evals',
           },

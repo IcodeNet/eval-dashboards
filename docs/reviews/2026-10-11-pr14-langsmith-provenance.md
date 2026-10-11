@@ -21,6 +21,8 @@ Resolved by:
 
 No unresolved local review findings remained after this change.
 
+Final-head CodeRabbit review also found that an empty `revision_id` could hide a non-empty `revisionId`. The importer now selects the first non-empty revision alias consistently, and the shared-address regression includes an empty snake-case alias alongside a populated camel-case alias.
+
 ## Verification
 
 | Command | Exit | Result |

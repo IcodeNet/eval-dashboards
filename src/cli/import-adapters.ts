@@ -869,7 +869,7 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
           ? { langsmithAddress: row.address }
           : {}),
         ...(row.revision_id || row.revisionId
-          ? { langsmithRevisionId: row.revision_id ?? row.revisionId }
+          ? { langsmithRevisionId: row.revision_id || row.revisionId }
           : {}),
       },
     };
