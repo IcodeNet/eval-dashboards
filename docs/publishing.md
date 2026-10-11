@@ -74,6 +74,12 @@ GitHub PR-comment target options:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+## Redacted evidence
+
+`--redact` removes tool arguments from both `toolCalls[].args` and conversation `turns[].toolCall.args`, as well as raw prompts, outputs and results. Redaction runs before comparison and history generation, so JSON comparison buckets (including disappeared baseline rows) receive the same treatment as the visible HTML. Public case IDs and outcome counts remain available.
+
+Publish preflight checks both current and baseline evidence, including tool arguments and conversation tool results. A sensitive field present only in a disappeared baseline row still requires redaction or the explicit sensitive-publish override.
+
 ## Operational notes
 
 - `dir` is local-only and preserves offline-first behavior.

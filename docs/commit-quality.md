@@ -49,6 +49,18 @@ verification commands, results, limitations, and any required raw CI log review
 in a durable report under `docs/reviews/`. External adoption still requires an
 external commit/PR link before marking it complete.
 
+The Codex guard also accepts a single static JSON `tools.exec_command` call,
+optionally inside `text(await ...)`. The literal command and absolute `workdir`
+are checked against this repository and its staged evidence. Dynamic JavaScript,
+extra statements, shell overrides, and unknown arguments are rejected for this
+form; the wrapper is parsed without evaluating JavaScript.
+
+For tool bridges that omit working-directory metadata, a single standalone
+Git command may use `-C` with a quoted literal absolute directory before the
+commit subcommand. The hook resolves that directory and requires it to match
+this repository; relative paths, substitutions, extra flags, and compound
+commands remain rejected.
+
 ## Guarantees and limits
 
 Changing staged content or HEAD invalidates prior evidence. A failed rerun

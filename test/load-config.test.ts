@@ -69,4 +69,20 @@ describe('loadConfig', () => {
 
     await expect(loadConfig(dir)).resolves.toEqual({ gates: { minPassRate: 0.8 } });
   });
+  it.each(['null', 'false', '[]'])('rejects a malformed default config export: %s', async (value) => {
+    await writeFile(path.join(dir, 'eval-dashboards.config.mjs'), `export default ${value};`);
+    await expect(loadConfig(dir)).rejects.toThrow(/Config must export an object/);
+  });
+
+  it('does not fall through to package.json after an existing config imports a missing module', async () => {
+    await writeFile(path.join(dir, 'eval-dashboards.config.mjs'), "import './missing-policy.mjs'; export default { gates: { minPassRate: 1 } };");
+    await writeFile(path.join(dir, 'package.json'), JSON.stringify({ 'eval-dashboards': { gates: { minPassRate: 0 } } }));
+    await expect(loadConfig(dir)).rejects.toThrow(/Failed to load config file/);
+  });
+
+  it.each([{ value: null }, { value: false }, { value: [] }])('rejects a malformed package.json config: $value', async ({ value }) => {
+    await writeFile(path.join(dir, 'package.json'), JSON.stringify({ 'eval-dashboards': value }));
+    await expect(loadConfig(dir)).rejects.toThrow(/must be an object/);
+  });
+
 });

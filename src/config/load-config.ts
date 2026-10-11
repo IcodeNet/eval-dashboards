@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { EvalReportsConfig } from './config.js';
@@ -23,18 +23,22 @@ type ImportConfigResult =
  * drop configured gates and let a misconfigured run pass CI green.
  */
 const tryImportConfig = async (filePath: string): Promise<ImportConfigResult> => {
+  // Resolve absence before importing: a missing dependency inside an existing
+  // config has the same error codes as a missing config, but must fail closed.
+  try {
+    await stat(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { found: false };
+    return { found: true, config: {}, error: error as Error };
+  }
   try {
     const mod = await import(pathToFileURL(filePath).href);
-    const config: unknown = mod.default ?? mod;
-    if (config && typeof config === 'object') return { found: true, config: config as EvalReportsConfig };
-    return { found: false };
+    const config: unknown = Object.hasOwn(mod, 'default') ? mod.default : mod;
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error('Config must export an object.');
+    }
+    return { found: true, config: config as EvalReportsConfig };
   } catch (error) {
-    const err = error as NodeJS.ErrnoException & { code?: string };
-    const isMissingFile =
-      err?.code === 'ERR_MODULE_NOT_FOUND' ||
-      err?.code === 'MODULE_NOT_FOUND' ||
-      err?.code === 'ENOENT';
-    if (isMissingFile) return { found: false };
     return { found: true, config: {}, error: error as Error };
   }
 };
@@ -62,9 +66,12 @@ const tryPackageJsonConfig = async (cwd: string): Promise<PackageJsonConfigResul
 
   try {
     const pkg = JSON.parse(raw) as Record<string, unknown>;
+    if (!Object.hasOwn(pkg, 'eval-dashboards')) return { found: false };
     const config = pkg['eval-dashboards'];
-    if (config && typeof config === 'object') return { found: true, config: config as EvalReportsConfig };
-    return { found: false };
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error('package.json#eval-dashboards must be an object.');
+    }
+    return { found: true, config: config as EvalReportsConfig };
   } catch (error) {
     return { found: true, config: {}, error: error as Error };
   }

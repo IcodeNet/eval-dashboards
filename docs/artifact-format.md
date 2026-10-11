@@ -530,3 +530,6 @@ type AdjudicationBundleV1 = {
 
 On import, reviewer decisions merge into `rows[]` (for example `passed`, `groundTruthVerdict`, `groundTruthCategory`, `groundTruthAnnotation`) and append a provenance trail under `report.metadata.adjudication.imports[]` and row-level `metadata.adjudicationTrail[]`.
 If a row already has `metadata.provenance`, import preserves it; otherwise import adds `metadata.provenance.source='production-review'` with bundle linkage.
+## Identity and measurement integrity
+
+Each row must reference a declared suite (its ID or name), and quality gates require `(suite, id)` pairs to be unique within a run. Legacy importers may preserve duplicate explicit IDs for display, but those ambiguous runs cannot pass `check`. Use the `repeated` aggregation record for repeated evaluations instead of duplicating identities. Runtime validation rejects negative suite counts, durations, token counts, and usage costs. Zero measurements remain valid. These checks align numeric measurements with the published schema; unknown optional metadata stays supported.

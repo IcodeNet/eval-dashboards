@@ -305,18 +305,13 @@ export const optionNumber = (
 ): number | undefined => {
   const value = options[name];
 
-  if (typeof value !== 'string') {
-    return undefined;
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || value.trim() === '' || !Number.isFinite(Number(value))) {
+    throw Object.assign(new Error(`Invalid value for --${name}: expected a finite number.`), {
+      exitCode: 2,
+    });
   }
-
-  const parsed = Number(value);
-  if (value.trim() !== '' && !Number.isFinite(parsed)) {
-    console.error(
-      `Invalid value for --${name}: "${value}" is not a number. This flag will be ignored, which may silently disable a gate.`,
-    );
-    return undefined;
-  }
-  return Number.isFinite(parsed) ? parsed : undefined;
+  return Number(value);
 };
 
 export const optionBoolean = (

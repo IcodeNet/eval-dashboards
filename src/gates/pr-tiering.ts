@@ -41,6 +41,7 @@ const getNestedNumber = (value: unknown, keys: string[]): number | undefined => 
 export const extractRowCostUsd = (row: EvalRow): number | undefined => {
   const metadata = row.metadata as Record<string, unknown> | undefined;
   return (
+    getNestedNumber(row.usage, ['costUsd']) ??
     getNestedNumber(metadata, ['costUsd']) ??
     getNestedNumber(metadata, ['costUSD']) ??
     getNestedNumber(metadata, ['usdCost']) ??

@@ -3,14 +3,16 @@
 Config locations:
 
 - `eval-dashboards.config.ts`
-- `eval-dashboards.config.js`
+- `eval-dashboards.config.js` (also `.mjs` and `.cjs`)
 - `eval-dashboards` in `package.json`
+
+An existing config that cannot load, including a missing imported dependency, fails the command with exit 2. Config exports and the `package.json` field must be objects; malformed values do not fall back to permissive defaults.
 
 Example:
 
 ```ts
 export default {
-  input: ['.evals_output/**/*.json'],
+  input: '.evals_output',
   reportDir: 'eval-report',
   reporters: ['html', 'json-summary', 'markdown-summary', 'text'],
   gates: {
@@ -44,9 +46,12 @@ CLI overrides:
 - `--baseline-strategy=rolling|champion`: strategy when baseline run ID is omitted.
 - `--baseline-lookback=<n>`: limit candidate prior runs considered by the strategy.
 
+`input` is a directory path; discovery recurses through its JSON files. Glob expressions are not supported.
+
 Recommended artifact layout:
 
 - Write one file per run under `.evals_output` (for example `.evals_output/<runId>.json`).
+- Give every discovered artifact a unique `run.id`. Duplicate IDs, including identical copies, fail with exit 2 and identify both file paths.
 - Preserve prior run files so `rolling` and `champion` strategies can select meaningful baselines and history commands can build trends.
 - Use single-file overwrite workflows only when you do not need cross-run comparisons.
 

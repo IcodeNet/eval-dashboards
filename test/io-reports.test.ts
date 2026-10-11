@@ -75,4 +75,20 @@ describe('io reports', () => {
     expect(files).toHaveLength(1);
     expect(files[0]).toContain('report.json');
   });
+  it('rejects even identical copies of an artifact rather than duplicating history identity', async () => {
+    const dir = await createTempDir();
+    const { writeFile } = await import('node:fs/promises');
+    const report = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'reused', generatedAt: '2026-10-11T12:00:00Z' },
+      suites: [{ id: 's1', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'r1', suite: 's1', passed: true }],
+    };
+    await Promise.all(['a.json', 'b.json'].map((name) => writeFile(path.join(dir, name), JSON.stringify(report))));
+    await expect(readEvalReports(dir)).rejects.toMatchObject({
+      exitCode: 2,
+      message: expect.stringMatching(/Duplicate run ID "reused".*a\.json.*b\.json/),
+    });
+  });
+
 });
