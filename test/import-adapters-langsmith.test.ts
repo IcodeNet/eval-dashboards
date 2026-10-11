@@ -71,18 +71,30 @@ describe('langsmith import adapter', () => {
     expect(lint.issues.filter((issue) => issue.code === 'missing-kind')).toHaveLength(0);
   });
 
-  it('uses LangSmith address as stable row id when id is absent and keeps revision metadata', async () => {
+  it('keeps shared LangSmith addresses as provenance without collapsing row identity', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'langsmith-address.json');
+    const sharedAddress = {
+      kind: 'AGENT',
+      id: 'customer-support',
+      environment: 'PRODUCTION',
+    };
     await writeFile(
       inputPath,
       JSON.stringify({
         runs: [
           {
-            address: 'agent://org/project/run-123',
+            address: sharedAddress,
             status: 'completed',
             score: 0.91,
             revision_id: 'rev-2026-10-08',
+            session_name: 'langsmith-agent-evals',
+          },
+          {
+            address: sharedAddress,
+            status: 'completed',
+            score: 0.84,
+            revisionId: 'rev-2026-10-09',
             session_name: 'langsmith-agent-evals',
           },
         ],
@@ -97,13 +109,20 @@ describe('langsmith import adapter', () => {
     expect(validated.ok).toBe(true);
     if (!validated.ok) return;
 
-    expect(validated.report.rows[0]).toEqual(
+    expect(validated.report.rows.map((row) => row.id)).toEqual([
+      'langsmith-agent-evals-1',
+      'langsmith-agent-evals-2',
+    ]);
+    expect(validated.report.rows.map((row) => row.metadata)).toEqual([
       expect.objectContaining({
-        id: 'agent://org/project/run-123',
-        passed: true,
-        metadata: expect.objectContaining({ langsmithRevisionId: 'rev-2026-10-08' }),
+        langsmithAddress: sharedAddress,
+        langsmithRevisionId: 'rev-2026-10-08',
       }),
-    );
+      expect.objectContaining({
+        langsmithAddress: sharedAddress,
+        langsmithRevisionId: 'rev-2026-10-09',
+      }),
+    ]);
   });
 
   it('fails clearly when pass/fail cannot be inferred', async () => {

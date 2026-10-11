@@ -268,7 +268,7 @@ type LangsmithFeedback = {
 
 type LangsmithRun = {
   id?: string;
-  address?: string;
+  address?: unknown;
   name?: string;
   pass?: boolean;
   passed?: boolean;
@@ -742,7 +742,7 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
   return list.map((entry, index) => {
     const row = entry as LangsmithRun;
     const suite = row.session_name ?? row.project_name ?? row.metadata?.suite ?? fallbackSuite;
-    const rowIdentity = row.id ?? row.address;
+    const rowIdentity = row.id;
     const rowLabel = rowIdentity ?? `${suite}-${index + 1}`;
 
     const signals: Array<{ source: string; value: boolean }> = [];
@@ -865,6 +865,9 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
           sourceRef: 'langsmith',
         },
         lifecycle: { status: 'active' },
+        ...(row.address !== undefined && row.address !== null
+          ? { langsmithAddress: row.address }
+          : {}),
         ...(row.revision_id || row.revisionId
           ? { langsmithRevisionId: row.revision_id ?? row.revisionId }
           : {}),
