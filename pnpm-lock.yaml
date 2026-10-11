@@ -48,7 +48,7 @@ importers:
     optionalDependencies:
       nodemailer:
         specifier: ^10.0.9
-        version: 10.0.9
+        version: 10.1.0
 
 packages:
 
@@ -1089,8 +1089,8 @@ packages:
     engines: {node: ^22 || ^24 || >=26}
     hasBin: true
 
-  nodemailer@10.0.9:
-    resolution: {integrity: sha512-BF0qcyplCwp+jMk6HCjFykBz/YhhZSsxrARhOldLwFWH+8kGjQsd2WIMIZhqEuyXRoGFi0ONbDeWDMDoL8MhLw==}
+  nodemailer@10.1.0:
+    resolution: {integrity: sha512-fXW8AulB25aOTuwfRYV6lqHyfz2VM4rr4SGXH03mE7x5znEUpzL5mu6anARUpZN7744Ziwkmr4AxSLPJsBQspg==}
     engines: {node: '>=20.0.0'}
 
   object-assign@4.1.1:
@@ -2285,7 +2285,7 @@ snapshots:
 
   nanoid@6.0.1: {}
 
-  nodemailer@10.0.9:
+  nodemailer@10.1.0:
     optional: true
 
   object-assign@4.1.1: {}
