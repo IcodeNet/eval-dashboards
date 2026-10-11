@@ -695,6 +695,20 @@ Acceptance criteria:
 
 Rationale: LangSmith’s Cloud changelog now promotes run-query tooling for costs/tokens and cursor pagination (`query_runs`, with `fetch_runs` deprecated), so a direct adapter removes migration friction for teams standardizing on LangSmith exports (https://docs.langchain.com/langsmith/changelog).
 
+### 4C.15 LangSmith address + revision provenance compatibility (P1)
+
+- [x] Extend the LangSmith import adapter to preserve `address` and `revision_id`/`revisionId` as row metadata without treating a shared address as run identity.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=langsmith` keeps run-specific `id` as `rows[].id` and retains the deterministic suite+index fallback when it is absent.
+- `address` values are preserved in `rows[].metadata.langsmithAddress`; `revision_id`/`revisionId` values are preserved in `rows[].metadata.langsmithRevisionId`.
+- Adapter tests cover multiple address-only rows sharing one address and prove that their row ids remain distinct while both provenance fields are retained.
+
+Rationale: LangSmith SDK v0.14.5 added typed addresses (AgentAddress/ExperimentAddress/EvaluatorAddress) plus revision-id support. Addresses identify destinations or query targets rather than individual runs, so imports should preserve them as provenance without weakening row identity (https://github.com/langchain-ai/langsmith-sdk/releases/tag/v0.14.5).
+
+Verification 2026-10-11: importer mapping is implemented in `src/cli/import-adapters.ts`; the duplicate-address regression is covered by `test/import-adapters-langsmith.test.ts`; mapping and limitations are documented in `docs/integrations/langsmith.md`. Exact commands, results, review resolution, and limitations are recorded in `docs/reviews/2026-10-11-pr14-langsmith-provenance.md`.
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation

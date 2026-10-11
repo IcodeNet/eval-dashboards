@@ -268,6 +268,7 @@ type LangsmithFeedback = {
 
 type LangsmithRun = {
   id?: string;
+  address?: unknown;
   name?: string;
   pass?: boolean;
   passed?: boolean;
@@ -285,6 +286,8 @@ type LangsmithRun = {
   latencyMs?: number;
   session_name?: string;
   project_name?: string;
+  revision_id?: string;
+  revisionId?: string;
   feedback?: LangsmithFeedback[];
   feedback_stats?: Record<string, number | { avg?: number; mean?: number; score?: number }>;
   metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
@@ -739,7 +742,8 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
   return list.map((entry, index) => {
     const row = entry as LangsmithRun;
     const suite = row.session_name ?? row.project_name ?? row.metadata?.suite ?? fallbackSuite;
-    const rowLabel = row.id ?? `${suite}-${index + 1}`;
+    const rowIdentity = row.id;
+    const rowLabel = rowIdentity ?? `${suite}-${index + 1}`;
 
     const signals: Array<{ source: string; value: boolean }> = [];
     let successfulStatus = false;
@@ -842,7 +846,7 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     }
 
     return {
-      id: row.id ?? rowLabel,
+      id: rowIdentity ?? rowLabel,
       suite,
       passed,
       name: row.name,
@@ -861,6 +865,12 @@ const langsmithRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
           sourceRef: 'langsmith',
         },
         lifecycle: { status: 'active' },
+        ...(row.address !== undefined && row.address !== null
+          ? { langsmithAddress: row.address }
+          : {}),
+        ...(row.revision_id || row.revisionId
+          ? { langsmithRevisionId: row.revision_id || row.revisionId }
+          : {}),
       },
     };
   });

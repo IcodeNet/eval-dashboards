@@ -71,6 +71,61 @@ describe('langsmith import adapter', () => {
     expect(lint.issues.filter((issue) => issue.code === 'missing-kind')).toHaveLength(0);
   });
 
+  it('keeps shared LangSmith addresses as provenance without collapsing row identity', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'langsmith-address.json');
+    const sharedAddress = {
+      kind: 'AGENT',
+      id: 'customer-support',
+      environment: 'PRODUCTION',
+    };
+    await writeFile(
+      inputPath,
+      JSON.stringify({
+        runs: [
+          {
+            address: sharedAddress,
+            status: 'completed',
+            score: 0.91,
+            revision_id: 'rev-2026-10-08',
+            session_name: 'langsmith-agent-evals',
+          },
+          {
+            address: sharedAddress,
+            status: 'completed',
+            score: 0.84,
+            revision_id: '',
+            revisionId: 'rev-2026-10-09',
+            session_name: 'langsmith-agent-evals',
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const outPath = path.join(dir, '.evals_output', 'import-langsmith-address.json');
+    await importFromSource({ source: 'langsmith', inputPath, outPath });
+
+    const validated = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows.map((row) => row.id)).toEqual([
+      'langsmith-agent-evals-1',
+      'langsmith-agent-evals-2',
+    ]);
+    expect(validated.report.rows.map((row) => row.metadata)).toEqual([
+      expect.objectContaining({
+        langsmithAddress: sharedAddress,
+        langsmithRevisionId: 'rev-2026-10-08',
+      }),
+      expect.objectContaining({
+        langsmithAddress: sharedAddress,
+        langsmithRevisionId: 'rev-2026-10-09',
+      }),
+    ]);
+  });
+
   it('fails clearly when pass/fail cannot be inferred', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'langsmith-ambiguous.json');
