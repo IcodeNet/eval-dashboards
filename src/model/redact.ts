@@ -47,17 +47,15 @@ export const redactEvalRow = (row: EvalRow): EvalRow => {
       role: turn.role,
       timestamp: turn.timestamp,
       durationMs: turn.durationMs,
-      // content and toolResult are raw evidence text; the tool name/args
-      // shape is kept as it is typically non-sensitive routing metadata.
+      // Keep the public tool name, but discard raw arguments and results.
       content: REDACTED_PLACEHOLDER,
-      ...(turn.toolCall ? { toolCall: turn.toolCall } : {}),
+      ...(turn.toolCall ? { toolCall: { name: turn.toolCall.name, args: {} } } : {}),
     }));
   }
 
   if (redacted.toolCalls) {
     redacted.toolCalls = redacted.toolCalls.map((call) => ({
       name: call.name,
-      args: call.args,
       durationMs: call.durationMs,
       resultIsError: call.resultIsError,
       ...(call.result !== undefined ? { result: REDACTED_PLACEHOLDER } : {}),
@@ -98,6 +96,15 @@ export const findSensitiveFields = (report: EvalReportV1): string[] => {
     }
     if (row.turns?.some((turn) => turn.content && turn.content !== REDACTED_PLACEHOLDER)) {
       hits.add('turns[].content');
+    }
+    if (row.turns?.some((turn) => turn.toolCall?.args && Object.keys(turn.toolCall.args).length > 0)) {
+      hits.add('turns[].toolCall.args');
+    }
+    if (row.turns?.some((turn) => turn.toolResult && turn.toolResult !== REDACTED_PLACEHOLDER)) {
+      hits.add('turns[].toolResult');
+    }
+    if (row.toolCalls?.some((call) => call.args && Object.keys(call.args).length > 0)) {
+      hits.add('toolCalls[].args');
     }
     if (row.toolCalls?.some((call) => call.result && call.result !== REDACTED_PLACEHOLDER)) {
       hits.add('toolCalls[].result');

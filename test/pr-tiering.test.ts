@@ -80,6 +80,18 @@ describe('extractRowCostUsd', () => {
 });
 
 describe('filterReportByTier', () => {
+  it('resolves suite IDs and names consistently for summaries and rows', () => {
+    const report = buildReport();
+    report.suites[1]!.name = 'slow-suite';
+    report.suites[1]!.id = 'slow-id';
+    report.rows.push({ id: 'alias', suite: 'slow-id', passed: true });
+    const pr = filterReportByTier(report, 'pr');
+    expect(pr.suites.some((suite) => suite.id === 'slow-id')).toBe(false);
+    expect(pr.rows.some((row) => ['slow-id', 'slow-suite'].includes(row.suite))).toBe(false);
+    const full = filterReportByTier(report, 'full');
+    expect(full.suites.some((suite) => suite.id === 'slow-id')).toBe(true);
+    expect(full.rows.filter((row) => ['slow-id', 'slow-suite'].includes(row.suite))).toHaveLength(2);
+  });
   it('keeps only pr-tagged and untagged (both) suites for the pr tier', () => {
     const report = buildReport();
     const filtered = filterReportByTier(report, 'pr');

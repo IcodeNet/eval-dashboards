@@ -146,6 +146,17 @@ export const readEvalReports = async (
   }
 
   const reports = await Promise.all(files.map((file) => readEvalReport(file)));
+  const pathByRunId = new Map<string, string>();
+  for (const [index, report] of reports.entries()) {
+    const firstPath = pathByRunId.get(report.run.id);
+    if (firstPath !== undefined) {
+      throw Object.assign(
+        new Error(`Duplicate run ID "${report.run.id}" in ${firstPath} and ${files[index]}. Each discovered artifact must have a unique run ID.`),
+        { exitCode: 2 },
+      );
+    }
+    pathByRunId.set(report.run.id, files[index]!);
+  }
 
   return reports.sort(
     (left, right) => Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt),

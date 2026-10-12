@@ -32,15 +32,48 @@ function fixture(t) {
   });
   fs.writeFileSync(path.join(dir, 'checks.json'), JSON.stringify({ ...current, results }));
   fs.writeFileSync(path.join(dir, 'review.json'), JSON.stringify(review));
-  const hook = (command) => {
+  const hookEvent = (toolInput, cwd = root) => {
     const result = spawnSync(process.execPath, [path.join(root, '.codex/hooks/commit-policy.mjs')], {
-      input: JSON.stringify({ cwd: root, hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } }), encoding: 'utf8',
+      input: JSON.stringify({ cwd, hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: toolInput }), encoding: 'utf8',
     });
     assert.equal(result.status, 0, result.stderr);
     return JSON.parse(result.stdout);
   };
-  return { root, git, dir, review, current, results, hook };
+  return { root, git, dir, review, current, results, hook: (command) => hookEvent({ command }), hookEvent };
 }
+
+test('static wrapped calls retain repository and evidence checks', (t) => {
+  const f = fixture(t);
+  const wrap = (args) => `text(await tools.exec_command(${JSON.stringify(args)}));`;
+  const args = { cmd: 'git commit -m "test: wrapper"', workdir: f.root };
+  assert.deepEqual(f.hookEvent({ code: wrap(args) }, os.tmpdir()), {});
+  assert.deepEqual(f.hookEvent(wrap(args), os.tmpdir()), {});
+  for (const code of [
+    wrap({ ...args, workdir: os.tmpdir() }), wrap({ ...args, shell: '/bin/sh' }),
+    wrap({ ...args, cmd: 'git commit --no-verify' }),
+    wrap({ ...args, cmd: 'git -C /other commit' }),
+    wrap({ ...args, cmd: 'git add . && git commit' }),
+    wrap({ ...args, cmd: 'git commit -m "$(touch /tmp/unexpected)"' }),
+    'text(await tools.exec_command({cmd: "git commit", workdir: dynamic}));',
+    `mutate();${wrap(args)}`, `${wrap(args)}mutate();`, `${wrap(args)}${wrap(args)}`,
+  ]) assert.equal(f.hookEvent({ code }, os.tmpdir()).hookSpecificOutput?.permissionDecision, 'deny', code);
+  assert.deepEqual(f.hookEvent({ code: wrap({ ...args, cmd: 'git status', justification: 'check before commit' }) }), {});
+  fs.unlinkSync(path.join(f.dir, 'checks.json'));
+  assert.equal(f.hookEvent({ code: wrap(args) }).hookSpecificOutput?.permissionDecision, 'deny');
+});
+
+test('explicit literal Git directory survives bridges that omit workdir', (t) => {
+  const f = fixture(t);
+  const command = `git -C "${f.root}" commit -m "test: explicit directory"`;
+  assert.deepEqual(f.hookEvent({ command }, os.tmpdir()), {});
+  for (const invalid of [
+    `git -C "${os.tmpdir()}" commit`, 'git -C "relative" commit',
+    'git -C "$HOME" commit', `git -C "${f.root}" commit --no-verify`,
+    `${command}; touch /tmp/unexpected`,
+  ]) assert.equal(f.hookEvent({ command: invalid }, os.tmpdir()).hookSpecificOutput?.permissionDecision, 'deny', invalid);
+  fs.unlinkSync(path.join(f.dir, 'review.json'));
+  assert.equal(f.hookEvent({ command }, os.tmpdir()).hookSpecificOutput?.permissionDecision, 'deny');
+});
 
 test('allows exact staged tree with successful logs and cited review', (t) => {
   const f = fixture(t);

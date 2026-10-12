@@ -12,7 +12,26 @@ const deny = (reason) => console.log(JSON.stringify({ hookSpecificOutput: {
 try {
   const event = JSON.parse(fs.readFileSync(0, 'utf8'));
   const input = event.tool_input ?? {};
-  const command = typeof input === 'string' ? input : input.command ?? input.cmd ?? input.code ?? '';
+  let command = typeof input === 'string' ? input : input.command ?? input.cmd ?? input.code ?? '';
+  let cwd = input.workdir ?? input.cwd ?? event.cwd;
+  // Decode only a single static JSON call, without evaluating JavaScript.
+  const wrapper = /^(?:text\(await tools\.exec_command\((\{[\s\S]*\})\)\);|await tools\.exec_command\((\{[\s\S]*\})\);)\s*$/.exec(command);
+  if (wrapper) {
+    const args = JSON.parse(wrapper[1] ?? wrapper[2]);
+    const allowed = ['cmd', 'workdir', 'sandbox_permissions', 'justification', 'prefix_rule', 'yield_time_ms', 'max_output_tokens', 'tty'];
+    if (Object.keys(args).some((key) => !allowed.includes(key))) throw new Error('Unsupported wrapped tool argument');
+    if (typeof args.cmd !== 'string' || typeof args.workdir !== 'string' || !args.workdir.startsWith('/')) throw new Error('Wrapped calls require static command and absolute working directory');
+    command = args.cmd;
+    cwd = args.workdir;
+  }
+  // Some tool bridges forward only a Bash command and omit its workdir.
+  // An explicit literal -C makes the effective Git directory verifiable.
+  const explicitDirectory = /^git -C (?:"([^"\n]+)"|'([^'\n]+)') (commit(?:\s[\s\S]*)?)$/.exec(command);
+  if (explicitDirectory) {
+    cwd = explicitDirectory[1] ?? explicitDirectory[2];
+    if (!cwd.startsWith('/') || /[$`\\]/.test(cwd)) throw new Error('Git directory must be a literal absolute path');
+    command = `git ${explicitDirectory[3]}`;
+  }
   const isCommit = /\bgit\b[\s\S]*\s(?:commit|commit-tree)(?=\s|$|["\x27);&|])/.test(command);
   if (isCommit) {
     // Do not bless a compound command that could mutate files after validation,
@@ -21,7 +40,6 @@ try {
       deny('Use a standalone git commit -m "..." after staging, checking and reviewing. Compound commands, alternate indexes/repos and hook bypass flags are not verified.');
     } else {
       const root = fileURLToPath(new URL('../../', import.meta.url));
-      const cwd = input.workdir ?? input.cwd ?? event.cwd;
       if (typeof cwd !== 'string') throw new Error('Missing tool working directory');
       const target = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, encoding: 'utf8' }).trim();
       if (fs.realpathSync(target) !== fs.realpathSync(root)) throw new Error('Commit targets a different repository');

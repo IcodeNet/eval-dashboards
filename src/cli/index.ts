@@ -16,7 +16,7 @@ import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
 import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile, appendTextFile } from '../io/reports.js';
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
-import { checkGates, type GateConfig } from '../gates/check-gates.js';
+import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import { detectGateConfigLoosening } from '../gates/threshold-change.js';
 import { filterReportByTier, evaluatePrTierBudget, type TierCostSummary } from '../gates/pr-tiering.js';
@@ -817,14 +817,22 @@ type LoadContextOptions = {
   baselineRunId?: string;
   baselineStrategy?: BaselineStrategy;
   baselineLookback?: number;
+  tier?: 'pr' | 'full';
+  redact?: boolean;
 };
 
+/** Scope and optionally redact every discovered run before selection, comparison and history. */
 const loadContext = async (
   input: string,
   reportDir: string,
   options?: LoadContextOptions,
 ) => {
-  const reports = await readEvalReports(input, { excludeDirs: [reportDir] });
+  const discovered = await readEvalReports(input, { excludeDirs: [reportDir] });
+  // Derive selection, history and comparisons only from the requested scope.
+  const reports = discovered.map((report) => {
+    const scoped = options?.tier ? filterReportByTier(report, options.tier) : report;
+    return options?.redact ? redactEvalReport(scoped) : scoped;
+  });
 
   if (reports.length === 0) {
     throw Object.assign(new Error(`No eval reports found under ${input}.`), { exitCode: 3 });
@@ -1045,6 +1053,7 @@ const evaluateCalibrationChecks = (
   return { failures, diagnostics };
 };
 
+/** Translate supplied CLI flags into gate overrides without dropping invalid numeric policy. */
 const gateConfigFromOptions = (
   options: Record<string, string | boolean | string[]>,
 ): GateConfig => {
@@ -1726,6 +1735,13 @@ const main = async (): Promise<void> => {
     };
 
     try {
+      const tierOption = optionString(options, 'tier', '').trim().toLowerCase();
+      if (tierOption && tierOption !== 'pr' && tierOption !== 'full') {
+        throw Object.assign(new Error(`--tier must be "pr" or "full" (got "${tierOption}").`), {
+          exitCode: 2,
+        });
+      }
+      const selectedTier = (tierOption || undefined) as 'pr' | 'full' | undefined;
       const runId = optionString(options, 'run-id', '');
       const baselineRunId = optionString(options, 'baseline-run-id', '');
       const baselineStrategy = baselineStrategyFromOptions(options) ?? config.baseline?.strategy;
@@ -1735,6 +1751,7 @@ const main = async (): Promise<void> => {
         baselineRunId: baselineRunId || undefined,
         baselineStrategy,
         baselineLookback,
+        tier: selectedTier,
       });
       const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
       const cliGateOverrides = gateConfigFromOptions(options);
@@ -1765,21 +1782,15 @@ const main = async (): Promise<void> => {
           ...(cliGateOverrides.repeat ?? {}),
         } as GateConfig['repeat'];
       }
+      const gateConfigErrors = validateGateConfig(gateConfig);
+      if (gateConfigErrors.length > 0) {
+        throw Object.assign(new Error(gateConfigErrors.join(' ')), { exitCode: 2 });
+      }
       assertValidStatisticalGateConfig(gateConfig);
       assertValidCalibrationGateConfig(gateConfig);
 
-      const tierOption = optionString(options, 'tier', '').trim().toLowerCase();
-      if (tierOption && tierOption !== 'pr' && tierOption !== 'full') {
-        throw Object.assign(new Error(`--tier must be "pr" or "full" (got "${tierOption}").`), {
-          exitCode: 2,
-        });
-      }
-      const selectedTier = (tierOption || undefined) as 'pr' | 'full' | undefined;
       const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
       const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
-      if (selectedTier) {
-        context.current = filterReportByTier(context.current, selectedTier);
-      }
       const prTierBudget = selectedTier
         ? evaluatePrTierBudget(context.current, {
             tier: selectedTier,
@@ -2397,19 +2408,17 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    const context = await loadContext(input, reportDir);
     const redact = optionBoolean(options, 'redact');
+    const context = await loadContext(input, reportDir, { redact });
     const allowSensitivePublish = optionBoolean(options, 'allow-sensitive-publish');
-    if (redact) {
-      context.current = redactEvalReport(context.current);
-      if (context.previous) context.previous = redactEvalReport(context.previous);
-    }
 
     // 4F.2 — publish preflight: hard-fail when unredacted sensitive evidence
     // fields are present in the payload being published, unless the caller
     // has explicitly opted in with --allow-sensitive-publish. The override's
     // use is always recorded in the publish run record for auditability.
-    const sensitiveFieldsFound = findSensitiveFields(context.current);
+    const sensitiveFieldsFound = [...new Set(
+      [context.current, ...(context.previous ? [context.previous] : [])].flatMap(findSensitiveFields),
+    )];
     if (sensitiveFieldsFound.length > 0 && !allowSensitivePublish) {
       throw Object.assign(
         new Error(

@@ -83,6 +83,7 @@ const datasetChangeTypes = [...DATASET_CHANGE_TYPES] as string[];
  * human-readable error messages. Does not throw; use this to check
  * artifacts before further processing (reporting, gating, publishing).
  */
+/** Validate the v1 artifact shape, declared suite references and nonnegative measurements. */
 export const validateEvalReport = (value: unknown): ValidationResult => {
   const errors: string[] = [];
 
@@ -157,8 +158,8 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
       }
 
       for (const field of ['total', 'passed', 'failed']) {
-        if (!isNumber(suite[field])) {
-          errors.push(`suites[${index}].${field} must be a number.`);
+        if (!isNumber(suite[field]) || suite[field] < 0 || !Number.isInteger(suite[field])) {
+          errors.push(`suites[${index}].${field} must be a non-negative integer.`);
         }
       }
     });
@@ -191,6 +192,8 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
 
       if (row.durationMs !== undefined && row.durationMs !== null && !isNumber(row.durationMs)) {
         errors.push(`rows[${index}].durationMs must be a number when provided.`);
+      } else if (isNumber(row.durationMs) && row.durationMs < 0) {
+        errors.push(`rows[${index}].durationMs must be a non-negative number when provided.`);
       }
 
       if (row.severity !== undefined && !isSeverity(row.severity)) {
@@ -425,6 +428,8 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           for (const field of ['promptTokens', 'completionTokens', 'totalTokens', 'costUsd']) {
             if (usage[field] !== undefined && usage[field] !== null && !isNumber(usage[field])) {
               errors.push(`rows[${index}].usage.${field} must be a number when provided.`);
+            } else if (isNumber(usage[field]) && usage[field] < 0) {
+              errors.push(`rows[${index}].usage.${field} must be a non-negative number when provided.`);
             }
           }
           if (usage['model'] !== undefined && !isString(usage['model'])) {
@@ -718,6 +723,17 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
         }
       }
     }
+  }
+
+  // Identity and suite references are semantic constraints JSON Schema cannot express.
+  if (Array.isArray(value.rows) && Array.isArray(value.suites)) {
+    const declaredSuites = new Set(value.suites.filter(isObject).flatMap((suite) =>
+      [suite.id, suite.name].filter(isString),
+    ));
+    value.rows.forEach((row, index) => {
+      if (!isObject(row) || !isString(row.id) || !isString(row.suite)) return;
+      if (!declaredSuites.has(row.suite)) errors.push(`rows[${index}].suite must reference a declared suite.`);
+    });
   }
 
   if (errors.length > 0) {

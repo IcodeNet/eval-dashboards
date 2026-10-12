@@ -59,8 +59,9 @@ eval-dashboards check --input=.evals_output --tier=pr --max-pr-cost-usd=2 --max-
   other gate runs (pass rate, new-failure count, warnings, etc. are all
   computed on the filtered subset).
 - `--max-pr-cost-usd` fails the gate when the tier's summed row
-  `metadata.costUsd` (canonical key; `costUSD`/`usdCost`/`cost.usd`/
-  `pricing.costUsd` aliases are also read) exceeds the budget.
+  `usage.costUsd` exceeds the budget. When canonical usage cost is absent,
+  legacy `metadata.costUsd` / `costUSD` / `usdCost` / `cost.usd` /
+  `pricing.costUsd` aliases are read as fallbacks. A row is counted once.
 - `--max-pr-duration-ms` fails the gate when the tier's summed row
   `durationMs` exceeds the budget.
 - `check --json-out`/`--json-v2-out` always includes a `prTier` object
@@ -506,3 +507,7 @@ the build the same way `pnpm typecheck`/`pnpm test` do.
 This keeps the audit gate's trust model the same as the other gates in this
 document: a clean run means `pnpm audit --audit-level=high` genuinely found no
 high/critical advisories, not that the check was skipped.
+
+## Input and policy integrity
+
+Numeric CLI options must contain finite numbers; invalid values exit 2 instead of dropping a gate. Pass-rate policies must be between 0 and 1 inclusive, and failure/warning count budgets must be non-negative integers. Invalid configured policies also exit 2. Empty scored runs fail `check`, even without an explicit pass-rate threshold; reporting empty artifacts remains available.
