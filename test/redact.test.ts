@@ -16,7 +16,7 @@ const sensitiveRow: EvalRow = {
   passed: true,
   category: 'safety',
   severity: 'high',
-  turns: [{ role: 'user', content: 'hello there, sensitive' }],
+  turns: [{ role: 'user', content: 'hello there, sensitive', toolCall: { name: 'search', args: { q: 'sensitive args' } }, toolResult: 'sensitive turn result' }],
   toolCalls: [{ name: 'search', args: { q: 'x' }, result: 'sensitive result' }],
 };
 
@@ -55,6 +55,10 @@ describe('redactEvalRow', () => {
     expect(redacted.turns?.[0]?.content).not.toContain('sensitive');
     expect(redacted.toolCalls?.[0]?.result).not.toContain('sensitive');
     expect(redacted.toolCalls?.[0]?.name).toBe('search');
+    expect(redacted.toolCalls?.[0]?.args).toBeUndefined();
+    expect(redacted.turns?.[0]?.toolCall).toEqual({ name: 'search', args: {} });
+    expect(redacted.turns?.[0]?.toolResult).toBeUndefined();
+    expect(sensitiveRow.turns?.[0]?.toolCall?.args.q).toBe('sensitive args');
   });
 });
 
@@ -75,6 +79,9 @@ describe('findSensitiveFields', () => {
     const hits = findSensitiveFields(report);
     expect(hits.length).toBeGreaterThan(0);
     expect(hits).toContain('input');
+    expect(hits).toContain('toolCalls[].args');
+    expect(hits).toContain('turns[].toolCall.args');
+    expect(hits).toContain('turns[].toolResult');
   });
 
   it('finds nothing once redacted', () => {

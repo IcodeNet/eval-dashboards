@@ -71,19 +71,10 @@ describe('assertKnownFlags', () => {
 });
 
 describe('optionNumber', () => {
-  it('warns on stderr and ignores an unparsable numeric flag rather than silently dropping it', () => {
-    const errors: string[] = [];
-    const spy = vi.spyOn(console, 'error').mockImplementation((msg: string) => {
-      errors.push(msg);
-    });
-    try {
-      const args = parseArgs(['check', '--min-pass-rate=abc']);
-      const value = optionNumber(args.options, 'min-pass-rate');
-      expect(value).toBeUndefined();
-      expect(errors.some((line) => line.includes('Invalid value for --min-pass-rate'))).toBe(true);
-    } finally {
-      spy.mockRestore();
-    }
+  it.each(['abc', 'NaN', 'Infinity', '', ' '])('rejects invalid numeric value %j instead of disabling the gate', (value) => {
+    expect(() => optionNumber({ 'min-pass-rate': value }, 'min-pass-rate')).toThrow(/finite number/);
+    try { optionNumber({ 'min-pass-rate': value }, 'min-pass-rate'); }
+    catch (error) { expect((error as Error & { exitCode: number }).exitCode).toBe(2); }
   });
 
   it('parses a well-formed numeric flag without warning', () => {
