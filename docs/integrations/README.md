@@ -11,10 +11,11 @@ eval-dashboards import --from=promptfoo --input=./promptfoo.json --out=.evals_ou
 eval-dashboards import --from=deepeval --input=./deepeval.json --out=.evals_output/deepeval.json
 eval-dashboards import --from=openevals --input=./agentevals-like.json --out=.evals_output/openevals.json
 eval-dashboards import --from=langsmith --input=./langsmith-runs.json --out=.evals_output/langsmith.json
+eval-dashboards import --from=inspect-ai --input=./inspect-log.json --out=.evals_output/inspect-ai.json
 eval-dashboards import --from=otel-genai --input=./otel-genai-spans.json --out=.evals_output/otel-genai.json
 ```
 
-(`openevals` is an alias for the AgentEvals adapter.)
+(`openevals` is an alias for the AgentEvals adapter. `inspect` is an alias for `inspect-ai`.)
 
 ## Works with pages
 
@@ -29,6 +30,7 @@ eval-dashboards import --from=otel-genai --input=./otel-genai-spans.json --out=.
 - [Braintrust](./braintrust.md)
 - [Ragas](./ragas.md)
 - [LangSmith](./langsmith.md)
+- [Inspect AI](./inspect-ai.md)
 - [TruLens](./trulens.md)
 - [Patronus](./patronus.md)
 - [Trace/observability stacks](./trace-stacks.md)

@@ -442,6 +442,8 @@ describe('import adapters', () => {
     expect(resolveImportSource('langsmith')).toBe('langsmith');
     expect(resolveImportSource('ragas')).toBe('ragas');
     expect(resolveImportSource('langfuse')).toBe('langfuse');
+    expect(resolveImportSource('inspect-ai')).toBe('inspect-ai');
+    expect(resolveImportSource('inspect')).toBe('inspect-ai');
     expect(resolveImportSource('openevals')).toBe('agentevals');
     expect(() => resolveImportSource('other')).toThrow('Unknown import source other');
   });

@@ -709,6 +709,19 @@ Rationale: LangSmith SDK v0.14.5 added typed addresses (AgentAddress/ExperimentA
 
 Verification 2026-10-11: importer mapping is implemented in `src/cli/import-adapters.ts`; the duplicate-address regression is covered by `test/import-adapters-langsmith.test.ts`; mapping and limitations are documented in `docs/integrations/langsmith.md`. Exact commands, results, review resolution, and limitations are recorded in `docs/reviews/2026-10-11-pr14-langsmith-provenance.md`.
 
+### 4C.16 Inspect AI log import compatibility (P1)
+
+- [ ] Add first-class `--from=inspect-ai` import support for Inspect log JSON (`samples[]`) with deterministic pass/fail mapping and task/sample description preservation.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=inspect-ai` accepts one Inspect log object (or array of logs) and emits a schema-valid artifact.
+- Row `question` preserves `samples[].description` (fallback: `eval.description`) so agent-intent context survives import.
+- Import adapter tests cover mixed pass/fail score objects and explicit failure when no pass/fail signals are present.
+- Integration docs explain `.eval` vs JSON (`inspect log dump`) and the current mapping limits.
+
+Rationale: Inspect AI 0.3.278 added task/sample `description` fields to eval logs and dataframe exports, so a direct adapter removes conversion glue for teams standardizing eval evidence in CI (https://github.com/UKGovernmentBEIS/inspect_ai/releases/tag/0.3.278).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
