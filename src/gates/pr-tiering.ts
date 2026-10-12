@@ -72,8 +72,14 @@ export const filterReportByTier = (
 ): EvalReportV1 => {
   const manifestByName = new Map((report.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
 
+  const suiteByIdentity = new Map(report.suites.flatMap((suite) =>
+    [suite.id, suite.name].filter((identity): identity is string => identity !== undefined)
+      .map((identity) => [identity, suite] as const),
+  ));
   const suiteIncluded = (suiteId: string): boolean => {
-    const manifest = manifestByName.get(suiteId);
+    const suite = suiteByIdentity.get(suiteId);
+    const manifest = (suite?.name ? manifestByName.get(suite.name) : undefined)
+      ?? manifestByName.get(suite?.id ?? suiteId);
     if (!manifest) return true;
     return suiteParticipatesInTier(resolveSuiteTier(manifest), selectedTier);
   };

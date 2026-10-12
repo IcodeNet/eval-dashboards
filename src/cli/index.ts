@@ -821,6 +821,7 @@ type LoadContextOptions = {
   redact?: boolean;
 };
 
+/** Scope and optionally redact every discovered run before selection, comparison and history. */
 const loadContext = async (
   input: string,
   reportDir: string,
@@ -1052,6 +1053,7 @@ const evaluateCalibrationChecks = (
   return { failures, diagnostics };
 };
 
+/** Translate supplied CLI flags into gate overrides without dropping invalid numeric policy. */
 const gateConfigFromOptions = (
   options: Record<string, string | boolean | string[]>,
 ): GateConfig => {

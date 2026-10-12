@@ -25,3 +25,9 @@ No workflow files change. Final PR-head CI raw logs must still be inspected befo
 ## Remaining work
 
 Starter-template gating, Python monorepo CI wiring, JUnit ingestion, context-preserving teach commands and repeated severity warnings remain outside this change. Assistant-ui integration is deferred.
+
+## PR #32 review corrections — 12 October 2026
+
+Raw CI job `114687902641` showed that the local-agent example emitted calibration rows without declaring their suites. Its emitter now derives per-suite summaries from all rows, with an executable emitter regression. Focused tier/baseline regressions passed (30 tests), the emitter regression passed, and `pnpm dev report --input=examples/llm-agent-evals/.evals_output --reporter=text --report-dir=/tmp/pr32-example-report` exited 0 with 9/9 rows and compatible baseline.
+
+CodeRabbit findings were addressed by resolving declared suite IDs/names consistently for both tier-filtered summaries and rows, and rejecting duplicate scored identities in the selected baseline as well as the current run. Regression tests cover both tier directions and a duplicated baseline that hides a new failure. Parsing, validation and context docstrings explain the changed integrity guarantees.

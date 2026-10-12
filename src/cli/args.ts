@@ -299,6 +299,7 @@ export const optionStrings = (
   return fallback;
 };
 
+/** Parse an optional finite numeric flag; reject malformed values with CLI exit code 2. */
 export const optionNumber = (
   options: Record<string, string | boolean | string[]>,
   name: string,

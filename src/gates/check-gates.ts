@@ -159,14 +159,17 @@ export const checkGates = (
   if (report.rows.length === 0) failures.push('No scored rows are available; an empty run cannot pass quality gates.');
   // Legacy importers may preserve repeated explicit IDs, but ambiguous case
   // identities must never count as independent passing evidence in a gate.
-  const identities = new Set<string>();
-  for (const row of report.rows) {
-    const identity = JSON.stringify([row.suite, row.id]);
-    if (identities.has(identity)) {
-      failures.push(`Row identity (${row.suite}, ${row.id}) must be unique within a gated run.`);
-      break;
+  for (const [label, candidate] of [['current', report], ['baseline', previousReport]] as const) {
+    if (!candidate) continue;
+    const identities = new Set<string>();
+    for (const row of candidate.rows) {
+      const identity = JSON.stringify([row.suite, row.id]);
+      if (identities.has(identity)) {
+        failures.push(`Row identity (${row.suite}, ${row.id}) must be unique within a gated run (${label}).`);
+        break;
+      }
+      identities.add(identity);
     }
-    identities.add(identity);
   }
   const diagnostics: string[] = [];
 

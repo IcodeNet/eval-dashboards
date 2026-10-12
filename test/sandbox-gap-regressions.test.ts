@@ -37,6 +37,15 @@ describe('sandbox gate integrity regressions', () => {
     expect(result.passed).toBe(false);
     expect(result.failures.join(' ')).toContain('unique within a gated run');
   });
+  it('rejects duplicate baseline identities that hide a new failure', () => {
+    const current = report();
+    const baseline = report();
+    baseline.rows = [{ ...current.rows[0]!, passed: true }, { ...current.rows[0]!, passed: false }];
+    const comparison = compareRuns(current, baseline);
+    const result = checkGates(current, comparison, { maxNewFailures: 0 }, undefined, baseline);
+    expect(result.passed).toBe(false);
+    expect(result.failures.join(' ')).toContain('(baseline)');
+  });
   it('permits the same case ID in different declared suites', () => {
     const artifact = report();
     artifact.suites.push({ id: 'other', total: 1, passed: 1, failed: 0 });

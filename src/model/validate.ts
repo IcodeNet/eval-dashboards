@@ -83,6 +83,7 @@ const datasetChangeTypes = [...DATASET_CHANGE_TYPES] as string[];
  * human-readable error messages. Does not throw; use this to check
  * artifacts before further processing (reporting, gating, publishing).
  */
+/** Validate the v1 artifact shape, declared suite references and nonnegative measurements. */
 export const validateEvalReport = (value: unknown): ValidationResult => {
   const errors: string[] = [];
 
