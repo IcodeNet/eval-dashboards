@@ -27,7 +27,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4I: GitHub PR-native visibility](#-phase-4i-github-pr-native-visibility-new)
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
-- [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-new)
+- [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
 
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
@@ -1584,7 +1584,7 @@ phase's commit message.
 
 ## 📦 npm release policy note (ship gate)
 
-- **Publishing is on hold.** Do not publish `1.0.0` (or any further release) until Phase 4K (full historical reports) is complete.
+- **Publishing is on hold until the owner releases it.** Phase 4K (full historical reports) is complete, but no release has been published. The only open roadmap item is 4C.4, which waits on the external Rupic review. Publish `1.0.0` only when the owner says so.
 - npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.
 - When all remaining roadmap checklist items are complete, and verification passes (`pnpm test`, `pnpm typecheck`, `pnpm build`, plus CLI verifier scripts), publish the first stable milestone as `1.0.0`.
 - If a true first-ever release presentation is required, publish under a new package name/scope instead of attempting to reset existing npm history.
@@ -1775,14 +1775,11 @@ Acceptance criteria:
 - Keep roadmap/status/publishing/examples/help surfaces synchronized per release gate.
 
 **Immediate (next 1–2 weeks):**
-1. Phase 4K.1: define the history storage adapter interface (file store stays the default).
-
-**Short term (next 2–3 weeks):**
-2. Phase 4K.2: SQLite backend, after checking `node:sqlite` on the CI Node version.
+1. Close 4C.4 once the external Rupic review of draft PR #9044 is available and inspected.
 
 **Medium term:**
-3. Phase 4K.3: long-range historical views, then lift the publishing hold.
-4. External adoption push and community feedback loop.
+2. Owner decision on publishing `1.0.0` (publishing is on hold; no release has been made).
+3. External adoption push and community feedback loop.
 
 ---
 
@@ -1853,9 +1850,9 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 ---
 
-## 🚧 Phase 4K: Full historical reports (NEW)
+## ✅ Phase 4K: Full historical reports (COMPLETE)
 
-**Why**: history today is file-based (`history.json` built in `src/history/history.ts`, rolled up by `org-rollup`). Release `1.0.0` is held until history is queryable over long periods.
+**Why**: history today is file-based (`history.json` built in `src/history/history.ts`, rolled up by `org-rollup`). History is now queryable over long periods; `1.0.0` stays unpublished until the owner releases it.
 
 **Decision (supersedes the 4E and 4F non-goal on a time-series store)**: a history store is now in scope. The offline-by-default and artifact-first rules still hold, so the store sits behind a swappable adapter. SQLite is the first backend. The file store stays as the default and the fallback. Other backends (Redis, Cosmos) can be added later behind the same adapter. Redis is a weak fit for long-term history unless persistence is on. Hosted ingestion APIs and auth-gated dashboard apps stay out of scope.
 
