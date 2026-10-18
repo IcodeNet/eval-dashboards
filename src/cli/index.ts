@@ -11,7 +11,9 @@ import {
   selectRun,
   type BaselineStrategy,
 } from '../history/history.js';
+import { applyRetention, buildTrendSeries, queryHistory } from '../history/query.js';
 import { createHistoryStoreForPath } from '../history/store.js';
+import { renderHistoryTrendHtml } from '../reporters/history-trend.js';
 import { buildOrgRollup, repoHistoryFromPayload, type RepoHistory } from '../history/org-rollup.js';
 import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
 import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile, appendTextFile } from '../io/reports.js';
@@ -100,6 +102,7 @@ Commands:
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
   history-convert  Copy run history between history.json and a SQLite file.
+  history-report  Render a static long-range trend page from stored history.
   publish  Publish or dry-run publish for a static dashboard.
   teach    Guided eval onboarding walkthrough (alias of init --preset=agent-quality --teach).
   init     Print starter config or scaffold preset files.
@@ -321,6 +324,25 @@ export SQLite back to history.json for org-rollup and static publishing.
 Options:
   --input=<path>           Existing history file to read (required)
   --out=<path>             History file to write, replacing its history (required)
+`;
+
+const historyReportUsage = `eval-dashboards history-report --input=<path> [options]
+
+Render a static trend page from stored run history (history.json or SQLite).
+Filter by date range, branch and suite. Optionally drop old runs and write the
+kept history back with --prune-to.
+
+Options:
+  --input=<path>           History file to read (required)
+  --out=<path>             Output HTML path. Default: eval-report/history-trend.html
+  --since=<date>           Keep runs generated at or after this ISO date
+  --until=<date>           Keep runs generated at or before this ISO date
+  --branch=<name>          Keep runs from this branch
+  --suite=<name>           Keep runs that include this suite; chart uses that suite's pass rate
+  --keep-last=<number>     Retention: keep only the newest N runs
+  --max-age-days=<number>  Retention: drop runs older than this many days
+  --prune-to=<path>        Write the retained history to this file (history.json or SQLite)
+  --locale=<tag>           BCP 47 locale for dates. Default: en-GB
 `;
 
 const signUsage = `eval-dashboards sign [options]
@@ -2182,6 +2204,54 @@ const main = async (): Promise<void> => {
     const entries = await (await createHistoryStoreForPath(source)).read();
     await (await createHistoryStoreForPath(destination)).write(entries);
     console.log(destination);
+    return;
+  }
+
+  if (command === 'history-report') {
+    if (optionBoolean(options, 'help')) {
+      console.log(historyReportUsage);
+      return;
+    }
+
+    const source = optionString(options, 'input', '');
+    if (!source) {
+      throw new Error('history-report requires --input=<path>.');
+    }
+    const out = optionString(options, 'out', 'eval-report/history-trend.html');
+    const query = {
+      since: optionString(options, 'since', '') || undefined,
+      until: optionString(options, 'until', '') || undefined,
+      branch: optionString(options, 'branch', '') || undefined,
+      suite: optionString(options, 'suite', '') || undefined,
+    };
+    const locale = optionString(options, 'locale', '') || undefined;
+    const pruneTo = optionString(options, 'prune-to', '');
+
+    const requireNumber = (name: string): number | undefined => {
+      const raw = optionString(options, name, '');
+      if (raw === '') return undefined;
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) {
+        throw new Error(`--${name} must be a number, got "${raw}".`);
+      }
+      return parsed;
+    };
+
+    const stored = await (await createHistoryStoreForPath(source)).read();
+    const retained = applyRetention(stored, {
+      keepLast: requireNumber('keep-last'),
+      maxAgeDays: requireNumber('max-age-days'),
+    });
+    if (pruneTo) {
+      await (await createHistoryStoreForPath(pruneTo)).write(retained);
+    }
+    const matching = queryHistory(retained, query);
+    const html = renderHistoryTrendHtml(buildTrendSeries(matching, query.suite), query, {
+      generatedAt: new Date().toISOString(),
+      locale,
+    });
+    await writeTextFile(out, html);
+    console.log(out);
     return;
   }
 

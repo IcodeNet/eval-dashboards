@@ -11,6 +11,7 @@ These files are exact snapshots of live CLI `--help` output.
 - `lint.txt`
 - `merge.txt`
 - `history-convert.txt`
+- `history-report.txt`
 - `history.txt`
 - `report-index.txt`
 - `completion.txt`

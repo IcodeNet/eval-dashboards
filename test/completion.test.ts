@@ -12,7 +12,7 @@ describe('completion command', () => {
     expect(script).toContain('# eval-dashboards shell completion (bash)');
     expect(script).toContain('complete -F _eval_dashboards_completions eval-dashboards');
     expect(script).toContain('complete -F _eval_dashboards_completions evd');
-    expect(script).toContain('report report-index lint check merge history history-convert publish teach init completion import adjudicate');
+    expect(script).toContain('report report-index lint check merge history history-convert history-report publish teach init completion import adjudicate');
     expect(script).toContain('install --help --shell');
     expect(script).toContain('--setup');
     expect(script).toContain('--runner');

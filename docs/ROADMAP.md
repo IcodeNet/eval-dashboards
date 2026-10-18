@@ -1879,8 +1879,8 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 ### 4K.3 Long-range historical views (P1, M)
 
-- [ ] Query history by date range, branch and suite, with retention rules.
-- [ ] Render trend views over long periods in the HTML report.
+- [x] Query history by date range, branch and suite, with retention rules. Evidence: `src/history/query.ts`, `test/history-query.test.ts`, `history-report` command.
+- [x] Render trend views over long periods in the HTML report. Evidence: `src/reporters/history-trend.ts`, `test/cli-history-report.test.ts`, `docs/history-storage.md`.
 
 ---
 

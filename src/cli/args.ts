@@ -84,6 +84,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
   merge: ['--input', '--out'],
   history: ['--input', '--out', '--bypass-log'],
   'history-convert': ['--input', '--out'],
+  'history-report': ['--input', '--out', '--since', '--until', '--branch', '--suite', '--keep-last', '--max-age-days', '--prune-to', '--locale'],
   publish: [
     '--target',
     '--report-dir',

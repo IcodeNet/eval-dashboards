@@ -14,6 +14,7 @@ const commands = [
   'merge',
   'history',
   'history-convert',
+  'history-report',
   'publish',
   'teach',
   'init',
