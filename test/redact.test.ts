@@ -89,3 +89,93 @@ describe('findSensitiveFields', () => {
     expect(findSensitiveFields(report)).toEqual([]);
   });
 });
+
+describe('redaction of structured evidence fields', () => {
+  const structuredRow: EvalRow = {
+    id: 'row-2',
+    suite: 'suite-a',
+    passed: false,
+    judgeTraces: { input: 'judge saw this', output: 'judge said that' },
+    axisReasoning: { quality: 'axis explanation' },
+    humanReviews: [{ reviewer: 'jane@example.com', verdict: 'fail', category: 'tone', note: 'reviewer note', decidedAt: '2026-10-01' }],
+    checks: [{ type: 'contains', expected: 'expected value', actual: 'actual value', threshold: 0.5, weight: 2, pass: false }],
+    trace: { traceId: 't-1', spanId: 's-1', traceUrl: 'https://host/trace/1', spanUrl: 'https://host/span/1' },
+    metadata: { provenance: { source: 'labelled-synthetic' }, lifecycle: { status: 'active' }, prompt: 'free-form prompt text' },
+  };
+
+  it('should remove judge traces and axis reasoning when a row is redacted', () => {
+    const redacted = redactEvalRow(structuredRow);
+
+    expect(redacted.judgeTraces).toBeUndefined();
+    expect(redacted.axisReasoning).toBeUndefined();
+  });
+
+  it('should keep verdicts but drop reviewer names and notes when human reviews are redacted', () => {
+    const redacted = redactEvalRow(structuredRow);
+
+    expect(redacted.humanReviews).toEqual([{ reviewer: '[redacted]', verdict: 'fail', category: 'tone', decidedAt: '2026-10-01' }]);
+  });
+
+  it('should keep the check type and result but drop expected and actual values when checks are redacted', () => {
+    const redacted = redactEvalRow(structuredRow);
+
+    expect(redacted.checks).toEqual([{ type: 'contains', pass: false, threshold: 0.5, weight: 2 }]);
+  });
+
+  it('should keep trace ids but drop trace and span URLs when a trace is redacted', () => {
+    const redacted = redactEvalRow(structuredRow);
+
+    expect(redacted.trace).toEqual({ traceId: 't-1', spanId: 's-1' });
+  });
+
+  it('should keep provenance and lifecycle but replace free-form metadata when metadata is redacted', () => {
+    const redacted = redactEvalRow(structuredRow);
+
+    expect(redacted.metadata).toEqual({
+      provenance: { source: 'labelled-synthetic' },
+      lifecycle: { status: 'active' },
+      prompt: '[redacted]',
+    });
+  });
+
+  it('should replace every config snapshot value when a report is redacted', () => {
+    const report: EvalReportV1 = {
+      ...buildReport([structuredRow]),
+      run: {
+        id: 'run-1',
+        generatedAt: '2026-10-01T00:00:00.000Z',
+        configSnapshot: { values: { OPENAI_API_KEY: 'sk-secret', temperature: 0.2 } },
+      },
+    };
+
+    const redacted = redactEvalReport(report);
+
+    expect(redacted.run.configSnapshot).toEqual({
+      redacted: true,
+      values: { OPENAI_API_KEY: '[redacted]', temperature: '[redacted]' },
+    });
+  });
+
+  it('should report no sensitive fields when a report has been redacted', () => {
+    const report = buildReport([structuredRow]);
+
+    expect(findSensitiveFields(redactEvalReport(report))).toEqual([]);
+  });
+
+  it('should list every structured field when a report has not been redacted', () => {
+    const report: EvalReportV1 = {
+      ...buildReport([structuredRow]),
+      run: { id: 'run-1', generatedAt: '2026-10-01T00:00:00.000Z', configSnapshot: { values: { key: 'secret' } } },
+    };
+
+    expect(findSensitiveFields(report).sort()).toEqual([
+      'axisReasoning',
+      'checks[].expected/actual',
+      'humanReviews[].note/reviewer',
+      'judgeTraces',
+      'metadata.*',
+      'run.configSnapshot.values',
+      'trace.traceUrl/spanUrl',
+    ]);
+  });
+});

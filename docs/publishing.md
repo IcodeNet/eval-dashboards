@@ -120,3 +120,16 @@ GitHub reviewer-gated merge pattern:
 - `examples/github-actions/eval-quality.yml`
 - `examples/github-actions/eval-approval-gate.yml`
 - `examples/github-actions/cleanup-pr-eval-results.yml`
+
+
+## What `--redact` removes
+
+`--redact` keeps only the public tier. It removes prompts, outputs, questions, expected text and
+reasons; judge and agent reasoning; judge traces and per-axis reasoning; human-review notes and
+reviewer names; check `expected` and `actual` values; every value in the run config snapshot;
+trace and span URLs; and free-form row `metadata` (provenance and lifecycle are kept). Trace and
+span ids are kept.
+
+Row `name` and run `tags` are not redacted. They are labels you choose, so do not put secrets or
+personal data in them. The publish preflight fails (exit 2) until `--redact` is used or
+`--allow-sensitive-publish` is given, and that override is recorded in the run record.
