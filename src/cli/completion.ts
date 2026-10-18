@@ -149,6 +149,8 @@ const optionValues = {
     'oaieval',
     'openai-eval',
     'eval-ai-library',
+    'inspect-ai',
+    'inspect',
     'otel-genai',
     'openevals',
   ],

@@ -15,13 +15,15 @@ export type ImportSource =
   | 'braintrust'
   | 'openai-evals'
   | 'eval-ai-library'
+  | 'inspect-ai'
   | 'otel-genai';
 
 export const importUsage = `eval-dashboards import --from=<source> --input=<path> [options]
 
 Options:
-  --from=<source>          Import source: promptfoo|deepeval|agentevals|langsmith|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|otel-genai|openevals|oaievals.
+  --from=<source>          Import source: promptfoo|deepeval|agentevals|langsmith|ragas|langfuse|phoenix|braintrust|openai-evals|eval-ai-library|inspect-ai|otel-genai|openevals|oaievals.
                            openevals is accepted as an alias for agentevals.
+                           inspect is accepted as an alias for inspect-ai.
                            oaievals, oaieval, and openai-eval are accepted aliases for openai-evals.
   --input=<path>           Source JSON/JSONL path to convert.
   --out=<path>             Output eval-report/v1 file path.
@@ -727,6 +729,36 @@ type BraintrustResult = {
   tags?: string[];
 };
 
+type InspectAiScore = {
+  value?: boolean | number | string;
+  answer?: string;
+  explanation?: string;
+  text?: string;
+};
+
+type InspectAiSample = {
+  id?: string | number;
+  sample_id?: string | number;
+  epoch?: number;
+  input?: unknown;
+  target?: unknown;
+  output?: unknown;
+  scores?: Record<string, InspectAiScore | number | boolean | string>;
+  error?: { message?: string } | string;
+  description?: string;
+};
+
+type InspectAiEvalLog = {
+  eval?: {
+    eval_id?: string;
+    task?: string;
+    task_id?: string;
+    task_file?: string;
+    task_display_name?: string;
+    description?: string;
+  };
+  samples?: InspectAiSample[];
+};
 
 
 const LANGSMITH_PASS_STATUS = new Set(['success', 'succeeded', 'completed', 'ok']);
@@ -983,6 +1015,149 @@ const braintrustRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseR
           sourceRef: 'braintrust',
         },
         lifecycle: { status: 'active' },
+      },
+    };
+  });
+};
+
+
+
+const inspectAiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
+  const flattened: Array<{ sample: InspectAiSample; suite: string; evalId?: string; taskDescription?: string }> = [];
+
+  const appendLog = (log: InspectAiEvalLog): void => {
+    const samples = log.samples;
+    if (!Array.isArray(samples)) return;
+
+    const suite = log.eval?.task ?? log.eval?.task_display_name ?? log.eval?.task_id ?? log.eval?.task_file ?? fallbackSuite;
+    for (const sample of samples) {
+      flattened.push({
+        sample,
+        suite,
+        evalId: log.eval?.eval_id,
+        taskDescription: log.eval?.description,
+      });
+    }
+  };
+
+  if (Array.isArray(source)) {
+    const asLogs = source as InspectAiEvalLog[];
+    if (asLogs.some((entry) => Array.isArray(entry?.samples))) {
+      for (const log of asLogs) appendLog(log);
+    } else {
+      for (const sample of source as InspectAiSample[]) {
+        flattened.push({ sample, suite: fallbackSuite });
+      }
+    }
+  } else if (source && typeof source === 'object') {
+    const objectSource = source as Record<string, unknown>;
+    if (Array.isArray(objectSource.samples)) {
+      appendLog(source as InspectAiEvalLog);
+    } else if (Array.isArray(objectSource.logs)) {
+      for (const log of objectSource.logs as InspectAiEvalLog[]) appendLog(log);
+    } else if (Array.isArray(objectSource.results)) {
+      for (const sample of objectSource.results as InspectAiSample[]) {
+        flattened.push({ sample, suite: fallbackSuite });
+      }
+    }
+  }
+
+  if (flattened.length === 0) {
+    throw Object.assign(
+      new Error('No inspect-ai sample rows found. Expected samples[] on a log object, logs[], or a sample array.'),
+      { exitCode: 2 },
+    );
+  }
+
+  return flattened.map(({ sample, suite, evalId, taskDescription }, index) => {
+    const rowLabel = String(sample.id ?? sample.sample_id ?? `${suite}-${index + 1}`);
+
+    const scoreEntries = Object.entries(sample.scores ?? {});
+    const scoreValues: number[] = [];
+    let hasBooleanTrue = false;
+    let hasBooleanFalse = false;
+
+    for (const [, rawScore] of scoreEntries) {
+      if (typeof rawScore === 'number') {
+        scoreValues.push(rawScore);
+        continue;
+      }
+      if (typeof rawScore === 'boolean') {
+        if (rawScore) hasBooleanTrue = true;
+        else hasBooleanFalse = true;
+        scoreValues.push(rawScore ? 1 : 0);
+        continue;
+      }
+      if (typeof rawScore === 'object' && rawScore !== null) {
+        const value = (rawScore as InspectAiScore).value;
+        if (typeof value === 'number') scoreValues.push(value);
+        if (typeof value === 'boolean') {
+          if (value) hasBooleanTrue = true;
+          else hasBooleanFalse = true;
+          scoreValues.push(value ? 1 : 0);
+        }
+      }
+    }
+
+    let passed: boolean | undefined;
+    if (sample.error !== undefined && sample.error !== null) {
+      passed = false;
+    } else if (hasBooleanFalse) {
+      passed = false;
+    } else if (hasBooleanTrue && scoreValues.length > 0) {
+      passed = true;
+    } else if (scoreValues.length > 0) {
+      passed = scoreValues.every((value) => value >= RAGAS_METRIC_PASS_THRESHOLD);
+    }
+
+    if (passed === undefined) {
+      throw Object.assign(
+        new Error(
+          `Unable to infer pass/fail for inspect-ai row ${rowLabel} (suite: ${suite}): no error and no numeric/boolean scores found.`,
+        ),
+        { exitCode: 2 },
+      );
+    }
+
+    const averageScore =
+      scoreValues.length > 0 ? scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length : passed ? 1 : 0;
+
+    const scoreReason = scoreEntries
+      .map(([name, rawScore]) => {
+        if (typeof rawScore === 'number' || typeof rawScore === 'boolean') return `${name}=${String(rawScore)}`;
+        if (typeof rawScore === 'object' && rawScore !== null && 'value' in rawScore) {
+          return `${name}=${String((rawScore as InspectAiScore).value)}`;
+        }
+        return undefined;
+      })
+      .filter((value): value is string => value !== undefined)
+      .join(', ');
+
+    const errorReason =
+      typeof sample.error === 'string'
+        ? sample.error
+        : sample.error && typeof sample.error === 'object' && typeof sample.error.message === 'string'
+          ? sample.error.message
+          : undefined;
+
+    return {
+      id: rowLabel,
+      suite,
+      passed,
+      question: sample.description ?? taskDescription,
+      input: stringifyIfObject(sample.input),
+      output: stringifyIfObject(sample.output),
+      expected: stringifyIfObject(sample.target),
+      score: averageScore,
+      reason: errorReason ?? (scoreReason ? `Inspect scores: ${scoreReason}` : undefined),
+      metadata: {
+        provenance: {
+          source: 'custom',
+          reason: 'Imported from Inspect AI eval logs',
+          sourceRef: 'inspect-ai',
+        },
+        lifecycle: { status: 'active' },
+        ...(evalId ? { inspectEvalId: evalId } : {}),
       },
     };
   });
@@ -1504,6 +1679,9 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
   if (normalized === 'oaievals' || normalized === 'oaieval' || normalized === 'openai-eval') {
     return 'openai-evals';
   }
+  if (normalized === 'inspect') {
+    return 'inspect-ai';
+  }
   if (
     normalized === 'promptfoo' ||
     normalized === 'deepeval' ||
@@ -1515,6 +1693,7 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
     normalized === 'braintrust' ||
     normalized === 'openai-evals' ||
     normalized === 'eval-ai-library' ||
+    normalized === 'inspect-ai' ||
     normalized === 'otel-genai'
   ) {
     return normalized;
@@ -1522,7 +1701,7 @@ export const resolveImportSource = (rawSource: string): ImportSource => {
 
   throw Object.assign(
     new Error(
-      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, langsmith, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, otel-genai, openevals, oaievals (also oaieval/openai-eval aliases).`,
+      `Unknown import source ${rawSource}. Allowed values: promptfoo, deepeval, agentevals, langsmith, ragas, langfuse, phoenix, braintrust, openai-evals, eval-ai-library, inspect-ai, otel-genai, openevals, oaievals (also inspect, oaieval, and openai-eval aliases).`,
     ),
     { exitCode: 2 },
   );
@@ -1559,7 +1738,9 @@ export const importFromSource = async (options: {
                     ? openAiEvalsRows(parsed, fallbackSuite)
                     : options.source === 'eval-ai-library'
                       ? evalAiLibraryRows(parsed, fallbackSuite)
-                      : otelGenaiRows(parsed, fallbackSuite, { caseIdAttribute: options.caseIdAttribute });
+                      : options.source === 'inspect-ai'
+                        ? inspectAiRows(parsed, fallbackSuite)
+                        : otelGenaiRows(parsed, fallbackSuite, { caseIdAttribute: options.caseIdAttribute });
 
   await writeEvalReportArtifact(
     options.outPath,
