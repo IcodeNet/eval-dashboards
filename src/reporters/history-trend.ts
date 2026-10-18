@@ -52,7 +52,7 @@ const describeQuery = (query: HistoryQuery): string => {
 export const renderHistoryTrendHtml = (
   points: TrendPoint[],
   query: HistoryQuery,
-  options: { generatedAt: string; locale?: string },
+  options: { locale?: string } = {},
 ): string => {
   const first = points[0];
   const last = points[points.length - 1];
@@ -91,12 +91,21 @@ export const renderHistoryTrendHtml = (
     th { font-size: 11px; text-transform: uppercase; color: #64748b; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .empty { color: #64748b; font-style: italic; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0d1117; color: #e2e8f0; }
+      .subtitle, .label, th, .empty { color: #94a3b8; }
+      .card, .section { background: #161b22; border-color: #30363d; }
+      .guide { stroke: #30363d; }
+      th, td { border-bottom-color: #21262d; }
+      .line { stroke: #818cf8; }
+      circle { fill: #818cf8; }
+    }
   </style>
 </head>
 <body>
   <div class="page">
     <h1>Eval history</h1>
-    <p class="subtitle">${e(`Generated ${formatDate(options.generatedAt, options.locale)} · ${describeQuery(query)} · offline, static`)}</p>
+    <p class="subtitle">${e(`${last ? `Latest run ${formatDate(last.generatedAt, options.locale)}` : 'No runs'} · ${describeQuery(query)} · offline, static`)}</p>
     <div class="cards">
       <div class="card"><div class="label">Runs</div><div class="value">${points.length}</div></div>
       <div class="card"><div class="label">Latest pass rate</div><div class="value">${last ? e(formatPassRate(last.total - last.failed, last.total)) : 'n/a'}</div></div>

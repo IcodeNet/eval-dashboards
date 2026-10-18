@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -35,8 +35,12 @@ const captureScreenshot = async (
   browser: Awaited<ReturnType<typeof chromium.launch>>,
   htmlPath: string,
   screenshotPath: string,
+  options: { width?: number; height?: number; colorScheme?: 'light' | 'dark' } = {},
 ): Promise<void> => {
-  const page = await browser.newPage({ viewport: { width: 1680, height: 1100 } });
+  const page = await browser.newPage({
+    viewport: { width: options.width ?? 1680, height: options.height ?? 1100 },
+    colorScheme: options.colorScheme ?? 'light',
+  });
   await page.goto(toFileUrl(htmlPath), { waitUntil: 'load' });
   await page.screenshot({ path: screenshotPath, fullPage: true });
   await page.close();
@@ -69,6 +73,22 @@ const main = async (): Promise<void> => {
     '--theme=dark',
   ]);
 
+  await run('node', ['--import', 'tsx/esm', 'scripts/generate-history-fixture.ts']);
+  const historyDir = path.join(repoRoot, 'examples', 'screenshot-fixture');
+  const historyInput = path.join(historyDir, 'history-input');
+  const historySqlite = path.join(historyDir, 'history.sqlite');
+  await rm(historySqlite, { force: true });
+  await run('pnpm', ['dev', 'history', `--input=${historyInput}`, `--out=${historySqlite}`]);
+  await run('pnpm', ['dev', 'history-report', `--input=${historySqlite}`, '--out=eval-report/history-trend.html']);
+  await run('pnpm', [
+    'dev', 'history-report', `--input=${historySqlite}`, '--branch=main', '--suite=tool-use',
+    '--since=2026-03-01', '--out=eval-report/history-trend-filtered.html',
+  ]);
+  await run('pnpm', [
+    'dev', 'history-report', `--input=${historySqlite}`, '--keep-last=8',
+    '--out=eval-report/history-trend-recent.html',
+  ]);
+
   await mkdir(path.join(repoRoot, 'docs', 'images'), { recursive: true });
 
   const browser = await chromium.launch();
@@ -83,6 +103,30 @@ const main = async (): Promise<void> => {
       browser,
       path.join(repoRoot, 'eval-report-dark', 'index.html'),
       path.join(repoRoot, 'docs', 'images', 'report-dark.png'),
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, 'eval-report', 'history-trend.html'),
+      path.join(repoRoot, 'docs', 'images', 'history-trend.png'),
+      { width: 1100, height: 900 },
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, 'eval-report', 'history-trend-filtered.html'),
+      path.join(repoRoot, 'docs', 'images', 'history-trend-filtered.png'),
+      { width: 1100, height: 900 },
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, 'eval-report', 'history-trend-recent.html'),
+      path.join(repoRoot, 'docs', 'images', 'history-trend-recent.png'),
+      { width: 1100, height: 900 },
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, 'eval-report', 'history-trend.html'),
+      path.join(repoRoot, 'docs', 'images', 'history-trend-dark.png'),
+      { width: 1100, height: 900, colorScheme: 'dark' },
     );
   } finally {
     await browser.close();

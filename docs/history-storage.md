@@ -51,6 +51,10 @@ eval-dashboards history-report --input=eval-report/history.sqlite \
 
 Retention applies before the query. `--prune-to` writes the retained history, not only the matching runs, so a branch filter never deletes other branches' history. The page is built offline and needs no server.
 
+![History trend over 26 weekly runs](./images/history-trend.png)
+
+Regenerate these images with `pnpm assets:regenerate`. The input runs come from `scripts/generate-history-fixture.ts`, which is deterministic.
+
 ## Keep history.json for rollups
 
 `org-rollup` and published static reports read `history.json` only. Export SQLite to `history.json` before using them.

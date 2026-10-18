@@ -2257,10 +2257,7 @@ const main = async (): Promise<void> => {
       await (await createHistoryStoreForPath(pruneTo)).write(retained);
     }
     const matching = queryHistory(retained, query);
-    const html = renderHistoryTrendHtml(buildTrendSeries(matching, query.suite), query, {
-      generatedAt: new Date().toISOString(),
-      locale,
-    });
+    const html = renderHistoryTrendHtml(buildTrendSeries(matching, query.suite), query, { locale });
     await writeTextFile(out, html);
     console.log(out);
     return;
