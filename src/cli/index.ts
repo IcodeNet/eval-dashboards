@@ -13,6 +13,7 @@ import {
 } from '../history/history.js';
 import { applyRetention, buildTrendSeries, queryHistory } from '../history/query.js';
 import { createHistoryStoreForPath } from '../history/store.js';
+import { toSafeFileSegment } from '../utils/safe-filename.js';
 import { renderHistoryTrendHtml } from '../reporters/history-trend.js';
 import { buildOrgRollup, repoHistoryFromPayload, type RepoHistory } from '../history/org-rollup.js';
 import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
@@ -1639,7 +1640,7 @@ const main = async (): Promise<void> => {
       sourceBundlePath: bundlePath,
       allowSingleReviewer,
     });
-    const out = optionString(options, 'out', path.join(reportDir, `adjudicated-${runId}.json`));
+    const out = optionString(options, 'out', path.join(reportDir, `adjudicated-${toSafeFileSegment(runId)}.json`));
     await writeJsonFile(out, merged.report);
     const unmatchedNote =
       merged.unmatchedRows.length > 0
