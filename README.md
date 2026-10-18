@@ -533,6 +533,8 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 
 ## Documentation Index
 
+- [FAQ: what it does and does not do](docs/faq.md) — platforms, network use, telemetry, upgrades, and the features that are not supported
+
 Full audience-grouped index: [docs/README.md](docs/README.md). `docs/*.md` is
 the canonical source of truth; [docs-site/v1](docs-site/v1/index.html) is a
 curated subset for external readers.

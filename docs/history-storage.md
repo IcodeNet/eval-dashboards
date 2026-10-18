@@ -55,6 +55,38 @@ Retention applies before the query. `--prune-to` writes the retained history, no
 
 Regenerate these images with `pnpm assets:regenerate`. The input runs come from `scripts/generate-history-fixture.ts`, which is deterministic.
 
+## Reading the trend page
+
+- **Runs**: how many runs match your filters, after retention.
+- **Latest pass rate**: the pass rate of the newest matching run.
+- **Change over range**: newest pass rate minus oldest pass rate, in percentage points.
+- **Chart**: one dot per run, oldest on the left. Dots are evenly spaced, not placed by date, so a missing week does not show as a gap. A run can be absent because a filter excluded it or retention dropped it. Hover a dot to see its run id.
+- **Table**: the same runs, newest first.
+
+## Duplicate run ids
+
+Each artifact needs a unique `run.id`. If two files share one, `history` and `report` stop with exit code 2 and write nothing: `Duplicate run ID "r1" in a.json and b.json.` Rename one run and re-run.
+
+## Keep history across CI builds
+
+`history` rebuilds the history from the artifact files in `--input` and replaces the output file. It does not add to an existing history. So the thing to keep between builds is the folder of run artifacts, not only the history file. If an artifact leaves `--input`, its run leaves the history.
+
+A fresh build agent starts with an empty folder. Restore the artifacts, add the new run, then rebuild. This example uses the GitHub Actions cache; any artifact store works the same way.
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: .evals_output
+    key: eval-runs-${{ github.run_id }}
+    restore-keys: eval-runs-
+# ... your eval step writes this build's artifact into .evals_output ...
+- run: npx eval-dashboards history --input=.evals_output --out=eval-report/history.sqlite
+```
+
+SQLite needs Node 22.5 or newer. On older Node, write `eval-report/history.json` instead. A SQLite file is not encrypted; protect it with disk or volume encryption if it holds sensitive data.
+
+To drop old runs on purpose, use `history-report --keep-last` or `--max-age-days` with `--prune-to`. See "Long-range trend report" above.
+
 ## Keep history.json for rollups
 
 `org-rollup` and published static reports read `history.json` only. Export SQLite to `history.json` before using them.
