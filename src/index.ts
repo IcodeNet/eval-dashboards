@@ -24,7 +24,8 @@ export { EVAL_REPORT_SCHEMA_VERSION, rowKey, rowMatchedExpectation, summarizeRep
 export { validateEvalReport, type ValidationIssue, type ValidationResult } from './model/validate.js';
 export { assessBaselineCompatibility } from './history/baseline-compatibility.js';
 export { applyRetention, buildTrendSeries, queryHistory, type HistoryQuery, type HistoryRetention, type TrendPoint } from './history/query.js';
-export { createFileHistoryStore, type HistoryStore } from './history/store.js';
+export { createFileHistoryStore, createHistoryStoreForPath, type HistoryStore } from './history/store.js';
+export { createSqliteHistoryStore } from './history/sqlite-store.js';
 export { buildHistory, compareRuns, type RunComparison, type RunHistoryEntry } from './history/history.js';
 export { checkGates, type GateConfig, type GateResult } from './gates/check-gates.js';
 export {

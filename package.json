@@ -13,7 +13,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./schemas/eval-report-v1.schema.json": "./schemas/eval-report-v1.schema.json",
     "./package.json": "./package.json"
