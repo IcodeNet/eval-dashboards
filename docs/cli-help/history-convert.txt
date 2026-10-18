@@ -1,0 +1,11 @@
+eval-dashboards history-convert --input=<path> --out=<path>
+
+Copy run history from one store to another. The store type comes from the file
+extension: .sqlite, .sqlite3 and .db are SQLite (needs Node 22.5+), anything
+else is a history.json file. Use it to import history.json into SQLite or to
+export SQLite back to history.json for org-rollup and static publishing.
+
+Options:
+  --input=<path>           Existing history file to read (required)
+  --out=<path>             History file to write, replacing its history (required)
+

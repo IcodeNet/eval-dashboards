@@ -13,6 +13,7 @@ const commands = [
   'check',
   'merge',
   'history',
+  'history-convert',
   'publish',
   'teach',
   'init',

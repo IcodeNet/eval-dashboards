@@ -11,7 +11,7 @@ import {
   selectRun,
   type BaselineStrategy,
 } from '../history/history.js';
-import { createFileHistoryStore } from '../history/store.js';
+import { createHistoryStoreForPath } from '../history/store.js';
 import { buildOrgRollup, repoHistoryFromPayload, type RepoHistory } from '../history/org-rollup.js';
 import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
 import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile, appendTextFile } from '../io/reports.js';
@@ -99,6 +99,7 @@ Commands:
   check    Enforce eval quality gates.
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
+  history-convert  Copy run history between history.json and a SQLite file.
   publish  Publish or dry-run publish for a static dashboard.
   teach    Guided eval onboarding walkthrough (alias of init --preset=agent-quality --teach).
   init     Print starter config or scaffold preset files.
@@ -302,11 +303,24 @@ const historyUsage = `eval-dashboards history [options]
 
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
-  --out=<path>             Output history JSON path. Default: eval-report/history.json
+  --out=<path>             Output history path. Default: eval-report/history.json
+                           A .sqlite, .sqlite3 or .db path writes a SQLite file instead (needs Node 22.5+).
   --bypass-log=<path>      Path to a JSON-lines bypass-usage log (written by \`check\`/\`publish\`
                            --bypass-log); when set, each run's history entry gets a
                            \`bypassUsage\` field counting gate escape hatches used for that run
                            id, so erosion shows up as a trend instead of only in CI logs.
+`;
+
+const historyConvertUsage = `eval-dashboards history-convert --input=<path> --out=<path>
+
+Copy run history from one store to another. The store type comes from the file
+extension: .sqlite, .sqlite3 and .db are SQLite (needs Node 22.5+), anything
+else is a history.json file. Use it to import history.json into SQLite or to
+export SQLite back to history.json for org-rollup and static publishing.
+
+Options:
+  --input=<path>           Existing history file to read (required)
+  --out=<path>             History file to write, replacing its history (required)
 `;
 
 const signUsage = `eval-dashboards sign [options]
@@ -2149,8 +2163,25 @@ const main = async (): Promise<void> => {
         console.error(`Warning: could not read bypass log ${bypassLogPath}: ${message}`);
       }
     }
-    await createFileHistoryStore(out).write(buildHistory(reports, { bypassUsageByRunId }));
+    await (await createHistoryStoreForPath(out)).write(buildHistory(reports, { bypassUsageByRunId }));
     console.log(out);
+    return;
+  }
+
+  if (command === 'history-convert') {
+    if (optionBoolean(options, 'help')) {
+      console.log(historyConvertUsage);
+      return;
+    }
+
+    const source = optionString(options, 'input', '');
+    const destination = optionString(options, 'out', '');
+    if (!source || !destination) {
+      throw new Error('history-convert requires both --input=<path> and --out=<path>.');
+    }
+    const entries = await (await createHistoryStoreForPath(source)).read();
+    await (await createHistoryStoreForPath(destination)).write(entries);
+    console.log(destination);
     return;
   }
 

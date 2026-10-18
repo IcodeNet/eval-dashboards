@@ -1862,7 +1862,7 @@ Rationale: Inspect AI added provider request/response id logging for every model
 **Why SQLite**: it is a serverless single-file database, so there is nothing to host and no cost. It supports date, branch and suite queries with SQL and indexes. Node ships `node:sqlite` built in, so no native npm package is needed. Verified 2026-10-18: `node:sqlite` loads on Node 26.7.0 here. Web sources say it was added in Node 22.5.0 and is still experimental (prints a warning) on Node 22.
 
 **Constraints to resolve first**:
-- `package.json` declares `engines.node >=20`, but `node:sqlite` needs Node 22.5 or later. Raise `engines` or load the SQLite backend lazily and fail with a clear message on older Node.
+- `package.json` declares `engines.node >=20`, but `node:sqlite` needs Node 22.5 or later. Resolved: the SQLite backend loads lazily and fails with a clear message on older Node, so `engines` stays `>=20`.
 - CI runs Node 22.x and publish runs 22.14.0. Confirm `node:sqlite` works there without a flag, and handle the experimental warning.
 - Keep `history.json` export so `org-rollup` and published static reports keep working.
 
@@ -1873,9 +1873,9 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 ### 4K.2 SQLite backend (P1, M)
 
-- [ ] Implement the adapter on `node:sqlite` with a versioned schema and indexes on date, branch and suite.
-- [ ] Add a CLI option to choose the backend, plus import of existing `history.json` files and export back to `history.json`.
-- [ ] Verify on the CI Node version and on the oldest supported Node, with a clear error where unsupported.
+- [x] Implement the adapter on `node:sqlite` with a versioned schema and indexes on date, branch and suite. Evidence: `src/history/sqlite-store.ts`, `test/history-sqlite-store.test.ts`.
+- [x] Add a CLI option to choose the backend, plus import of existing `history.json` files and export back to `history.json`. Evidence: backend chosen by output extension in `createHistoryStoreForPath`; `history-convert` command; `test/cli-history-store.test.ts`; `docs/history-storage.md`.
+- [x] Verify on the CI Node version and on the oldest supported Node, with a clear error where unsupported. Evidence: `node:sqlite` ran on Node 22.14.0 (publish version) without a flag, with an experimental warning; on Node 20 the built bundle stops with a clear message while `history` to JSON still works. `engines` stays `>=20` because the SQLite module loads lazily.
 
 ### 4K.3 Long-range historical views (P1, M)
 

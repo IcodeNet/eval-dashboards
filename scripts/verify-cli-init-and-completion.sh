@@ -184,6 +184,9 @@ exact_match_check "merge help snapshot matches docs/cli-help/merge.txt" "$MERGE_
 HISTORY_HELP="$(run_cli history --help || true)"
 contains_check "history --help usage header" "$HISTORY_HELP" "eval-dashboards history [options]"
 exact_match_check "history help snapshot matches docs/cli-help/history.txt" "$HISTORY_HELP" "$(cat docs/cli-help/history.txt)"
+HISTORY_CONVERT_HELP="$(run_cli history-convert --help || true)"
+contains_check "history-convert --help usage header" "$HISTORY_CONVERT_HELP" "eval-dashboards history-convert"
+exact_match_check "history-convert help snapshot matches docs/cli-help/history-convert.txt" "$HISTORY_CONVERT_HELP" "$(cat docs/cli-help/history-convert.txt)"
 
 REPORT_INDEX_HELP="$(run_cli report-index --help || true)"
 contains_check "report-index --help usage header" "$REPORT_INDEX_HELP" "eval-dashboards report-index [options]"
