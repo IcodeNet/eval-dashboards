@@ -11,6 +11,7 @@ import {
   selectRun,
   type BaselineStrategy,
 } from '../history/history.js';
+import { createFileHistoryStore } from '../history/store.js';
 import { buildOrgRollup, repoHistoryFromPayload, type RepoHistory } from '../history/org-rollup.js';
 import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
 import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile, appendTextFile } from '../io/reports.js';
@@ -2148,7 +2149,7 @@ const main = async (): Promise<void> => {
         console.error(`Warning: could not read bypass log ${bypassLogPath}: ${message}`);
       }
     }
-    await writeJsonFile(out, buildHistory(reports, { bypassUsageByRunId }));
+    await createFileHistoryStore(out).write(buildHistory(reports, { bypassUsageByRunId }));
     console.log(out);
     return;
   }

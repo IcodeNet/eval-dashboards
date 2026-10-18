@@ -1868,8 +1868,8 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 ### 4K.1 History storage adapter interface (P1, M)
 
-- [ ] Define a small storage interface for reading and writing run history, with the current file store as the default implementation.
-- [ ] Add tests proving the file store behaves identically before and after the refactor.
+- [x] Define a small storage interface for reading and writing run history, with the current file store as the default implementation. Evidence: `src/history/store.ts`, used by the `history` command in `src/cli/index.ts`.
+- [x] Add tests proving the file store behaves identically before and after the refactor. Evidence: `test/history-store.test.ts`; `history` output on `examples/screenshot-fixture` is byte-identical to `main`.
 
 ### 4K.2 SQLite backend (P1, M)
 
