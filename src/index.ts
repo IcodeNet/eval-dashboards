@@ -23,6 +23,7 @@ export type {
 export { EVAL_REPORT_SCHEMA_VERSION, rowKey, rowMatchedExpectation, summarizeReport } from './model/eval-report-v1.js';
 export { validateEvalReport, type ValidationIssue, type ValidationResult } from './model/validate.js';
 export { assessBaselineCompatibility } from './history/baseline-compatibility.js';
+export { createFileHistoryStore, type HistoryStore } from './history/store.js';
 export { buildHistory, compareRuns, type RunComparison, type RunHistoryEntry } from './history/history.js';
 export { checkGates, type GateConfig, type GateResult } from './gates/check-gates.js';
 export {
