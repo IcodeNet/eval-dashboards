@@ -65,6 +65,31 @@ When `eval-dashboards check` is run with `--heartbeat-out=<path>`, it writes a m
 - `skipped`: check could not run due to missing/no artifacts (exit 3)
 - `errored`: invalid config/artifact or runtime failure (typically exit 2)
 
+## Minimal valid artifact
+
+The smallest file that passes `lint` and `check` has five required parts: `schemaVersion`, `run.id`, `run.generatedAt` (an ISO date string), `suites[]` and `rows[]`. The row list is called `rows`, not `cases`.
+
+```json
+{
+  "schemaVersion": "eval-report/v1",
+  "run": { "id": "run-1", "generatedAt": "2026-10-01T00:00:00Z" },
+  "suites": [{ "id": "smoke", "total": 1, "passed": 1, "failed": 0 }],
+  "rows": [{ "id": "case-1", "suite": "smoke", "passed": true }]
+}
+```
+
+## Common validation errors
+
+Every file in the input folder must be an `eval-report/v1` artifact. A bad file stops the command with exit code 2 and names the file and the field.
+
+| Message (exact text) | Cause | Fix |
+|---|---|---|
+| `[run.generatedAt] run.generatedAt must be an ISO date string.` | `run.generatedAt` is missing or not a date | Add `"generatedAt": "2026-10-01T00:00:00Z"` |
+| `[rows] rows must be an array.` | The list is called `cases`, `results` or something else | Rename it to `rows` |
+| `[schemaVersion] schemaVersion must be eval-report/v1. run must be an object. suites must be an array. rows must be an array.` | A file that is not an artifact is in the input folder | Move the other JSON file out, or point `--input` at a folder with only artifacts |
+| `[rows[0].suite] rows[0].suite must reference a declared suite.` | A row names a suite that is not in `suites[]` | Add the suite to `suites[]` or fix the row's `suite` |
+| `Duplicate run ID "r1" in a.json and b.json.` | Two files share one `run.id` | Give each run a unique `run.id` |
+
 ## What To Emit
 
 - A dedicated `preflight` suite with deterministic probe rows.

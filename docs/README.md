@@ -79,5 +79,6 @@ disagree, trust `docs/*.md`.
 - [cli-help/](./cli-help/README.md) — exact `--help` snapshots tracked for truth-sync
 - [reporters.md](./reporters.md) — HTML, text, Markdown, JSON reporters
 - [history-storage.md](./history-storage.md) — choose the JSON or SQLite history store and convert between them
+- [faq.md](./faq.md) — what it does and does not do, platforms, network use, upgrades
 - [examples.md](./examples.md) — runnable example index
 - [case-studies/assistant-ui/README.md](./case-studies/assistant-ui/README.md) — first real external-repo adoption case study

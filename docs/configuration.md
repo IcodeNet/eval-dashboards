@@ -8,6 +8,8 @@ Config locations:
 
 `eval-dashboards init` writes `eval-dashboards.config.mjs`, which loads on Node 20 and later. A `.ts` config only loads on a Node that can import TypeScript files (Node 22.18 or later), so use `.mjs` or `.js` for older Node.
 
+Where reports go: with no config file, `report` writes to `eval-report/`. The config that `init` writes sets `reportDir: 'eval-dashboard'`, so after `init` the same command writes to `eval-dashboard/`. Set `reportDir` in the config, or pass `--report-dir`, to choose your own folder.
+
 An existing config that cannot load, including a missing imported dependency, fails the command with exit 2. Config exports and the `package.json` field must be objects; malformed values do not fall back to permissive defaults.
 
 Example:
