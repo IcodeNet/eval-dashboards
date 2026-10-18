@@ -39,7 +39,7 @@ describe('init scaffold', () => {
     const files = buildAgentQualityScaffoldFiles(defaultProfile);
     const paths = files.map((file) => file.relativePath);
 
-    expect(paths).toContain('eval-dashboards.config.ts');
+    expect(paths).toContain('eval-dashboards.config.mjs');
     expect(paths).toContain('eval/datasets/agent-quality-cases.jsonl');
     expect(paths).toContain('eval/rubrics/agent-quality-rubrics.json');
     expect(paths).toContain('.evals_output/run-agent-quality-template.json');
@@ -55,7 +55,7 @@ describe('init scaffold', () => {
 
     expect(written).toEqual(planned);
 
-    const config = await readFile(path.join(outDir, 'eval-dashboards.config.ts'), 'utf8');
+    const config = await readFile(path.join(outDir, 'eval-dashboards.config.mjs'), 'utf8');
     const dataset = await readFile(path.join(outDir, 'eval/datasets/agent-quality-cases.jsonl'), 'utf8');
 
     expect(config).toContain("input: ['.evals_output']");
@@ -100,10 +100,10 @@ describe('init scaffold', () => {
     await writeScaffoldFiles(outDir, files);
     await expect(writeScaffoldFiles(outDir, files)).rejects.toThrow('Refusing to overwrite existing files');
 
-    await writeFile(path.join(outDir, 'eval-dashboards.config.ts'), 'custom-config', 'utf8');
+    await writeFile(path.join(outDir, 'eval-dashboards.config.mjs'), 'custom-config', 'utf8');
     await writeScaffoldFiles(outDir, files, true);
 
-    const config = await readFile(path.join(outDir, 'eval-dashboards.config.ts'), 'utf8');
+    const config = await readFile(path.join(outDir, 'eval-dashboards.config.mjs'), 'utf8');
     expect(config).toContain("reportDir: 'eval-dashboard'");
   });
 
@@ -119,7 +119,7 @@ describe('init scaffold', () => {
     expect(walkthrough).toContain('How eval-dashboards works:');
     expect(walkthrough).toContain('Suggested setup steps:');
     expect(walkthrough).toContain('Deep-dive doc: docs/teach-curriculum.md');
-    expect(walkthrough).toContain(path.join(outDir, 'eval-dashboards.config.ts'));
+    expect(walkthrough).toContain(path.join(outDir, 'eval-dashboards.config.mjs'));
   });
 
   it('renders dry-run mode with actionable next steps', async () => {
@@ -128,7 +128,7 @@ describe('init scaffold', () => {
     const preview = renderAgentQualityDryRunMode(outDir, files);
 
     expect(preview).toContain('Would write 5 file(s):');
-    expect(preview).toContain(path.join(outDir, 'eval-dashboards.config.ts'));
+    expect(preview).toContain(path.join(outDir, 'eval-dashboards.config.mjs'));
     expect(preview).toContain('Run again with --write to scaffold these files.');
     expect(preview).toContain('eval-dashboards init --preset=agent-quality --write');
   });

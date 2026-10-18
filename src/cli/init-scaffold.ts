@@ -308,7 +308,7 @@ export const buildAgentQualitySetupPlaybook = (profile: AgentQualityInitProfile)
 
 const buildAgentQualityBaseScaffoldFiles = (): ScaffoldFile[] => [
   {
-    relativePath: 'eval-dashboards.config.ts',
+    relativePath: 'eval-dashboards.config.mjs',
     content: renderAgentQualityInitConfig(),
   },
   {
@@ -836,7 +836,7 @@ export const renderAgentQualityTeachMode = (outputDir: string, files: ScaffoldFi
 
 export const renderAgentQualityDryRunMode = (outputDir: string, files: ScaffoldFile[]): string => {
   const describeFile = (relativePath: string): string => {
-    if (relativePath === 'eval-dashboards.config.ts') {
+    if (relativePath === 'eval-dashboards.config.mjs') {
       return 'CLI config: artifact input, reporters, and gate defaults.';
     }
     if (relativePath === 'eval/datasets/agent-quality-cases.jsonl') {

@@ -2,9 +2,11 @@
 
 Config locations:
 
-- `eval-dashboards.config.ts`
-- `eval-dashboards.config.js` (also `.mjs` and `.cjs`)
+- `eval-dashboards.config.mjs` (written by `init`)
+- `eval-dashboards.config.ts`, `.js` and `.cjs`
 - `eval-dashboards` in `package.json`
+
+`eval-dashboards init` writes `eval-dashboards.config.mjs`, which loads on Node 20 and later. A `.ts` config only loads on a Node that can import TypeScript files (Node 22.18 or later), so use `.mjs` or `.js` for older Node.
 
 An existing config that cannot load, including a missing imported dependency, fails the command with exit 2. Config exports and the `package.json` field must be objects; malformed values do not fall back to permissive defaults.
 
