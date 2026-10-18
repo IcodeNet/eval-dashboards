@@ -73,7 +73,11 @@
       "input": "Explain the next step to a user.",
       "output": "The next step is to review the summary and confirm it matches the request.",
       "passed": true,
-      "severity": "none"
+      "severity": "none",
+      "metadata": {
+        "provenance": { "source": "labelled-synthetic", "reason": "Example fixture for documentation.", "sourceRef": "basic-json" },
+        "lifecycle": { "status": "active", "since": "2026-07-31" }
+      }
     },
     {
       "id": "grounded-answer",
@@ -89,7 +93,11 @@
       "judgeReasoning": "The answer uses only evidence present in the test fixture.",
       "promptVersion": "assistant-policy-v2",
       "passed": true,
-      "severity": "none"
+      "severity": "none",
+      "metadata": {
+        "provenance": { "source": "labelled-synthetic", "reason": "Example fixture for documentation.", "sourceRef": "basic-json" },
+        "lifecycle": { "status": "active", "since": "2026-07-31" }
+      }
     },
     {
       "id": "concise-answer",
@@ -106,7 +114,11 @@
       "promptVersion": "assistant-policy-v2",
       "passed": false,
       "severity": "medium",
-      "reason": "The answer was too verbose."
+      "reason": "The answer was too verbose.",
+      "metadata": {
+        "provenance": { "source": "labelled-synthetic", "reason": "Example fixture for documentation.", "sourceRef": "basic-json" },
+        "lifecycle": { "status": "active", "since": "2026-07-31" }
+      }
     }
   ]
 }
