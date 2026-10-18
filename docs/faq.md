@@ -31,7 +31,7 @@ eval-dashboards reads the result files your eval runner writes. It turns them in
 ## Install and upgrade
 
 - The package has one required runtime dependency, `@octokit/rest`, and one optional one, `nodemailer` (email alerts). The published package has no install scripts, so installing it runs no code.
-- While the version is below 1.0, a minor version can include breaking changes. Pin an exact version in CI, for example `npx @icodenet/eval-dashboards@0.8.0 ...`, or set `package-spec` in the GitHub Action.
+- While the version is below 1.0, a minor version can include breaking changes. Pin an exact version in CI, for example `npx @icodenet/eval-dashboards@0.9.0 ...`, or set `package-spec` in the GitHub Action.
 - History is rebuilt from your artifact files each time you run `history`, so an upgrade never needs a history migration.
 
 ## Releases
