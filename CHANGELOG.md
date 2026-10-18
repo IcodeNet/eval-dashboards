@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] — 2026-10-18
+
+### Added
+
+- Long-range history. `history` can write a SQLite file (`.sqlite`, `.sqlite3`, `.db`) as well as `history.json`, behind a small `HistoryStore` adapter. SQLite uses Node's built-in `node:sqlite` and needs Node 22.5 or newer; the JSON store still works on Node 20.
+- `history-convert` copies history between `history.json` and SQLite in either direction.
+- `history-report` writes a static trend page filtered by date range, branch and suite, with retention (`--keep-last`, `--max-age-days`, `--prune-to`). See `docs/history-storage.md`.
+- `import --from=inspect-ai` and richer LangSmith import metadata (address and revision).
+- Library exports for the history stores: `createHistoryStoreForPath`, `createFileHistoryStore`, `createSqliteHistoryStore`, `queryHistory`, `applyRetention`, `buildTrendSeries`.
+- `require('@icodenet/eval-dashboards')` now works (a `default` export condition).
+- `docs/faq.md` (what the tool does not do, platforms, network use), `SECURITY.md`, a signing guide, and a recipe to check an evidence bundle without this tool.
+- `pnpm a11y:verify` runs axe-core against the generated report in all three themes.
+- Logo and Langfuse credit in the README, plus long-range history screenshots.
+
+### Changed
+
+- **`init` now writes `eval-dashboards.config.mjs` instead of `.ts`.** The `.ts` file failed to load on Node 20 and on projects without `"type": "module"`, which broke the next command. Existing `.ts` configs still load where Node can import TypeScript.
+- **`publish --redact` removes more.** It now also drops judge traces, per-axis reasoning, human-review notes and reviewer names, check expected and actual values, run config values, trace and span URLs, and free-form row metadata (provenance and lifecycle are kept). The publish preflight lists these fields. Row `name` and run `tags` are still published. If you relied on any of the removed fields appearing in published reports, they no longer do.
+- Gates fail closed on bad configuration and numeric options, duplicate identities and unscoped comparisons (#32).
+- Report colours were darkened to meet WCAG contrast (4.5:1) in the default, dark and minimal themes, and the report now has `header`, `main` and `footer` landmarks.
+- Dependencies: pnpm 12, vitest 5, tsup 9, lefthook 2, commitlint 21, and current GitHub Actions majors. TypeScript stays on 5.9 because tsup's declaration bundler does not yet support TypeScript 7.
+
+### Fixed
+
+- `adjudicate import` built its default output file name from `run.id` with no checks, so a run id such as `x/../../package` could overwrite a file outside the report folder. File names are now sanitised.
+- SQLite history failed in the built CLI on every Node version because the bundler removed the `node:` prefix. A packed-package test now runs it.
+- Runs with the same timestamp could come back in a different order from SQLite. A `position` column keeps write order (schema version 2; version 1 files still read and are upgraded on the next write).
+- Parallel writers to one SQLite file failed with `database is locked`; a writer now waits up to 10 seconds.
+- `history-report --until=2026-06-30` excluded runs made on that day. A plain date now covers the whole day.
+- History entries with an unreadable `generatedAt` silently passed `--since` filters; they now raise a clear error.
+- The shipped `basic-json`, `taxonomy-complete-fixture` and `llm-agent-evals` examples failed the tool's own lint and gate checks.
+
 ## [0.8.0] — 2026-10-07
 
 ### Added
