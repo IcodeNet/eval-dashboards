@@ -56,6 +56,9 @@ jobs:
       - name: Verify deterministic release assets
         run: pnpm assets:verify
 
+      - name: Verify report accessibility (axe-core)
+        run: pnpm a11y:verify
+
       - name: Verify eval-report schema drift guard
         run: pnpm schema:check
 
