@@ -75,9 +75,7 @@ const main = async (): Promise<void> => {
 };
 
 const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalReportV1 => {
-  const rows = scenarios.flatMap((scenario) => buildRows(agentVersion, scenario));
-  const passed = rows.filter((row) => row.passed).length;
-  const failed = rows.length - passed;
+  const rows = [...scenarios.flatMap((scenario) => buildRows(agentVersion, scenario)), ...buildCalibrationRows(agentVersion)];
 
   return {
     schemaVersion: 'eval-report/v1',
@@ -89,16 +87,12 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
       branch: 'main',
       commit: agentVersion === 'demo-agent-v1' ? 'local001' : 'local002',
     },
-    suites: [
-      {
-        id: 'local-chat-quality',
-        name: 'Local chat quality',
-        total: rows.length,
-        passed,
-        failed,
-        passRate: passed / rows.length,
-      },
-    ],
+    suites: [...new Set(rows.map((row) => row.suite))].map((id) => {
+      const suiteRows = rows.filter((row) => row.suite === id);
+      const suitePassed = suiteRows.filter((row) => row.passed).length;
+      return { id, total: suiteRows.length, passed: suitePassed,
+        failed: suiteRows.length - suitePassed, passRate: suitePassed / suiteRows.length };
+    }),
     suiteManifests: [
       {
         name: 'local-chat-quality',
@@ -178,7 +172,7 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
         ],
       },
     ],
-    rows: [...rows, ...buildCalibrationRows(agentVersion)],
+    rows,
   };
 };
 
