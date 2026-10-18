@@ -23,14 +23,37 @@ export const SENSITIVE_ROW_FIELDS = [
   'output',
   'expected',
   'reason',
+  'judgeTraces',
+  'axisReasoning',
 ] as const satisfies ReadonlyArray<keyof EvalRow>;
 
 export const REDACTED_PLACEHOLDER = '[redacted]';
 
+/** Metadata keys the reports read, so they are part of the public tier. Everything else is free-form. */
+const PUBLIC_METADATA_KEYS = new Set([
+  'provenance',
+  'lifecycle',
+  'costUsd',
+  'cost',
+  'costUSD',
+  'latencyMs',
+  'mode',
+  'redactionProfile',
+  'redacted',
+]);
+
 const redactRowMetadata = (metadata?: RowMetadata): RowMetadata | undefined => {
   if (!metadata) return metadata;
-  return metadata;
+  return Object.fromEntries(
+    Object.entries(metadata).map(([key, value]) => [key, PUBLIC_METADATA_KEYS.has(key) ? value : REDACTED_PLACEHOLDER]),
+  ) as RowMetadata;
 };
+
+const redactTrace = (trace: NonNullable<EvalRow['trace']>): NonNullable<EvalRow['trace']> => ({
+  ...(trace.traceId !== undefined ? { traceId: trace.traceId } : {}),
+  ...(trace.spanId !== undefined ? { spanId: trace.spanId } : {}),
+  ...(trace.spanType !== undefined ? { spanType: trace.spanType } : {}),
+});
 
 /** Returns a copy of `row` with all sensitive evidence text fields removed. */
 export const redactEvalRow = (row: EvalRow): EvalRow => {
@@ -62,9 +85,39 @@ export const redactEvalRow = (row: EvalRow): EvalRow => {
     }));
   }
 
+  if (redacted.humanReviews) {
+    redacted.humanReviews = redacted.humanReviews.map((review) => ({
+      reviewer: REDACTED_PLACEHOLDER,
+      verdict: review.verdict,
+      ...(review.category !== undefined ? { category: review.category } : {}),
+      ...(review.decidedAt !== undefined ? { decidedAt: review.decidedAt } : {}),
+    }));
+  }
+
+  if (redacted.checks) {
+    redacted.checks = redacted.checks.map((check) => ({
+      type: check.type,
+      pass: check.pass,
+      ...(check.threshold !== undefined ? { threshold: check.threshold } : {}),
+      ...(check.weight !== undefined ? { weight: check.weight } : {}),
+    }));
+  }
+
+  if (redacted.trace) {
+    redacted.trace = redactTrace(redacted.trace);
+  }
+
   redacted.metadata = redactRowMetadata(redacted.metadata);
 
   return redacted;
+};
+
+const redactRunConfigSnapshot = (run: EvalReportV1['run']): EvalReportV1['run'] => {
+  if (!run.configSnapshot) return run;
+  const values = Object.fromEntries(
+    Object.keys(run.configSnapshot.values).map((key) => [key, REDACTED_PLACEHOLDER]),
+  );
+  return { ...run, configSnapshot: { ...run.configSnapshot, redacted: true, values } };
 };
 
 /**
@@ -74,6 +127,7 @@ export const redactEvalRow = (row: EvalRow): EvalRow => {
  */
 export const redactEvalReport = (report: EvalReportV1): EvalReportV1 => ({
   ...report,
+  run: redactRunConfigSnapshot(report.run),
   rows: report.rows.map(redactEvalRow),
   metadata: {
     ...report.metadata,
@@ -109,6 +163,26 @@ export const findSensitiveFields = (report: EvalReportV1): string[] => {
     if (row.toolCalls?.some((call) => call.result && call.result !== REDACTED_PLACEHOLDER)) {
       hits.add('toolCalls[].result');
     }
+    if (row.trace?.traceUrl !== undefined || row.trace?.spanUrl !== undefined) {
+      hits.add('trace.traceUrl/spanUrl');
+    }
+    if (
+      row.metadata &&
+      Object.entries(row.metadata).some(([key, value]) => !PUBLIC_METADATA_KEYS.has(key) && value !== REDACTED_PLACEHOLDER)
+    ) {
+      hits.add('metadata.*');
+    }
+    if (row.humanReviews?.some((review) => review.note !== undefined || review.reviewer !== REDACTED_PLACEHOLDER)) {
+      hits.add('humanReviews[].note/reviewer');
+    }
+    if (row.checks?.some((check) => check.expected !== undefined || check.actual !== undefined)) {
+      hits.add('checks[].expected/actual');
+    }
+  }
+
+  const configValues = report.run.configSnapshot?.values;
+  if (configValues && Object.values(configValues).some((value) => value !== REDACTED_PLACEHOLDER)) {
+    hits.add('run.configSnapshot.values');
   }
 
   return [...hits];
