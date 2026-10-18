@@ -11,6 +11,7 @@ export default defineConfig([
         clean: true,
         splitting: false,
         external: ['nodemailer'],
+        removeNodeProtocol: false,
     },
     {
         entry: ['src/cli/index.ts'],
@@ -21,6 +22,7 @@ export default defineConfig([
         sourcemap: true,
         splitting: false,
         external: ['nodemailer'],
+        removeNodeProtocol: false,
         banner: { js: '#!/usr/bin/env node' },
     },
 ]);
