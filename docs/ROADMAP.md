@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-18
 
 ---
 
@@ -27,9 +27,10 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4I: GitHub PR-native visibility](#-phase-4i-github-pr-native-visibility-new)
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
+- [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-new)
 
 > **Note on ordering:** sections below are in the order they were added, not
-> strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4D.
+> strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
 > Phase letters were assigned when each initiative was scoped, and later
 > phases (4E, 4G, 4F, 4H) were slotted into ongoing work ahead of 4D, which
 > was drafted earlier but landed last. Sections are not reordered to match
@@ -477,9 +478,9 @@ Rationale (2026-09-16 scan): Promptfoo release notes call out `metadata.sessionI
 
 ### 4B.10 Promptfoo fallback-id stability for partial dataset fetches (P1)
 
-- [ ] When importing Promptfoo rows with no explicit `id`/`testCase.id`, derive a deterministic fallback id from stable case payload fields (suite + prompt/vars/expected/description) instead of array position.
-- [ ] Keep duplicate safety by suffixing repeated derived ids inside one file (`#2`, `#3`) and add tests proving ids remain stable when row order changes between runs.
-- [ ] Document the fallback-id rule in `docs/integrations/promptfoo.md` so baseline comparisons remain meaningful for Promptfoo exports that include partial dataset fetch results.
+- [x] When importing Promptfoo rows with no explicit `id`/`testCase.id`, derive a deterministic fallback id from stable case payload fields (suite + prompt/vars/expected/description) instead of array position.
+- [x] Keep duplicate safety by suffixing repeated derived ids inside one file (`#2`, `#3`) and add tests proving ids remain stable when row order changes between runs.
+- [x] Document the fallback-id rule in `docs/integrations/promptfoo.md` so baseline comparisons remain meaningful for Promptfoo exports that include partial dataset fetch results.
 
 Acceptance criteria:
 
@@ -569,7 +570,7 @@ Acceptance criteria:
 - [x] Expand the assistant-ui eval program beyond its current comment-hygiene cases with additional named suites whose baselines reproduce a documented product or contributor risk and whose rubrics can be reviewed independently. `registry-source-of-truth` and `optional-host-sdk-dependency` both reproduced at baseline 0/3.
 - [x] Run the expanded suites against real configured agent and judge models, preserve the raw `eval-report/v1` artifacts, and use `eval-dashboards lint`, `check`, and `report` to measure them. PR #9044 records `claude-haiku-4-5` as agent and `claude-sonnet-5` as judge; its evidence directory preserves seven raw reports.
 - [x] Review the measured dashboard row by row, record model versions, trial counts, failures, limitations, and resulting fixes, then rerun the affected suites to produce comparable evidence. The final new-suite paired runs reached baseline 0/3 and guidance 3/3, while the unresolved `pr-review-comments` guidance regression remains recorded at 0/3.
-- [ ] Open a draft PR in `assistant-ui/assistant-ui` containing the integration and suite changes, with the measured dashboard evidence and exact verification commands linked in the PR description. [Draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) exists and all GitHub Actions checks passed after raw-log inspection; keep this item open until the pending external Rupic review completes and is inspected.
+- [ ] Open a draft PR in `assistant-ui/assistant-ui` containing the integration and suite changes, with the measured dashboard evidence and exact verification commands linked in the PR description. [Draft PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044) exists and all GitHub Actions checks passed after raw-log inspection; keep this item open until the pending external Rupic review (Rupic is an AI code-review GitHub App at rupic.dev; the PR carries its "Track in Rupic" badge) completes and is inspected.
 
 Acceptance criteria:
 
@@ -662,7 +663,7 @@ Verification 2026-10-07: aliases and conversion are covered by `test/import-adap
 
 ### 4C.12 Promptfoo error-row import resilience (P1)
 
-- [ ] Extend the Promptfoo import adapter so provider/eval error rows (where `gradingResult` may be absent) import as explicit failed `eval-report/v1` rows instead of aborting conversion.
+- [x] Extend the Promptfoo import adapter so provider/eval error rows (where `gradingResult` may be absent) import as explicit failed `eval-report/v1` rows instead of aborting conversion.
 
 Acceptance criteria:
 
@@ -674,7 +675,7 @@ Rationale: Promptfoo documents that `gradingResult`/`componentResults` can be ab
 
 ### 4C.13 Promptfoo native JSON export import compatibility (P1)
 
-- [ ] Extend the Promptfoo import adapter to ingest Promptfoo's documented JSON export shape where rows are nested under `results.outputs[]`, not only `results[]` or JSONL rows.
+- [x] Extend the Promptfoo import adapter to ingest Promptfoo's documented JSON export shape where rows are nested under `results.outputs[]`, not only `results[]` or JSONL rows.
 
 Acceptance criteria:
 
@@ -686,7 +687,7 @@ Rationale: Promptfoo's output docs define the default JSON export with rows unde
 
 ### 4C.14 LangSmith runs import path (P1)
 
-- [ ] Add first-class `--from=langsmith` import support plus a LangSmith integration guide that maps recent `query_runs`/`fetch_runs` outputs to `eval-report/v1` with explicit pass/fail inference rules.
+- [x] Add first-class `--from=langsmith` import support plus a LangSmith integration guide that maps recent `query_runs`/`fetch_runs` outputs to `eval-report/v1` with explicit pass/fail inference rules.
 
 Acceptance criteria:
 
@@ -888,7 +889,7 @@ Rationale: OpenAI's eval workflow documentation explicitly uses uploaded JSONL d
 
 ### Non-goals for this phase
 
-- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase.
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API and auth-gated app remain out of scope.) They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase.
 
 ### 4E execution order
 
@@ -1481,7 +1482,7 @@ Acceptance criteria:
 
 ### Still out of scope in 4F
 
-- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API, auth-gated app and multi-tenant service remain non-goals.) Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
 
 ### 4F execution order
 
@@ -1583,6 +1584,7 @@ phase's commit message.
 
 ## 📦 npm release policy note (ship gate)
 
+- **Publishing is on hold.** Do not publish `1.0.0` (or any further release) until Phase 4K (full historical reports) is complete.
 - npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.
 - When all remaining roadmap checklist items are complete, and verification passes (`pnpm test`, `pnpm typecheck`, `pnpm build`, plus CLI verifier scripts), publish the first stable milestone as `1.0.0`.
 - If a true first-ever release presentation is required, publish under a new package name/scope instead of attempting to reset existing npm history.
@@ -1773,13 +1775,14 @@ Acceptance criteria:
 - Keep roadmap/status/publishing/examples/help surfaces synchronized per release gate.
 
 **Immediate (next 1–2 weeks):**
-1. Expand dataset-governance and import quality checks now that 4C.6-4C.9 docs slices are complete
+1. Phase 4K.1: define the history storage adapter interface (file store stays the default).
 
 **Short term (next 2–3 weeks):**
-2. Continue dataset-governance hardening in lint/check preflight
+2. Phase 4K.2: SQLite backend, after checking `node:sqlite` on the CI Node version.
 
 **Medium term:**
-3. External adoption push and community feedback loop
+3. Phase 4K.3: long-range historical views, then lift the publishing hold.
+4. External adoption push and community feedback loop.
 
 ---
 
@@ -1847,6 +1850,37 @@ Acceptance criteria:
 Verification 2026-10-07: mapping in `src/cli/import-adapters.ts:1119`, log-record regression test in `test/import-adapters-otel-genai.test.ts:188`, and mapping notes in `docs/integrations/otel-genai.md:47`; the full Node 22 suite passed.
 
 Rationale: Inspect AI added provider request/response id logging for every model call on 2026-10-04, increasing pressure for portable evaluation artifacts to carry those correlation handles too: https://github.com/UKGovernmentBEIS/inspect_ai/commit/15c4a65ab80848f1d5011e915fa5071079099746
+
+---
+
+## 🚧 Phase 4K: Full historical reports (NEW)
+
+**Why**: history today is file-based (`history.json` built in `src/history/history.ts`, rolled up by `org-rollup`). Release `1.0.0` is held until history is queryable over long periods.
+
+**Decision (supersedes the 4E and 4F non-goal on a time-series store)**: a history store is now in scope. The offline-by-default and artifact-first rules still hold, so the store sits behind a swappable adapter. SQLite is the first backend. The file store stays as the default and the fallback. Other backends (Redis, Cosmos) can be added later behind the same adapter. Redis is a weak fit for long-term history unless persistence is on. Hosted ingestion APIs and auth-gated dashboard apps stay out of scope.
+
+**Why SQLite**: it is a serverless single-file database, so there is nothing to host and no cost. It supports date, branch and suite queries with SQL and indexes. Node ships `node:sqlite` built in, so no native npm package is needed. Verified 2026-10-18: `node:sqlite` loads on Node 26.7.0 here. Web sources say it was added in Node 22.5.0 and is still experimental (prints a warning) on Node 22.
+
+**Constraints to resolve first**:
+- `package.json` declares `engines.node >=20`, but `node:sqlite` needs Node 22.5 or later. Raise `engines` or load the SQLite backend lazily and fail with a clear message on older Node.
+- CI runs Node 22.x and publish runs 22.14.0. Confirm `node:sqlite` works there without a flag, and handle the experimental warning.
+- Keep `history.json` export so `org-rollup` and published static reports keep working.
+
+### 4K.1 History storage adapter interface (P1, M)
+
+- [ ] Define a small storage interface for reading and writing run history, with the current file store as the default implementation.
+- [ ] Add tests proving the file store behaves identically before and after the refactor.
+
+### 4K.2 SQLite backend (P1, M)
+
+- [ ] Implement the adapter on `node:sqlite` with a versioned schema and indexes on date, branch and suite.
+- [ ] Add a CLI option to choose the backend, plus import of existing `history.json` files and export back to `history.json`.
+- [ ] Verify on the CI Node version and on the oldest supported Node, with a clear error where unsupported.
+
+### 4K.3 Long-range historical views (P1, M)
+
+- [ ] Query history by date range, branch and suite, with retention rules.
+- [ ] Render trend views over long periods in the HTML report.
 
 ---
 
