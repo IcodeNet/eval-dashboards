@@ -69,4 +69,4 @@ Each run is one row in `runs` holding the full entry as JSON. Date, branch and s
 
 ## Adding another store
 
-A store is an object with `read()` and `write(entries)` (the `HistoryStore` interface in `src/history/store.ts`). `createHistoryStoreForPath` picks the store from the path.
+A store is an object with `read()` and `write(entries)` (the `HistoryStore` interface in `src/history/store.ts`). `createHistoryStoreForPath` picks the store from the path. `createHistoryStoreForPath`, `createFileHistoryStore`, `createSqliteHistoryStore` and the `HistoryStore` type are exported from `@icodenet/eval-dashboards`.

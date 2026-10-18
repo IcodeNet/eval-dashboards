@@ -26,7 +26,7 @@ try {
   run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefer-offline']);
   fs.writeFileSync(path.join(temp, 'consumer.ts'), `
 import type { EvalReportV1, EvalRow } from '@icodenet/eval-dashboards';
-import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey } from '@icodenet/eval-dashboards';
+import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, type HistoryStore } from '@icodenet/eval-dashboards';
 import { readFileSync } from 'node:fs';
 const row: EvalRow = { id: 'consumer', suite: 'smoke', passed: true };
 const report: EvalReportV1 = {
@@ -35,6 +35,8 @@ const report: EvalReportV1 = {
   suites: [{ id: 'smoke', total: 1, passed: 1, failed: 0, passRate: 1 }], rows: [row],
 };
 if (!validateEvalReport(report).ok || !rowKey(row)) throw new Error('Public runtime exports failed');
+const store: HistoryStore = createSqliteHistoryStore('unused.sqlite');
+if (typeof store.read !== 'function' || typeof createHistoryStoreForPath !== 'function') throw new Error('History store exports failed');
 const schema = JSON.parse(readFileSync(new URL(import.meta.resolve('@icodenet/eval-dashboards/schemas/eval-report-v1.schema.json')), 'utf8'));
 if (!schema.properties?.schemaVersion) throw new Error('Schema subpath export failed');
 console.log('Packed consumer: public types compile; runtime and schema exports work.');
@@ -45,6 +47,8 @@ console.log('Packed consumer: public types compile; runtime and schema exports w
   }, include: ['consumer.ts'] }));
   run(process.execPath, ['node_modules/typescript/bin/tsc', '--project', 'tsconfig.json']);
   run(process.execPath, ['out/consumer.js']);
+  fs.writeFileSync(path.join(temp, 'consumer.cjs'), "const m = require('@icodenet/eval-dashboards');\nif (typeof m.validateEvalReport !== 'function') throw new Error('CommonJS require failed');\nconsole.log('Packed consumer: CommonJS require works.');\n");
+  run(process.execPath, ['consumer.cjs']);
   run(process.execPath, ['node_modules/@icodenet/eval-dashboards/dist/cli/index.js', '--help']);
   // The SQLite store loads node:sqlite lazily; a bundler that strips the node: prefix breaks it only in the built CLI.
   const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
