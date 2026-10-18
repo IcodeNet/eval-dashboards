@@ -188,11 +188,13 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 
 
 
-## Phase 4K: Full historical reports — 2026-10-18
+## Phase 4K: Full historical reports — complete (2026-10-18)
 
-- Planned, not started. History stays file-based (`history.json`) until 4K.1 lands.
-- Direction: a storage adapter with the file store as default and SQLite (`node:sqlite`) as the first optional backend. Redis and Cosmos are not planned. `node:sqlite` needs Node 22.5 or later, while `package.json` still declares Node 20 or later; this must be resolved in 4K.2.
-- Publishing is on hold. No release, including `1.0.0`, until Phase 4K is complete.
+- 4K.1 `HistoryStore` adapter with the JSON file store as default (`src/history/store.ts`).
+- 4K.2 SQLite backend on `node:sqlite` (`src/history/sqlite-store.ts`), chosen by output extension, plus `history-convert` to import and export `history.json`. `node:sqlite` needs Node 22.5 or later; it loads lazily, so `engines` stays `>=20` and Node 20 gets a clear message only when SQLite is requested.
+- 4K.3 `history-report` renders a static trend page filtered by date range, branch and suite, with retention (`--keep-last`, `--max-age-days`, `--prune-to`). See `docs/history-storage.md`.
+- Redis and Cosmos are not planned. The adapter lets one be added later.
+- No release has been published. Publishing stays on hold until the owner releases it.
 - Roadmap 4C.4 stays open: draft PR #9044 awaits the external Rupic review (an AI code-review GitHub App).
 
 ## Verification update — 2026-10-08
