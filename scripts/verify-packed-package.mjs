@@ -46,6 +46,23 @@ console.log('Packed consumer: public types compile; runtime and schema exports w
   run(process.execPath, ['node_modules/typescript/bin/tsc', '--project', 'tsconfig.json']);
   run(process.execPath, ['out/consumer.js']);
   run(process.execPath, ['node_modules/@icodenet/eval-dashboards/dist/cli/index.js', '--help']);
+  // The SQLite store loads node:sqlite lazily; a bundler that strips the node: prefix breaks it only in the built CLI.
+  const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+  if (nodeMajor > 22 || (nodeMajor === 22 && nodeMinor >= 5)) {
+    const cli = 'node_modules/@icodenet/eval-dashboards/dist/cli/index.js';
+    fs.mkdirSync(path.join(temp, 'runs'));
+    fs.writeFileSync(path.join(temp, 'runs', 'run-1.json'), JSON.stringify({
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-10-01T00:00:00.000Z', branch: 'main' },
+      suites: [{ id: 'smoke', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'a', suite: 'smoke', passed: true }],
+    }));
+    run(process.execPath, [cli, 'history', '--input=runs', '--out=history.sqlite']);
+    run(process.execPath, [cli, 'history-convert', '--input=history.sqlite', '--out=history.json']);
+    const exported = JSON.parse(fs.readFileSync(path.join(temp, 'history.json'), 'utf8'));
+    if (exported.length !== 1 || exported[0].run.id !== 'run-1') throw new Error('SQLite history did not round-trip through the packed CLI');
+    console.log('Packed CLI: SQLite history round-trips.');
+  }
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });
 }
