@@ -74,6 +74,10 @@
         "traceUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a",
         "spanUrl": "https://traces.example.local/trace/4f5c7c55f9da4b4a/span/a1e243fbe90c9f5d",
         "spanType": "tool"
+      },
+      "metadata": {
+        "provenance": { "source": "labelled-synthetic", "reason": "Example fixture for documentation.", "sourceRef": "basic-json" },
+        "lifecycle": { "status": "active", "since": "2026-07-29" }
       }
     },
     {
@@ -94,7 +98,11 @@
           "role": "assistant",
           "content": "Q2 balance trend summary delivered."
         }
-      ]
+      ],
+      "metadata": {
+        "provenance": { "source": "labelled-synthetic", "reason": "Example fixture for documentation.", "sourceRef": "basic-json" },
+        "lifecycle": { "status": "active", "since": "2026-07-29" }
+      }
     }
   ]
 }

@@ -105,8 +105,8 @@ const buildReport = (agentVersion: keyof typeof generatedAtByVersion): EvalRepor
         gate: {
           mode: 'blocking',
           thresholds: {
-            overallPassRate: 0.8,
-            maxNewFailures: 0,
+            passRate: 0.8,
+            maxCriticalFailures: 0,
           },
         },
         description: 'Provider-free local chat evals for prompt, tool, and answer quality changes.',
@@ -201,7 +201,7 @@ const buildRows = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2', scenario: Sc
       category: 'tool-use',
       reason: toolPassed ? undefined : `Expected ${scenario.expectedTool} tool use.`,
       durationMs: agentRun.durationMs,
-      metadata: { toolCalls: agentRun.toolCalls },
+      metadata: { toolCalls: agentRun.toolCalls, ...rowGovernance },
     },
     {
       id: `${scenario.id}:judge`,
@@ -224,9 +224,15 @@ const buildRows = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2', scenario: Sc
       category: scenario.category,
       reason: judgeResult.passed ? undefined : judgeResult.reasoning,
       durationMs: 4,
+      metadata: rowGovernance,
     },
   ];
 };
+
+const rowGovernance = {
+  provenance: { source: 'labelled-synthetic', reason: 'Provider-free local chat example' },
+  lifecycle: { status: 'active' },
+} as const;
 
 const buildCalibrationRows = (agentVersion: 'demo-agent-v1' | 'demo-agent-v2'): EvalRow[] =>
   scenarios.map((scenario) => {
