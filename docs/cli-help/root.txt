@@ -7,6 +7,7 @@ Commands:
   check    Enforce eval quality gates.
   merge    Merge discovered reports into one JSON file.
   history  Build history JSON from discovered reports.
+  history-convert  Copy run history between history.json and a SQLite file.
   publish  Publish or dry-run publish for a static dashboard.
   teach    Guided eval onboarding walkthrough (alias of init --preset=agent-quality --teach).
   init     Print starter config or scaffold preset files.

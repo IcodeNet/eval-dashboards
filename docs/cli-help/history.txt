@@ -2,7 +2,8 @@ eval-dashboards history [options]
 
 Options:
   --input=<path>           Artifact directory to read. Default: .evals_output
-  --out=<path>             Output history JSON path. Default: eval-report/history.json
+  --out=<path>             Output history path. Default: eval-report/history.json
+                           A .sqlite, .sqlite3 or .db path writes a SQLite file instead (needs Node 22.5+).
   --bypass-log=<path>      Path to a JSON-lines bypass-usage log (written by `check`/`publish`
                            --bypass-log); when set, each run's history entry gets a
                            `bypassUsage` field counting gate escape hatches used for that run

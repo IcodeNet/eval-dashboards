@@ -339,6 +339,7 @@ Set `cleanOutputDir: true` only when you explicitly want a single-file snapshot 
 | `eval-dashboards check` | Enforce pass-rate, new-failure, critical-severity, and suite-manifest gates |
 | `eval-dashboards publish` | Publish dashboard to dir, github-pages, or Azure Storage (Azure Static Web Apps: dry-run validation only). Hard-fails on unredacted sensitive evidence unless `--redact` or `--allow-sensitive-publish` is set |
 | `eval-dashboards history` | Build a history JSON trend file from discovered artifacts (pass-rate over time, etc.) |
+| `eval-dashboards history-convert` | Copy run history between `history.json` and a SQLite file (`.sqlite`, `.sqlite3`, `.db`; SQLite needs Node 22.5+) |
 | `eval-dashboards merge` | Merge multiple artifacts into one |
 | `eval-dashboards teach` | Guided onboarding walkthrough (alias of `init --preset=agent-quality --teach`) |
 | `eval-dashboards init` | Print a starter config, or scaffold preset files with `--preset=agent-quality --write` |

@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { writeJsonFile } from '../io/reports.js';
 import type { RunHistoryEntry } from './history.js';
 
@@ -27,3 +28,14 @@ export const createFileHistoryStore = (filePath: string): HistoryStore => ({
     await writeJsonFile(filePath, entries);
   },
 });
+
+const SQLITE_EXTENSIONS = new Set(['.sqlite', '.sqlite3', '.db']);
+
+/** Picks the SQLite store for `.sqlite`, `.sqlite3` and `.db` paths and the file store otherwise. */
+export const createHistoryStoreForPath = async (filePath: string): Promise<HistoryStore> => {
+  if (!SQLITE_EXTENSIONS.has(path.extname(filePath).toLowerCase())) {
+    return createFileHistoryStore(filePath);
+  }
+  const { createSqliteHistoryStore } = await import('./sqlite-store.js');
+  return createSqliteHistoryStore(filePath);
+};

@@ -10,6 +10,7 @@ These files are exact snapshots of live CLI `--help` output.
 - `init.txt`
 - `lint.txt`
 - `merge.txt`
+- `history-convert.txt`
 - `history.txt`
 - `report-index.txt`
 - `completion.txt`
