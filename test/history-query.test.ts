@@ -53,6 +53,25 @@ describe('queryHistory', () => {
     expect(ids(queryHistory(shuffled))).toEqual(['r1', 'r2', 'r3', 'r4']);
   });
 
+  it('should include runs made on the until day when until is a plain date', () => {
+    const entries = buildHistory([makeReport('same-day', '2026-03-01T10:00:00Z', 'main', 'safety', true)]);
+
+    expect(ids(queryHistory(entries, { until: '2026-03-01' }))).toEqual(['same-day']);
+  });
+
+  it('should exclude runs after an exact until timestamp when until has a time', () => {
+    const entries = buildHistory([makeReport('later', '2026-03-01T10:00:00Z', 'main', 'safety', true)]);
+
+    expect(ids(queryHistory(entries, { until: '2026-03-01T09:59:59Z' }))).toEqual([]);
+  });
+
+  it('should throw a clear error when a stored entry has an unreadable generatedAt', () => {
+    const [entry] = buildHistory([makeReport('bad', '2026-03-01T10:00:00Z', 'main', 'safety', true)]);
+    const broken = { ...entry!, run: { ...entry!.run, generatedAt: 'not-a-date' } };
+
+    expect(() => queryHistory([broken], { since: '2025-01-01' })).toThrow('invalid generatedAt');
+  });
+
   it('should throw a clear error when a date is not valid', () => {
     expect(() => queryHistory(makeEntries(), { since: 'last week' })).toThrow('--since must be an ISO date');
   });
