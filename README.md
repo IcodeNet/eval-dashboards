@@ -1,3 +1,12 @@
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/eval-dashboards-logo-dark.svg">
+  <img src="docs/images/eval-dashboards-logo.svg" alt="eval-dashboards" width="420">
+</picture>
+
+</div>
+
 # @icodenet/eval-dashboards
 
 [![npm](https://img.shields.io/npm/v/@icodenet/eval-dashboards)](https://www.npmjs.com/package/@icodenet/eval-dashboards)
@@ -5,6 +14,17 @@
 [![Node ≥ 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
+
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/langfuse/langfuse-wordart-white.svg">
+  <img src="docs/images/langfuse/langfuse-wordart.svg" alt="Langfuse" height="34">
+</picture>
+
+<sub>eval-dashboards is an independent tool. It is not made, sponsored or endorsed by Langfuse. The Langfuse name and logo belong to Langfuse GmbH / Finto Technologies Inc. and are shown unmodified, only to say which product the Langfuse import and guide work with.</sub>
+
+</div>
 
 Docs site (start here):
 - Live: https://icodenet.github.io/eval-dashboards/v1/
@@ -163,6 +183,18 @@ The HTML dashboard is fully responsive and works in both light and dark themes. 
 | Light Theme | Dark Theme |
 |---|---|
 | ![Light dashboard snapshot](docs/images/report-default.png) | ![Dark dashboard snapshot](docs/images/report-dark.png) |
+
+### Long-range history
+
+`history-report` turns stored history (`history.json` or SQLite) into a static trend page. These images come from 26 weekly runs; see [docs/history-storage.md](docs/history-storage.md).
+
+| All runs | Filtered: branch `main`, suite `tool-use`, since March |
+|---|---|
+| ![History trend over 26 weekly runs](docs/images/history-trend.png) | ![History trend filtered by branch, suite and date](docs/images/history-trend-filtered.png) |
+
+| Newest 8 runs (retention) | Dark theme |
+|---|---|
+| ![History trend limited to the newest 8 runs](docs/images/history-trend-recent.png) | ![History trend in dark theme](docs/images/history-trend-dark.png) |
 
 ### Features Visible in Dashboard
 
