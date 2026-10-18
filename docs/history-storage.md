@@ -29,6 +29,28 @@ eval-dashboards history-convert --input=eval-report/history.sqlite --out=eval-re
 
 Converting in either direction gives byte-identical `history.json` output.
 
+## Long-range trend report
+
+`history-report` reads any store, filters it, and writes a static HTML trend page: a pass-rate chart plus a table of runs.
+
+```sh
+eval-dashboards history-report --input=eval-report/history.sqlite \
+  --since=2026-01-01 --until=2026-06-30 --branch=main --suite=safety \
+  --out=eval-report/history-trend.html
+```
+
+| Flag | Effect |
+|---|---|
+| `--since`, `--until` | Keep runs inside an ISO date range |
+| `--branch` | Keep runs from one branch |
+| `--suite` | Keep runs that include the suite. The chart then uses that suite's own pass rate |
+| `--keep-last` | Retention: keep only the newest N runs |
+| `--max-age-days` | Retention: drop runs older than N days |
+| `--prune-to` | Write the retained history to a file (JSON or SQLite) |
+| `--locale` | BCP 47 locale tag for dates on the page, such as `en-GB` (default) or `de-DE` |
+
+Retention applies before the query. `--prune-to` writes the retained history, not only the matching runs, so a branch filter never deletes other branches' history. The page is built offline and needs no server.
+
 ## Keep history.json for rollups
 
 `org-rollup` and published static reports read `history.json` only. Export SQLite to `history.json` before using them.

@@ -1,0 +1,18 @@
+eval-dashboards history-report --input=<path> [options]
+
+Render a static trend page from stored run history (history.json or SQLite).
+Filter by date range, branch and suite. Optionally drop old runs and write the
+kept history back with --prune-to.
+
+Options:
+  --input=<path>           History file to read (required)
+  --out=<path>             Output HTML path. Default: eval-report/history-trend.html
+  --since=<date>           Keep runs generated at or after this ISO date
+  --until=<date>           Keep runs generated at or before this ISO date
+  --branch=<name>          Keep runs from this branch
+  --suite=<name>           Keep runs that include this suite; chart uses that suite's pass rate
+  --keep-last=<number>     Retention: keep only the newest N runs
+  --max-age-days=<number>  Retention: drop runs older than this many days
+  --prune-to=<path>        Write the retained history to this file (history.json or SQLite)
+  --locale=<tag>           BCP 47 locale for dates. Default: en-GB
+
