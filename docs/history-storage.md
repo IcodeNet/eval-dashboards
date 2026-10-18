@@ -41,7 +41,7 @@ eval-dashboards history-report --input=eval-report/history.sqlite \
 
 | Flag | Effect |
 |---|---|
-| `--since`, `--until` | Keep runs inside an ISO date range |
+| `--since`, `--until` | Keep runs inside an ISO date range. A date with no time, such as `2026-06-30`, covers that whole day in `--until` |
 | `--branch` | Keep runs from one branch |
 | `--suite` | Keep runs that include the suite. The chart then uses that suite's own pass rate |
 | `--keep-last` | Retention: keep only the newest N runs |
@@ -97,7 +97,9 @@ SQLite uses the `node:sqlite` module built into Node. It is still marked experim
 
 ## SQLite layout
 
-Each run is one row in `runs` holding the full entry as JSON. Date, branch and suite are separate indexed columns for range queries. The `meta` table records a `schemaVersion` of 1.
+Each run is one row in `runs` holding the full entry as JSON. Date, branch and suite are separate indexed columns for range queries, and a `position` column keeps the order entries were written in, so runs with the same timestamp come back in the order you wrote them. The `meta` table records the `schemaVersion` (now 2). A file written by schema version 1 still reads; the next write upgrades it in place.
+
+Several processes can write to one file. A writer waits up to 10 seconds for another to finish before it fails with `database is locked`.
 
 ## Adding another store
 

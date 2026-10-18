@@ -337,7 +337,7 @@ Options:
   --input=<path>           History file to read (required)
   --out=<path>             Output HTML path. Default: eval-report/history-trend.html
   --since=<date>           Keep runs generated at or after this ISO date
-  --until=<date>           Keep runs generated at or before this ISO date
+  --until=<date>           Keep runs generated at or before this ISO date; a date with no time covers that whole day
   --branch=<name>          Keep runs from this branch
   --suite=<name>           Keep runs that include this suite; chart uses that suite's pass rate
   --keep-last=<number>     Retention: keep only the newest N runs

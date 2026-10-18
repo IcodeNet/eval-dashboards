@@ -1,4 +1,6 @@
+import { spawn } from 'node:child_process';
 import { mkdtemp } from 'node:fs/promises';
+import { DatabaseSync } from 'node:sqlite';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -52,4 +54,61 @@ describe('sqlite history store', () => {
 
     expect(await sqlite.read()).toEqual(await file.read());
   });
+
+  it('should keep the written order when two runs share the same timestamp', async () => {
+    const store = createSqliteHistoryStore(await makeDbPath());
+    const tied = [
+      ...buildHistory([makeReport('run-b', '2026-01-01T10:00:00Z', 'main')]),
+      ...buildHistory([makeReport('run-a', '2026-01-01T10:00:00Z', 'main')]),
+    ];
+
+    await store.write(tied);
+
+    expect((await store.read()).map((entry) => entry.run.id)).toEqual(['run-b', 'run-a']);
+  });
+
+  it('should read a file written by the first schema version when it has no position column', async () => {
+    const dbPath = await makeDbPath();
+    const entries = makeEntries();
+    await createSqliteHistoryStore(dbPath).write(entries.slice(0, 1));
+    const db = new DatabaseSync(dbPath);
+    db.exec('DROP INDEX runs_position; ALTER TABLE runs DROP COLUMN position;');
+    db.close();
+
+    const read = await createSqliteHistoryStore(dbPath).read();
+
+    expect(read.map((entry) => entry.run.id)).toEqual(['run-1']);
+  });
+
+  it('should upgrade a first-version file in place when it is written again', async () => {
+    const dbPath = await makeDbPath();
+    const entries = makeEntries();
+    await createSqliteHistoryStore(dbPath).write(entries);
+    const db = new DatabaseSync(dbPath);
+    db.exec('DROP INDEX runs_position; ALTER TABLE runs DROP COLUMN position;');
+    db.close();
+
+    await createSqliteHistoryStore(dbPath).write(entries);
+
+    expect(await createSqliteHistoryStore(dbPath).read()).toEqual(entries);
+  });
+
+  it('should wait for another process instead of failing when the database is locked briefly', async () => {
+    const dbPath = await makeDbPath();
+    const store = createSqliteHistoryStore(dbPath);
+    await store.write(makeEntries());
+    const holder = spawn(process.execPath, [
+      '-e',
+      `const { DatabaseSync } = require('node:sqlite');
+       const db = new DatabaseSync(${JSON.stringify(dbPath)});
+       db.exec('BEGIN IMMEDIATE');
+       console.log('locked');
+       setTimeout(() => { db.exec('COMMIT'); db.close(); }, 600);`,
+    ]);
+    await new Promise<void>((resolve) => holder.stdout.once('data', () => resolve()));
+
+    await expect(store.write(makeEntries())).resolves.toBeUndefined();
+
+    holder.kill();
+  }, 20_000);
 });

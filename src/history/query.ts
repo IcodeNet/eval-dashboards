@@ -29,6 +29,8 @@ export type TrendPoint = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 const parseDate = (label: string, value: string): number => {
   const time = Date.parse(value);
   if (Number.isNaN(time)) {
@@ -37,17 +39,28 @@ const parseDate = (label: string, value: string): number => {
   return time;
 };
 
-const byDate = (left: RunHistoryEntry, right: RunHistoryEntry): number =>
-  Date.parse(left.run.generatedAt) - Date.parse(right.run.generatedAt);
+/** A date with no time (2026-06-30) covers that whole day, so --until includes runs made on it. */
+const endOfRange = (value: string): number =>
+  parseDate('--until', value) + (DATE_ONLY.test(value) ? DAY_MS - 1 : 0);
+
+const generatedAtOf = (entry: RunHistoryEntry): number => {
+  const time = Date.parse(entry.run.generatedAt);
+  if (Number.isNaN(time)) {
+    throw new Error(`History entry "${entry.run.id}" has an invalid generatedAt "${entry.run.generatedAt}".`);
+  }
+  return time;
+};
+
+const byDate = (left: RunHistoryEntry, right: RunHistoryEntry): number => generatedAtOf(left) - generatedAtOf(right);
 
 /** Filters history by date range, branch and suite, returning entries oldest to newest. */
 export const queryHistory = (entries: RunHistoryEntry[], query: HistoryQuery = {}): RunHistoryEntry[] => {
   const since = query.since === undefined ? undefined : parseDate('--since', query.since);
-  const until = query.until === undefined ? undefined : parseDate('--until', query.until);
+  const until = query.until === undefined ? undefined : endOfRange(query.until);
 
   return entries
     .filter((entry) => {
-      const generatedAt = Date.parse(entry.run.generatedAt);
+      const generatedAt = generatedAtOf(entry);
       if (since !== undefined && generatedAt < since) return false;
       if (until !== undefined && generatedAt > until) return false;
       if (query.branch !== undefined && entry.run.branch !== query.branch) return false;
@@ -70,7 +83,7 @@ export const applyRetention = (entries: RunHistoryEntry[], retention: HistoryRet
   let kept = [...entries].sort(byDate);
   if (maxAgeDays !== undefined) {
     const cutoff = (retention.now ?? new Date()).getTime() - maxAgeDays * DAY_MS;
-    kept = kept.filter((entry) => Date.parse(entry.run.generatedAt) >= cutoff);
+    kept = kept.filter((entry) => generatedAtOf(entry) >= cutoff);
   }
   if (keepLast !== undefined) kept = kept.slice(-keepLast);
   return kept;
