@@ -43,6 +43,7 @@
   "scripts": {
     "assets:regenerate": "tsx scripts/regenerate-release-assets.ts",
     "assets:verify": "tsx scripts/verify-release-assets.ts",
+    "a11y:verify": "tsx scripts/verify-report-a11y.ts",
     "artifacts:report-power": "./scripts/generate-report-power-artifacts.sh",
     "build": "tsup",
     "cli": "node dist/cli/index.js",
@@ -98,6 +99,7 @@
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@types/node": "^24.0.0",
+    "axe-core": "4.14.0",
     "lefthook": "^2.0.0",
     "playwright": "^1.55.0",
     "tsup": "^8.4.0",
