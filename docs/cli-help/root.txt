@@ -23,3 +23,6 @@ Commands:
   evidence-verify   Independently re-validate a previously produced evidence bundle.
   schema   Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.
 
+Options:
+  --version, -v  Print the installed version.
+

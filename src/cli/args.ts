@@ -150,6 +150,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
   sign: ['--artifact', '--out'],
   verify: ['--artifact', '--signature', '--certificate-identity-regexp', '--certificate-oidc-issuer'],
   schema: [],
+  version: [],
   'evidence-verify': ['--bundle'],
 };
 

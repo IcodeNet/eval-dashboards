@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `eval-dashboards --version`, `-v` and `version` print the installed version, for bug reports.
 - **Per-suite thresholds.** `gates.suites` in the config file sets `minPassRate` and `maxNewFailures` for each suite, on top of the global gates. A suite named there that is missing from the run fails the gate, and `--baseline-gate-config` treats a looser per-suite bar as a loosening.
 - `check --step-summary-out=<path>` appends a Markdown gate summary to a file, for example `$GITHUB_STEP_SUMMARY`.
 - `evidence-export --redact` embeds a redacted copy of the report (public tier only). The entry carries `redacted: true` and a `sourceDigest`, the sha256 of the original file. The bundle still verifies. Without the flag the bundle still embeds the full report.
