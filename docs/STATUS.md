@@ -116,15 +116,15 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
-### Phase 4L Astro docs site (next deliverable; 4L.1 to 4L.4 done, 4L.5 not started)
+### Phase 4L Astro docs site (complete)
 
 - [x] 4L.1 Astro project that renders `docs/` Markdown, keeps every `docs-site/v1/` URL, and updates the stack decision record (`docs-site/`, `test/docs-site.test.ts`, live site checked 2026-10-19).
 - [x] 4L.2 Left sidebar built from one data file, with a test that no page is orphaned (`docs-site/src/data/sidebar.mjs`, `test/docs-sidebar.test.ts`).
 - [x] 4L.3 Full-text search index built from all published pages (`docs-site/src/pages/search-index.json.ts`, `docs-site/public/search-core.mjs`, `test/docs-search.test.ts`).
 - [x] 4L.4 Glossary data file, glossary page, and first-use links (`docs-site/src/data/glossary.mjs`, `docs-site/src/plugins/glossary-links.mjs`, `test/docs-glossary.test.ts`).
-- [ ] 4L.5 Docs checks and a deploy gate in the Pages workflow.
+- [x] 4L.5 Docs checks and a deploy gate in the Pages workflow (`docs-site/scripts/check-site.mjs`, `.github/workflows/ci.yml`, `.github/workflows/docs-site-pages.yml`).
 
-Takes precedence over the other open items. Details and acceptance criteria: `docs/ROADMAP.md` Phase 4L.
+Details and evidence: `docs/ROADMAP.md` Phase 4L.
 
 ### Phase 4B setup automation checklist (complete)
 

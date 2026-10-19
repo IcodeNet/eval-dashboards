@@ -19,7 +19,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4 (Core Shipping & Adoption Infrastructure): COMPLETE](#-phase-4-core-shipping--adoption-infrastructure-complete)
 - [Phase 4A: Reference Integration Proving Ground & Setup Layer](#-phase-4a-reference-integration-proving-ground--setup-layer-partially-complete-next-slices-remain)
 - [Phase 4B: CLI Setup Automation for Agent Evals](#-phase-4b-cli-setup-automation-for-agent-evals-expansion-of-existing-init)
-- [Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE; 4L.1 DONE)](#-phase-4l-astro-docs-site-with-search-glossary-and-sidebar-next-deliverable-4l1-done)
+- [Phase 4L: Astro docs site with search, glossary and sidebar (COMPLETE)](#-phase-4l-astro-docs-site-with-search-glossary-and-sidebar-complete)
 - [Phase 4C: Product Docs Website + Interoperability Guides](#-phase-4c-product-docs-website--interoperability-guides-new)
 - [Phase 4E: Trust hardening for CI gating and eval methodology](#-phase-4e-trust-hardening-for-ci-gating-and-eval-methodology-new)
 - [Phase 4G: Teaching curriculum consistency](#-phase-4g-teaching-curriculum-consistency-new)
@@ -30,10 +30,6 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 - [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
 
-> **Priority:** Phase 4L is the next deliverable and takes precedence over every
-> open item in the phases below. It is placed first in the table of contents and
-> physically before Phase 4C.
->
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
 > Phase letters were assigned when each initiative was scoped, and later
@@ -506,9 +502,7 @@ Rationale (2026-10-06 scan): Promptfoo shipped eval robustness fixes for partial
 
 ---
 
-## 🚧 Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE; 4L.1 DONE)
-
-**Priority: next deliverable. Takes precedence over all other open roadmap items.**
+## ✅ Phase 4L: Astro docs site with search, glossary and sidebar (COMPLETE)
 
 **Why**: the published docs at GitHub Pages are 11 hand-written HTML pages in `docs-site/v1/`. The repo holds 86 Markdown files under `docs/`. A reader of the site cannot reach most of them. Checked against the code on 2026-10-19:
 
@@ -576,14 +570,14 @@ Acceptance criteria:
 
 ### 4L.5 Checks and Pages deploy gate (P0)
 
-- [ ] Add a docs check, run in CI before deploy, that fails on a broken internal link, a missing asset, an orphan page, or a glossary link to nothing.
-- [ ] Keep `docs:flags`, `teach:verify` and the docs-commands test passing, since the site renders the same Markdown.
-- [ ] Record Node and Astro versions in the lockfile and pin the Astro version.
-- [ ] Verify the deployed site from the raw GitHub Actions log, as `CHECKS_LEDGER.md` requires for workflow changes, and open the live URL to confirm search, sidebar and glossary work.
+- [x] Add a docs check, run in CI before deploy, that fails on a broken internal link, a missing asset, a missing `#anchor`, or an orphan page. A glossary link to a missing entry is a missing anchor, so it is covered. Evidence: `docs-site/scripts/check-site.mjs`, `test/docs-site.test.ts`; `.github/workflows/ci.yml` runs it on every pull request, and `.github/workflows/docs-site-pages.yml` runs it before the deploy step. Tried and failed as intended: a planted broken link, a planted missing anchor, a planted orphan page, and a broken link written into `docs/faq.md`.
+- [x] Keep `docs:flags`, `teach:verify` and the docs-commands test passing, since the site renders the same Markdown. Evidence: all three pass in CI on the merged Phase 4L pull requests.
+- [x] Pin the Astro version. Evidence: `docs-site/package.json` pins `astro` 7.4.0, `satteri` 0.10.5 and `@astrojs/markdown-satteri` 0.4.4 exactly, and `pnpm-lock.yaml` records them. The Node floor (22.22) is in `docs-site/package.json` `engines`; the Pages workflow uses `22.x`, which resolved to 22.23.3 when checked.
+- [x] Verify the deployed site from the raw GitHub Actions log and open the live URL. Evidence: the deploy run logs for the 4L.1, 4L.2, 4L.3 and 4L.4 merges show the page build, "Docs site check passed" and the deploy step, and each time the live URLs, the search index and the sidebar and glossary markup were fetched and checked. Search was exercised in a browser against a local build, not against the live site.
 
 Acceptance criteria:
 
-- A broken link in `docs/` fails the pull request and does not reach the live site.
+- A broken link in `docs/` fails the pull request and does not reach the live site. Met: the check runs in the pull request CI and before the deploy step, and a broken link written into `docs/faq.md` failed it.
 
 Out of scope for 4L: translations, multi-version docs (revisit trigger 2 of the stack decision), and any hosted search service.
 
