@@ -18,7 +18,19 @@ export interface HistoryStore {
 /** Stores history as one `history.json` file, the format `org-rollup` reads. */
 export const createFileHistoryStore = (filePath: string): HistoryStore => ({
   async read() {
-    const parsed = parseJsonFile(await readFile(filePath, 'utf8'), filePath, 'History file');
+    let raw: string;
+    try {
+      raw = await readFile(filePath, 'utf8');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw Object.assign(
+          new Error(`History file ${filePath} was not found. Create it with "eval-dashboards history --out=${filePath}".`),
+          { exitCode: 2 },
+        );
+      }
+      throw error;
+    }
+    const parsed = parseJsonFile(raw, filePath, 'History file');
     if (!Array.isArray(parsed)) {
       throw new Error(`History file ${filePath} must contain a JSON array.`);
     }

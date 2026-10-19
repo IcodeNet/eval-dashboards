@@ -57,3 +57,15 @@ describe('file history store with a corrupt file', () => {
     });
   });
 });
+
+describe('file history store with a missing file', () => {
+  it('should say the file was not found and how to create it when history.json is missing', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'history-store-'));
+    const file = path.join(dir, 'history.json');
+
+    await expect(createFileHistoryStore(file).read()).rejects.toMatchObject({
+      message: expect.stringContaining(`History file ${file} was not found`),
+      exitCode: 2,
+    });
+  });
+});
