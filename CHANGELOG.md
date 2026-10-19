@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `gates.allowLoosening: true` in the config file was ignored, so an approved loosening still failed the gate. It now takes effect, as the docs said.
 - `history-report` and `history-convert` now say how to create the history file when it is missing, instead of a bare `ENOENT` message.
 - A failing notification webhook no longer prints the reply body, which could contain a secret. Only the status code is shown.
 - Terminal control codes in artifact text (colour, cursor and title codes, carriage returns) are stripped from gate failures and diagnostics, so a crafted artifact cannot forge or clear CI log lines.
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Per-suite thresholds.** `gates.suites` in the config file sets `minPassRate` and `maxNewFailures` for each suite, on top of the global gates. A suite named there that is missing from the run fails the gate, and `--baseline-gate-config` treats a looser per-suite bar as a loosening.
 - `check --step-summary-out=<path>` appends a Markdown gate summary to a file, for example `$GITHUB_STEP_SUMMARY`.
 - `evidence-export --redact` embeds a redacted copy of the report (public tier only). The entry carries `redacted: true` and a `sourceDigest`, the sha256 of the original file. The bundle still verifies. Without the flag the bundle still embeds the full report.
 

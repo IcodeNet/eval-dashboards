@@ -1357,6 +1357,8 @@ const main = async (): Promise<void> => {
       failOnWarningCodes: fileConfig.gates?.failOnWarningCodes,
       newFailureKey: fileConfig.gates?.newFailureKey,
       requiredPassingSuites: fileConfig.gates?.requiredPassingSuites,
+      suites: fileConfig.gates?.suites,
+      allowLoosening: fileConfig.gates?.allowLoosening,
       statistical: {
         mode: statisticalModeFromOptions(options) ?? fileConfig.gates?.statistical?.mode,
         confidenceLevel:

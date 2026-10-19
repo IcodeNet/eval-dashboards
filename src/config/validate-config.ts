@@ -24,6 +24,7 @@ const CONFIG_KEYS: KeyTree = {
     failOnWarningCodes: null,
     newFailureKey: null,
     requiredPassingSuites: null,
+    suites: null,
     allowLoosening: null,
     statistical: { mode: null, confidenceLevel: null, bootstrapSamples: null, minPassRateDelta: null },
     repeat: { runs: null, requiredPasses: null },

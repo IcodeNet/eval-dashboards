@@ -15,6 +15,15 @@ export type NewFailureKeyMode =
   | 'scenario-category'
   | 'id-category';
 
+export type SuiteGateConfig = {
+  /** Minimum pass rate for this suite alone. */
+  minPassRate?: number;
+  /** Most rows of this suite that may newly fail against the baseline. */
+  maxNewFailures?: number;
+};
+
+const SUITE_GATE_KEYS = ['minPassRate', 'maxNewFailures'] as const;
+
 export type GateConfig = {
   minPassRate?: number;
   /**
@@ -34,6 +43,11 @@ export type GateConfig = {
   failOnWarningCodes?: string[];
   newFailureKey?: NewFailureKeyMode;
   requiredPassingSuites?: string[];
+  /**
+   * Thresholds for one suite, keyed by suite id. They apply on top of the global ones, so a suite can be held to a
+   * stricter bar than the rest of the run. A suite named here that is missing from the run fails the gate.
+   */
+  suites?: Record<string, SuiteGateConfig>;
   /**
    * Escape hatch for 4F.6 threshold-change detection: explicitly approve a
    * loosening of thresholds relative to the recorded baseline gate config
@@ -89,6 +103,21 @@ export const validateGateConfig = (config: GateConfig): string[] => {
   }
   for (const [code, value] of Object.entries(config.maxWarningsByCode ?? {})) {
     if (!Number.isInteger(value) || value < 0) errors.push(`maxWarningsByCode.${code} must be a non-negative integer.`);
+  }
+  for (const [suite, suiteConfig] of Object.entries(config.suites ?? {})) {
+    for (const key of Object.keys(suiteConfig ?? {})) {
+      if (!(SUITE_GATE_KEYS as readonly string[]).includes(key)) {
+        errors.push(`suites.${suite}.${key} is not a per-suite setting. Allowed: ${SUITE_GATE_KEYS.join(', ')}.`);
+      }
+    }
+    const rate = suiteConfig?.minPassRate;
+    if (rate !== undefined && (typeof rate !== 'number' || !Number.isFinite(rate) || rate < 0 || rate > 1)) {
+      errors.push(`suites.${suite}.minPassRate must be a finite number between 0 and 1.`);
+    }
+    const budget = suiteConfig?.maxNewFailures;
+    if (budget !== undefined && (!Number.isInteger(budget) || budget < 0)) {
+      errors.push(`suites.${suite}.maxNewFailures must be a non-negative integer.`);
+    }
   }
   return errors;
 };
@@ -211,6 +240,32 @@ export const checkGates = (
 
   if (config.zeroCritical === true && summary.severityCounts.critical > 0) {
     failures.push(`Critical failures ${summary.severityCounts.critical} exceed allowed 0.`);
+  }
+
+  for (const [suiteName, suiteConfig] of Object.entries(config.suites ?? {})) {
+    const suiteSummary = report.suites.find((suite) => suite.id === suiteName || suite.name === suiteName);
+    if (!suiteSummary) {
+      failures.push(`Suite "${suiteName}" has a threshold in gates.suites but is missing from this run.`);
+      continue;
+    }
+    const suitePassRate = suiteSummary.total > 0 ? suiteSummary.passed / suiteSummary.total : 0;
+    if (suiteConfig.minPassRate !== undefined && suitePassRate < suiteConfig.minPassRate) {
+      failures.push(
+        `Suite "${suiteName}" pass rate ${suitePassRate.toFixed(3)} is below required ${suiteConfig.minPassRate.toFixed(3)}.`,
+      );
+    }
+    if (suiteConfig.maxNewFailures !== undefined) {
+      const suiteNewFailures = new Set(
+        comparison.newlyFailing
+          .filter((row) => row.suite === suiteName)
+          .map((row) => canonicalFailureKey(row.suite, row.id, row.scenarioId, row.category, newFailureKeyMode)),
+      ).size;
+      if (suiteNewFailures > suiteConfig.maxNewFailures) {
+        failures.push(
+          `Suite "${suiteName}" has ${suiteNewFailures} new failure(s), above the allowed ${suiteConfig.maxNewFailures}.`,
+        );
+      }
+    }
   }
 
   const shouldFailOnBlockedBaseline = config.failOnBaselineBlocked !== false;

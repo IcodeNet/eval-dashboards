@@ -146,6 +146,36 @@ const maxWarningsByCodeChanges = (
   return changes;
 };
 
+const suiteThresholdChanges = (
+  baselineValue: GateConfig['suites'],
+  resolvedValue: GateConfig['suites'],
+): ThresholdChange[] => {
+  const changes: ThresholdChange[] = [];
+  const suites = new Set([...Object.keys(baselineValue ?? {}), ...Object.keys(resolvedValue ?? {})]);
+  for (const suite of suites) {
+    const before = baselineValue?.[suite];
+    const after = resolvedValue?.[suite];
+    for (const [key, looserWhen] of [
+      ['minPassRate', 'lower'],
+      ['maxNewFailures', 'higher'],
+    ] as const) {
+      const field = `suites.${suite}.${key}`;
+      const change = numberField(field, before?.[key], after?.[key], looserWhen);
+      if (change) changes.push(change);
+      if (before?.[key] !== undefined && after?.[key] === undefined) {
+        changes.push({
+          field,
+          baselineValue: before[key],
+          resolvedValue: undefined,
+          direction: 'loosened',
+          description: `${field} removed (was ${before[key]}).`,
+        });
+      }
+    }
+  }
+  return changes;
+};
+
 const failOnWarningCodesChange = (
   baselineValue: string[] | undefined,
   resolvedValue: string[] | undefined,
@@ -218,6 +248,7 @@ export const detectGateConfigLoosening = (
   push(requiredPassingSuitesChange(baseline.requiredPassingSuites, resolved.requiredPassingSuites));
   push(failOnWarningCodesChange(baseline.failOnWarningCodes, resolved.failOnWarningCodes));
   changes.push(...maxWarningsByCodeChanges(baseline.maxWarningsByCode, resolved.maxWarningsByCode));
+  changes.push(...suiteThresholdChanges(baseline.suites, resolved.suites));
 
   push(
     numberField(
