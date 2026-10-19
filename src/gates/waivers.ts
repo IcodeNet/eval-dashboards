@@ -224,11 +224,17 @@ export const applyWaivers = (
     };
   }
 
+  const waived = (row: EvalRow): boolean => waivedRowKeys.has(`${row.suite}:${row.id}`) && !row.passed;
+  const rows = report.rows.map((row) => (waived(row) ? { ...row, passed: true, severity: undefined } : row));
   const reportForGating: EvalReportV1 = {
     ...report,
-    rows: report.rows.map((row) =>
-      waivedRowKeys.has(`${row.suite}:${row.id}`) && !row.passed ? { ...row, passed: true } : row,
-    ),
+    rows,
+    suites: report.suites.map((suite) => {
+      const own = rows.filter((row) => row.suite === suite.id || row.suite === suite.name);
+      if (own.length === 0) return suite;
+      const passed = own.filter((row) => row.passed).length;
+      return { ...suite, passed, failed: own.length - passed };
+    }),
   };
 
   return { reportForGating, active, expired, unmatched, failures, diagnostics };

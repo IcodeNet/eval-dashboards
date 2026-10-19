@@ -187,3 +187,52 @@ describe('applyWaivers', () => {
     expect(result.active).toHaveLength(0);
   });
 });
+
+describe('applyWaivers reportForGating', () => {
+  const register: WaiverRegisterV1 = {
+    schemaVersion: 'eval-waiver-register/v1',
+    waivers: [
+      {
+        id: 'w-safety',
+        suite: 'quality',
+        rowId: 'safety',
+        reason: 'known judge miss',
+        riskOwner: 'a@example.com',
+        ticket: 'T-1',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      },
+    ],
+  };
+
+  it('should recount the suite when a waived row stops failing', () => {
+    const { reportForGating } = applyWaivers(report, register);
+
+    expect(reportForGating.suites).toEqual([{ id: 'quality', total: 2, passed: 2, failed: 0 }]);
+  });
+
+  it('should clear the severity of a waived row so a critical gate does not count it', () => {
+    const { reportForGating } = applyWaivers(report, register);
+
+    expect(reportForGating.rows.map((row) => row.severity)).toEqual([undefined, undefined]);
+  });
+
+  it('should leave the original report untouched when waivers are applied', () => {
+    applyWaivers(report, register);
+
+    expect(report.suites).toEqual([{ id: 'quality', total: 2, passed: 1, failed: 1 }]);
+    expect(report.rows[1]?.severity).toBe('critical');
+  });
+
+  it('should leave an unwaived failing row failing when only another row is waived', () => {
+    const twoFailures: EvalReportV1 = {
+      ...report,
+      suites: [{ id: 'quality', total: 3, passed: 1, failed: 2 }],
+      rows: [...report.rows, { id: 'other', suite: 'quality', passed: false, severity: 'high' }],
+    };
+
+    const { reportForGating } = applyWaivers(twoFailures, register);
+
+    expect(reportForGating.suites).toEqual([{ id: 'quality', total: 3, passed: 2, failed: 1 }]);
+    expect(reportForGating.rows[2]).toMatchObject({ id: 'other', passed: false, severity: 'high' });
+  });
+});
