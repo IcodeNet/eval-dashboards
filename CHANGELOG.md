@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `history-report` and `history-convert` now say how to create the history file when it is missing, instead of a bare `ENOENT` message.
 - A failing notification webhook no longer prints the reply body, which could contain a secret. Only the status code is shown.
 - Terminal control codes in artifact text (colour, cursor and title codes, carriage returns) are stripped from gate failures and diagnostics, so a crafted artifact cannot forge or clear CI log lines.
 - A broken eval report or `history.json` now fails with the file name and a fix, not a bare JSON parser message.
