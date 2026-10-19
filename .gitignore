@@ -29,3 +29,6 @@ examples/**/dist/
 eval-reports.code-workspace
 .tmp/
 .hermes/
+
+# Astro generated files
+docs-site/.astro/

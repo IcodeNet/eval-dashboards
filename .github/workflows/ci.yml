@@ -77,6 +77,11 @@ jobs:
       - name: Verify every CLI flag is documented outside generated help
         run: pnpm docs:flags
 
+      - name: Build docs site and check its links
+        run: |
+          pnpm docs:build
+          pnpm docs:check
+
       - name: Dependency audit (fails on high/critical)
         run: pnpm audit --audit-level=high
 
