@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Automatic baseline selection now skips runs that share no suite with the current run.** Before, the default rolling baseline could be a run of a different suite, which made the comparison meaningless. If no earlier run shares a suite, there is no baseline, so every failing row counts as newly failing and `--max-new-failures` can fail where it used to compare against an unrelated run. Pass `--baseline-run-id` to pick a baseline on purpose.
 - **Unknown keys in the config file now fail with exit 2.** A misspelled key such as `gates.minPassRat` used to be ignored, which silently turned that gate off. The error names the key and suggests the closest valid one. If your config has extra keys, remove them or fix the spelling.
 
 ### Fixed

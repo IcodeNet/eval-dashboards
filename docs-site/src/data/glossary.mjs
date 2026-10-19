@@ -42,7 +42,7 @@ export const GLOSSARY = [
   {
     term: 'Rolling baseline',
     definition:
-      'The default strategy: the baseline is the latest earlier run, skipping calibration runs. Runs with a different mode are skipped too, when the current run sets one.',
+      'The default strategy: the baseline is the latest earlier run that shares a suite with the current run. Calibration runs are skipped, and so are runs with a different mode when the current run sets one.',
     page: 'gates',
   },
   {

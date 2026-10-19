@@ -278,6 +278,8 @@ Baseline-aware options:
 - `--baseline-strategy=rolling|champion`: choose baseline from discovered prior runs when `--baseline-run-id` is omitted.
 - `--baseline-lookback=<n>`: restrict baseline candidates to the most recent `n` prior runs before strategy selection.
 
+Automatic baseline selection only considers earlier runs that share at least one suite with the current run, and it skips calibration runs. A run of a different suite is never picked, because comparing across suites would report rows as new or disappeared when nothing changed. The lookback window counts only those runs. If no earlier run shares a suite, there is no baseline and every failing row counts as newly failing. Use `--baseline-run-id` to compare against a specific run on purpose. A run with no suites and no rows matches any earlier run.
+
 Statistical gate options (opt-in):
 
 - `--statistical-mode=off|bootstrap`: enable confidence-aware pass-rate delta gating (default `off`).
