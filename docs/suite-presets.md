@@ -68,7 +68,7 @@ Use these presets across three tiers:
 
 Generate reports after artifacts are emitted. Deploy workflows should fail if the expected generated dashboard is missing instead of publishing a placeholder or stale report.
 
-For attack-style suites (for example `refusal-safety`, `content-safety`, `prompt-injection-resilience`, `sensitive-disclosure`, `agency-boundary`), use the guardrail-focused report profile to triage failures by category, severity, and pattern:
+For attack-style suites (for example `refusal-safety`, `content-safety`, `prompt-injection-resilience`, `sensitive-disclosure`, `agency-boundary`), use the guardrail-focused report profile to triage failures by category, severity, and pattern (a run with no failing rows renders the same as the default profile):
 
 ```sh
 eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report

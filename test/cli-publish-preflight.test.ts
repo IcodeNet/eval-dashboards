@@ -168,4 +168,31 @@ describe('publish preflight (4F.2)', () => {
     expect(runRecord.sensitiveFieldsFoundBeforeRedaction).toContain('input');
     expect(runRecord.allowSensitivePublish).toBe(true);
   });
+
+  it('should exit 2 asking for a token when github-pages is run with --dry-run and no token', async () => {
+    const dir = await createTempDir();
+    const artifactDir = path.join(dir, 'artifacts');
+    await mkdir(artifactDir, { recursive: true });
+    const report = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-01-01T00:00:00.000Z' },
+      suites: [{ id: 'suite-a', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'suite-a', passed: true }],
+    };
+    await writeFile(path.join(artifactDir, 'run-1.json'), JSON.stringify(report, null, 2));
+    const { GITHUB_TOKEN: _token, ...env } = process.env;
+
+    try {
+      await execFileAsync(
+        'pnpm',
+        ['cli:dev', 'publish', `--input=${artifactDir}`, `--report-dir=${path.join(dir, 'r')}`, `--out-dir=${path.join(dir, 'o')}`, '--target=github-pages', '--repo=o/r', '--dry-run'],
+        { cwd: process.cwd(), env },
+      );
+      throw new Error('expected a token error');
+    } catch (error) {
+      const failure = error as { code?: number; stderr?: string };
+      expect(failure.code).toBe(2);
+      expect(failure.stderr).toContain('github-pages publishing requires GITHUB_TOKEN');
+    }
+  });
 });

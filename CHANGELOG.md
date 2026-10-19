@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs now state two behaviours that surprised testers.** `publish --target=github-pages --dry-run` still needs a GitHub token, and `report --profile=guardrail` renders the same page as the default profile when no row fails. Tests lock both in.
 - **Docs site: a Copy button on every code block, the eval-dashboards and Langfuse logos, and a "These pages have moved" notice on each old `/v1/` page** that links to its current page. The old pages stay up so existing links keep working.
 
 ### Changed

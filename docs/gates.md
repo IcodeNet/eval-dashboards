@@ -424,7 +424,7 @@ Guardrail triage report (for attack-style suites using existing safety taxonomy 
 eval-dashboards report --input=.evals_output --reporter=html --profile=guardrail --report-dir=eval-report
 ```
 
-The guardrail profile adds focused breakdowns for failing rows by category, severity, and failure pattern grouping.
+The guardrail profile adds focused breakdowns for failing rows by category, severity, and failure pattern grouping. When a run has no failing rows there is nothing to break down, so the output is identical to the default profile.
 
 Exit codes:
 
