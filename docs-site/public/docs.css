@@ -1,7 +1,10 @@
 .docs-shell { max-width: 1280px; margin: 0 auto; padding: 0 1rem 4rem; }
 .docs-top { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border); }
 .docs-title { font-weight: 700; font-size: 1.2rem; white-space: nowrap; }
-.docs-legacy { margin-left: auto; color: var(--muted); font-size: .9rem; white-space: nowrap; }
+.search-open { margin-left: auto; display: inline-flex; gap: .5rem; align-items: center; background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .8rem; font: inherit; cursor: pointer; }
+.search-open kbd { font-size: .75rem; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 .3rem; }
+.search-open:focus-visible, .search-close:focus-visible, #docs-search-input:focus-visible, #docs-search a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.docs-legacy { margin-left: 0; color: var(--muted); font-size: .9rem; white-space: nowrap; }
 .sidebar-toggle { display: none; background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .8rem; font: inherit; cursor: pointer; }
 .docs-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 2rem; align-items: start; }
 .docs-sidebar-wrap { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 1rem 0; scrollbar-width: thin; }
@@ -25,3 +28,14 @@
   .docs-sidebar-wrap { display: none; position: static; max-height: none; border-bottom: 1px solid var(--border); }
   .docs-sidebar-wrap.open { display: block; }
 }
+
+#docs-search { width: min(760px, 92vw); max-height: 80vh; padding: 1.25rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 14px; }
+#docs-search::backdrop { background: rgba(0, 0, 0, .6); }
+.search-head { display: flex; gap: .75rem; }
+#docs-search-input { flex: 1; padding: .7rem; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+.search-close { background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .9rem; font: inherit; cursor: pointer; }
+#docs-search-status { color: var(--muted); margin: .75rem 0; }
+#docs-search-results { list-style: none; margin: 0; padding: 0; overflow-y: auto; max-height: 55vh; }
+#docs-search-results li { padding: .7rem 0; border-bottom: 1px solid var(--border); }
+#docs-search-results p { margin: .25rem 0 0; color: var(--muted); font-size: .88rem; overflow-wrap: anywhere; }
+@media (max-width: 860px) { .search-open kbd { display: none; } }

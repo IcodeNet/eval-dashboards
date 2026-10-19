@@ -1,0 +1,81 @@
+---
+import { BASE } from '../site';
+---
+<button class="search-open" type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K">
+  Search <kbd>Ctrl K</kbd>
+</button>
+<dialog id="docs-search" aria-label="Search the docs">
+  <form method="dialog" class="search-head">
+    <input id="docs-search-input" type="search" placeholder="Search all docs, e.g. --baseline-gate-config" autocomplete="off" aria-label="Search the docs" />
+    <button type="submit" class="search-close">Close</button>
+  </form>
+  <p id="docs-search-status" role="status">Type to search.</p>
+  <ol id="docs-search-results"></ol>
+</dialog>
+<script is:inline define:vars={{ indexUrl: `${BASE}/search-index.json`, coreUrl: `${BASE}/search-core.mjs` }}>
+  const dialog = document.getElementById('docs-search');
+  const input = document.getElementById('docs-search-input');
+  const status = document.getElementById('docs-search-status');
+  const results = document.getElementById('docs-search-results');
+  let loading;
+  const load = () =>
+    (loading ??= Promise.all([import(coreUrl), fetch(indexUrl).then((response) => {
+      if (!response.ok) throw new Error(`index ${response.status}`);
+      return response.json();
+    })]).catch((error) => {
+      loading = undefined;
+      throw error;
+    }));
+
+  const open = () => {
+    if (!dialog.open) dialog.showModal();
+    input.focus();
+    input.select();
+    load().catch(() => {
+      status.textContent = 'Search is unavailable. Reload the page.';
+    });
+  };
+
+  let run = 0;
+  const search = async () => {
+    const current = ++run;
+    const query = input.value.trim();
+    results.replaceChildren();
+    if (!query) {
+      status.textContent = 'Type to search.';
+      return;
+    }
+    status.textContent = 'Searching…';
+    try {
+      const [core, entries] = await load();
+      if (current !== run) return;
+      const hits = core.searchIndex(entries, query);
+      status.textContent = hits.length === 0 ? `No results for “${query}”.` : `${hits.length} result${hits.length === 1 ? '' : 's'}`;
+      for (const hit of hits.slice(0, 30)) {
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        const snippet = document.createElement('p');
+        link.href = hit.url;
+        link.textContent = hit.title;
+        snippet.textContent = core.snippetFor(hit, query);
+        item.append(link, snippet);
+        results.append(item);
+      }
+    } catch {
+      if (current === run) status.textContent = 'Search is unavailable. Reload the page.';
+    }
+  };
+
+  input.addEventListener('input', search);
+  document.querySelector('.search-open').addEventListener('click', open);
+  document.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      open();
+    }
+  });
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  if (location.hash === '#search') open();
+</script>

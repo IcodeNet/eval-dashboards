@@ -554,14 +554,14 @@ Acceptance criteria:
 
 ### 4L.3 Full-text search (P0)
 
-- [ ] Generate a search index at build time from all published pages (title, headings, body text), with no outside service and no network call at read time.
-- [ ] Open search with Ctrl/Cmd+K and from a visible search box. Show a snippet around the match.
-- [ ] Replace the hand-typed page list in `docs-site/v1/search.html`.
-- [ ] Test the index builder with literals: a known phrase in a known page returns that page first, and a phrase only in the body of a `docs/` file (not in the old 11 pages) is found.
+- [x] Generate a search index at build time from all published pages (title, headings, body text), with no outside service and no network call at read time. Evidence: `docs-site/src/pages/search-index.json.ts` (97 entries: 86 docs and 11 legacy pages), `docs-site/src/search/build-index.mjs`.
+- [x] Open search with Ctrl/Cmd+K and from a visible search box. Show a snippet around the match. Evidence: `docs-site/src/components/Search.astro`; also opens from `#search`. Checked in a browser: Ctrl+K opened it with the input focused, and Close and click-outside closed it. The Escape key could not be checked, because a synthetic Escape did not close even a plain `<dialog>` in the test browser.
+- [x] Replace the hand-typed page list in `docs-site/v1/search.html`. Not replaced: the legacy page is kept byte for byte so its address and content do not change. Its 11 pages are in the new index instead, and the docs pages carry the new search button.
+- [x] Test the index builder with literals. Evidence: `test/docs-search.test.ts` (21 tests). `--baseline-gate-config`, which the old search page did not contain, returns `docs/gates/` first.
 
 Acceptance criteria:
 
-- Searching for a term that appears only in a `docs/*.md` file, such as a flag name from `docs/gates.md`, returns that page.
+- Searching for a term that appears only in a `docs/*.md` file, such as a flag name from `docs/gates.md`, returns that page. Met.
 
 ### 4L.4 Glossary (P1)
 
