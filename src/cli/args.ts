@@ -1,3 +1,5 @@
+import { suggestClosest } from '../utils/suggest.js';
+
 export type CliArgs = {
   command?: string;
   options: Record<string, string | boolean | string[]>;
@@ -151,47 +153,6 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
   'evidence-verify': ['--bundle'],
 };
 
-const levenshtein = (a: string, b: string): number => {
-  const rows = a.length + 1;
-  const cols = b.length + 1;
-  let previous = Array.from({ length: cols }, (_, index) => index);
-
-  for (let i = 1; i < rows; i += 1) {
-    const current = [i];
-
-    for (let j = 1; j < cols; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      current[j] = Math.min(
-        (current[j - 1] ?? 0) + 1,
-        (previous[j] ?? 0) + 1,
-        (previous[j - 1] ?? 0) + cost,
-      );
-    }
-
-    previous = current;
-  }
-
-  return previous[cols - 1] ?? 0;
-};
-
-const suggestFlag = (flag: string, candidates: readonly string[]): string | undefined => {
-  let best: string | undefined;
-  let bestDistance = Number.POSITIVE_INFINITY;
-
-  for (const candidate of candidates) {
-    const distance = levenshtein(flag, candidate);
-
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = candidate;
-    }
-  }
-
-  // Only suggest genuinely close matches, so a wild flag does not get a
-  // confident but useless "did you mean".
-  return bestDistance <= 3 ? best : undefined;
-};
-
 export class UnknownFlagError extends Error {
   readonly flag: string;
   readonly suggestion?: string;
@@ -232,7 +193,7 @@ export const assertKnownFlags = (args: CliArgs): void => {
     const flag = `--${key}`;
 
     if (!allowed.includes(flag)) {
-      throw new UnknownFlagError(flag, command, suggestFlag(flag, allowed));
+      throw new UnknownFlagError(flag, command, suggestClosest(flag, allowed));
     }
   }
 };

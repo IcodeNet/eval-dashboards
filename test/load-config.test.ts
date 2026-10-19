@@ -85,4 +85,24 @@ describe('loadConfig', () => {
     await expect(loadConfig(dir)).rejects.toThrow(/must be an object/);
   });
 
+
+  it('should fail closed with a suggestion when a gate key is misspelled in the config file', async () => {
+    await writeFile(
+      path.join(dir, 'eval-dashboards.config.mjs'),
+      'export default { gates: { minPassRat: 0.9 } };\n',
+      'utf8',
+    );
+
+    await expect(loadConfig(dir)).rejects.toThrow(/gates\.minPassRat: not a setting\. Did you mean "minPassRate"\?/);
+  });
+
+  it('should fail closed when package.json#eval-dashboards has an unknown key', async () => {
+    await writeFile(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ 'eval-dashboards': { gatez: {} } }),
+      'utf8',
+    );
+
+    await expect(loadConfig(dir)).rejects.toThrow(/gatez: not a setting/);
+  });
 });

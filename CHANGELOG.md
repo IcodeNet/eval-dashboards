@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Unknown keys in the config file now fail with exit 2.** A misspelled key such as `gates.minPassRat` used to be ignored, which silently turned that gate off. The error names the key and suggests the closest valid one. If your config has extra keys, remove them or fix the spelling.
+
 ### Fixed
 
 - A failing notification webhook no longer prints the reply body, which could contain a secret. Only the status code is shown.
