@@ -108,10 +108,10 @@ describe('built search index', () => {
   const load = async (): Promise<Entry[]> =>
     JSON.parse(await readFile(path.resolve(process.cwd(), 'docs-site/dist/search-index.json'), 'utf8')) as Entry[];
 
-  it('should cover all 86 docs and 11 legacy pages when the site is built', async () => {
+  it('should cover all 86 docs, the glossary and 11 legacy pages when the site is built', async () => {
     const entries = await load();
 
-    expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/docs/'))).toHaveLength(86);
+    expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/docs/'))).toHaveLength(87);
     expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/v1/'))).toHaveLength(11);
   });
 
@@ -125,6 +125,12 @@ describe('built search index', () => {
     const hits = searchIndex(await load(), 'heartbeat-verify') as Entry[];
 
     expect(hits.map((hit) => hit.url)).toContain('/eval-dashboards/docs/gates/');
+  });
+
+  it('should find the glossary page first when the query is a glossary-only phrase', async () => {
+    const hits = searchIndex(await load(), 'case may simply have been removed') as Entry[];
+
+    expect(hits[0]?.url).toBe('/eval-dashboards/docs/glossary/');
   });
 
   it('should find a legacy page when the term is in its content', async () => {

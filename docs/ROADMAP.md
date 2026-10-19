@@ -565,14 +565,14 @@ Acceptance criteria:
 
 ### 4L.4 Glossary (P1)
 
-- [ ] Add one glossary data file (term, plain-English definition, link to the page that explains it). Seed it with the terms the docs already use: gate, baseline, taxonomy, artifact, run, row, suite, waiver, heartbeat, evidence bundle, redaction tier, champion and rolling baseline.
-- [ ] Add a glossary page, searchable like any other page.
-- [ ] Link the first use of a glossary term on each page to its entry.
-- [ ] Add a test that fails when a glossary entry links to a page that does not exist, and when two entries share a term.
+- [x] Add one glossary data file (term, plain-English definition, link to the page that explains it). Evidence: `docs-site/src/data/glossary.mjs` (18 terms). The seed list in the roadmap named 13 terms; "redaction tier" became Redaction, "champion and rolling baseline" became two entries, and Runner, Dataset, Suite, Row, Rubric, Newly failing, Persistent failure and Disappeared were added because the docs use them heavily.
+- [x] Add a glossary page, searchable like any other page. Evidence: `docs-site/src/pages/docs/glossary.astro`, linked at the top of the sidebar, and included in `search-index.json`.
+- [x] Link the first use of a glossary term on each page to its entry. Evidence: `docs-site/src/plugins/glossary-links.mjs`; on the built site 74 pages carry 190 links, none inside a heading, code, table or existing link, and none repeated on a page. Six terms (Champion baseline, Dataset, Row, Rubric, Runner, Suite) are on the glossary page but are not auto-linked, because those words are too common in running text to link safely.
+- [x] Add a test that fails when a glossary entry links to a page that does not exist, and when two entries share a term. Evidence: `test/docs-glossary.test.ts` (10 tests). Turning the link plugin off, and removing the site-base guard, each failed it when tried.
 
 Acceptance criteria:
 
-- Every term in the glossary file has a definition of at most two sentences and a working link.
+- Every term in the glossary file has a definition of at most two sentences and a working link. Met, and enforced by the test.
 
 ### 4L.5 Checks and Pages deploy gate (P0)
 

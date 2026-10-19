@@ -39,3 +39,7 @@
 #docs-search-results li { padding: .7rem 0; border-bottom: 1px solid var(--border); }
 #docs-search-results p { margin: .25rem 0 0; color: var(--muted); font-size: .88rem; overflow-wrap: anywhere; }
 @media (max-width: 860px) { .search-open kbd { display: none; } }
+
+.glossary dt { margin-top: 1.1rem; font-weight: 700; scroll-margin-top: 1rem; }
+.glossary dt:target { background: var(--card); border-radius: 6px; box-shadow: -4px 0 0 var(--link); padding-left: .5rem; }
+.glossary dd { margin: .25rem 0 0; }

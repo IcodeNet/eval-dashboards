@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import { BASE } from '../site';
 import { routeForDocPath } from '../plugins/rewrite-doc-links.mjs';
-import { INDEX_ENTRY, SIDEBAR } from '../data/sidebar.mjs';
+import { GENERATED_PAGES, INDEX_ENTRY, SIDEBAR } from '../data/sidebar.mjs';
 
 interface Props {
   currentRoute: string;
@@ -28,9 +28,13 @@ const groups = SIDEBAR.map((group) => ({
   }),
 }));
 const indexRoute = entryRoute(INDEX_ENTRY);
+const generated = GENERATED_PAGES.map((page) => ({ ...page, href: href(page.route), current: page.route === currentRoute }));
 ---
 <nav class="sidebar" aria-label="Documentation">
   <a class={`sidebar-index${currentRoute === indexRoute ? ' current' : ''}`} href={href(indexRoute)}>Docs index</a>
+  {generated.map((page) => (
+    <a class={`sidebar-index${page.current ? ' current' : ''}`} href={page.href} aria-current={page.current ? 'page' : undefined}>{page.title}</a>
+  ))}
   {groups.map((group) => (
     <details class="sidebar-group" open={group.items.some((item) => item.current)}>
       <summary>{group.label}</summary>

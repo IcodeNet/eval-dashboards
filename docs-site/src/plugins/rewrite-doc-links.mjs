@@ -8,6 +8,9 @@ const DOCS_ROOT = fileURLToPath(new URL('../../../docs/', import.meta.url));
 
 const isExternal = (href) => /^(?:[a-z][a-z0-9+.-]*:|#|\/\/)/i.test(href);
 
+/** A path that already starts with the site base is a finished site link, not a repo file. */
+const isSiteLink = (href) => href === BASE || href.startsWith(`${BASE}/`);
+
 /** Route for a doc id, for example `teach-labs/README` -> `teach-labs`. */
 export const routeForDocPath = (docPath) =>
   docPath
@@ -22,7 +25,7 @@ export const routeForDocPath = (docPath) =>
  * `sourceFile` is the path of the file that holds the link, relative to the repo root.
  */
 export const rewriteLink = (href, sourceFile) => {
-  if (isExternal(href)) return href;
+  if (isExternal(href) || isSiteLink(href)) return href;
   const [target, hash = ''] = href.split('#');
   if (!target) return href;
   const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(sourceFile), target));
