@@ -75,6 +75,18 @@ describe('built docs site', () => {
     await expect(access(path.join(distDir, url))).resolves.toBeUndefined();
   });
 
+  it('should link the legacy home page to the full docs when a reader lands on v1', async () => {
+    const built = await readFile(path.join(distDir, 'v1/index.html'), 'utf8');
+
+    expect(built).toContain('<a href="../docs/">Open the full docs</a>');
+  });
+
+  it('should redirect the site root to the full docs when a reader opens the bare address', async () => {
+    const built = await readFile(path.join(distDir, 'index.html'), 'utf8');
+
+    expect(built).toContain('content="0; url=./docs/"');
+  });
+
   it('should serve the legacy cli page byte for byte when it moves into the Astro project', async () => {
     const built = await readFile(path.join(distDir, 'v1/cli.html'), 'utf8');
     const source = await readFile(path.join(siteRoot, 'public/v1/cli.html'), 'utf8');
