@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Decision
 
-- Keep the current repo-owned static docs-site (`docs-site/v1/*.html`) as the production documentation surface for the current milestone.
+- Keep the current repo-owned static docs-site (`docs-site/public/v1/*.html` since Phase 4L.1) as the production documentation surface for the current milestone.
 - Keep GitHub Pages as the publish target using the existing Actions workflow.
 - Defer migration to VitePress + TypeDoc until API/reference scale or versioning complexity makes manual/static maintenance a measurable bottleneck.
 - Keep Docusaurus as a future fallback option only if multi-version docs needs exceed the static-site path.

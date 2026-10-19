@@ -24,7 +24,7 @@ describe('flag docs coverage check (scripts/verify-flag-docs.ts)', () => {
     expect(isGuideFile('docs/STATUS.md')).toBe(false);
     expect(isGuideFile('CHANGELOG.md')).toBe(false);
     expect(isGuideFile('docs/gates.md')).toBe(true);
-    expect(isGuideFile('docs-site/v1/cli.html')).toBe(true);
+    expect(isGuideFile('docs-site/public/v1/cli.html')).toBe(true);
   });
 
   it('keeps fenced code blocks whole so a # comment is not a heading', () => {

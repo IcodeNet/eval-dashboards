@@ -5,9 +5,9 @@ This index groups every doc by audience so you can find what you need
 without reading `teach-curriculum.md` or any other single file first.
 
 **Canonical surface:** raw `docs/*.md` in this directory is the source of
-truth. [`docs-site/v1/*.html`](../docs-site/v1/index.html) is a curated,
-smaller subset of the same content for external readers — if the two ever
-disagree, trust `docs/*.md`.
+truth. The [published docs site](https://icodenet.github.io/eval-dashboards/docs/)
+is built from these files, so the two cannot disagree. The earlier
+hand-written pages are in [`docs-site/public/v1/`](../docs-site/public/v1/index.html).
 
 ## Start here
 
