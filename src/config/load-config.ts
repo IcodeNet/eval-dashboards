@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { EvalReportsConfig } from './config.js';
+import { findUnknownConfigKeys } from './validate-config.js';
 
 const CONFIG_FILENAMES = [
   'eval-dashboards.config.ts',
@@ -9,6 +10,14 @@ const CONFIG_FILENAMES = [
   'eval-dashboards.config.mjs',
   'eval-dashboards.config.cjs',
 ];
+
+/** A misspelled key would be ignored and silently drop the setting it was meant to be, so fail closed. */
+const assertKnownConfigKeys = (config: Record<string, unknown>): void => {
+  const issues = findUnknownConfigKeys(config);
+  if (issues.length > 0) {
+    throw new Error(`Unknown config setting(s):\n${issues.map((issue) => `  ${issue}`).join('\n')}`);
+  }
+};
 
 type ImportConfigResult =
   | { found: false }
@@ -37,6 +46,7 @@ const tryImportConfig = async (filePath: string): Promise<ImportConfigResult> =>
     if (!config || typeof config !== 'object' || Array.isArray(config)) {
       throw new Error('Config must export an object.');
     }
+    assertKnownConfigKeys(config as Record<string, unknown>);
     return { found: true, config: config as EvalReportsConfig };
   } catch (error) {
     return { found: true, config: {}, error: error as Error };
@@ -71,6 +81,7 @@ const tryPackageJsonConfig = async (cwd: string): Promise<PackageJsonConfigResul
     if (!config || typeof config !== 'object' || Array.isArray(config)) {
       throw new Error('package.json#eval-dashboards must be an object.');
     }
+    assertKnownConfigKeys(config as Record<string, unknown>);
     return { found: true, config: config as EvalReportsConfig };
   } catch (error) {
     return { found: true, config: {}, error: error as Error };

@@ -12,6 +12,8 @@ Where reports go: with no config file, `report` writes to `eval-report/`. The co
 
 An existing config that cannot load, including a missing imported dependency, fails the command with exit 2. Config exports and the `package.json` field must be objects; malformed values do not fall back to permissive defaults.
 
+Unknown keys also fail with exit 2. The error names the key (for example `gates.minPassRat`) and suggests the closest valid one, because a misspelled gate key would otherwise be ignored and the gate would silently turn off.
+
 Example:
 
 ```ts
