@@ -59,8 +59,7 @@ const sendWebhook = async (url: string, payload: Record<string, unknown>): Promi
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`webhook responded ${response.status}: ${body.slice(0, 200)}`);
+    throw new Error(`webhook responded ${response.status}`);
   }
 };
 
