@@ -1,4 +1,5 @@
-import { mkdir, readFile, readdir, writeFile, appendFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { appendFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { EvalReportV1 } from '../model/eval-report-v1.js';
 import { validateEvalReport } from '../model/validate.js';
@@ -107,9 +108,22 @@ export const findFilesByName = async (input: string, fileName: string): Promise<
   return results.sort();
 };
 
+/** Parse a JSON file, naming the file and the fix when the contents are not valid JSON. */
+export const parseJsonFile = (raw: string, filePath: string, what: string): unknown => {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw Object.assign(
+      new Error(`${what} ${filePath} is not valid JSON (${reason}). Fix the file, or regenerate or remove it.`),
+      { exitCode: 2 },
+    );
+  }
+};
+
 export const readEvalReport = async (filePath: string): Promise<EvalReportV1> => {
   const raw = await readFile(filePath, 'utf8');
-  const parsed = JSON.parse(raw) as unknown;
+  const parsed = parseJsonFile(raw, filePath, 'Eval report');
   const result = validateEvalReport(parsed);
 
   if (!result.ok) {
@@ -163,14 +177,25 @@ export const readEvalReports = async (
   );
 };
 
-export const writeJsonFile = async (filePath: string, value: unknown): Promise<void> => {
+/** Write to a temp file then rename, so a crash or full disk never leaves a half-written file. */
+const writeFileAtomic = async (filePath: string, value: string): Promise<void> => {
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  const tempPath = `${filePath}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    await writeFile(tempPath, value, { encoding: 'utf8', flag: 'wx' });
+    await rename(tempPath, filePath);
+  } catch (error) {
+    await rm(tempPath, { force: true });
+    throw error;
+  }
+};
+
+export const writeJsonFile = async (filePath: string, value: unknown): Promise<void> => {
+  await writeFileAtomic(filePath, `${JSON.stringify(value, null, 2)}\n`);
 };
 
 export const writeTextFile = async (filePath: string, value: string): Promise<void> => {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, value, 'utf8');
+  await writeFileAtomic(filePath, value);
 };
 
 /** Append text to a file, creating it (and parent dirs) if it doesn't exist yet. */

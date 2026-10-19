@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { writeJsonFile } from '../io/reports.js';
+import { parseJsonFile, writeJsonFile } from '../io/reports.js';
 import type { RunHistoryEntry } from './history.js';
 
 /**
@@ -18,7 +18,7 @@ export interface HistoryStore {
 /** Stores history as one `history.json` file, the format `org-rollup` reads. */
 export const createFileHistoryStore = (filePath: string): HistoryStore => ({
   async read() {
-    const parsed: unknown = JSON.parse(await readFile(filePath, 'utf8'));
+    const parsed = parseJsonFile(await readFile(filePath, 'utf8'), filePath, 'History file');
     if (!Array.isArray(parsed)) {
       throw new Error(`History file ${filePath} must contain a JSON array.`);
     }

@@ -44,3 +44,16 @@ describe('file history store', () => {
     await expect(createFileHistoryStore(file).read()).rejects.toThrow('must contain a JSON array');
   });
 });
+
+describe('file history store with a corrupt file', () => {
+  it('should name the file and the fix when history.json is not valid JSON', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'history-store-'));
+    const file = path.join(dir, 'history.json');
+    await writeFile(file, '{"bad', 'utf8');
+
+    await expect(createFileHistoryStore(file).read()).rejects.toMatchObject({
+      message: expect.stringContaining(`History file ${file} is not valid JSON`),
+      exitCode: 2,
+    });
+  });
+});

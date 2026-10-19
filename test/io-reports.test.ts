@@ -1,9 +1,9 @@
 import os from 'node:os';
 import path from 'node:path';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it } from 'vitest';
 import { findJsonReports } from '../src/io/reports.js';
-import { readEvalReports } from '../src/io/reports.js';
+import { readEvalReport, readEvalReports, writeJsonFile } from '../src/io/reports.js';
 
 const tempDirs: string[] = [];
 
@@ -91,4 +91,37 @@ describe('io reports', () => {
     });
   });
 
+});
+
+describe('readEvalReport on a broken file', () => {
+  it('should name the file and the fix when the artifact is not valid JSON', async () => {
+    const dir = await createTempDir();
+    const file = path.join(dir, 'run.json');
+    await writeFile(file, '<html>login</html>', 'utf8');
+
+    await expect(readEvalReport(file)).rejects.toMatchObject({
+      message: expect.stringContaining(`Eval report ${file} is not valid JSON`),
+      exitCode: 2,
+    });
+  });
+});
+
+describe('writeJsonFile', () => {
+  it('should leave no temp file behind when the write succeeds', async () => {
+    const dir = await createTempDir();
+
+    await writeJsonFile(path.join(dir, 'out', 'a.json'), { ok: true });
+
+    expect(await readdir(path.join(dir, 'out'))).toEqual(['a.json']);
+    expect(await readFile(path.join(dir, 'out', 'a.json'), 'utf8')).toBe('{\n  "ok": true\n}\n');
+  });
+
+  it('should keep the old file and leave no temp file when the target is a directory', async () => {
+    const dir = await createTempDir();
+    await mkdir(path.join(dir, 'target.json'));
+
+    await expect(writeJsonFile(path.join(dir, 'target.json'), { ok: true })).rejects.toThrow();
+
+    expect(await readdir(dir)).toEqual(['target.json']);
+  });
 });
