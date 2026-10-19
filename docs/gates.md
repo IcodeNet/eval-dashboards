@@ -373,7 +373,7 @@ Waiver and exception register (`--waiver-file`):
 
 - `rowId` is optional; omit it to waive every currently failing row in `suite`.
 - `--waiver-file=<path>` (or `waiverFile` in the config file) points `check` at the register.
-- Matched, non-expired waivers cause their rows to be treated as passed for gating (`minPassRate`, `zeroCritical`, `requiredPassingSuites`, calibration checks, etc.), and are reported prominently as `ACTIVE WAIVER ...` diagnostics plus a `waivers.active[]` entry in `--json-out`/`--json-v2-out` payloads — an auditor reading only the check result sees exactly which known failures were carried and why.
+- Matched, non-expired waivers cause their rows to be treated as passed and non-critical for gating, and their suite and new-failure counts are recomputed, so the waiver applies to `minPassRate`, `zeroCritical`, `maxNewFailures`, `requiredPassingSuites`, calibration checks and the rest. They are reported prominently as `ACTIVE WAIVER ...` diagnostics plus a `waivers.active[]` entry in `--json-out`/`--json-v2-out` payloads — an auditor reading only the check result sees exactly which known failures were carried and why.
 - An **expired** waiver always fails the gate (`waivers.expired[]` + a `failures[]` entry), whether or not the underlying row still fails — the point of an expiry is that the risk must be re-reviewed, not silently extended.
 - A waiver that matches no row in the current run (already-fixed or stale) is reported as a diagnostic only (`waivers.unmatched[]`), never a failure.
 - A malformed or unreadable register file fails fast with exit code `2` (invalid config), same as other config errors.

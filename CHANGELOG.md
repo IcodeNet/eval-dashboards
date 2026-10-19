@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`--waiver-file` now covers every gate it documents.** A waived row used to count as passed only for `--min-pass-rate`. It was still counted by `--zero-critical`, `--max-new-failures` and `--require-suite-pass`, so a waived critical failure still failed those gates. The waiver now clears the row's severity, recounts its suite, and recomputes the new-failure comparison. The waiver is still listed in the check result, and `newlyFailingRows` still shows the row.
+- `report --theme=<name>` with a name that is not built in (`default`, `dark`, `minimal`) now exits 2 with a "did you mean" hint. It used to exit 0 and use the default theme.
+- `check --new-failure-key=<value>` with an unknown value now exits 2 and lists the four valid keys. It used to be treated as `row`.
 - `gates.allowLoosening: true` in the config file was ignored, so an approved loosening still failed the gate. It now takes effect, as the docs said.
 - `history-report` and `history-convert` now say how to create the history file when it is missing, instead of a bare `ENOENT` message.
 - A failing notification webhook no longer prints the reply body, which could contain a secret. Only the status code is shown.

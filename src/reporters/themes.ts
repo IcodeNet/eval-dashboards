@@ -1,3 +1,4 @@
+import { suggestClosest } from '../utils/suggest.js';
 export type ThemeVariables = Record<string, string>;
 
 export type EvalReportsTheme = {
@@ -100,6 +101,15 @@ export const BUILT_IN_THEMES: Record<string, EvalReportsTheme> = {
   default: defaultTheme,
   dark: darkTheme,
   minimal: minimalTheme,
+};
+
+/** Error text for a theme name that is not built in, with the closest name when one is near. */
+export const describeUnknownTheme = (name: string): string => {
+  const names = Object.keys(BUILT_IN_THEMES);
+  const closest = suggestClosest(name, names);
+  return closest
+    ? `Unknown theme "${name}". Did you mean "${closest}"? Use one of: ${names.join(', ')}.`
+    : `Unknown theme "${name}". Use one of: ${names.join(', ')}.`;
 };
 
 /**

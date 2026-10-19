@@ -22,6 +22,7 @@ import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
 import { stripControlCharacters } from '../utils/untrusted-text.js';
+import { BUILT_IN_THEMES, describeUnknownTheme } from '../reporters/themes.js';
 import { renderStepSummary } from '../gates/step-summary.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import { detectGateConfigLoosening } from '../gates/threshold-change.js';
@@ -1126,6 +1127,12 @@ const gateConfigFromOptions = (
     'id-category',
   ];
 
+  if (newFailureKey && !allowedNewFailureKeys.includes(newFailureKey as NewFailureKeyMode)) {
+    throw Object.assign(
+      new Error(`Unknown --new-failure-key "${newFailureKey}". Use one of: ${allowedNewFailureKeys.join(', ')}.`),
+      { exitCode: 2 },
+    );
+  }
   const parsedNewFailureKey = allowedNewFailureKeys.includes(newFailureKey as NewFailureKeyMode)
     ? (newFailureKey as NewFailureKeyMode)
     : undefined;
@@ -1686,6 +1693,9 @@ const main = async (): Promise<void> => {
     });
     const reporters = normalizeReporters((config.reporters as string[] | undefined) ?? ['html', 'text']);
     const theme = optionString(options, 'theme', '') || config.theme as string | undefined;
+    if (typeof theme === 'string' && !Object.hasOwn(BUILT_IN_THEMES, theme)) {
+      throw Object.assign(new Error(describeUnknownTheme(theme)), { exitCode: 2 });
+    }
     const locale = optionString(options, 'locale', '') || config.locale;
     assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });
     assertValidCalibrationGateConfig({ calibration: config.gates?.calibration });
@@ -1884,7 +1894,9 @@ const main = async (): Promise<void> => {
 
       const gateResult = checkGates(
         waiverApplication.reportForGating,
-        context.comparison,
+        waiverApplication.active.length > 0
+          ? compareRuns(waiverApplication.reportForGating, context.previous)
+          : context.comparison,
         gateConfig,
         context.baselineCompatibility,
         context.previous,
