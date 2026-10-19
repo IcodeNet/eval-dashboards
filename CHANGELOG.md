@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `sign`, `verify` and `schema` now reject unknown or misspelled flags like every other command, instead of silently ignoring them.
+
 ### Added
 
 - `check --step-summary-out=<path>` appends a Markdown gate summary to a file, for example `$GITHUB_STEP_SUMMARY`.
