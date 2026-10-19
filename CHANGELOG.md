@@ -11,10 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-10-19
+
 ### Added
 
 - **Docs now state two behaviours that surprised testers.** `publish --target=github-pages --dry-run` still needs a GitHub token, and `report --profile=guardrail` renders the same page as the default profile when no row fails. Tests lock both in.
 - **Docs site: a Copy button on every code block, the eval-dashboards and Langfuse logos, and a "These pages have moved" notice on each old `/v1/` page** that links to its current page. The old pages stay up so existing links keep working.
+- `eval-dashboards --version`, `-v` and `version` print the installed version, for bug reports.
+- **Per-suite thresholds.** `gates.suites` in the config file sets `minPassRate` and `maxNewFailures` for each suite, on top of the global gates. A suite named there that is missing from the run fails the gate, and `--baseline-gate-config` treats a looser per-suite bar as a loosening.
+- `check --step-summary-out=<path>` appends a Markdown gate summary to a file, for example `$GITHUB_STEP_SUMMARY`.
+- `evidence-export --redact` embeds a redacted copy of the report (public tier only). The entry carries `redacted: true` and a `sourceDigest`, the sha256 of the original file. The bundle still verifies. Without the flag the bundle still embeds the full report.
 
 ### Changed
 
@@ -34,13 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A broken eval report or `history.json` now fails with the file name and a fix, not a bare JSON parser message.
 - Reports, history and other output files are written to a temp file and renamed, so a crash or full disk never leaves a half-written file.
 - `sign`, `verify` and `schema` now reject unknown or misspelled flags like every other command, instead of silently ignoring them.
-
-### Added
-
-- `eval-dashboards --version`, `-v` and `version` print the installed version, for bug reports.
-- **Per-suite thresholds.** `gates.suites` in the config file sets `minPassRate` and `maxNewFailures` for each suite, on top of the global gates. A suite named there that is missing from the run fails the gate, and `--baseline-gate-config` treats a looser per-suite bar as a loosening.
-- `check --step-summary-out=<path>` appends a Markdown gate summary to a file, for example `$GITHUB_STEP_SUMMARY`.
-- `evidence-export --redact` embeds a redacted copy of the report (public tier only). The entry carries `redacted: true` and a `sourceDigest`, the sha256 of the original file. The bundle still verifies. Without the flag the bundle still embeds the full report.
 
 ---
 
