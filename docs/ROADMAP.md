@@ -19,6 +19,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4 (Core Shipping & Adoption Infrastructure): COMPLETE](#-phase-4-core-shipping--adoption-infrastructure-complete)
 - [Phase 4A: Reference Integration Proving Ground & Setup Layer](#-phase-4a-reference-integration-proving-ground--setup-layer-partially-complete-next-slices-remain)
 - [Phase 4B: CLI Setup Automation for Agent Evals](#-phase-4b-cli-setup-automation-for-agent-evals-expansion-of-existing-init)
+- [Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE)](#-phase-4l-astro-docs-site-with-search-glossary-and-sidebar-next-deliverable)
 - [Phase 4C: Product Docs Website + Interoperability Guides](#-phase-4c-product-docs-website--interoperability-guides-new)
 - [Phase 4E: Trust hardening for CI gating and eval methodology](#-phase-4e-trust-hardening-for-ci-gating-and-eval-methodology-new)
 - [Phase 4G: Teaching curriculum consistency](#-phase-4g-teaching-curriculum-consistency-new)
@@ -29,6 +30,10 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 - [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
 
+> **Priority:** Phase 4L is the next deliverable and takes precedence over every
+> open item in the phases below. It is placed first in the table of contents and
+> physically before Phase 4C.
+>
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
 > Phase letters were assigned when each initiative was scoped, and later
@@ -498,6 +503,87 @@ Rationale (2026-10-06 scan): Promptfoo shipped eval robustness fixes for partial
 6. 4B.4 Statistical gating mode
 7. 4B.7 Human adjudication package
 8. 4B.8 Cost-quality frontier and benchmark packs
+
+---
+
+## 🚧 Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE)
+
+**Priority: next deliverable. Takes precedence over all other open roadmap items.**
+
+**Why**: the published docs at GitHub Pages are 11 hand-written HTML pages in `docs-site/v1/`. The repo holds 86 Markdown files under `docs/`. A reader of the site cannot reach most of them. Checked against the code on 2026-10-19:
+
+- Search (`docs-site/v1/search.html`) matches only a hand-typed list of 11 pages by title, summary and keywords. It does not read page text, and it does not cover any file in `docs/`.
+- There is no glossary. The word "glossary" appears in `docs/ROADMAP.md` and `docs/STATUS.md` only.
+- Navigation is a flat link list copied into each of the 11 pages by hand.
+- `docs/docs-site-stack-decision.md` (2026-09-13) chose to keep the static pages and deferred a migration. Its own revisit trigger 3 ("docs update throughput drops due to hand-maintained page duplication") now applies. Phase 4L supersedes that decision, and the decision record must be updated in 4L.1.
+
+**Reference implementation**: `github.com/IcodeNet/ai-engineering` (not cloned locally at the time of writing; MIT licence). What it does, verified by reading it:
+
+- Astro 7, `output: 'static'`, content kept as files under `src/content/`, one catch-all route `src/pages/[...path].astro`, and a page list in `src/data/pages.json`.
+- Search with no outside service: `scripts/build-search.cjs` runs before `dev` and `build`, strips tags from every page, and writes `local-search-index.json`. A small browser script loads it, opens a dialog on Ctrl/Cmd+K or a `#search` link, ranks title hits above body hits, and shows a snippet.
+- A check script (`scripts/check.cjs`) validates built pages, assets and internal links.
+- A left sidebar and glossary panel exist in its built output (`GlossaryPanel` script), but the Astro source for them was not available upstream, so their design is not a reusable source.
+
+What does not carry over: that project is a reconstruction of downloaded HTML, keeps content as HTML and not Markdown, and has no glossary data file in its source. We copy the search approach and the check script idea. We design the sidebar and glossary ourselves.
+
+### 4L.1 Astro project and decision record (P0)
+
+- [ ] Add an Astro project for the docs site (for example `docs-site/` rebuilt as an Astro project) with `output: 'static'`, so the site stays offline-capable and repo-owned.
+- [ ] Render Markdown from `docs/` directly, so one file is the single source and nothing is copied by hand.
+- [ ] Keep every existing `docs-site/v1/*.html` URL working through redirects, and test them.
+- [ ] Update `docs/docs-site-stack-decision.md` to record that revisit trigger 3 fired and what replaced the static pages.
+- [ ] Update `.github/workflows/docs-site-pages.yml` to build the Astro site and upload its output. Deploy only after the build and the checks pass.
+
+Acceptance criteria:
+
+- The public docs URL serves every page currently in `docs-site/v1/` at the same address or through a redirect.
+- A change to a file in `docs/` shows on the site after merge with no second edit.
+
+### 4L.2 Left sidebar navigation (P0)
+
+- [ ] Build the sidebar from a single data file that groups pages by audience, starting from the groups in `docs/README.md` ("Start here", "Contract and schema", "CI and governance", and the rest).
+- [ ] Highlight the current page and keep the open group on page load.
+- [ ] Make it work on small screens (collapsible) and with the keyboard.
+- [ ] Add a test that fails when a page in `docs/` is in no sidebar group, so no page is orphaned.
+
+Acceptance criteria:
+
+- Every published page is reachable from the sidebar in two clicks or fewer.
+
+### 4L.3 Full-text search (P0)
+
+- [ ] Generate a search index at build time from all published pages (title, headings, body text), with no outside service and no network call at read time.
+- [ ] Open search with Ctrl/Cmd+K and from a visible search box. Show a snippet around the match.
+- [ ] Replace the hand-typed page list in `docs-site/v1/search.html`.
+- [ ] Test the index builder with literals: a known phrase in a known page returns that page first, and a phrase only in the body of a `docs/` file (not in the old 11 pages) is found.
+
+Acceptance criteria:
+
+- Searching for a term that appears only in a `docs/*.md` file, such as a flag name from `docs/gates.md`, returns that page.
+
+### 4L.4 Glossary (P1)
+
+- [ ] Add one glossary data file (term, plain-English definition, link to the page that explains it). Seed it with the terms the docs already use: gate, baseline, taxonomy, artifact, run, row, suite, waiver, heartbeat, evidence bundle, redaction tier, champion and rolling baseline.
+- [ ] Add a glossary page, searchable like any other page.
+- [ ] Link the first use of a glossary term on each page to its entry.
+- [ ] Add a test that fails when a glossary entry links to a page that does not exist, and when two entries share a term.
+
+Acceptance criteria:
+
+- Every term in the glossary file has a definition of at most two sentences and a working link.
+
+### 4L.5 Checks and Pages deploy gate (P0)
+
+- [ ] Add a docs check, run in CI before deploy, that fails on a broken internal link, a missing asset, an orphan page, or a glossary link to nothing.
+- [ ] Keep `docs:flags`, `teach:verify` and the docs-commands test passing, since the site renders the same Markdown.
+- [ ] Record Node and Astro versions in the lockfile and pin the Astro version.
+- [ ] Verify the deployed site from the raw GitHub Actions log, as `CHECKS_LEDGER.md` requires for workflow changes, and open the live URL to confirm search, sidebar and glossary work.
+
+Acceptance criteria:
+
+- A broken link in `docs/` fails the pull request and does not reach the live site.
+
+Out of scope for 4L: translations, multi-version docs (revisit trigger 2 of the stack decision), and any hosted search service.
 
 ---
 
