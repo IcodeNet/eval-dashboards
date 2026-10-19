@@ -22,6 +22,7 @@ import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
 import { stripControlCharacters } from '../utils/untrusted-text.js';
+import { readPackageVersion } from './package-version.js';
 import { BUILT_IN_THEMES, describeUnknownTheme } from '../reporters/themes.js';
 import { renderStepSummary } from '../gates/step-summary.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
@@ -120,6 +121,9 @@ Commands:
   evidence-export  Bundle a report, check result, waivers, and signature into one evidence file (4F.11).
   evidence-verify   Independently re-validate a previously produced evidence bundle.
   schema   Print the bundled eval-report/v1 JSON Schema (Draft 7) to stdout.
+
+Options:
+  --version, -v  Print the installed version.
 `;
 
 const adjudicationUsage = `eval-dashboards adjudicate <action> [options]
@@ -1386,6 +1390,11 @@ const main = async (): Promise<void> => {
       : config.input
     : '.evals_output';
   const reportDir = config.reportDir ?? 'eval-report';
+
+  if (command === '--version' || command === '-v' || command === 'version') {
+    console.log(await readPackageVersion());
+    return;
+  }
 
   if (!command || command === '--help' || command === 'help') {
     console.log(usage);

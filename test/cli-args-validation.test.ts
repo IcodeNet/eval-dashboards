@@ -118,8 +118,8 @@ describe('optionNumber', () => {
 
 describe('flag registry matches the CLI help snapshots', () => {
   const commands = Object.keys(knownFlagsByCommand).filter(
-    // teach shares init's scaffolding flags; its snapshot is checked via init. schema takes no flags.
-    (command) => command !== 'teach' && command !== 'schema',
+    // teach shares init's scaffolding flags; its snapshot is checked via init. schema and version take no flags.
+    (command) => command !== 'teach' && command !== 'schema' && command !== 'version',
   );
 
   it.each(commands)('%s registry covers every documented flag', async (command) => {
