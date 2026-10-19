@@ -408,6 +408,10 @@ Options:
   --bypass-log=<path>        Path to a bypass-usage JSON-lines log
   --approval-trail=<path>    Path to a freeform approval-trail JSON/text file
   --signature=<path>         Path to an eval-check-signature/v1 file (from the "sign" command)
+  --redact                   Embed a redacted copy of the report (public tier only) instead of its exact
+                             bytes. The bundle records the sha256 of the original file so a holder of the
+                             original can match it. Without this flag the bundle carries the full report,
+                             including prompts, outputs and reasoning.
   --run-id=<id>               runId recorded on the bundle (informational)
   --baseline-run-id=<id>       baselineRunId recorded on the bundle (informational)
   --out=<path>                Output bundle JSON path. Default: eval-report/evidence-bundle.json
@@ -2395,7 +2399,7 @@ const main = async (): Promise<void> => {
     const out = optionString(options, 'out', path.join(reportDir, 'evidence-bundle.json'));
 
     const bundleInputs: EvidenceBundleInput[] = [
-      { role: 'report', path: reportPath },
+      { role: 'report', path: reportPath, redact: optionBoolean(options, 'redact') },
       { role: 'checkResult', path: checkResultPath },
     ];
     if (waiverFilePath) bundleInputs.push({ role: 'waiverRegister', path: waiverFilePath });

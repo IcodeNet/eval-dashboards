@@ -15,6 +15,7 @@
  */
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { redactEvalReport } from '../model/redact.js';
 
 export const EVIDENCE_BUNDLE_SCHEMA_VERSION = 'eval-evidence-bundle/v1' as const;
 
@@ -34,6 +35,10 @@ export type EvidenceBundleEntry = {
   digest: { algorithm: 'sha256'; hex: string };
   /** Exact file contents, embedded verbatim so the bundle is self-contained. */
   contents: string;
+  /** Set when `contents` is a redacted copy of the source file rather than its exact bytes. */
+  redacted?: true;
+  /** sha256 of the original, unredacted source file, so a holder of the original can match it. */
+  sourceDigest?: { algorithm: 'sha256'; hex: string };
 };
 
 export type EvidenceBundleV1 = {
@@ -62,6 +67,19 @@ const computeBundleDigest = (entries: EvidenceBundleEntry[]): string => {
 export type EvidenceBundleInput = {
   role: EvidenceEntryRole;
   path: string;
+  /** Embed a redacted copy (public tier only). Supported for the `report` role. */
+  redact?: boolean;
+};
+
+const redactReportContents = (contents: string, path: string): string => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contents);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Cannot redact ${path}: it is not valid JSON (${message}).`);
+  }
+  return `${JSON.stringify(redactEvalReport(parsed as Parameters<typeof redactEvalReport>[0]), null, 2)}\n`;
 };
 
 /** Read each referenced file, hash it, and embed it verbatim into a signed-manifest bundle. */
@@ -78,11 +96,17 @@ export const buildEvidenceBundle = async (
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Could not read evidence file for role "${input.role}" at ${input.path}: ${message}`);
     }
+    if (input.redact && input.role !== 'report') {
+      throw new Error(`Redaction is only supported for the "report" role, not "${input.role}".`);
+    }
+    const sourceHex = sha256HexOf(contents);
+    const embedded = input.redact ? redactReportContents(contents, input.path) : contents;
     entries.push({
       role: input.role,
       sourcePath: input.path,
-      digest: { algorithm: 'sha256', hex: sha256HexOf(contents) },
-      contents,
+      digest: { algorithm: 'sha256', hex: sha256HexOf(embedded) },
+      contents: embedded,
+      ...(input.redact ? { redacted: true as const, sourceDigest: { algorithm: 'sha256' as const, hex: sourceHex } } : {}),
     });
   }
 

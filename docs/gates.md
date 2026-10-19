@@ -462,6 +462,13 @@ eval-dashboards evidence-verify --bundle=eval-report/evidence-bundle.json
   artifact and the `eval-check-result/v1` or `/v2` output of `check`.
 - `--waiver-file`, `--bypass-log`, `--approval-trail` and `--signature` (the
   file written by `sign`) are optional. Include each one the release used.
+- By default the bundle embeds the **full report**, including prompts, outputs
+  and reasoning, so treat a bundle as sensitive. Add `--redact` to embed a
+  redacted copy of the report (public tier only; see "What `--redact` removes"
+  in the publishing guide). The entry then carries `redacted: true` and a
+  `sourceDigest`, the sha256 of the original file, so someone who holds the
+  original can match it. The bundle still verifies. Only the report is
+  redacted; the check result, waivers and other entries are embedded as given.
 - `--run-id` and `--baseline-run-id` are recorded on the bundle for the
   reader. They are informational and do not select runs.
 - `evidence-verify --bundle=<path>` recomputes every entry digest and the

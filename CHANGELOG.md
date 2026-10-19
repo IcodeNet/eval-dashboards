@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `evidence-export --redact` embeds a redacted copy of the report (public tier only). The entry carries `redacted: true` and a `sourceDigest`, the sha256 of the original file. The bundle still verifies. Without the flag the bundle still embeds the full report.
+
+---
+
 ## [0.9.0] — 2026-10-18
 
 ### Added
