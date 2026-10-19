@@ -39,6 +39,20 @@ describe('searchIndex', () => {
     expect(searchIndex([faq, other, gates], 'gates').map((hit: Entry) => hit.url)).toEqual(['/gates/', '/faq/']);
   });
 
+  it('should rank a page whose whole title is the query above a page that only has it inside a longer title', () => {
+    const exercise = entry({ title: 'Exercise 08: Run gates for release decisions', url: '/exercise/', text: 'gates gates gates' });
+    const page = entry({ title: 'Gates', url: '/gates/', text: 'gates gates gates' });
+
+    expect(searchIndex([exercise, page], 'gates').map((hit: Entry) => hit.url)).toEqual(['/gates/', '/exercise/']);
+  });
+
+  it('should ignore case and surrounding spaces when matching a whole title', () => {
+    const exercise = entry({ title: 'Run gates in CI', url: '/exercise/', text: 'gates' });
+    const page = entry({ title: 'Gates', url: '/gates/', text: 'gates' });
+
+    expect(searchIndex([exercise, page], '  GATES ').map((hit: Entry) => hit.url)).toEqual(['/gates/', '/exercise/']);
+  });
+
   it('should require every term when the query has two words', () => {
     expect(searchIndex([gates, faq], 'gates quality').map((hit: Entry) => hit.url)).toEqual(['/gates/']);
   });

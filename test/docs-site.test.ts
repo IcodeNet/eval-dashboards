@@ -81,6 +81,12 @@ describe('built docs site', () => {
     expect(built).toContain('<a href="../docs/">Open the full docs</a>');
   });
 
+  it('should point the legacy search page at the full-text search when a reader opens it', async () => {
+    const built = await readFile(path.join(distDir, 'v1/search.html'), 'utf8');
+
+    expect(built).toContain('<a href="../docs/#search">Search every doc</a>');
+  });
+
   it('should redirect the site root to the full docs when a reader opens the bare address', async () => {
     const built = await readFile(path.join(distDir, 'index.html'), 'utf8');
 
@@ -148,6 +154,22 @@ describe('built docs site', () => {
         '/eval-dashboards/index.html: missing anchor #gone in /eval-dashboards/docs/',
         '/eval-dashboards/index.html: missing anchor #top in this page',
       ]);
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it('should accept #search only when the target page opens search from that address', async () => {
+      const dir = await mkdtemp(path.join(tmpdir(), 'site-search-hash-'));
+      await mkdir(path.join(dir, 'with'), { recursive: true });
+      await mkdir(path.join(dir, 'without'), { recursive: true });
+      await writeFile(path.join(dir, 'with/index.html'), "<script>if (location.hash === '#search') open();</script>", 'utf8');
+      await writeFile(path.join(dir, 'without/index.html'), '<p>no search</p>', 'utf8');
+      await writeFile(
+        path.join(dir, 'index.html'),
+        '<a href="/eval-dashboards/with/#search">ok</a><a href="/eval-dashboards/without/#search">bad</a>',
+        'utf8',
+      );
+
+      expect(await checkBuiltSite(dir)).toEqual(['/eval-dashboards/index.html: missing anchor #search in /eval-dashboards/without/']);
       await rm(dir, { recursive: true, force: true });
     });
 

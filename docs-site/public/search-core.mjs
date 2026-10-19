@@ -18,17 +18,19 @@ const countOccurrences = (haystack, term) => {
 
 /**
  * Pages that contain every term, best first. A term in the title scores 20, in a heading 6, and in the
- * body 1 per occurrence up to 5. Ties sort by title so the order is stable.
+ * body 1 per occurrence up to 5. A title that is exactly the query adds 30, so the page named "Gates" comes
+ * before a page that only mentions gates. Ties sort by title so the order is stable.
  */
 export const searchIndex = (entries, query) => {
   const terms = tokenize(query);
   if (terms.length === 0) return [];
+  const wholeQuery = terms.join(' ');
   const hits = [];
   for (const entry of entries) {
     const title = entry.title.toLowerCase();
     const headings = entry.headings.join(' \n ').toLowerCase();
     const text = entry.text.toLowerCase();
-    let score = 0;
+    let score = title.replace(/\s*\(v1\)$/, '') === wholeQuery ? 30 : 0;
     let matchesAll = true;
     for (const term of terms) {
       const inTitle = title.includes(term);

@@ -48,6 +48,10 @@ const idsOf = async (file) => {
   return idCache.get(file);
 };
 
+/** A page that opens search when the address ends in #search (see Search.astro) has no element with that id. */
+const triggersSearchOnHash = async (file) =>
+  (await readFile(file, 'utf8')).includes("location.hash === '#search'");
+
 export const checkBuiltSite = async (outDir) => {
   idCache.clear();
   const problems = [];
@@ -72,7 +76,8 @@ export const checkBuiltSite = async (outDir) => {
         problems.push(`${pageUrl}: broken reference ${raw}`);
         continue;
       }
-      if (fragment && target.endsWith('.html') && !(await idsOf(target)).has(decodeURIComponent(fragment))) {
+      const isScriptTrigger = fragment === 'search' && (await triggersSearchOnHash(target));
+      if (fragment && !isScriptTrigger && target.endsWith('.html') && !(await idsOf(target)).has(decodeURIComponent(fragment))) {
         problems.push(`${pageUrl}: missing anchor #${fragment} in ${raw.split('#')[0] || 'this page'}`);
       }
     }
