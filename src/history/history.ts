@@ -271,6 +271,10 @@ const runMode = (report: EvalReportV1): string | undefined => {
   return typeof mode === 'string' ? mode : undefined;
 };
 
+/** Suite ids a run covers, from its suite list and from its rows. */
+const suiteIdsOf = (report: EvalReportV1): Set<string> =>
+  new Set([...report.suites.map((suite) => suite.id), ...report.rows.map((row) => row.suite)]);
+
 /** Select a baseline relative to the current run using a strategy. */
 export const selectBaselineByStrategy = (
   reports: EvalReportV1[],
@@ -292,10 +296,15 @@ export const selectBaselineByStrategy = (
     .filter((report) => report.run.kind !== 'calibration');
   const current = ordered[currentIndex];
   const currentMode = current ? runMode(current) : undefined;
+  const currentSuites = current ? suiteIdsOf(current) : new Set<string>();
+  const suiteMatchedCandidates =
+    currentSuites.size > 0
+      ? candidateSlice.filter((report) => [...suiteIdsOf(report)].some((id) => currentSuites.has(id)))
+      : candidateSlice;
   const modeMatchedCandidates =
     currentMode !== undefined
-      ? candidateSlice.filter((report) => runMode(report) === currentMode)
-      : candidateSlice;
+      ? suiteMatchedCandidates.filter((report) => runMode(report) === currentMode)
+      : suiteMatchedCandidates;
   const lookback = options.lookback;
   const candidates =
     lookback !== undefined && Number.isFinite(lookback) && lookback > 0

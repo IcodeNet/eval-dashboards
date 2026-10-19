@@ -136,4 +136,86 @@ describe('selectBaselineByStrategy', () => {
 
     expect(result).toBe(candidate);
   });
+
+  describe('when runs cover different suites', () => {
+    const makeSuiteReport = (runId: string, generatedAt: string, suite: string, passed = true): EvalReportV1 => ({
+      schemaVersion: 'eval-report/v1',
+      run: { id: runId, generatedAt },
+      suites: [{ id: suite, total: 1, passed: passed ? 1 : 0, failed: passed ? 0 : 1 }],
+      rows: [{ id: 'r1', suite, passed }],
+    });
+
+    it('should skip a run that shares no suite with the current run when picking a rolling baseline', () => {
+      const safetyOld = makeSuiteReport('safety-1', '2026-10-01T00:00:00Z', 'safety');
+      const quality = makeSuiteReport('quality-1', '2026-10-02T00:00:00Z', 'quality');
+      const safetyNew = makeSuiteReport('safety-2', '2026-10-03T00:00:00Z', 'safety');
+
+      const result = selectBaselineByStrategy([safetyOld, quality, safetyNew], 'safety-2', { strategy: 'rolling' });
+
+      expect(result).toBe(safetyOld);
+    });
+
+    it('should return no baseline when no earlier run shares a suite with the current run', () => {
+      const quality = makeSuiteReport('quality-1', '2026-10-02T00:00:00Z', 'quality');
+      const safety = makeSuiteReport('safety-1', '2026-10-03T00:00:00Z', 'safety');
+
+      expect(selectBaselineByStrategy([quality, safety], 'safety-1', { strategy: 'rolling' })).toBeUndefined();
+    });
+
+    it('should keep a run that shares at least one suite when the current run adds a new suite', () => {
+      const before = makeSuiteReport('before', '2026-10-01T00:00:00Z', 'safety');
+      const current = makeSuiteReport('current', '2026-10-02T00:00:00Z', 'safety');
+      current.suites.push({ id: 'quality', total: 1, passed: 1, failed: 0 });
+      current.rows.push({ id: 'r1', suite: 'quality', passed: true });
+
+      expect(selectBaselineByStrategy([before, current], 'current', { strategy: 'rolling' })).toBe(before);
+    });
+
+    it('should take a suite from the rows when the run lists no suites', () => {
+      const before = makeReport('before', '2026-10-01T00:00:00Z', [true]);
+      const other = makeSuiteReport('other', '2026-10-02T00:00:00Z', 'quality');
+      const current = makeReport('current', '2026-10-03T00:00:00Z', [true]);
+
+      expect(selectBaselineByStrategy([before, other, current], 'current', { strategy: 'rolling' })).toBe(before);
+    });
+
+    it('should ignore suites when the current run has none at all', () => {
+      const before = makeSuiteReport('before', '2026-10-01T00:00:00Z', 'safety');
+      const current: EvalReportV1 = {
+        schemaVersion: 'eval-report/v1',
+        run: { id: 'current', generatedAt: '2026-10-02T00:00:00Z' },
+        suites: [],
+        rows: [],
+      };
+
+      expect(selectBaselineByStrategy([before, current], 'current', { strategy: 'rolling' })).toBe(before);
+    });
+
+    it('should only consider runs that share a suite when the champion strategy picks the best pass rate', () => {
+      const safetyGood = makeSuiteReport('safety-good', '2026-10-01T00:00:00Z', 'safety', true);
+      const qualityPerfect = makeSuiteReport('quality-perfect', '2026-10-02T00:00:00Z', 'quality', true);
+      const safetyNow = makeSuiteReport('safety-now', '2026-10-03T00:00:00Z', 'safety', false);
+      const safetyBad = makeSuiteReport('safety-bad', '2026-10-02T12:00:00Z', 'safety', false);
+
+      const result = selectBaselineByStrategy([safetyGood, qualityPerfect, safetyBad, safetyNow], 'safety-now', {
+        strategy: 'champion',
+      });
+
+      expect(result).toBe(safetyGood);
+    });
+
+    it('should apply the lookback window after dropping runs with no shared suite when a lookback is set', () => {
+      const safetyOld = makeSuiteReport('safety-1', '2026-10-01T00:00:00Z', 'safety');
+      const q1 = makeSuiteReport('quality-1', '2026-10-02T00:00:00Z', 'quality');
+      const q2 = makeSuiteReport('quality-2', '2026-10-03T00:00:00Z', 'quality');
+      const safetyNew = makeSuiteReport('safety-2', '2026-10-04T00:00:00Z', 'safety');
+
+      const result = selectBaselineByStrategy([safetyOld, q1, q2, safetyNew], 'safety-2', {
+        strategy: 'rolling',
+        lookback: 1,
+      });
+
+      expect(result).toBe(safetyOld);
+    });
+  });
 });
