@@ -1,6 +1,7 @@
 ---
 import { BASE } from '../site';
 import Sidebar from '../components/Sidebar.astro';
+import Search from '../components/Search.astro';
 
 interface Props {
   title: string;
@@ -22,6 +23,7 @@ const { title, route } = Astro.props;
       <header class="docs-top">
         <button class="sidebar-toggle" type="button" aria-controls="docs-sidebar" aria-expanded="false">Menu</button>
         <a class="docs-title" href={`${BASE}/docs/`}>eval-dashboards docs</a>
+        <Search />
         <a class="docs-legacy" href={`${BASE}/v1/`}>v1 pages</a>
       </header>
       <div class="docs-body">
