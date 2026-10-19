@@ -1,0 +1,48 @@
+---
+import { getCollection } from 'astro:content';
+import { BASE } from '../site';
+import { routeForDocPath } from '../plugins/rewrite-doc-links.mjs';
+import { INDEX_ENTRY, SIDEBAR } from '../data/sidebar.mjs';
+
+interface Props {
+  currentRoute: string;
+}
+const { currentRoute } = Astro.props;
+
+const docs = await getCollection('docs');
+const titleByRoute = new Map<string, string>();
+for (const doc of docs) {
+  const heading = (doc.body ?? '').match(/^#\s+(.+)$/m);
+  titleByRoute.set(routeForDocPath(`${doc.id}.md`), heading ? heading[1].trim() : doc.id);
+}
+
+const entryRoute = (entry: string) => routeForDocPath(`${entry}.md`.replace('/.md', '/README.md'));
+const href = (route: string) => `${BASE}/docs/${route ? `${route}/` : ''}`;
+const labelFor = (route: string) => titleByRoute.get(route) ?? route;
+
+const groups = SIDEBAR.map((group) => ({
+  label: group.label,
+  items: group.items.map((entry) => {
+    const route = entryRoute(entry);
+    return { route, href: href(route), title: labelFor(route), current: route === currentRoute };
+  }),
+}));
+const indexRoute = entryRoute(INDEX_ENTRY);
+---
+<nav class="sidebar" aria-label="Documentation">
+  <a class={`sidebar-index${currentRoute === indexRoute ? ' current' : ''}`} href={href(indexRoute)}>Docs index</a>
+  {groups.map((group) => (
+    <details class="sidebar-group" open={group.items.some((item) => item.current)}>
+      <summary>{group.label}</summary>
+      <ul>
+        {group.items.map((item) => (
+          <li>
+            <a href={item.href} aria-current={item.current ? 'page' : undefined} class={item.current ? 'current' : undefined}>
+              {item.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+  ))}
+</nav>

@@ -543,14 +543,14 @@ Acceptance criteria:
 
 ### 4L.2 Left sidebar navigation (P0)
 
-- [ ] Build the sidebar from a single data file that groups pages by audience, starting from the groups in `docs/README.md` ("Start here", "Contract and schema", "CI and governance", and the rest).
-- [ ] Highlight the current page and keep the open group on page load.
-- [ ] Make it work on small screens (collapsible) and with the keyboard.
-- [ ] Add a test that fails when a page in `docs/` is in no sidebar group, so no page is orphaned.
+- [x] Build the sidebar from a single data file that groups pages by audience, starting from the groups in `docs/README.md`. Evidence: `docs-site/src/data/sidebar.mjs` (10 groups, 85 pages plus the index link), `docs-site/src/components/Sidebar.astro`.
+- [x] Highlight the current page and keep the open group on page load. Evidence: `aria-current="page"` and an open `<details>` for the current group, asserted in `test/docs-site.test.ts`.
+- [x] Make it work on small screens (collapsible) and with the keyboard. Evidence: `docs-site/src/layouts/DocLayout.astro` Menu button with `aria-expanded`, `docs-site/public/docs.css` (focus outlines, 860px breakpoint); checked in a browser at 1280px and 390px width with no sideways scroll.
+- [x] Add a test that fails when a page in `docs/` is in no sidebar group, so no page is orphaned. Evidence: `test/docs-sidebar.test.ts`; adding an unlisted doc, a missing target and a duplicate each failed it when tried.
 
 Acceptance criteria:
 
-- Every published page is reachable from the sidebar in two clicks or fewer.
+- Every published page is reachable from the sidebar in two clicks or fewer. Met: all 86 pages are linked from the sidebar on the docs index page, so one click.
 
 ### 4L.3 Full-text search (P0)
 

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -97,6 +97,25 @@ describe('built docs site', () => {
 
   it('should find no broken internal link or asset when the whole site is checked', async () => {
     expect(await checkBuiltSite(distDir)).toEqual([]);
+  });
+
+  it('should link every published docs page from the sidebar when the site is built', async () => {
+    const home = await readFile(path.join(distDir, 'docs/index.html'), 'utf8');
+    const sidebar = home.match(/<nav class="sidebar"[\s\S]*?<\/nav>/)?.[0] ?? '';
+    const linked = new Set([...sidebar.matchAll(/href="([^"]+)"/g)].map((match) => match[1]));
+    const pages = (await readdir(path.join(distDir, 'docs'), { recursive: true }))
+      .filter((file) => file.endsWith('index.html'))
+      .map((file) => `/eval-dashboards/docs/${file.replace(/index\.html$/, '')}`);
+
+    expect(pages.length).toBe(86);
+    expect(pages.filter((page) => !linked.has(page))).toEqual([]);
+  });
+
+  it('should mark the current page and open its group when a nested page is built', async () => {
+    const page = await readFile(path.join(distDir, 'docs/teach-labs/03-pr-review-triage/index.html'), 'utf8');
+
+    expect(page).toContain('aria-current="page"');
+    expect(page).toMatch(/<details class="sidebar-group" open[^>]*><summary>Teaching: labs<\/summary>/);
   });
 
   describe('link checker', () => {
