@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "docs-site/**"
+      - "docs/**"
+      - "pnpm-lock.yaml"
       - ".github/workflows/docs-site-pages.yml"
   workflow_dispatch:
 
@@ -27,6 +29,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build docs site
+        run: pnpm docs:build
+
+      - name: Check docs site links and assets
+        run: pnpm docs:check
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
         with:
@@ -35,7 +57,7 @@ jobs:
       - name: Upload docs-site artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: docs-site
+          path: docs-site/dist
 
       - name: Deploy to GitHub Pages
         id: deployment

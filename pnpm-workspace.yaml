@@ -1,5 +1,6 @@
 packages:
   - examples/*
+  - docs-site
 allowBuilds:
   esbuild: true
   lefthook: true

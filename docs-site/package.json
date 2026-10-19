@@ -1,0 +1,20 @@
+{
+  "name": "@icodenet/eval-dashboards-docs-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Astro docs site published to GitHub Pages. Not part of the npm package.",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "7.4.0",
+    "@astrojs/markdown-satteri": "0.4.4",
+    "satteri": "0.10.5"
+  }
+}

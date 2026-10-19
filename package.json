@@ -65,6 +65,8 @@
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm test && pnpm teach:verify && pnpm docs:flags && pnpm build && pnpm test:commit-hooks",
     "teach:verify": "tsx scripts/verify-teaching-docs.ts",
+    "docs:build": "pnpm --filter @icodenet/eval-dashboards-docs-site build",
+    "docs:check": "node docs-site/scripts/check-site.mjs docs-site/dist",
     "docs:flags": "tsx scripts/verify-flag-docs.ts",
     "verify:package": "node scripts/verify-packed-package.mjs",
     "test:commit-hooks": "node --test scripts/commit-evidence.test.mjs",

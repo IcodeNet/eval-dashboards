@@ -1,0 +1,22 @@
+---
+import { getCollection, render } from 'astro:content';
+import DocLayout from '../../layouts/DocLayout.astro';
+import { routeForDocPath } from '../../plugins/rewrite-doc-links.mjs';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return docs.map((doc) => ({
+    params: { slug: routeForDocPath(doc.id) || undefined },
+    props: { doc },
+  }));
+}
+
+const { doc } = Astro.props;
+const { Content, headings } = await render(doc);
+const title = headings.find((heading) => heading.depth === 1)?.text ?? doc.id;
+---
+<DocLayout title={title}>
+  <article>
+    <Content />
+  </article>
+</DocLayout>
