@@ -21,6 +21,7 @@ import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, write
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
+import { stripControlCharacters } from '../utils/untrusted-text.js';
 import { renderStepSummary } from '../gates/step-summary.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import { detectGateConfigLoosening } from '../gates/threshold-change.js';
@@ -1897,7 +1898,7 @@ const main = async (): Promise<void> => {
         ...waiverApplication.failures,
         ...thresholdChangeFailures,
         ...(prTierBudget?.failures ?? []),
-      ];
+      ].map(stripControlCharacters);
       const combinedDiagnostics = [
         ...waiverApplication.diagnostics,
         ...gateResult.diagnostics,
@@ -1907,7 +1908,7 @@ const main = async (): Promise<void> => {
           ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
           : []),
         ...(prTierBudget?.diagnostics ?? []),
-      ];
+      ].map(stripControlCharacters);
       const gatePassed = combinedFailures.length === 0;
 
       heartbeatRunId = context.current.run.id;

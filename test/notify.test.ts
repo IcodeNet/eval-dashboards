@@ -34,6 +34,19 @@ describe('sendGateNotifications', () => {
     },
   };
 
+  it('should not echo the reply body when a webhook fails', async () => {
+    mockedFetch.mockResolvedValue({ ok: false, status: 500, text: async () => 'boom token=SECRETMARK' });
+
+    const results = await sendGateNotifications(
+      ['slack'],
+      { slackWebhookUrl: 'https://hooks.slack.test/services/abc' },
+      event,
+    );
+
+    expect(JSON.stringify(results)).toContain('webhook responded 500');
+    expect(JSON.stringify(results)).not.toContain('SECRETMARK');
+  });
+
   it('sends Slack webhook notifications with run context', async () => {
     mockedFetch.mockResolvedValue({ ok: true, text: async () => '' });
 

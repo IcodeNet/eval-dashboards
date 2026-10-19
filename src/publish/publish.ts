@@ -235,7 +235,7 @@ const publishReportInternal = async (options: PublishOptions): Promise<PublishRe
         { stdio: 'inherit' },
       );
     } catch (error) {
-      throw new Error(`Failed to upload files to ${options.account}/${container}: ${String(error).slice(0, 200)}`);
+      throw new Error(`Failed to upload files to ${options.account}/${container}: ${error instanceof Error ? (error.message.split('\n')[0] ?? '').slice(0, 200) : 'unknown error'}`);
     }
 
     return {
