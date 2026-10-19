@@ -84,6 +84,7 @@ const checkFlags = [
   '--junit-out',
   '--sarif-out',
   '--github-annotations-out',
+  '--step-summary-out',
   '--heartbeat-out',
   '--notify',
   '--notify-webhook',

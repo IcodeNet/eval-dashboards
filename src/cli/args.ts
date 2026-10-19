@@ -57,6 +57,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--junit-out',
     '--sarif-out',
     '--github-annotations-out',
+    '--step-summary-out',
     '--heartbeat-out',
     '--notify',
     '--notify-webhook',

@@ -21,6 +21,7 @@ import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, write
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
+import { renderStepSummary } from '../gates/step-summary.js';
 import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
 import { detectGateConfigLoosening } from '../gates/threshold-change.js';
 import { filterReportByTier, evaluatePrTierBudget, type TierCostSummary } from '../gates/pr-tiering.js';
@@ -186,6 +187,7 @@ Options:
   --junit-out=<path>               Write JUnit XML for CI test-report ingestion
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
+  --step-summary-out=<path>        Append a Markdown gate summary to a file (use $GITHUB_STEP_SUMMARY for the job summary)
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
   --waiver-file=<path>              Path to an eval-waiver-register/v1 JSON file; active
                                     waivers suppress their matched failures (reported
@@ -1720,6 +1722,7 @@ const main = async (): Promise<void> => {
     const junitOut = optionString(options, 'junit-out', '');
     const sarifOut = optionString(options, 'sarif-out', '');
     const githubAnnotationsOut = optionString(options, 'github-annotations-out', '');
+    const stepSummaryOut = optionString(options, 'step-summary-out', '');
     const heartbeatOut = optionString(options, 'heartbeat-out', '');
     const notificationChannels = notificationChannelsFromOptions(options, config.notifications);
     const sharedWebhookUrl = optionString(options, 'notify-webhook', '') || process.env.EVAL_NOTIFY_WEBHOOK || '';
@@ -2066,6 +2069,9 @@ const main = async (): Promise<void> => {
       }
       if (githubAnnotationsOut) {
         await writeJsonFile(githubAnnotationsOut, toGithubAnnotations(checkPayload));
+      }
+      if (stepSummaryOut) {
+        await appendTextFile(stepSummaryOut, renderStepSummary(checkPayload));
       }
 
       await writeHeartbeat({

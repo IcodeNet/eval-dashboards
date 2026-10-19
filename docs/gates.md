@@ -107,6 +107,7 @@ Heartbeat payload contract (`eval-check-heartbeat/v1`):
 - `--junit-out` emits JUnit XML for test-report ingestion in CI systems.
 - `--sarif-out` emits SARIF 2.1.0 JSON with stable report-file locations plus row-anchor metadata (`properties.reportAnchor`).
 - `--github-annotations-out` emits a simple annotations JSON payload (`level`, `title`, `message`) that workflow helpers can translate into GitHub log annotations.
+- `--step-summary-out=<path>` appends a Markdown summary (verdict, gate failures, newly failing rows, diagnostics) to a file. Pass `$GITHUB_STEP_SUMMARY` to show it on the workflow run page. Failure text is escaped, because it can echo model output.
 - `--heartbeat-out` emits gate-run heartbeat JSON (`eval-check-heartbeat/v1`) with `gateRunStatus`, `exitCode`, and optional error message.
 
 ### 4F.7 Heartbeat verifier (scheduled absence detection)
