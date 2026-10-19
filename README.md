@@ -27,7 +27,8 @@
 </div>
 
 Docs site (start here):
-- Live: https://icodenet.github.io/eval-dashboards/v1/
+- Live docs (search, sidebar, glossary): https://icodenet.github.io/eval-dashboards/docs/
+- Earlier hand-written pages: https://icodenet.github.io/eval-dashboards/v1/
 - In-repo source: [docs-site/v1/index.html](docs-site/v1/index.html)
 
 ## Completion Check Ledger

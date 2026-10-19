@@ -1,6 +1,6 @@
 # Docs-site stack decision (Phase 4C closeout)
 
-> **Superseded by Phase 4L.1 (2026-10-19).** Revisit trigger 3 below fired: the hand-written `docs-site/v1/*.html` pages covered 11 topics while `docs/` held 86 Markdown files, and search matched only a typed list of those 11. The site is now an Astro project in `docs-site/` that publishes every file in `docs/` from its Markdown source. The old pages are kept byte for byte under `docs-site/public/v1/` so their URLs do not change. The decision text below is kept as the record of what was true on 2026-09-13.
+> **Superseded by Phase 4L.1 (2026-10-19).** Revisit trigger 3 below fired: the hand-written `docs-site/v1/*.html` pages covered 11 topics while `docs/` held 86 Markdown files, and search matched only a typed list of those 11. The site is now an Astro project in `docs-site/` that publishes every file in `docs/` from its Markdown source. The old pages are kept under `docs-site/public/v1/` so their URLs do not change; only the v1 home page gained a link to the new docs. The decision text below is kept as the record of what was true on 2026-09-13.
 
 Date: 2026-09-13
 

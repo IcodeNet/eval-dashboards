@@ -6,7 +6,8 @@ Astro project that builds the public docs and publishes them to GitHub Pages at
 ## What it publishes
 
 - `/docs/...`: one page per Markdown file in `../docs/`. The Markdown is read in place, so editing a file in `docs/` is the only step. Links between docs become site links. A link to a file outside `docs/` becomes a GitHub link.
-- `/v1/...` and `/`: the hand-written pages that existed before the Astro build, kept byte for byte in `public/` so their addresses do not change.
+- `/`: redirects to `/docs/`.
+- `/v1/...`: the hand-written pages that existed before the Astro build, kept in `public/` so their addresses do not change. Only `v1/index.html` was edited, to add a link to `/docs/`; the others are unchanged.
 
 ## Commands
 
