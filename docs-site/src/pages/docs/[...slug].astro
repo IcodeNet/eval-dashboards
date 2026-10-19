@@ -12,10 +12,11 @@ export async function getStaticPaths() {
 }
 
 const { doc } = Astro.props;
+const route = routeForDocPath(`${doc.id}.md`);
 const { Content, headings } = await render(doc);
 const title = headings.find((heading) => heading.depth === 1)?.text ?? doc.id;
 ---
-<DocLayout title={title}>
+<DocLayout title={title} route={route}>
   <article>
     <Content />
   </article>

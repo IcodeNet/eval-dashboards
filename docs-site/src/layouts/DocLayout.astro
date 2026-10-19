@@ -1,10 +1,12 @@
 ---
 import { BASE } from '../site';
+import Sidebar from '../components/Sidebar.astro';
 
 interface Props {
   title: string;
+  route: string;
 }
-const { title } = Astro.props;
+const { title, route } = Astro.props;
 ---
 <!doctype html>
 <html lang="en">
@@ -12,16 +14,33 @@ const { title } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href={`${BASE}/styles.css`} />
+    <link rel="stylesheet" href={`${BASE}/docs.css`} />
     <title>{title} · eval-dashboards docs</title>
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1><a href={`${BASE}/v1/`}>eval-dashboards docs</a></h1>
+    <div class="docs-shell">
+      <header class="docs-top">
+        <button class="sidebar-toggle" type="button" aria-controls="docs-sidebar" aria-expanded="false">Menu</button>
+        <a class="docs-title" href={`${BASE}/docs/`}>eval-dashboards docs</a>
+        <a class="docs-legacy" href={`${BASE}/v1/`}>v1 pages</a>
       </header>
-      <main>
-        <slot />
-      </main>
+      <div class="docs-body">
+        <div id="docs-sidebar" class="docs-sidebar-wrap">
+          <Sidebar currentRoute={route} />
+        </div>
+        <main class="docs-main">
+          <slot />
+        </main>
+      </div>
     </div>
+    <script is:inline>
+      const toggle = document.querySelector('.sidebar-toggle');
+      const wrap = document.getElementById('docs-sidebar');
+      toggle.addEventListener('click', () => {
+        const open = wrap.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(open));
+      });
+      document.querySelector('.sidebar a[aria-current="page"]')?.scrollIntoView({ block: 'center' });
+    </script>
   </body>
 </html>
