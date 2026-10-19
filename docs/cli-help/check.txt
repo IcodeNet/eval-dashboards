@@ -30,6 +30,7 @@ Options:
   --junit-out=<path>               Write JUnit XML for CI test-report ingestion
   --sarif-out=<path>               Write SARIF JSON for code-scanning style ingestion
   --github-annotations-out=<path>  Write GitHub-annotation JSON payload for workflow adapters
+  --step-summary-out=<path>        Append a Markdown gate summary to a file (use $GITHUB_STEP_SUMMARY for the job summary)
   --heartbeat-out=<path>           Write gate-run heartbeat JSON (ran|skipped|errored)
   --waiver-file=<path>              Path to an eval-waiver-register/v1 JSON file; active
                                     waivers suppress their matched failures (reported

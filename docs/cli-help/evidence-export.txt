@@ -1,4 +1,3 @@
-$ tsx src/cli/index.ts evidence-export --help
 eval-dashboards evidence-export [options]
 
 4F.11 — Produces one self-contained evidence bundle for a release: the eval
