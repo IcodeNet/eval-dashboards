@@ -43,3 +43,17 @@
 .glossary dt { margin-top: 1.1rem; font-weight: 700; scroll-margin-top: 1rem; }
 .glossary dt:target { background: var(--card); border-radius: 6px; box-shadow: -4px 0 0 var(--link); padding-left: .5rem; }
 .glossary dd { margin: .25rem 0 0; }
+
+.docs-title { display: inline-flex; align-items: center; gap: .6rem; }
+.docs-logo { width: 32px; height: 32px; flex: none; }
+.docs-footer { margin-top: 3rem; padding: 1.25rem 0 0; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
+.docs-footer p { max-width: 70ch; margin: .6rem 0 0; }
+.langfuse-mark { display: block; height: 22px; width: auto; }
+
+.code-block { position: relative; }
+.code-block > pre { margin: 1rem 0; padding-right: 4.5rem; }
+.copy-button { position: absolute; top: .5rem; right: .5rem; padding: .2rem .6rem; font: inherit; font-size: .78rem; color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; opacity: .85; }
+.copy-button:hover, .copy-button:focus-visible { opacity: 1; border-color: var(--link); }
+.copy-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.copy-button[data-state="done"] { color: #86efac; border-color: #166534; }
+.copy-button[data-state="failed"] { color: #fca5a5; border-color: #991b1b; }

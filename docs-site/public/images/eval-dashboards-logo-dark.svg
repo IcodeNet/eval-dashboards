@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="80" viewBox="0 0 560 80" role="img" aria-label="eval-dashboards"><title>eval-dashboards</title>
+  <rect x="8" y="8" width="64" height="64" rx="14" fill="#6366f1"/>
+  <rect x="21" y="44" width="8" height="16" rx="2" fill="#ffffff" opacity="0.75"/>
+  <rect x="36" y="34" width="8" height="26" rx="2" fill="#ffffff" opacity="0.88"/>
+  <rect x="51" y="22" width="8" height="38" rx="2" fill="#ffffff"/>
+  <text x="92" y="46" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="38" font-weight="700" fill="#f1f5f9">eval-dashboards</text>
+  <text x="93" y="68" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#94a3b8">Evidence-first reports for agent and LLM evals</text>
+</svg>

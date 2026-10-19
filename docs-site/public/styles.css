@@ -67,3 +67,5 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monos
 small, .muted { color: var(--muted); }
 ul { padding-left: 1.1rem; }
 li { margin: .35rem 0; }
+
+.moved { border-color: var(--link); background: color-mix(in hsl, var(--card), var(--link) 12%); }

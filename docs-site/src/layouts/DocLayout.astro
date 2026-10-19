@@ -22,7 +22,10 @@ const { title, route } = Astro.props;
     <div class="docs-shell">
       <header class="docs-top">
         <button class="sidebar-toggle" type="button" aria-controls="docs-sidebar" aria-expanded="false">Menu</button>
-        <a class="docs-title" href={`${BASE}/docs/`}>eval-dashboards docs</a>
+        <a class="docs-title" href={`${BASE}/docs/`}>
+          <img class="docs-logo" src={`${BASE}/images/eval-dashboards-icon.svg`} alt="" width="32" height="32" />
+          <span>eval-dashboards docs</span>
+        </a>
         <Search />
         <a class="docs-legacy" href={`${BASE}/v1/`}>v1 pages</a>
       </header>
@@ -34,7 +37,16 @@ const { title, route } = Astro.props;
           <slot />
         </main>
       </div>
+      <footer class="docs-footer">
+        <img class="langfuse-mark" src={`${BASE}/images/langfuse-wordart-white.svg`} alt="Langfuse" height="22" />
+        <p>
+          eval-dashboards is an independent tool. It is not made, sponsored or endorsed by Langfuse. The Langfuse name
+          and logo belong to Langfuse GmbH / Finto Technologies Inc. and are shown unmodified, only to say which
+          product the Langfuse import and guide work with.
+        </p>
+      </footer>
     </div>
+    <script is:inline src={`${BASE}/copy-code.js`}></script>
     <script is:inline>
       const toggle = document.querySelector('.sidebar-toggle');
       const wrap = document.getElementById('docs-sidebar');
