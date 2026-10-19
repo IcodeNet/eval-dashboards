@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { access, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -72,13 +71,6 @@ describe('rewriteLink', () => {
 });
 
 describe('built docs site', () => {
-  beforeAll(() => {
-    execFileSync('pnpm', ['--filter', '@icodenet/eval-dashboards-docs-site', 'build'], {
-      cwd: process.cwd(),
-      stdio: 'pipe',
-    });
-  }, 180_000);
-
   it.each(LEGACY_URLS)('should still serve %s when the site is rebuilt', async (url) => {
     await expect(access(path.join(distDir, url))).resolves.toBeUndefined();
   });
