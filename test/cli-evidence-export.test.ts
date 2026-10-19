@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildEvidenceBundle, verifyEvidenceBundle } from '../src/evidence/bundle.js';
+import { buildEvidenceBundle, sha256HexOf, verifyEvidenceBundle } from '../src/evidence/bundle.js';
 
 const execFileAsync = promisify(execFile);
 const tempDirs: string[] = [];
@@ -198,4 +198,112 @@ describe('evidence-export / evidence-verify CLI commands', () => {
       execFileAsync('pnpm', ['cli:dev', 'evidence-verify'], { cwd: process.cwd() }),
     ).rejects.toMatchObject({ code: 2 });
   });
+});
+
+describe('evidence-export --redact', () => {
+  const sensitiveReport = {
+    schemaVersion: 'eval-report/v1',
+    run: { id: 'r1', generatedAt: '2026-10-01T00:00:00.000Z', configSnapshot: { values: { OPENAI_API_KEY: 'SECRET_KEY' } } },
+    suites: [{ id: 's', total: 1, passed: 0, failed: 1 }],
+    rows: [
+      {
+        id: 'a',
+        suite: 's',
+        passed: false,
+        input: 'SECRET_INPUT',
+        output: 'SECRET_OUTPUT',
+        judgeReasoning: 'SECRET_REASONING',
+        metadata: { note: 'SECRET_NOTE' },
+      },
+    ],
+  };
+
+  const writeInputs = async () => {
+    const dir = await createTempDir();
+    const reportPath = path.join(dir, 'report.json');
+    const checkResultPath = path.join(dir, 'check-result.json');
+    await writeFile(reportPath, JSON.stringify(sensitiveReport), 'utf8');
+    await writeFile(checkResultPath, JSON.stringify({ schemaVersion: 'eval-check-result/v1', passed: false }), 'utf8');
+    return { reportPath, checkResultPath };
+  };
+
+  it('should embed no evidence text when the report is redacted', async () => {
+    const { reportPath, checkResultPath } = await writeInputs();
+
+    const bundle = await buildEvidenceBundle([
+      { role: 'report', path: reportPath, redact: true },
+      { role: 'checkResult', path: checkResultPath },
+    ]);
+
+    expect(JSON.stringify(bundle)).not.toContain('SECRET_');
+  });
+
+  it('should record the digest of the original file when the report is redacted', async () => {
+    const { reportPath, checkResultPath } = await writeInputs();
+    const original = await readFile(reportPath, 'utf8');
+
+    const bundle = await buildEvidenceBundle([
+      { role: 'report', path: reportPath, redact: true },
+      { role: 'checkResult', path: checkResultPath },
+    ]);
+
+    expect(bundle.entries[0]?.redacted).toBe(true);
+    expect(bundle.entries[0]?.sourceDigest?.hex).toBe(sha256HexOf(original));
+  });
+
+  it('should still verify when the report is redacted', async () => {
+    const { reportPath, checkResultPath } = await writeInputs();
+
+    const bundle = await buildEvidenceBundle([
+      { role: 'report', path: reportPath, redact: true },
+      { role: 'checkResult', path: checkResultPath },
+    ]);
+
+    expect(verifyEvidenceBundle(bundle).ok).toBe(true);
+  });
+
+  it('should embed the exact bytes when redaction is not requested', async () => {
+    const { reportPath, checkResultPath } = await writeInputs();
+    const original = await readFile(reportPath, 'utf8');
+
+    const bundle = await buildEvidenceBundle([
+      { role: 'report', path: reportPath },
+      { role: 'checkResult', path: checkResultPath },
+    ]);
+
+    expect(bundle.entries[0]?.contents).toBe(original);
+    expect(bundle.entries[0]?.redacted).toBeUndefined();
+  });
+
+  it('should refuse to redact a role other than the report', async () => {
+    const { reportPath, checkResultPath } = await writeInputs();
+
+    await expect(
+      buildEvidenceBundle([
+        { role: 'report', path: reportPath },
+        { role: 'checkResult', path: checkResultPath, redact: true },
+      ]),
+    ).rejects.toThrow('only supported for the "report" role');
+  });
+
+  it('should fail with a clear message when the report to redact is not JSON', async () => {
+    const dir = await createTempDir();
+    const reportPath = path.join(dir, 'report.json');
+    await writeFile(reportPath, 'not json', 'utf8');
+
+    await expect(buildEvidenceBundle([{ role: 'report', path: reportPath, redact: true }])).rejects.toThrow('not valid JSON');
+  });
+
+  it('should drop the evidence text through the CLI when --redact is passed', async () => {
+    const { reportPath, checkResultPath } = await writeInputs();
+    const out = path.join(path.dirname(reportPath), 'bundle.json');
+
+    await execFileAsync(
+      path.join(process.cwd(), 'node_modules', '.bin', 'tsx'),
+      ['src/cli/index.ts', 'evidence-export', `--report=${reportPath}`, `--check-result=${checkResultPath}`, '--redact', `--out=${out}`],
+      { cwd: process.cwd() },
+    );
+
+    expect(await readFile(out, 'utf8')).not.toContain('SECRET_');
+  }, 60_000);
 });

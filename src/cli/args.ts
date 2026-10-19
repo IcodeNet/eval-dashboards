@@ -139,6 +139,7 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--bypass-log',
     '--approval-trail',
     '--signature',
+    '--redact',
     '--run-id',
     '--baseline-run-id',
     '--out',
