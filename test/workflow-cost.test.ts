@@ -38,3 +38,11 @@ describe('renovate config', () => {
     });
   });
 });
+
+describe('adoption metrics workflow', () => {
+  it('should turn off git hooks when the scheduled job commits so the commit-evidence hook cannot block it', async () => {
+    const workflow = await read('.github/workflows/adoption-metrics.yml');
+
+    expect(workflow).toMatch(/name: Commit snapshot updates\n\s+env:\n(?:\s+#.*\n)?\s+LEFTHOOK: "0"/);
+  });
+});

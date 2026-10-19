@@ -40,6 +40,9 @@ jobs:
         run: pnpm metrics:adoption
 
       - name: Commit snapshot updates
+        env:
+          # The repo's commit-evidence hook expects a local checks file that CI never has.
+          LEFTHOOK: "0"
         run: |
           if [ -n "$(git status --porcelain -- docs/adoption-metrics/latest.json docs/adoption-metrics/manual-signals.json)" ]; then
             git config user.name "github-actions[bot]"
