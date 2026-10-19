@@ -19,7 +19,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4 (Core Shipping & Adoption Infrastructure): COMPLETE](#-phase-4-core-shipping--adoption-infrastructure-complete)
 - [Phase 4A: Reference Integration Proving Ground & Setup Layer](#-phase-4a-reference-integration-proving-ground--setup-layer-partially-complete-next-slices-remain)
 - [Phase 4B: CLI Setup Automation for Agent Evals](#-phase-4b-cli-setup-automation-for-agent-evals-expansion-of-existing-init)
-- [Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE)](#-phase-4l-astro-docs-site-with-search-glossary-and-sidebar-next-deliverable)
+- [Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE; 4L.1 DONE)](#-phase-4l-astro-docs-site-with-search-glossary-and-sidebar-next-deliverable-4l1-done)
 - [Phase 4C: Product Docs Website + Interoperability Guides](#-phase-4c-product-docs-website--interoperability-guides-new)
 - [Phase 4E: Trust hardening for CI gating and eval methodology](#-phase-4e-trust-hardening-for-ci-gating-and-eval-methodology-new)
 - [Phase 4G: Teaching curriculum consistency](#-phase-4g-teaching-curriculum-consistency-new)
@@ -506,7 +506,7 @@ Rationale (2026-10-06 scan): Promptfoo shipped eval robustness fixes for partial
 
 ---
 
-## 🚧 Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE)
+## 🚧 Phase 4L: Astro docs site with search, glossary and sidebar (NEXT DELIVERABLE; 4L.1 DONE)
 
 **Priority: next deliverable. Takes precedence over all other open roadmap items.**
 
@@ -528,11 +528,13 @@ What does not carry over: that project is a reconstruction of downloaded HTML, k
 
 ### 4L.1 Astro project and decision record (P0)
 
-- [ ] Add an Astro project for the docs site (for example `docs-site/` rebuilt as an Astro project) with `output: 'static'`, so the site stays offline-capable and repo-owned.
-- [ ] Render Markdown from `docs/` directly, so one file is the single source and nothing is copied by hand.
-- [ ] Keep every existing `docs-site/v1/*.html` URL working through redirects, and test them.
-- [ ] Update `docs/docs-site-stack-decision.md` to record that revisit trigger 3 fired and what replaced the static pages.
-- [ ] Update `.github/workflows/docs-site-pages.yml` to build the Astro site and upload its output. Deploy only after the build and the checks pass.
+- [x] Add an Astro project for the docs site (`docs-site/`) with `output: 'static'`, so the site stays offline-capable and repo-owned. Evidence: `docs-site/astro.config.mjs`, `docs-site/package.json`.
+- [x] Render Markdown from `docs/` directly, so one file is the single source and nothing is copied by hand. Evidence: `docs-site/src/content.config.ts` (glob loader on `../docs`), `docs-site/src/pages/docs/[...slug].astro`; 86 pages built.
+- [x] Keep every existing `docs-site/v1/*.html` URL working. They are served byte for byte from `docs-site/public/`, so no redirects are needed. Evidence: `test/docs-site.test.ts` (14 legacy URLs and a byte comparison of `cli.html`).
+- [x] Update `docs/docs-site-stack-decision.md` to record that revisit trigger 3 fired and what replaced the static pages.
+- [x] Update `.github/workflows/docs-site-pages.yml` to build the Astro site and upload its output. Deploy only after the build and the checks pass. Evidence: run 39223155625 log shows "86 page(s) built", "Docs site check passed", then the deploy step.
+
+Verified live on 2026-10-19: `https://icodenet.github.io/eval-dashboards/` and the `/v1/`, `/docs/`, `/docs/gates/` and `/docs/roadmap/` pages return 200, and the live `v1/cli.html` is identical to the repo file.
 
 Acceptance criteria:
 

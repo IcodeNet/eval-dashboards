@@ -116,9 +116,9 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
-### Phase 4L Astro docs site (next deliverable, not started)
+### Phase 4L Astro docs site (next deliverable; 4L.1 done, 4L.2 to 4L.5 not started)
 
-- [ ] 4L.1 Astro project that renders `docs/` Markdown, keeps every `docs-site/v1/` URL, and updates the stack decision record.
+- [x] 4L.1 Astro project that renders `docs/` Markdown, keeps every `docs-site/v1/` URL, and updates the stack decision record (`docs-site/`, `test/docs-site.test.ts`, live site checked 2026-10-19).
 - [ ] 4L.2 Left sidebar built from one data file, with a test that no page is orphaned.
 - [ ] 4L.3 Full-text search index built from all published pages.
 - [ ] 4L.4 Glossary data file, glossary page, and first-use links.
