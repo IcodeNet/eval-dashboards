@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The `Publish to npm` workflow pinned Node 22.14.0, which the Astro docs site refuses to build on, so a release stopped before publishing. It now uses the latest Node 22.
+
 ## [0.10.0] — 2026-10-19
 
 ### Added
