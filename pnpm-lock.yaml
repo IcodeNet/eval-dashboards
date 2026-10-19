@@ -209,7 +209,7 @@ importers:
     optionalDependencies:
       nodemailer:
         specifier: ^10.0.9
-        version: 10.1.0
+        version: 10.1.7
 
   docs-site:
     dependencies:
@@ -1985,8 +1985,8 @@ packages:
   node-mock-http@1.0.5:
     resolution: {integrity: sha512-KQyt/wLjG3TAc7DOUhpqWzgd4ERxR80JOlTK5VE5R1S12IaPVN5qkj4klBce9HPG1Njuup4Sb5bljaT34lIyjw==}
 
-  nodemailer@10.1.0:
-    resolution: {integrity: sha512-fXW8AulB25aOTuwfRYV6lqHyfz2VM4rr4SGXH03mE7x5znEUpzL5mu6anARUpZN7744Ziwkmr4AxSLPJsBQspg==}
+  nodemailer@10.1.7:
+    resolution: {integrity: sha512-OQa6FDln5fLttmqSbjDiRYvFDOFNrBqfiOwHPlEbURil3b+vPB1v8xpi+Sp46drzNDlsTnNsS502vthmz56r4w==}
     engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
@@ -4040,7 +4040,7 @@ snapshots:
 
   node-mock-http@1.0.5: {}
 
-  nodemailer@10.1.0:
+  nodemailer@10.1.7:
     optional: true
 
   normalize-path@3.0.0: {}
