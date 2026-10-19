@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Docs site: a Copy button on every code block, the eval-dashboards and Langfuse logos, and a "These pages have moved" notice on each old `/v1/` page** that links to its current page. The old pages stay up so existing links keep working.
+
 ### Changed
 
 - **Automatic baseline selection now skips runs that share no suite with the current run.** Before, the default rolling baseline could be a run of a different suite, which made the comparison meaningless. If no earlier run shares a suite, there is no baseline, so every failing row counts as newly failing and `--max-new-failures` can fail where it used to compare against an unrelated run. Pass `--baseline-run-id` to pick a baseline on purpose.

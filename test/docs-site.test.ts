@@ -93,10 +93,30 @@ describe('built docs site', () => {
     expect(built).toContain('content="0; url=./docs/"');
   });
 
-  it('should serve the legacy cli page byte for byte when it moves into the Astro project', async () => {
-    const built = await readFile(path.join(distDir, 'v1/cli.html'), 'utf8');
-    const source = await readFile(path.join(siteRoot, 'public/v1/cli.html'), 'utf8');
-    expect(built).toBe(source);
+  it('should keep a notice linking to the current page when a legacy page is served', async () => {
+    const pages = (await readdir(path.join(distDir, 'v1'))).filter((name) => name.endsWith('.html'));
+    const missing: string[] = [];
+    for (const page of pages) {
+      const html = await readFile(path.join(distDir, 'v1', page), 'utf8');
+      const target = /class="card moved"[^>]*>.*?href="\.\.\/([^"#]+)/s.exec(html)?.[1];
+      if (target === undefined) {
+        missing.push(page);
+        continue;
+      }
+      await access(path.join(distDir, target, 'index.html')).catch(() => missing.push(`${page} -> ${target}`));
+    }
+    expect(pages).toHaveLength(12);
+    expect(missing).toEqual([]);
+  });
+
+  it('should show both logos and load the copy script when a docs page is built', async () => {
+    const html = await readFile(path.join(distDir, 'docs/gates/index.html'), 'utf8');
+    expect(html).toContain('images/eval-dashboards-icon.svg');
+    expect(html).toContain('images/langfuse-wordart-white.svg');
+    expect(html).toContain('copy-code.js');
+    await expect(access(path.join(distDir, 'images/eval-dashboards-icon.svg'))).resolves.toBeUndefined();
+    await expect(access(path.join(distDir, 'images/langfuse-wordart-white.svg'))).resolves.toBeUndefined();
+    await expect(access(path.join(distDir, 'copy-code.js'))).resolves.toBeUndefined();
   });
 
   it('should publish a page for every Markdown file in docs when the site is built', async () => {
