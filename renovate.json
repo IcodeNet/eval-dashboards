@@ -2,5 +2,27 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "timezone": "Europe/London",
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "description": "One weekly PR for all non-major updates, so CI runs once",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "all non-major dependencies"
+    },
+    {
+      "description": "Keep GitHub Actions bumps in their own weekly PR",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github actions"
+    }
   ]
 }
