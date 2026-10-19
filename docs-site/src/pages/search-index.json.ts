@@ -4,6 +4,7 @@ import { getCollection } from 'astro:content';
 import type { APIRoute } from 'astro';
 import { BASE } from '../site';
 import { routeForDocPath } from '../plugins/rewrite-doc-links.mjs';
+import { GLOSSARY } from '../data/glossary.mjs';
 import {
   htmlHeadings,
   htmlTitle,
@@ -26,6 +27,13 @@ export const GET: APIRoute = async () => {
       text: markdownToText(markdown),
     });
   }
+
+  entries.push({
+    title: 'Glossary',
+    url: `${BASE}/docs/glossary/`,
+    headings: [],
+    text: GLOSSARY.map((entry) => `${entry.term} ${entry.definition}`).join(' '),
+  });
 
   const legacyDir = path.resolve(process.cwd(), 'public/v1');
   for (const file of (await readdir(legacyDir)).filter((name) => name.endsWith('.html') && name !== 'search.html').sort()) {

@@ -1,0 +1,29 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+import { BASE } from '../../site';
+import { routeForDocPath } from '../../plugins/rewrite-doc-links.mjs';
+import { GLOSSARY } from '../../data/glossary.mjs';
+
+const entries = [...GLOSSARY]
+  .sort((a, b) => a.term.localeCompare(b.term))
+  .map((entry) => {
+    const route = routeForDocPath(`${entry.page.endsWith('/') ? `${entry.page}README` : entry.page}.md`);
+    return { ...entry, id: entry.term.toLowerCase().replace(/[^a-z0-9]+/g, '-'), href: `${BASE}/docs/${route ? `${route}/` : ''}` };
+  });
+---
+<DocLayout title="Glossary" route="glossary">
+  <article>
+    <h1>Glossary</h1>
+    <p>Plain-English meanings of the terms this tool uses. Each term links to the page that explains it in full.</p>
+    <dl class="glossary">
+      {entries.map((entry) => (
+        <>
+          <dt id={entry.id}>{entry.term}</dt>
+          <dd>
+            {entry.definition} <a href={entry.href}>Read more</a>
+          </dd>
+        </>
+      ))}
+    </dl>
+  </article>
+</DocLayout>

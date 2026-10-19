@@ -132,3 +132,9 @@ export const SIDEBAR = [
 
 /** Docs index page, linked at the top of the sidebar. It is not a group member. */
 export const INDEX_ENTRY = 'README';
+
+/**
+ * Pages the site generates that have no Markdown file in `docs/`. They are linked next to the docs index at the
+ * top of the sidebar. `route` is the path under `/docs/`.
+ */
+export const GENERATED_PAGES = [{ route: 'glossary', title: 'Glossary' }];
