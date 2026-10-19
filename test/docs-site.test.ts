@@ -1,4 +1,4 @@
-import { access, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -120,6 +120,23 @@ describe('built docs site', () => {
 
     afterAll(async () => {
       await rm(scratch, { recursive: true, force: true });
+    });
+
+    it('should report a missing anchor when a link names a heading that is not on the page', async () => {
+      const dir = await mkdtemp(path.join(tmpdir(), 'site-anchor-'));
+      await mkdir(path.join(dir, 'docs'), { recursive: true });
+      await writeFile(path.join(dir, 'docs/index.html'), '<h2 id="real">x</h2>', 'utf8');
+      await writeFile(
+        path.join(dir, 'index.html'),
+        '<a href="/eval-dashboards/docs/#real">ok</a><a href="/eval-dashboards/docs/#gone">bad</a><a href="#top">self</a>',
+        'utf8',
+      );
+
+      expect(await checkBuiltSite(dir)).toEqual([
+        '/eval-dashboards/index.html: missing anchor #gone in /eval-dashboards/docs/',
+        '/eval-dashboards/index.html: missing anchor #top in this page',
+      ]);
+      await rm(dir, { recursive: true, force: true });
     });
 
     it('should report the page and the target when a link points at nothing', async () => {
