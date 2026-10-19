@@ -85,4 +85,26 @@ describe('cli reporter normalization', () => {
 
     expect(stdout).toContain('Run:              run-current');
   });
+
+  it('should render the same HTML as the default profile when --profile=guardrail meets a run with no failing rows', async () => {
+    const dir = await createTempDir();
+    const artifactDir = path.join(dir, 'artifacts');
+    const defaultDir = path.join(dir, 'default');
+    const guardrailDir = path.join(dir, 'guardrail');
+    await mkdir(artifactDir, { recursive: true });
+    const report = {
+      schemaVersion: 'eval-report/v1',
+      run: { id: 'run-1', generatedAt: '2026-01-01T00:00:00.000Z' },
+      suites: [{ id: 'suite-a', total: 1, passed: 1, failed: 0 }],
+      rows: [{ id: 'row-1', suite: 'suite-a', passed: true }],
+    };
+    await writeFile(path.join(artifactDir, 'run-1.json'), JSON.stringify(report, null, 2));
+
+    await execFileAsync('pnpm', ['cli:dev', 'report', `--input=${artifactDir}`, '--reporter=html', `--report-dir=${defaultDir}`], { cwd: process.cwd() });
+    await execFileAsync('pnpm', ['cli:dev', 'report', `--input=${artifactDir}`, '--reporter=html', '--profile=guardrail', `--report-dir=${guardrailDir}`], { cwd: process.cwd() });
+
+    const defaultHtml = await readFile(path.join(defaultDir, 'index.html'), 'utf8');
+    const guardrailHtml = await readFile(path.join(guardrailDir, 'index.html'), 'utf8');
+    expect(guardrailHtml).toBe(defaultHtml);
+  });
 });

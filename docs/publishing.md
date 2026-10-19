@@ -83,7 +83,7 @@ Publish preflight checks both current and baseline evidence, including tool argu
 ## Operational notes
 
 - `dir` is local-only and preserves offline-first behavior.
-- `github-pages` needs `--repo` and a GitHub token (`GITHUB_TOKEN` or `--token`).
+- `github-pages` needs `--repo` and a GitHub token (`GITHUB_TOKEN` or `--token`). `--dry-run` needs the token too: the token check runs before the preview, so without one the command exits 2. Any placeholder value is enough for a preview.
 - `azure-storage` requires authenticated Azure CLI and access to the target resource.
 - `azure-static-webapp` currently supports dry-run validation only; non-dry-run returns a clear not-implemented error until a verified execution path lands.
 - `github-pr-comment` posts (or updates in place) a PR comment containing the
