@@ -42,6 +42,10 @@ describe('findUnknownConfigKeys', () => {
     expect(findUnknownConfigKeys({ gates: { maxWarningsByCode: { 'custom-code': 1 } } })).toEqual([]);
   });
 
+  it('should accept gates.suites when a per-suite threshold map is set', () => {
+    expect(findUnknownConfigKeys({ gates: { suites: { safety: { minPassRate: 1 } } } })).toEqual([]);
+  });
+
   it('should report every unknown key when several are wrong', () => {
     expect(findUnknownConfigKeys({ gates: { minPassRat: 1, zeroCriticall: true }, themee: 'dark' })).toHaveLength(3);
   });

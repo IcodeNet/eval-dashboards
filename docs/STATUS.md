@@ -116,6 +116,12 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
+### Gate follow-ups (2026-10-19)
+
+- [x] Per-suite thresholds: `gates.suites.<suite>.minPassRate` and `.maxNewFailures` in the config file (`src/gates/check-gates.ts`, `src/gates/threshold-change.ts`, `test/gates-per-suite.test.ts`, `test/cli-check-per-suite.test.ts`, `test/threshold-change-suites.test.ts`, `docs/gates.md`).
+- [x] Automatic baseline selection skips runs that share no suite with the current run (`src/history/history.ts`, `test/baseline-selection.test.ts`).
+- [x] `gates.allowLoosening` in the config file now takes effect (`src/cli/index.ts`, `test/cli-check-per-suite.test.ts`).
+
 ### Phase 4L Astro docs site (complete)
 
 - [x] 4L.1 Astro project that renders `docs/` Markdown, keeps every `docs-site/v1/` URL, and updates the stack decision record (`docs-site/`, `test/docs-site.test.ts`, live site checked 2026-10-19).

@@ -280,6 +280,27 @@ Baseline-aware options:
 
 Automatic baseline selection only considers earlier runs that share at least one suite with the current run, and it skips calibration runs. A run of a different suite is never picked, because comparing across suites would report rows as new or disappeared when nothing changed. The lookback window counts only those runs. If no earlier run shares a suite, there is no baseline and every failing row counts as newly failing. Use `--baseline-run-id` to compare against a specific run on purpose. A run with no suites and no rows matches any earlier run.
 
+Per-suite thresholds (`gates.suites` in the config file):
+
+```js
+export default {
+  gates: {
+    minPassRate: 0.8,
+    suites: {
+      safety: { minPassRate: 1, maxNewFailures: 0 },
+      quality: { minPassRate: 0.9 },
+    },
+  },
+};
+```
+
+- Each suite is held to its own bar, on top of the global gates. A suite can be stricter than the rest of the run.
+- `minPassRate` is the suite's own pass rate. `maxNewFailures` counts newly failing rows of that suite only, using the same `newFailureKey` rule as the global gate.
+- A suite named here that is missing from the run fails the gate, so a renamed or dropped suite cannot silently stop being checked.
+- An unknown key inside a suite, such as `minPassRat`, exits with code 2.
+- `--baseline-gate-config` also compares per-suite thresholds. Lowering a bar, raising a budget, or removing a suite's entry counts as a loosening.
+- These are set in the config file only. There is no command-line flag.
+
 Statistical gate options (opt-in):
 
 - `--statistical-mode=off|bootstrap`: enable confidence-aware pass-rate delta gating (default `off`).
