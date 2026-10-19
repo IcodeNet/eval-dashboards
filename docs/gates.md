@@ -499,7 +499,7 @@ This proves the bundle was not changed after export. It does not prove who made 
 
 ## Signing a check result
 
-`eval-dashboards sign --artifact=<check-result.json>` records the SHA-256 digest of the file in a detached `eval-check-signature/v1` file (`<artifact>.sig.json`). `eval-dashboards verify --artifact=<check-result.json>` recomputes the digest and fails (exit 1) if the file changed.
+`eval-dashboards sign --artifact=<check-result.json>` records the SHA-256 digest of the file in a detached `eval-check-signature/v1` file (`<artifact>.sig.json`). `eval-dashboards verify --artifact=<check-result.json>` recomputes the digest and fails (exit 1) if the file changed. Use `--signature=<path>` when the signature file is not at the default `<artifact>.sig.json`.
 
 - **In CI with an OIDC token and `cosign` installed**, `sign` also runs `cosign sign-blob` for a keyless Sigstore signature. The signing certificate is short-lived, issued by Fulcio, and the signature is logged in the Rekor transparency log. There is no long-lived key to manage. The job needs `permissions: id-token: write`. Pass `--certificate-identity-regexp` and `--certificate-oidc-issuer` to `verify` to check who signed.
 - **Anywhere else** (your laptop, no `cosign`), the file is written with `method: "unavailable"` and a reason. `verify` then exits 1, because a digest alone does not prove who produced the file.

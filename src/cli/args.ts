@@ -145,6 +145,9 @@ export const knownFlagsByCommand: Record<string, readonly string[]> = {
     '--baseline-run-id',
     '--out',
   ],
+  sign: ['--artifact', '--out'],
+  verify: ['--artifact', '--signature', '--certificate-identity-regexp', '--certificate-oidc-issuer'],
+  schema: [],
   'evidence-verify': ['--bundle'],
 };
 

@@ -70,6 +70,33 @@ describe('assertKnownFlags', () => {
   });
 });
 
+describe('sign, verify and schema flag registration', () => {
+  it('should reject a misspelled flag when verify is given --signatur', () => {
+    expect(() => assertKnownFlags(parseArgs(['verify', '--artifact=a.json', '--signatur=x']))).toThrow(
+      /Unknown option --signatur/,
+    );
+  });
+
+  it('should reject an unknown flag when sign is given --outt', () => {
+    expect(() => assertKnownFlags(parseArgs(['sign', '--artifact=a.json', '--outt=x']))).toThrow(UnknownFlagError);
+  });
+
+  it('should reject any flag when schema is given one', () => {
+    expect(() => assertKnownFlags(parseArgs(['schema', '--pretty']))).toThrow(UnknownFlagError);
+  });
+});
+
+describe('command registry coverage', () => {
+  it('should register every command the dispatcher handles when a command is added', async () => {
+    const source = await readFile(path.resolve(process.cwd(), 'src/cli/index.ts'), 'utf8');
+    const dispatched = [...new Set([...source.matchAll(/command === '([a-z][a-z-]*)'/g)].map((match) => match[1]))]
+      .filter((command) => command !== 'help')
+      .sort();
+
+    expect(Object.keys(knownFlagsByCommand).sort()).toEqual(dispatched);
+  });
+});
+
 describe('optionNumber', () => {
   it.each(['abc', 'NaN', 'Infinity', '', ' '])('rejects invalid numeric value %j instead of disabling the gate', (value) => {
     expect(() => optionNumber({ 'min-pass-rate': value }, 'min-pass-rate')).toThrow(/finite number/);
@@ -91,8 +118,8 @@ describe('optionNumber', () => {
 
 describe('flag registry matches the CLI help snapshots', () => {
   const commands = Object.keys(knownFlagsByCommand).filter(
-    // teach shares init's scaffolding flags; its snapshot is checked via init.
-    (command) => command !== 'teach',
+    // teach shares init's scaffolding flags; its snapshot is checked via init. schema takes no flags.
+    (command) => command !== 'teach' && command !== 'schema',
   );
 
   it.each(commands)('%s registry covers every documented flag', async (command) => {
