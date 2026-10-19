@@ -29,7 +29,7 @@
 Docs site (start here):
 - Live docs (search, sidebar, glossary): https://icodenet.github.io/eval-dashboards/docs/
 - Earlier hand-written pages: https://icodenet.github.io/eval-dashboards/v1/
-- In-repo source: [docs-site/v1/index.html](docs-site/v1/index.html)
+- In-repo source: [docs-site/](docs-site/README.md) (Astro project) and [docs-site/public/v1/index.html](docs-site/public/v1/index.html) (earlier pages)
 
 ## Completion Check Ledger
 
@@ -537,8 +537,8 @@ This project is in **active development** (v0.x). Core schema and API are stabil
 - [FAQ: what it does and does not do](docs/faq.md) — platforms, network use, telemetry, upgrades, and the features that are not supported
 
 Full audience-grouped index: [docs/README.md](docs/README.md). `docs/*.md` is
-the canonical source of truth; [docs-site/v1](docs-site/v1/index.html) is a
-curated subset for external readers.
+the canonical source of truth. The [published docs site](https://icodenet.github.io/eval-dashboards/docs/)
+is built from it, with search, a sidebar and a glossary.
 
 **Start here:**
 
@@ -571,7 +571,7 @@ curated subset for external readers.
 
 **Product & roadmap:**
 
-- [Static docs site (v1)](docs-site/v1/index.html) — versioned quickstart + CLI-first onboarding
+- [Published docs site](https://icodenet.github.io/eval-dashboards/docs/) — every doc, searchable, with a sidebar and glossary; built from `docs/` by [docs-site/](docs-site/README.md)
 - [Roadmap](docs/ROADMAP.md) — phases and adoption plan
 - [Status](docs/STATUS.md) — done vs. remaining, honest completion ledger
 - [Comparison with NYC/Istanbul](docs/comparison-with-nyc.md)
