@@ -184,6 +184,83 @@ describe('import adapters', () => {
   });
 
 
+
+  it('maps promptfoo componentResults assertions into rows[].checks', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'promptfoo-component-results.json');
+    const outPath = path.join(dir, '.evals_output', 'import-promptfoo-component-results.json');
+
+    await writeFile(
+      inputPath,
+      JSON.stringify(
+        {
+          results: [
+            {
+              id: 'case-checks',
+              description: 'assertion-level details',
+              success: false,
+              gradingResult: {
+                pass: false,
+                score: 0,
+                componentResults: [
+                  {
+                    pass: true,
+                    score: 1,
+                    assertion: { type: 'contains', value: 'approved', threshold: 0.9, weight: 2 },
+                  },
+                  {
+                    pass: false,
+                    score: 0.1,
+                    assertion: { type: 'rouge-l', threshold: 0.8 },
+                  },
+                ],
+              },
+              testCase: { metadata: { suite: 'answer-quality' } },
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    const imported = await importFromSource({
+      source: 'promptfoo',
+      inputPath,
+      outPath,
+    });
+
+    expect(imported.rowCount).toBe(1);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows[0]).toEqual(
+      expect.objectContaining({
+        id: 'case-checks',
+        checks: [
+          {
+            type: 'contains',
+            pass: true,
+            expected: 'approved',
+            actual: 1,
+            threshold: 0.9,
+            weight: 2,
+          },
+          {
+            type: 'rouge-l',
+            pass: false,
+            actual: 0.1,
+            threshold: 0.8,
+          },
+        ],
+      }),
+    );
+  });
+
   it('imports promptfoo provider-error rows as failed cases', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-errors.json');

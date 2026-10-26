@@ -56,6 +56,17 @@ type PromptfooResult = {
     reason?: string;
     comment?: string;
     verdict?: string;
+    componentResults?: Array<{
+      pass?: boolean;
+      score?: number;
+      reason?: string;
+      assertion?: {
+        type?: string;
+        value?: unknown;
+        threshold?: number;
+        weight?: number;
+      };
+    }>;
   };
   vars?: Record<string, unknown>;
   testCase?: {
@@ -196,6 +207,35 @@ const promptfooErrorText = (value: unknown): string | undefined => {
     if (typeof message === 'string' && message.trim().length > 0) return message.trim();
   }
   return stringifyIfObject(value);
+};
+
+
+const promptfooChecks = (row: PromptfooResult): RunnerEvalCaseResult['checks'] | undefined => {
+  const componentResults = row.gradingResult?.componentResults;
+  if (!Array.isArray(componentResults) || componentResults.length === 0) {
+    return undefined;
+  }
+
+  const checks = componentResults
+    .filter((component) => typeof component?.pass === 'boolean')
+    .map((component, index) => {
+      const assertion = component.assertion;
+      const type = typeof assertion?.type === 'string' && assertion.type.trim().length > 0
+        ? assertion.type.trim()
+        : `promptfoo-assertion-${index + 1}`;
+      return {
+        type,
+        pass: component.pass as boolean,
+        ...(assertion && Object.prototype.hasOwnProperty.call(assertion, 'value')
+          ? { expected: assertion.value }
+          : {}),
+        ...(typeof component.score === 'number' ? { actual: component.score } : {}),
+        ...(typeof assertion?.threshold === 'number' ? { threshold: assertion.threshold } : {}),
+        ...(typeof assertion?.weight === 'number' ? { weight: assertion.weight } : {}),
+      };
+    });
+
+  return checks.length > 0 ? checks : undefined;
 };
 
 const inferPassFromSignals = (
@@ -439,6 +479,7 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
         promptfooError ??
         (row.failureReason !== undefined ? `promptfoo failureReason=${String(row.failureReason)}` : undefined),
       durationMs: row.latencyMs ?? row.response?.latencyMs,
+      checks: promptfooChecks(row),
       metadata: {
         provenance: {
           source: 'custom',
@@ -1593,6 +1634,7 @@ export const importFromSource = async (options: {
         judgeReasoning: caseResult.judgeReasoning,
         reason: caseResult.reason,
         durationMs: caseResult.durationMs,
+        checks: caseResult.checks,
         metadata: caseResult.metadata,
         trace: caseResult.trace,
       }),

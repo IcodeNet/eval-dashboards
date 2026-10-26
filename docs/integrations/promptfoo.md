@@ -33,6 +33,7 @@ The importer preserves key Promptfoo evidence fields when present:
 - `metadata.sessionId` -> `rows[].metadata.sourceSessionId`
 - missing row ids -> deterministic `promptfoo-<sha1>` ids derived from suite + case payload (`#2` suffix for duplicates in one file), so row identity does not depend on array position
 - provider/eval error rows (`error`, `response.error`, `providerResponse.error`, or `failureReason: 2`) -> imported as failed rows with the numeric `row.score` or `gradingResult.score` preserved, defaulting to `score: 0` only when neither is numeric; available error reasons are preserved
+- `gradingResult.componentResults[]` assertion details -> `rows[].checks[]` (`type`, `pass`, optional `expected`, `actual`, `threshold`, `weight`) so per-assertion evidence survives import
 
 Related risks: [integration risk register](./risk-register.md)
 

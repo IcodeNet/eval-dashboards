@@ -709,6 +709,19 @@ Rationale: LangSmith SDK v0.14.5 added typed addresses (AgentAddress/ExperimentA
 
 Verification 2026-10-11: importer mapping is implemented in `src/cli/import-adapters.ts`; the duplicate-address regression is covered by `test/import-adapters-langsmith.test.ts`; mapping and limitations are documented in `docs/integrations/langsmith.md`. Exact commands, results, review resolution, and limitations are recorded in `docs/reviews/2026-10-11-pr14-langsmith-provenance.md`.
 
+
+### 4C.16 Promptfoo assertion-component evidence parity (P1)
+
+- [ ] Extend the Promptfoo importer to map `gradingResult.componentResults[]` into `rows[].checks[]` so assertion-level evidence survives conversion instead of collapsing to row-level pass/fail only.
+- [ ] Cover mixed assertion sets (pass+fail checks with thresholds/weights and missing assertion values) in adapter tests and document the mapping in `docs/integrations/promptfoo.md`.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=promptfoo` preserves assertion-level check evidence as schema-valid `rows[].checks[]` entries with stable `type` + `pass` plus optional expected/actual/threshold/weight fields.
+- Promptfoo integration docs describe the mapping and call out that check types remain runner-defined strings (no hardcoded assertion enum).
+
+Rationale: Promptfoo’s output docs explicitly expose assertion-level `gradingResult.componentResults[]`; preserving that structure keeps imported artifacts decision-useful for CI triage and aligns with eval-dashboards’ structured per-row check model (`rows[].checks[]`). Source: https://www.promptfoo.dev/docs/configuration/outputs/
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
