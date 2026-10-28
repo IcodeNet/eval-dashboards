@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -106,6 +106,103 @@ describe('ragas and langfuse import adapters', () => {
     const lint = lintReportTaxonomy(validated.report);
     expect(lint.issues.filter((issue) => issue.level === 'error')).toHaveLength(0);
     expect(lint.issues.filter((issue) => issue.code === 'missing-kind')).toHaveLength(0);
+  });
+
+
+  it('preserves langfuse score metadata and provenance fields when present', async () => {
+    const dir = await createTempDir();
+    const outPath = path.join(dir, '.evals_output', 'import-langfuse-provenance.json');
+
+    const imported = await importFromSource({
+      source: 'langfuse',
+      inputPath: path.join(fixturesDir, 'langfuse-provenance-sample.json'),
+      outPath,
+      suiteName: 'trace-scores',
+    });
+
+    expect(imported.rowCount).toBe(2);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows[0]?.metadata).toEqual(
+      expect.objectContaining({
+        langfuseScoreMetadata: { dimension: 'factuality', reviewer: 'auto' },
+        langfuseScoreProvenance: {
+          author_user_id: 'user-123',
+          config_id: 'cfg-1',
+          execution_trace_id: 'exec-trace-a',
+        },
+      }),
+    );
+
+    expect(validated.report.rows[1]?.metadata).toEqual(
+      expect.objectContaining({
+        langfuseScoreProvenance: {
+          author_user_id: 'user-456',
+          config_id: 'cfg-2',
+          queue_id: 'queue-9',
+          evaluator_id: 'eval-17',
+          evaluation_rule_id: 'rule-5',
+          execution_trace_id: 'exec-trace-b',
+        },
+      }),
+    );
+  });
+
+  it.each([
+    {
+      label: 'camelCase grouped fields',
+      fields: { scoreMetadata: { dimension: 'safety' }, scoreProvenance: { evaluator_id: 'judge-1' } },
+      metadata: { dimension: 'safety' },
+      provenance: { evaluator_id: 'judge-1' },
+    },
+    {
+      label: 'scheduled export metadata column',
+      fields: { metadata: { dimension: 'safety', revision: 2 }, execution_trace_id: 'judge-trace' },
+      metadata: { dimension: 'safety', revision: 2 },
+      provenance: { execution_trace_id: 'judge-trace' },
+    },
+    {
+      label: 'flattened fields overriding nested provenance',
+      fields: {
+        score_metadata: { dimension: 'safety' },
+        scoreMetadata: { dimension: 'ignored' },
+        score_provenance: { evaluator_id: 'old', config_id: 'retained', extra: { revision: 3 } },
+        evaluator_id: 'current',
+      },
+      metadata: { dimension: 'safety' },
+      provenance: { evaluator_id: 'current', config_id: 'retained', extra: { revision: 3 } },
+    },
+    {
+      label: 'absent optional evidence',
+      fields: {},
+      metadata: undefined,
+      provenance: undefined,
+    },
+    {
+      label: 'malformed optional groups',
+      fields: { score_metadata: ['invalid'], score_provenance: 'invalid' },
+      metadata: undefined,
+      provenance: undefined,
+    },
+  ])('preserves Langfuse evidence for $label', async ({ fields, metadata, provenance }) => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'scores.json');
+    const outPath = path.join(dir, 'report.json');
+    await writeFile(inputPath, JSON.stringify([{ id: 'score-1', value: true, ...fields }]));
+
+    await importFromSource({ source: 'langfuse', inputPath, outPath });
+    const validated = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')));
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+    const row = validated.report.rows[0]!;
+    expect(row.passed).toBe(true);
+    expect(row.metadata?.langfuseScoreMetadata).toEqual(metadata);
+    expect(row.metadata?.langfuseScoreProvenance).toEqual(provenance);
+    expect(row.metadata?.provenance).toMatchObject({ sourceRef: 'langfuse' });
   });
 
   it('fails clearly when a langfuse score cannot be resolved to pass/fail', async () => {

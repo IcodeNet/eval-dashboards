@@ -259,6 +259,16 @@ type LangfuseScoreResult = {
   trace?: { input?: unknown; output?: unknown; name?: string };
   suite?: string;
   metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+  score_metadata?: unknown;
+  scoreMetadata?: unknown;
+  score_provenance?: unknown;
+  scoreProvenance?: unknown;
+  author_user_id?: string;
+  config_id?: string;
+  queue_id?: string;
+  evaluator_id?: string;
+  evaluation_rule_id?: string;
+  execution_trace_id?: string;
 };
 
 type LangsmithFeedback = {
@@ -568,6 +578,11 @@ const agentEvalsRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseR
 
 const RAGAS_METRIC_PASS_THRESHOLD = 0.5;
 
+const asRecord = (value: unknown): Record<string, unknown> | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return value as Record<string, unknown>;
+};
+
 const ragasRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
   const list = resolveRowsContainer(source, {
     arrayLabel: 'a JSON array',
@@ -633,6 +648,24 @@ const ragasRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult
   });
 };
 
+const langfuseScoreProvenance = (row: LangfuseScoreResult): Record<string, unknown> | undefined => {
+  const nested = asRecord(row.score_provenance) ?? asRecord(row.scoreProvenance);
+  const flattened = {
+    ...(row.author_user_id ? { author_user_id: row.author_user_id } : {}),
+    ...(row.config_id ? { config_id: row.config_id } : {}),
+    ...(row.queue_id ? { queue_id: row.queue_id } : {}),
+    ...(row.evaluator_id ? { evaluator_id: row.evaluator_id } : {}),
+    ...(row.evaluation_rule_id ? { evaluation_rule_id: row.evaluation_rule_id } : {}),
+    ...(row.execution_trace_id ? { execution_trace_id: row.execution_trace_id } : {}),
+  };
+
+  if (nested && Object.keys(flattened).length > 0) {
+    return { ...nested, ...flattened };
+  }
+  if (nested) return nested;
+  return Object.keys(flattened).length > 0 ? flattened : undefined;
+};
+
 const langfuseRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult[] => {
   const list = resolveRowsContainer(source, {
     arrayLabel: 'a JSON array',
@@ -673,6 +706,11 @@ const langfuseRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRes
       );
     }
 
+    // Scheduled blob exports call this field group score_metadata, but emit its
+    // values under a metadata column. Also accept explicitly grouped exports.
+    const scoreMetadata = asRecord(row.score_metadata) ?? asRecord(row.scoreMetadata) ?? asRecord(row.metadata);
+    const scoreProvenance = langfuseScoreProvenance(row);
+
     return {
       id: rowLabel,
       suite,
@@ -692,6 +730,8 @@ const langfuseRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRes
           sourceRef: 'langfuse',
         },
         lifecycle: { status: 'active' },
+        ...(scoreMetadata ? { langfuseScoreMetadata: scoreMetadata } : {}),
+        ...(scoreProvenance ? { langfuseScoreProvenance: scoreProvenance } : {}),
       },
     };
   });
