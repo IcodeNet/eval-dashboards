@@ -166,3 +166,11 @@ Use `docs/teach-labs/README.md` for delivery-stage labs and the FDE role workflo
 - Release readiness: `docs/teach-labs/04-release-readiness.md`
 - Post-release monitoring: `docs/teach-labs/05-post-release-monitoring.md`
 - FDE role analysis + workflow: `docs/teach-labs/fde-role-workflow.md`
+
+## Paired comparison evidence
+
+`examples/paired-comparison/generate.mjs` writes two synthetic, taxonomy-aware
+reports for the same 100 passing cases. Its README shows the opt-in paired gate
+and offline report commands. The example intentionally yields an inconclusive
+comparison rather than interpreting identical observed outcomes as perfect
+certainty. It uses no model provider, database, or paid service.

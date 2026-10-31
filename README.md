@@ -2,7 +2,7 @@
 
 > **Product direction (2026-10-31):** a fully hosted platform with accounts, ingestion, and live dashboards is approved and planned. The current product remains the portable package. See [requirements and delivery sequence](docs/hosted-platform-requirements.md).
 
-Reports now show the configured quality-gate decision across HTML, Markdown, text, and JSON. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
+Reports now show the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/eval-dashboards-logo-dark.svg">

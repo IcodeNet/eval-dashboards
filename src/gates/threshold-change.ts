@@ -225,6 +225,19 @@ export const detectGateConfigLoosening = (
     if (change) changes.push(change);
   };
 
+  if (baseline.paired !== undefined || resolved.paired !== undefined) {
+    if (baseline.paired === undefined || resolved.paired === undefined) {
+      const direction = resolved.paired === undefined ? 'loosened' as const : 'tightened' as const;
+      changes.push({ field: 'paired', baselineValue: baseline.paired !== undefined, resolvedValue: resolved.paired !== undefined,
+        direction, description: `Paired comparison gate ${direction}: ${resolved.paired === undefined ? 'removed' : 'added'}.` });
+    } else {
+      push(numberField('paired.minDelta', baseline.paired.minDelta ?? 0, resolved.paired.minDelta ?? 0, 'lower'));
+      push(numberField('paired.confidenceLevel', baseline.paired.confidenceLevel ?? 0.95, resolved.paired.confidenceLevel ?? 0.95, 'lower'));
+      push(numberField('paired.minClusters', baseline.paired.minClusters ?? 2, resolved.paired.minClusters ?? 2, 'lower'));
+      push(booleanField('paired.independentClusters', baseline.paired.independentClusters ?? false, resolved.paired.independentClusters ?? false, false));
+    }
+  }
+
   push(numberField('minPassRate', baseline.minPassRate, resolved.minPassRate, 'lower'));
   push(
     numberField(

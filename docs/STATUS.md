@@ -255,7 +255,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
-- [ ] M1: Shared analytics and actual gate decision semantics. In progress: shared CLI gate evaluation, explicit report decisions, and matched-cohort/measured-telemetry analytics. Repeated-trial inference and inconclusive gate semantics remain pending. See [gate decisions](./gates.md#reported-gate-decisions).
+- [ ] M1: Shared analytics and actual gate decision semantics. In progress: shared CLI gate evaluation, explicit report decisions, and matched-cohort/measured-telemetry analytics. An opt-in paired group comparison now exposes conservative bounds and explicit inconclusive decisions. Trial-level evidence/uncertainty remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
 - [ ] M2: Tenant-safe accounts and durable artifact ingestion.
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.

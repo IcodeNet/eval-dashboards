@@ -148,6 +148,4 @@ No database or paid service is needed.
   sample lists are deterministic, prioritize ambiguity/incompatibility over unknown metadata, and must not be mistaken for total counts.
 
 The existing `comparison.newlyFailing` field and gate budgets retain their
-legacy meaning, including newly introduced failing rows. Existing statistical
-gates remain unchanged in this slice; this descriptive cohort view does not
-claim statistical significance or certify a deployment.
+legacy meaning, including newly introduced failing rows. Legacy bootstrap settings remain unchanged. The opt-in [paired comparison gate](./gates.md#paired-comparison-gate) uses matching version-compatible groups and reports a distinct inconclusive state when its criterion cannot be established. Descriptive score changes alone do not establish significance or certify a deployment.
