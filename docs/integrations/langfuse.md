@@ -23,11 +23,11 @@ Export scored traces/spans, then map each evaluated item into a row.
 ## Concrete command/pattern
 
 ```sh
-pnpm tsx examples/custom-reporter-plugin/map-generic-export-to-eval-report.ts --source=langfuse --input=./langfuse-export.json --out=./.evals_output/langfuse-import.json
-eval-dashboards report --input=.evals_output --run-id=langfuse-import --reporter=html --report-dir=eval-report
+eval-dashboards import --from=langfuse --input=./langfuse-export.json --out=./.evals_output/langfuse-import.json
+eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report
 ```
 
-When both field spellings are present, the snake_case object takes precedence. Flattened provenance columns override matching nested keys; other nested keys are retained. Missing or non-object optional groups are ignored. The imported score evidence stays separate from the importer's own `metadata.provenance` record.
+When both field spellings are present, the snake_case object takes precedence. Flattened string provenance columns (including empty strings) override matching nested keys; non-string flattened values are ignored; other nested keys are retained. Missing or non-object optional groups are ignored. The imported score evidence stays separate from the importer's own `metadata.provenance` record.
 
 Langfuse's optional `score_metadata` and `score_provenance` export groups must be enabled to include these columns in future scheduled exports; see the [Langfuse export announcement](https://langfuse.com/changelog/2026-10-22-blob-storage-score-field-groups). The importer consumes JSON score objects; convert CSV/Parquet exports to JSON first.
 

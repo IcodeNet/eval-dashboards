@@ -177,6 +177,18 @@ describe('ragas and langfuse import adapters', () => {
       provenance: { evaluator_id: 'current', config_id: 'retained', extra: { revision: 3 } },
     },
     {
+      label: 'empty flattened ids clearing stale nested values',
+      fields: { score_provenance: { evaluator_id: 'stale', config_id: 'keep' }, evaluator_id: '' },
+      metadata: undefined,
+      provenance: { evaluator_id: '', config_id: 'keep' },
+    },
+    {
+      label: 'non-string flattened ids ignored',
+      fields: { score_provenance: { evaluator_id: 'keep' }, evaluator_id: 42, config_id: true, queue_id: {} },
+      metadata: undefined,
+      provenance: { evaluator_id: 'keep' },
+    },
+    {
       label: 'absent optional evidence',
       fields: {},
       metadata: undefined,

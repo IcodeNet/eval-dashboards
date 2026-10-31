@@ -651,12 +651,12 @@ const ragasRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResult
 const langfuseScoreProvenance = (row: LangfuseScoreResult): Record<string, unknown> | undefined => {
   const nested = asRecord(row.score_provenance) ?? asRecord(row.scoreProvenance);
   const flattened = {
-    ...(row.author_user_id ? { author_user_id: row.author_user_id } : {}),
-    ...(row.config_id ? { config_id: row.config_id } : {}),
-    ...(row.queue_id ? { queue_id: row.queue_id } : {}),
-    ...(row.evaluator_id ? { evaluator_id: row.evaluator_id } : {}),
-    ...(row.evaluation_rule_id ? { evaluation_rule_id: row.evaluation_rule_id } : {}),
-    ...(row.execution_trace_id ? { execution_trace_id: row.execution_trace_id } : {}),
+    ...(typeof row.author_user_id === 'string' ? { author_user_id: row.author_user_id } : {}),
+    ...(typeof row.config_id === 'string' ? { config_id: row.config_id } : {}),
+    ...(typeof row.queue_id === 'string' ? { queue_id: row.queue_id } : {}),
+    ...(typeof row.evaluator_id === 'string' ? { evaluator_id: row.evaluator_id } : {}),
+    ...(typeof row.evaluation_rule_id === 'string' ? { evaluation_rule_id: row.evaluation_rule_id } : {}),
+    ...(typeof row.execution_trace_id === 'string' ? { execution_trace_id: row.execution_trace_id } : {}),
   };
 
   if (nested && Object.keys(flattened).length > 0) {

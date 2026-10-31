@@ -808,7 +808,7 @@ Rationale: Inspect AI 0.3.278 added task/sample `description` fields to eval log
 
 ### 4C.17 Langfuse score-provenance export parity (P1)
 
-- [ ] Extend the Langfuse import adapter to preserve optional `score_metadata` and score-provenance export fields so downstream gates and audits can trace who/what produced each score.
+- [x] Extend the Langfuse import adapter to preserve optional `score_metadata` and score-provenance export fields so downstream gates and audits can trace who/what produced each score.
 
 Acceptance criteria:
 
@@ -818,6 +818,8 @@ Acceptance criteria:
 - Langfuse integration docs describe the mapping so teams can keep warehouse joins and evaluator-trace debugging after import.
 
 Rationale: Langfuse added optional score metadata/provenance field groups for scheduled exports, including `execution_trace_id` for evaluator trace linkage; preserving these fields removes evidence loss in CI migrations (https://langfuse.com/changelog/2026-10-22-blob-storage-score-field-groups).
+
+Verification 2026-10-31: `src/cli/import-adapters.ts:651`, `test/import-adapters-ragas-langfuse.test.ts:111`, and [PR #93 handoff evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
 
 ### 4C execution order
 
