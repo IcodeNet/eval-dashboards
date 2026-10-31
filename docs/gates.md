@@ -496,8 +496,8 @@ eval-dashboards evidence-verify --bundle=eval-report/evidence-bundle.json
 - `--run-id` and `--baseline-run-id` are recorded on the bundle for the
   reader. They are informational and do not select runs.
 - `evidence-verify --bundle=<path>` recomputes every entry digest and the
-  top-level digest. It exits `1` on any mismatch or a missing or malformed
-  bundle.
+  top-level digest. Valid JSON with malformed entries, unsupported roles, non-string contents/source paths, or invalid SHA-256 digest declarations exits `1` with diagnostics. Missing files, invalid JSON, and a missing `--bundle` exit `2`.
+- This verifies digest integrity, not signer identity or authenticity. A supplied signature file is embedded as evidence; authenticate it separately. Entry order is immaterial because the manifest digest sorts role/digest lines.
 
 ### Check an evidence bundle without eval-dashboards
 

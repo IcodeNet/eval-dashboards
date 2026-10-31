@@ -1369,7 +1369,7 @@ cost-budget failure, and invalid `--tier` rejection).
 
 ### 4F.11 Evidence export bundle (P2, 3-4 d)
 
-- [x] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest.
+- [ ] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest. Audit 2026-10-31: digest-manifest export and integrity checks exist, but an optional signature is only embedded; bundle/signer authentication is not verified. Signed-bundle acceptance remains open.
 
 Acceptance criteria:
 
@@ -1381,7 +1381,7 @@ check-result artifact, waiver register, optional bypass log, optional
 approval trail, optional `sign` detached signature), hashes it (sha256), and
 embeds its exact bytes verbatim, plus a top-level `bundleDigest` computed
 over all per-entry digests (so tampering with the entry list itself —
-add/remove/reorder/swap — is detectable even if an individual entry's own
+add/remove/swap — is detectable even if an individual entry's own
 digest still matches its contents). `verifyEvidenceBundle` recomputes both
 and fails closed on any mismatch, needing nothing but the bundle file
 itself. New CLI commands: `eval-dashboards evidence-export
@@ -1602,6 +1602,13 @@ Acceptance criteria:
       Not adopting promptfoo's YAML assertion syntax; only the taxonomy of
       "a check has a type/expected/actual/threshold/weight" is in scope.
 
+### 4F.25 Evidence-bundle input validation (P1, S)
+
+- [x] Validate entry shapes, known roles, string contents/source paths, and SHA-256 digest declarations before hashing. Malformed JSON bundles return deterministic diagnostics instead of throwing.
+- [x] Test malformed entries, unsupported digest algorithms, additive unknown properties, and CLI exit 1 for verification failures.
+
+Evidence: `src/evidence/bundle.ts:145`, `test/evidence-bundle-validation.test.ts:15`, `test/cli-evidence-export.test.ts:196`; see [verification record](./reviews/2026-10-31-evidence-verification.md). The digest algorithm and valid bundle format are unchanged. This hardens 4F.11 integrity verification; signer authentication remains separate pending work.
+
 ### Still out of scope in 4F
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API, auth-gated app and multi-tenant service remain non-goals.) Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
@@ -1706,7 +1713,7 @@ phase's commit message.
 
 ## 📦 npm release policy note (ship gate)
 
-- **Publishing is on hold until the owner releases it.** Phase 4K (full historical reports) is complete, but no release has been published. The only open roadmap item is 4C.4, which waits on the external Rupic review. Publish `1.0.0` only when the owner says so.
+- **Publishing is on hold until the owner releases it.** Phase 4K (full historical reports) is complete, but no 1.0.0 release has been published. Remaining work includes 4F.11 signed-bundle authentication and 4C.4, which is parked awaiting the external Rupic review. Publish `1.0.0` only when the owner says so.
 - npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.
 - When all remaining roadmap checklist items are complete, and verification passes (`pnpm test`, `pnpm typecheck`, `pnpm build`, plus CLI verifier scripts), publish the first stable milestone as `1.0.0`.
 - If a true first-ever release presentation is required, publish under a new package name/scope instead of attempting to reset existing npm history.
