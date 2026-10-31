@@ -823,6 +823,15 @@ Rationale: Langfuse added optional score metadata/provenance field groups for sc
 
 Verification 2026-10-31: `src/cli/import-adapters.ts:651`, `test/import-adapters-ragas-langfuse.test.ts:111`, and [PR #93 handoff evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
 
+### 4C.18 Promptfoo assertion-component evidence parity (P1)
+
+- [x] Preserve `gradingResult.componentResults[]` in schema-valid `rows[].checks[]` using the existing runner-defined check type and pass fields.
+- [x] Cover mixed assertion sets, thresholds/weights, missing values, malformed components, and the public runner adapter; document mapping limits.
+
+Evidence: `src/cli/import-adapters.ts:215`, `src/adapters/runner.ts:100`, `test/import-adapters.test.ts:188`, `test/runner-adapter.test.ts:36`.
+
+Acceptance: assertion evidence survives JSON/JSONL import without changing row-level gate semantics or `eval-report/v1`. See [PR #92](https://github.com/IcodeNet/eval-dashboards/pull/92) and [Promptfoo exports](https://www.promptfoo.dev/docs/configuration/outputs/).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
