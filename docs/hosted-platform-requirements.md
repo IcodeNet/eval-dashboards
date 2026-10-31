@@ -87,7 +87,7 @@ All implementation milestones below are open. Documentation approval does not co
 5. **M5 — Live progress and measured scale.** Add durable resumable events, retry/backpressure, incremental rollups, query pushdown, pagination, and realistic workload benchmarks. Verify reconnect/duplicate/reordered events and bounded query/memory behavior. Set numerical budgets from measurements, not invented throughput promises.
 6. **M6 — Hosted launch gate (required before launch).** Test authorization across all paths, redaction, audit, deletion/retention, portable exports, migration rollback, backup restoration, service observability, quotas, and accessibility. Use sanitized fixtures and provider-free CI. Hosting vendor, authentication provider, operating budget, and deployment approval remain launch decisions.
 
-M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; repeated-trial inference and inconclusive gate semantics remain open. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
+M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; paired group bounds and inconclusive decisions are available through the opt-in paired gate; trial-level evidence/uncertainty remains open. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
 
 ## Sources and interpretation
 
@@ -147,3 +147,26 @@ build, teaching/flag checks and hook tests; `pnpm assets:regenerate` and
 link check passed. The reading exercise was replayed and its actual generated
 summary copied into the teaching text. No workflow was changed. M1 remains open
 for paired/repeated uncertainty and explicit inconclusive gate semantics.
+
+## M1 paired-comparison slice — 2026-10-31
+
+The optional paired policy compares matching, version-compatible case groups
+and reports passed, failed, or inconclusive. It requires a declared independence
+assumption, does not inflate sample size from mirrored scenario rows or repeat
+counts, and keeps waivers out of observed statistical evidence. Existing
+bootstrap and point-gate defaults are unchanged. Trial-level evidence and
+uncertainty remain open, so the whole M1 milestone is not marked complete.
+
+The recorded before/after example is `docs/reviews/2026-10-31-paired-comparison.json`.
+It explicitly records different policy settings for the same 100 passing cases:
+the existing bootstrap policy passes with a zero-width sampled interval; the
+new opted-in conservative paired policy is inconclusive with a nonzero bound.
+Both report commands write their outputs successfully. This is a behavior
+comparison, not a performance benchmark. The example generator is provider-free
+and the offline screenshot is regenerated with release assets.
+
+Validation uses the full repository check, focused paired/waiver/config tests,
+live CLI help snapshots, documentation links, example replay, package and CLI
+guards, and release-asset reproduction through the exact-tree commit gate.
+The release-asset generation script is exercised by CI; its raw job output is
+reviewed after the PR run rather than inferred from a green badge.
