@@ -118,6 +118,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ### Import compatibility follow-ups (2026-10-31)
 
+- [x] Promptfoo assertion-component evidence (4C.18): preserve per-assertion checks through import and the runner adapter, including mixed outcomes and optional values. Code: `src/cli/import-adapters.ts:215`, `src/adapters/runner.ts:100`; tests: `test/import-adapters.test.ts:188`, `test/runner-adapter.test.ts:36`. See [handoff evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
+
 - [x] Inspect AI JSON import acceptance (4C.16): mixed scores fail if any scorer falls below the threshold, errors override passing scores, and task/sample descriptions survive single/array imports. Code: `src/cli/import-adapters.ts:1136`; tests: `test/import-adapters-inspect-ai.test.ts:100`. See [acceptance evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
 
 - [x] Langfuse score metadata/provenance (4C.17), including explicit empty flattened IDs and malformed-value handling. Code: `src/cli/import-adapters.ts:651`; tests: `test/import-adapters-ragas-langfuse.test.ts:111`. See [PR #93 handoff](./reviews/2026-10-31-import-roadmap-handoff.md).

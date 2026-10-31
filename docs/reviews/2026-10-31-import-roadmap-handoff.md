@@ -75,3 +75,30 @@ pushing the Langfuse review fixes. This follow-up is stacked on PR #93.
 Focused verification: `pnpm exec vitest run test/import-adapters-inspect-ai.test.ts`
 passed all 9 tests. The same six exact-tree quality gates and evidence review are
 required before committing this follow-up. No workflow changes or publication.
+
+## Promptfoo assertion-component parity (4C.18 / PR #92)
+
+Reconciled the pending PR with main after #93/#94 merged. Its proposed 4C.16
+number collided with Inspect AI, so this slice is 4C.18. Retained main's lockfile
+and dependency policy: the old Vite override was unnecessary on current main.
+
+The importer maps component assertion type/pass, expected assertion value,
+finite numeric score (as actual), threshold and weight into existing row checks.
+Unnamed checks use their original component position; invalid components do not
+renumber later checks. Checks remain evidence and do not alter aggregate pass/fail.
+RunnerEvalCaseResult exposes the optional existing checks shape and the default
+row mapper preserves it. No eval-report/v1 contract or CLI flags change.
+
+Evidence: src/cli/import-adapters.ts:215; src/adapters/runner.ts:100;
+test/import-adapters.test.ts:188; test/runner-adapter.test.ts:36. The synthetic
+native-export fixture is test/fixtures/promptfoo-checks-sample.json.
+
+Focused verification: `pnpm exec vitest run test/import-adapters.test.ts test/runner-adapter.test.ts`
+passed (2 files, 35 tests). Full commit-quality gates are required for the staged
+merge result before committing, and updated-head raw CI logs before handoff.
+
+Mapping verified against [Promptfoo output docs](https://www.promptfoo.dev/docs/configuration/outputs/):
+componentResults holds individual assertion evidence; aggregate success/score
+remain separate, and error rows may lack assertions. The guide calls out that
+actual is the component score, check types are runner-defined strings, fallback
+labels are positional, and component reasoning has no check-level field in v1.

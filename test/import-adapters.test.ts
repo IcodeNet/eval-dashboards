@@ -184,6 +184,111 @@ describe('import adapters', () => {
   });
 
 
+
+  it('maps promptfoo componentResults assertions into rows[].checks', async () => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'promptfoo-component-results.json');
+    const outPath = path.join(dir, '.evals_output', 'import-promptfoo-component-results.json');
+
+    await writeFile(
+      inputPath,
+      JSON.stringify(
+        {
+          results: [
+            {
+              id: 'case-checks',
+              description: 'assertion-level details',
+              success: false,
+              gradingResult: {
+                pass: false,
+                score: 0,
+                componentResults: [
+                  {
+                    pass: true,
+                    score: 1,
+                    assertion: { type: 'contains', value: 'approved', threshold: 0.9, weight: 2 },
+                  },
+                  {
+                    pass: false,
+                    score: 0.1,
+                    assertion: { type: 'rouge-l', threshold: 0.8 },
+                  },
+                ],
+              },
+              testCase: { metadata: { suite: 'answer-quality' } },
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    const imported = await importFromSource({
+      source: 'promptfoo',
+      inputPath,
+      outPath,
+    });
+
+    expect(imported.rowCount).toBe(1);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    expect(validated.report.rows[0]).toEqual(
+      expect.objectContaining({
+        id: 'case-checks',
+        checks: [
+          {
+            type: 'contains',
+            pass: true,
+            expected: 'approved',
+            actual: 1,
+            threshold: 0.9,
+            weight: 2,
+          },
+          {
+            type: 'rouge-l',
+            pass: false,
+            actual: 0.1,
+            threshold: 0.8,
+          },
+        ],
+      }),
+    );
+  });
+
+  it('preserves mixed native-export checks and original component positions', async () => {
+    const dir = await createTempDir();
+    const outPath = path.join(dir, 'report.json');
+    await importFromSource({ source: 'promptfoo', inputPath: path.resolve('test/fixtures/promptfoo-checks-sample.json'), outPath });
+    const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.report.rows[0]?.passed).toBe(false);
+    expect(result.report.rows[0]?.checks).toEqual([
+      { type: 'custom-check', pass: true, expected: false, actual: 0, threshold: 0, weight: 0 },
+      { type: 'promptfoo-assertion-4', pass: false, actual: 0.2 },
+      { type: 'json-schema', pass: true, expected: { required: ['answer'] } },
+    ]);
+  });
+
+  it.each([undefined, null, [], [null, {}, { pass: 'false' }]])('omits checks without usable assertion outcomes (%j)', async (componentResults) => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'input.json');
+    const outPath = path.join(dir, 'report.json');
+    await writeFile(inputPath, JSON.stringify([{ id: 'no-checks', success: true, gradingResult: { pass: true, componentResults } }]));
+    await importFromSource({ source: 'promptfoo', inputPath, outPath });
+    const result = validateEvalReport(JSON.parse(await readFile(outPath, 'utf8')));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.report.rows[0]?.checks).toBeUndefined();
+    expect(result.report.rows[0]?.passed).toBe(true);
+  });
+
   it('imports promptfoo provider-error rows as failed cases', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'promptfoo-errors.json');

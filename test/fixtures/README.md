@@ -17,6 +17,7 @@ These samples are hand-written to match each tool's export shape. They are not c
 | `openai-evals-sample.jsonl` | `openai-evals` | JSON lines: a `spec` line, event lines for one `run_id`, then a `final_report` line |
 | `otel-genai-sample.json` | `otel-genai` | OTLP JSON `resourceSpans` with GenAI evaluation events |
 | `phoenix-sample.json` | `phoenix` | `results[]` with `question`, `output`, `reference_output` |
+| `promptfoo-checks-sample.json` | `promptfoo` | synthetic native `results.outputs[]` export with mixed/malformed assertion components |
 | `ragas-sample.json` | `ragas` | `scores[]` with per-metric numbers |
 
 No vendor version is recorded for any file, because none was captured. If a vendor changes its export, the adapter can break without these tests noticing.
