@@ -26,15 +26,15 @@ Look at the header strip. In the sample report it reads:
 Pass rate 61.5%   Passed 8/13   New failures 4   New passes 0   Baseline blocked
 ```
 
-`Pass rate` alone does not tell you whether to ship. You need all four.
+`Pass rate` alone does not tell you whether to ship. Read the quality-gate decision, comparison evidence, baseline, and failure severity together.
 
 ## Question 1: did anything get worse?
 
 Find **New failures**. The sample shows `4`.
 
-- `New failures 0` means nothing that used to work is now broken. This is the
-  single most important number on the page for a release decision.
-- Any number above zero means rows that passed in the comparison run now fail.
+- `New failures` includes both matched cases that now fail and failing cases newly added to the dataset.
+- Open **Comparison evidence and measured coverage** to distinguish these counts and check how many matched cases are eligible.
+- Zero new failures does not rule out score regressions within a passing band, missing tests, or incompatible measurements.
 
 Now find the **Baseline** chip. The sample shows `Baseline blocked`.
 
@@ -51,14 +51,13 @@ noise, not signal".
 Open **Failing rows**. The sample header reads:
 
 ```text
-5 rows • 4 new regressions • 1 persistent failure
+5 rows • 4 new failures • 1 persistent failure
 ```
 
 Two different things:
 
-- **New regression** — worked before, broken now. This is what your change did.
-- **Persistent failure** — was already failing before this change. Not caused by
-  this release, but someone still owns it.
+- **New failure** — either a matched case that now fails or a newly introduced failing case. Inspect comparison evidence before calling it a regression.
+- **Persistent failure** — was already failing in the comparison run. Someone still owns it; this does not prove its severity stayed unchanged.
 
 Then read the **Severity** column on each failing row: `none → low → medium →
 high → critical`.

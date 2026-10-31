@@ -250,6 +250,27 @@
 
 <details><summary>Gate diagnostics</summary><ul><li>Top failing categories: conciseness=1, groundedness=1</li><li>Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20, low-category-coverage=2</li></ul></details>
     </section>
+    <div class="section collapsible collapsed" data-section-id="comparison-evidence">
+      <div class="section-header">
+        <div class="section-header-left">
+          <button class="section-toggle" type="button" aria-expanded="false" aria-controls="section-body-comparison-evidence" onclick="toggleSection(this)">
+            <span class="section-toggle-icon" aria-hidden="true">▸</span>
+            <span class="section-toggle-label">Comparison evidence and measured coverage</span>
+          </button>
+          <span class="section-summary section-summary-muted">unknown • 0/71 eligible matched cases</span>
+        </div>
+      </div>
+      <div id="section-body-comparison-evidence" class="section-body"><div class="section-pad"><p>Identity matches are descriptive. Use eligible cases before attributing changes; unknown versions are not compatibility evidence.</p>
+    <p>Matched cases: 71; eligible: 0; matched regressions: 0; matched recoveries: 0.</p>
+    <p>Introduced cases: 4; introduced failures: 0; removed cases: 4; duplicate identities: 0.</p>
+    <p>Score comparisons: 0 measured pairs; 0 regressions; 71 unavailable pairs. Evidence lists show at most 20 examples.</p>
+    <ul><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li><li>unknown: missing-suite-manifest (response-quality)</li></ul>
+    <ul></ul>
+    <p>Canonical usage telemetry; unmeasured values remain unknown. Duration sums are cumulative row durations, not run wall-clock time.</p>
+    <ul><li>Cost: unknown; measured 0/75, missing 75</li><li>Latency: sum 27270 ms; measured 75/75, missing 0</li><li>Tokens: unknown; measured 0/75, missing 75</li>
+    <li>Score response-quality: mean 0.9115 suite-score; measured 40/40, missing 0; direction unknown</li><li>Score safety: mean 0.93 suite-score; measured 15/15, missing 0; direction unknown</li><li>Score tool-use: mean 0.93 suite-score; measured 20/20, missing 0; direction unknown</li></ul>
+    <p>Dataset and production population coverage: unknown without external denominators.</p></div></div>
+    </div>
     <div class="metrics">
       <div class="metric" data-tip="Percentage of eval rows that passed this run.
 Example: 66.7% means 2 of 3 rows passed.
@@ -263,7 +284,7 @@ Includes both unchanged passes and newly recovered ones.">
         <div class="metric-label">Passed</div>
         <div class="metric-value">73<span style="font-size:16px;font-weight:400;color:var(--muted)">/75</span></div>
       </div>
-      <div class="metric" data-tip="Regressions: rows that passed last run but fail now.
+      <div class="metric" data-tip="New failures include matched cases that regressed and failing cases newly added to the dataset. See comparison evidence to distinguish them.
 Example: your prompt change broke the conciseness check.
 Gate with --max-new-failures=0 to block merges on any regression.">
         <div class="metric-label">New failures</div>
@@ -276,7 +297,7 @@ Positive signal — track over time to confirm the fix holds.">
         <div class="metric-value ">0</div>
       </div>
       <div class="metric" data-tip="Are trend comparisons meaningful?
-• compatible — same dataset + rubric versions, safe to diff
+• compatible — dataset + rubric versions match; also inspect cohort eligibility
 • warning — dataset or rubric version changed; treat trends as approximate
 • blocked — breaking version mismatch; new/lost failures may be noise, not signal
 Example: bumping datasetVersion from v1 to v2 triggers a warning.">
@@ -473,7 +494,7 @@ Example: compliance suites often require 100%.">i</i></span></th>
             <span class="section-toggle-icon" aria-hidden="true">▸</span>
             <span class="section-toggle-label">Failing rows</span>
           </button>
-          <span class="section-summary section-summary-fail">2 rows • 0 new regressions • 2 persistent failures</span>
+          <span class="section-summary section-summary-fail">2 rows • 0 new failures • 2 persistent failures</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
           <div class="view-switcher">
