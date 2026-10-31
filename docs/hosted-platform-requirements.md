@@ -170,3 +170,10 @@ live CLI help snapshots, documentation links, example replay, package and CLI
 guards, and release-asset reproduction through the exact-tree commit gate.
 The release-asset generation script is exercised by CI; its raw job output is
 reviewed after the PR run rather than inferred from a green badge.
+
+
+The paired slice also removes the `main`-only pull-request filter from CI and
+the composite-action smoke test. Push triggers remain restricted to `main`,
+and token permissions remain read-only. PR #97's observed checks exposed the
+problem: only title/review checks ran when its base was a feature branch. The
+paired PR's actual Actions run is used to verify that the full jobs now execute.
