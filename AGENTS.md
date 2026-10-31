@@ -103,6 +103,13 @@ Always include raw GitHub Actions log verification for workflows touched by your
 - Add heavy UI frameworks if static HTML already meets the need.
 - Couple core to Azure/GitHub APIs beyond publish adapters.
 
+## Writing pull requests
+
+- Use `.github/pull_request_template.md` for every PR description and read `.agents/skills/plain-english-prs/SKILL.md` when drafting or updating one.
+- Write in simple English for a reviewer who has not read the chat. Explain the problem, show the same example before and after, include observed evidence, and give the everyday workflow.
+- Distinguish test results from benchmarks and code inspection. State when a baseline or measurement was not run; never invent evidence.
+- Improve the versioned template when reviewer feedback reveals a clearer approach. Keep it proportionate to the change rather than adding boilerplate by default.
+
 ## Useful commands
 
 ```sh
