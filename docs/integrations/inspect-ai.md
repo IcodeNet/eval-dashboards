@@ -32,14 +32,30 @@ Inspect defaults to `.eval` binary logs, so export JSON first with `inspect log 
 - `question` from `sample.description` (fallback: `eval.description`).
 - pass/fail from sample signals:
   - `sample.error` present -> fail
-  - boolean score value false -> fail
-  - otherwise numeric/boolean score values (threshold `>= 0.5`)
+  - otherwise every numeric/boolean score must clear `>= 0.5` (booleans map to 1/0); a true score never overrides another scorer's failure
+  - `score` is the arithmetic mean, for display only; pass/fail uses every scorer, not the mean
+  - no usable score or error -> invalid import (exit 2), with the row and suite named
 - `metadata.inspectEvalId` keeps `eval.eval_id` when present.
 
 ## Current limitations
 
 - The importer currently reads JSON logs, not native `.eval` binaries.
 - Rich transcript fields (`events`, `messages`, tool traces) are not flattened into row-level evidence by default.
+- Numeric scores are assumed to use a scale where `0.5` is the passing threshold. Normalize custom scales before import.
+- Categorical scores such as `"C"` / `"I"` and structured score values are not interpreted. Normalize them to numeric/boolean scores first. Unsupported score values are ignored when usable scores are also present.
+
+## Runnable fixture
+
+From this repository:
+
+```sh
+pnpm dev import --from=inspect-ai --input=test/fixtures/inspect-ai-sample.json --out=/tmp/inspect-ai-artifacts/report.json
+pnpm dev report --input=/tmp/inspect-ai-artifacts --reporter=html --report-dir=/tmp/inspect-ai-report
+```
+
+The synthetic fixture contains one pass, one mixed-score failure, and one runner error. It also demonstrates sample description and task description fallback. It is a compatibility example, not a captured vendor export.
+
+Related risks: [integration risk register](./risk-register.md). Check source score scales and mappings before using imported results to block CI.
 
 ## Source
 
