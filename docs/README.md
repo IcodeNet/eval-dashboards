@@ -40,6 +40,7 @@ hand-written pages are in [`docs-site/public/v1/`](../docs-site/public/v1/index.
 
 ## Product & roadmap
 
+- [Hosted platform requirements](./hosted-platform-requirements.md) — approved scope, gaps, architecture, and delivery acceptance
 - [PROPOSITION-AND-TAXONOMY.md](./PROPOSITION-AND-TAXONOMY.md) — product north star
 - [PROPOSITION-REVIEW.md](./PROPOSITION-REVIEW.md) — risks and MVP slice
 - [PRP.md](./PRP.md) — original product requirements

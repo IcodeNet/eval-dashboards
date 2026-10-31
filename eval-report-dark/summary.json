@@ -1,4 +1,12 @@
 {
+  "gateDecision": {
+    "status": "passed",
+    "failures": [],
+    "diagnostics": [
+      "Top failing categories: conciseness=1, groundedness=1",
+      "Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20, low-category-coverage=2"
+    ]
+  },
   "summary": {
     "run": {
       "id": "agent-v4-2026-07-31",

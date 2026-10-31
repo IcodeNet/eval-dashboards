@@ -2,6 +2,8 @@
 
 `eval-dashboards publish` renders a static dashboard and then publishes it to the selected target.
 
+Publishing does not perform the shared `check`/`report` gate evaluation. Its regenerated reports explicitly show `not-evaluated`; publishing alone is not evidence of passing policy. Run `check` in CI to enforce the configured gates.
+
 Supported targets:
 
 - `dir`
