@@ -193,6 +193,14 @@ describe('evidence-export / evidence-verify CLI commands', () => {
     });
   });
 
+  it('evidence-verify returns exit 1 and entry diagnostics for structurally malformed JSON bundles', async () => {
+    const dir = await createTempDir();
+    const bundlePath = path.join(dir, 'malformed.json');
+    await writeFile(bundlePath, JSON.stringify({ schemaVersion: 'eval-evidence-bundle/v1', entries: [null] }));
+    await expect(execFileAsync('pnpm', ['cli:dev', 'evidence-verify', `--bundle=${bundlePath}`], { cwd: process.cwd() }))
+      .rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Entry 0 is not an object.') });
+  });
+
   it('evidence-verify fails when --bundle is missing', async () => {
     await expect(
       execFileAsync('pnpm', ['cli:dev', 'evidence-verify'], { cwd: process.cwd() }),
