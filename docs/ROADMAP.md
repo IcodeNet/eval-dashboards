@@ -794,7 +794,7 @@ Verification 2026-10-11: importer mapping is implemented in `src/cli/import-adap
 
 ### 4C.16 Inspect AI log import compatibility (P1)
 
-- [ ] Add first-class `--from=inspect-ai` import support for Inspect log JSON (`samples[]`) with deterministic pass/fail mapping and task/sample description preservation.
+- [x] Add first-class `--from=inspect-ai` import support for Inspect log JSON (`samples[]`) with deterministic pass/fail mapping and task/sample description preservation.
 
 Acceptance criteria:
 
@@ -805,6 +805,8 @@ Acceptance criteria:
 
 Rationale: Inspect AI 0.3.278 added task/sample `description` fields to eval logs and dataframe exports, so a direct adapter removes conversion glue for teams standardizing eval evidence in CI (https://github.com/UKGovernmentBEIS/inspect_ai/releases/tag/0.3.278).
 
+
+Verification 2026-10-31: `src/cli/import-adapters.ts:1065`, `test/import-adapters-inspect-ai.test.ts:100`, and [acceptance evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
 
 ### 4C.17 Langfuse score-provenance export parity (P1)
 

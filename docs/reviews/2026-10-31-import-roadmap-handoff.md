@@ -57,3 +57,21 @@ on 2026-10-31: head remains `162962c9afc71352e068f85fe5c1a60f5c91dc2f`, still a
 conflicting draft, with no GitHub review submissions. 4C.4 stays open. The
 independent Inspect AI acceptance changes remain preserved in the original
 checkout for a separate follow-up. Publishing 1.0.0 stays on hold.
+
+## Inspect AI acceptance follow-up
+
+Restored the independently verified 4C.16 changes onto a separate branch after
+pushing the Langfuse review fixes. This follow-up is stacked on PR #93.
+
+- `src/cli/import-adapters.ts:1136`: every usable scorer must meet the threshold;
+  a boolean true cannot hide a failing numeric score. Errors still fail the row.
+- `test/import-adapters-inspect-ai.test.ts:100`: synthetic single-log and log-array
+  imports validate the schema, descriptions, error handling, and suite totals.
+- `test/import-adapters-inspect-ai.test.ts:125`: primitive/object score combinations
+  cover pass/fail boundaries; `:141` asserts exit 2 for missing/categorical-only scores.
+- `docs/integrations/inspect-ai.md`: documents the threshold assumption, unsupported
+  categorical values, JSON dump path, and runnable fixture/risk-register gate.
+
+Focused verification: `pnpm exec vitest run test/import-adapters-inspect-ai.test.ts`
+passed all 9 tests. The same six exact-tree quality gates and evidence review are
+required before committing this follow-up. No workflow changes or publication.

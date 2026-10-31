@@ -1114,8 +1114,6 @@ const inspectAiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
 
     const scoreEntries = Object.entries(sample.scores ?? {});
     const scoreValues: number[] = [];
-    let hasBooleanTrue = false;
-    let hasBooleanFalse = false;
 
     for (const [, rawScore] of scoreEntries) {
       if (typeof rawScore === 'number') {
@@ -1123,8 +1121,6 @@ const inspectAiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
         continue;
       }
       if (typeof rawScore === 'boolean') {
-        if (rawScore) hasBooleanTrue = true;
-        else hasBooleanFalse = true;
         scoreValues.push(rawScore ? 1 : 0);
         continue;
       }
@@ -1132,8 +1128,6 @@ const inspectAiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
         const value = (rawScore as InspectAiScore).value;
         if (typeof value === 'number') scoreValues.push(value);
         if (typeof value === 'boolean') {
-          if (value) hasBooleanTrue = true;
-          else hasBooleanFalse = true;
           scoreValues.push(value ? 1 : 0);
         }
       }
@@ -1142,10 +1136,6 @@ const inspectAiRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
     let passed: boolean | undefined;
     if (sample.error !== undefined && sample.error !== null) {
       passed = false;
-    } else if (hasBooleanFalse) {
-      passed = false;
-    } else if (hasBooleanTrue && scoreValues.length > 0) {
-      passed = true;
     } else if (scoreValues.length > 0) {
       passed = scoreValues.every((value) => value >= RAGAS_METRIC_PASS_THRESHOLD);
     }

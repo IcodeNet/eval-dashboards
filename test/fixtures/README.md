@@ -10,6 +10,7 @@ These samples are hand-written to match each tool's export shape. They are not c
 | --- | --- | --- |
 | `braintrust-sample.json` | `braintrust` | `results[]` with `scores` |
 | `eval-ai-library-sample.json` | `eval-ai-library` | `results[]` with `actual_output`, `expected_output`, `retrieval_context` |
+| `inspect-ai-sample.json` | `inspect-ai` | log object with `eval` descriptions, mixed numeric/boolean `scores`, and a sample error |
 | `langfuse-sample.json` | `langfuse` | `data[]` of score objects with a nested `trace` |
 | `langfuse-provenance-sample.json` | `langfuse` | `data[]` scores with optional `score_metadata` and `score_provenance` groups |
 | `langsmith-sample.json` | `langsmith` | `runs[]` with `inputs`, `outputs`, `session_name` |

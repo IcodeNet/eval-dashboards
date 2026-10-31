@@ -118,6 +118,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ### Import compatibility follow-ups (2026-10-31)
 
+- [x] Inspect AI JSON import acceptance (4C.16): mixed scores fail if any scorer falls below the threshold, errors override passing scores, and task/sample descriptions survive single/array imports. Code: `src/cli/import-adapters.ts:1136`; tests: `test/import-adapters-inspect-ai.test.ts:100`. See [acceptance evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
+
 - [x] Langfuse score metadata/provenance (4C.17), including explicit empty flattened IDs and malformed-value handling. Code: `src/cli/import-adapters.ts:651`; tests: `test/import-adapters-ragas-langfuse.test.ts:111`. See [PR #93 handoff](./reviews/2026-10-31-import-roadmap-handoff.md).
 
 ### Gate follow-ups (2026-10-19)
