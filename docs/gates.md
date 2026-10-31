@@ -2,6 +2,33 @@
 
 Gates make eval quality enforceable in CI.
 
+## Reported gate decisions
+
+`eval-dashboards report` evaluates the same resolved policy as `check` for the
+same full-run inputs, baseline selection, and configuration. This includes
+blocking suite manifests, calibration, configured waivers, and threshold-change
+checks. Put shared policy in the config file; check-only CLI overrides and
+`--tier` budgets do not automatically carry over to a separate report command.
+
+HTML, Markdown, text, and `summary.json` expose `gateDecision` (`passed`, `failed`,
+or `not-evaluated`) with failures and diagnostics. `check --json-out` and
+`--json-v2-out` include the same additive decision field. Report generation
+still exits `0` when a report is written even if gates fail; use `check` for CI
+exit `1`. Invalid policy inputs exit `2`.
+
+Programmatic `renderReports` callers may supply a completed `gateDecision`,
+using the exported `gateDecisionFromResult` helper. The helper converts a supplied result; it does not execute policy checks. Callers are responsible for supplying the completed evaluation for the same report and baseline. Omitting it renders
+`not-evaluated`, even with a high pass rate. The helper copies evidence arrays
+and treats inconsistent passing results with failures as failed. A decision
+is scoped to its evaluated artifacts, policy, and baseline; it is not a hosted
+authorization or release approval record.
+
+Pass-rate numbers and suite summary headings no longer use fixed 90%/60%
+thresholds to suggest policy approval. Baseline comparison without evidence is
+neutral. Row pass/fail evidence remains visible independently of gate policy.
+This is the first M1 slice; cohort, repeated-trial, missing-data, and
+inconclusive-decision semantics remain open.
+
 ## Why This Matters
 
 - Preflight failures should block expensive stages early, before noisy live/judge failures hide root cause.

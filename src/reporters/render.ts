@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
 import { createHash } from 'node:crypto';
 import type { RunComparison, RunHistoryEntry } from '../history/history.js';
 import {
@@ -24,6 +25,8 @@ export type ReportProfile = 'default' | 'guardrail';
 
 export type ReportContext = {
   current: EvalReportV1;
+  /** Completed policy evaluation; omitted means not evaluated, regardless of pass rate. */
+  gateDecision?: GateDecision;
   previous?: EvalReportV1;
   history: RunHistoryEntry[];
   comparison: RunComparison;
@@ -79,6 +82,7 @@ export const renderReports = async (
     } else if (reporter === 'json-summary') {
       const filePath = path.join(context.reportDir, 'summary.json');
       await writeJsonFile(filePath, {
+        gateDecision: context.gateDecision ?? gateDecisionFromResult(),
         summary: summarizeReport(context.current),
         comparison: context.comparison,
         baselineCompatibility: context.baselineCompatibility,
@@ -93,6 +97,7 @@ export const renderReports = async (
       await writeTextFile(filePath, renderHtml(context));
       await writeJsonFile(path.join(context.reportDir, 'history.json'), context.history);
       await writeJsonFile(path.join(context.reportDir, 'summary.json'), {
+        gateDecision: context.gateDecision ?? gateDecisionFromResult(),
         summary: summarizeReport(context.current),
         comparison: context.comparison,
         baselineCompatibility: context.baselineCompatibility,
@@ -114,12 +119,15 @@ const renderText = (context: ReportContext): string => {
 
   return [
     `Run:              ${summary.run.id}`,
+    `Gate decision:    ${context.gateDecision?.status ?? 'not-evaluated'}`,
     `Generated:        ${formatDate(summary.run.generatedAt, locale)}`,
     `Pass rate:        ${formatPassRate(summary.passed, summary.total)}`,
     `Passed:           ${summary.passed}/${summary.total}`,
     `New failures:     ${context.comparison.newlyFailing.length}`,
     `New passes:       ${context.comparison.newlyPassing.length}`,
     `Baseline:         ${context.baselineCompatibility?.status ?? 'not compared'}`,
+    ...(context.gateDecision?.failures ?? []).map(failure => `Gate failure:     ${failure}`),
+    ...(context.gateDecision?.diagnostics ?? []).map(item => `Gate diagnostic:  ${item}`),
   ].join('\n');
 };
 
@@ -158,6 +166,7 @@ export const renderMarkdown = (context: ReportContext): string => {
     '| Metric | Value |',
     '| --- | --- |',
     `| Run | ${summary.run.id} |`,
+    `| Gate decision | ${context.gateDecision?.status ?? 'not-evaluated'} |`,
     `| Pass rate | ${(summary.passRate * 100).toFixed(1)}% |`,
     `| Passed | ${summary.passed}/${summary.total} |`,
     `| New failures | ${context.comparison.newlyFailing.length} |`,
@@ -167,6 +176,7 @@ export const renderMarkdown = (context: ReportContext): string => {
     `| Provenance | ${provenance.label} |`,
     `| Dataset changelog entries | ${changelogCount} |`,
   ];
+
 
   if (durationStats) {
     lines.push(`| Rows with duration | ${durationStats.count}/${durationStats.totalRows} |`);
@@ -260,6 +270,10 @@ export const renderMarkdown = (context: ReportContext): string => {
     }
     lines.push('');
   }
+
+  for (const failure of context.gateDecision?.failures ?? []) lines.push('', `Gate failure: ${mdTableCell(failure)}`);
+
+  for (const item of context.gateDecision?.diagnostics ?? []) lines.push('', `Gate diagnostic: ${mdTableCell(item)}`);
 
   return lines.join('\n');
 };
@@ -1522,8 +1536,9 @@ const renderHtml = (context: ReportContext): string => {
   const guardrailProfileEnabled = context.profile === 'guardrail';
   const statisticalSummary = statisticalContextSummary(context);
   const compatStatus = compat?.status ?? 'not compared';
-  const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
-  const passClass = summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
+  const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : compatStatus === 'compatible' ? 'pass' : 'muted';
+  const decision = context.gateDecision ?? gateDecisionFromResult();
+  const decisionTone = decision.status === 'passed' ? 'pass' : decision.status === 'failed' ? 'fail' : 'muted';
   const durationStats = calculateDurationStats(rows);
   const frontierSummary = summarizeQualityFrontiers(rows);
   const totalDurationMs = durationStats?.totalMs ?? 0;
@@ -1547,14 +1562,12 @@ const renderHtml = (context: ReportContext): string => {
   const judgeCalibrationSummary = judgeCalibration
     ? `${pluralize(judgeCalibration.total, 'labelled row')} • ${(judgeCalibration.agreementRate * 100).toFixed(1)}% agreement • ${pluralize(judgeCalibration.disagreements, 'disagreement')}`
     : '';
-  const suiteSummaryTone: 'pass' | 'warn' | 'fail' =
-    summary.passRate >= 0.9 ? 'pass' : summary.passRate >= 0.6 ? 'warn' : 'fail';
+  const suiteSummaryTone = 'muted';
   const failingRowsTone: 'pass' | 'warn' | 'fail' =
     failingRows.length === 0 ? 'pass' : comparison.persistentFailures.length > 0 ? 'fail' : 'warn';
   const allRowsTone: 'pass' | 'warn' | 'fail' =
     summary.failed === 0 ? 'pass' : newlyFailing.length > 0 ? 'fail' : 'warn';
-  const compatibilityTone: 'pass' | 'warn' | 'fail' =
-    compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : 'pass';
+  const compatibilityTone = compatClass;
 
   return `<!doctype html>
 <html lang="en" data-theme="${e(theme.name)}">
@@ -1721,6 +1734,9 @@ ${renderCssVariables(theme)}
     .json-pane { padding: 16px 20px; }
     .json-pane pre { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 4px; padding: 12px 16px; overflow: auto; max-height: 600px; white-space: pre; }
     .compat-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .compat-muted { color: var(--muted); }
+    .gate-decision { margin-bottom: 24px; }
+    .gate-decision h2 { font-size: 20px; }
     .compat-pass { background: var(--pass-soft); color: var(--pass); }
     .compat-warn { background: var(--warn-soft); color: var(--warn); }
     .compat-fail { background: var(--fail-soft); color: var(--fail); }
@@ -1777,10 +1793,16 @@ ${run.experimentId ? `        <span>Experiment&nbsp;<strong>${e(run.experimentId
   </header>
 
   <main class="page">
+    <section class="gate-decision" aria-label="Quality gate decision">
+      <h2>Quality gate: <span class="${decisionTone}">${e(decision.status)}</span></h2>
+      ${decision.status === 'not-evaluated' ? '<p>No completed gate evaluation was supplied. Pass rate alone is not policy approval.</p>' : '<p>Evaluated against the resolved gate policy and selected baseline. This decision applies to this report’s evaluation scope.</p>'}
+${decision.failures.length ? `<ul>${decision.failures.map(failure => `<li>${e(failure)}</li>`).join('')}</ul>` : ''}
+${decision.diagnostics.length ? `<details><summary>Gate diagnostics</summary><ul>${decision.diagnostics.map(item => `<li>${e(item)}</li>`).join('')}</ul></details>` : ''}
+    </section>
     <div class="metrics">
       <div class="metric" data-tip="Percentage of eval rows that passed this run.\nExample: 66.7% means 2 of 3 rows passed.\nSet a minimum in CI with --min-pass-rate=0.9">
         <div class="metric-label">Pass rate</div>
-        <div class="metric-value ${passClass}">${e(formatPassRate(summary.passed, summary.total))}</div>
+        <div class="metric-value">${e(formatPassRate(summary.passed, summary.total))}</div>
       </div>
       <div class="metric" data-tip="Rows that met their pass threshold this run.\nExample: 2/3 means one case still fails.\nIncludes both unchanged passes and newly recovered ones.">
         <div class="metric-label">Passed</div>

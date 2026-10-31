@@ -40,7 +40,7 @@ export { loadConfig, mergeConfig } from './config/load-config.js';
 export type { EvalReportsConfig } from './config/config.js';
 export { BUILT_IN_THEMES, resolveTheme, type EvalReportsTheme } from './reporters/themes.js';
 export { formatDate, formatPassRate, formatDuration, formatCount } from './utils/format.js';
-export { renderGroupedIndexHtml } from './reporters/render.js';
+export { renderGroupedIndexHtml, renderReports, renderMarkdown, type ReportContext } from './reporters/render.js';
 export {
   ADJUDICATION_BUNDLE_SCHEMA_VERSION,
   exportUnresolvedRowsBundle,
@@ -59,3 +59,5 @@ export {
   type RunnerEvalResult,
   type WriteEvalReportArtifactOptions,
 } from './adapters/runner.js';
+
+export { gateDecisionFromResult, type GateDecision } from './gates/decision.js';

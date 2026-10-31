@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-10-18
+**Last updated:** 2026-10-31
 
 ---
 
@@ -29,6 +29,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 - [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
+- [Phase 5: Hosted evaluation platform](#phase-5-hosted-evaluation-platform-approved-scope-implementation-pending)
 
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
@@ -851,7 +852,7 @@ Acceptance: assertion evidence survives JSON/JSONL import without changing row-l
 
 Mission
 
-Close the gaps identified by an external architect + methodology review before recommending eval-dashboards as the standard evals layer for agent teams building on shared CI/CD infrastructure. Stay a runner-agnostic, offline-first reporting/gating toolkit — do not expand into a hosted observability platform (that is a separate, explicitly out-of-scope decision; see "Non-goals for this phase" below).
+Close the gaps identified by an external architect + methodology review before recommending eval-dashboards as the standard evals layer for agent teams building on shared CI/CD infrastructure. Stay a runner-agnostic, offline-first reporting/gating toolkit — do not expand into a hosted observability platform (that is a separate, explicitly out-of-scope decision; see "Non-goals for this phase" below). **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 Review inputs
 
@@ -1011,7 +1012,7 @@ Rationale: OpenAI's eval workflow documentation explicitly uses uploaded JSONL d
 
 ### Non-goals for this phase
 
-- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API and auth-gated app remain out of scope.) They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase.
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API and auth-gated app remain out of scope.) They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 ### 4E execution order
 
@@ -1182,7 +1183,7 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
 
 Mission
 
-Make eval results defensible as evidence and safe to publish, and make multi-agent rollout legible to product and leadership — without becoming a hosted platform. Every item here is an artifact field, a lint rule, a CLI flag, or a static output. The charter forbids hosting; it does not forbid evidence.
+Make eval results defensible as evidence and safe to publish, and make multi-agent rollout legible to product and leadership — without becoming a hosted platform. Every item here is an artifact field, a lint rule, a CLI flag, or a static output. The original phase excluded hosting; the owner-approved Phase 5 now owns hosted functionality.
 
 Review inputs (2026-09-14, four independent role reviews)
 
@@ -1604,7 +1605,7 @@ Acceptance criteria:
 
 ### Still out of scope in 4F
 
-- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API, auth-gated app and multi-tenant service remain non-goals.) Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API, auth-gated app and multi-tenant service remain non-goals.) Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 ### 4F execution order
 
@@ -1976,7 +1977,7 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 **Why**: history today is file-based (`history.json` built in `src/history/history.ts`, rolled up by `org-rollup`). History is now queryable over long periods; `1.0.0` stays unpublished until the owner releases it.
 
-**Decision (supersedes the 4E and 4F non-goal on a time-series store)**: a history store is now in scope. The offline-by-default and artifact-first rules still hold, so the store sits behind a swappable adapter. SQLite is the first backend. The file store stays as the default and the fallback. Other backends (Redis, Cosmos) can be added later behind the same adapter. Redis is a weak fit for long-term history unless persistence is on. Hosted ingestion APIs and auth-gated dashboard apps stay out of scope.
+**Decision (supersedes the 4E and 4F non-goal on a time-series store)**: a history store is now in scope. The offline-by-default and artifact-first rules still hold, so the store sits behind a swappable adapter. SQLite is the first backend. The file store stays as the default and the fallback. Other backends (Redis, Cosmos) can be added later behind the same adapter. Redis is a weak fit for long-term history unless persistence is on. Hosted ingestion APIs and auth-gated dashboard apps stay out of scope. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 **Why SQLite**: it is a serverless single-file database, so there is nothing to host and no cost. It supports date, branch and suite queries with SQL and indexes. Node ships `node:sqlite` built in, so no native npm package is needed. Verified 2026-10-18: `node:sqlite` loads on Node 26.7.0 here. Web sources say it was added in Node 22.5.0 and is still experimental (prints a warning) on Node 22.
 
@@ -2011,3 +2012,9 @@ Rationale: Inspect AI added provider request/response id logging for every model
 - **Teaching via examples:** The taxonomy is taught through docs, schema, and runnable fixtures—not discovered by trial-and-error
 
 The core idea — an Istanbul-style, offline, artifact-first reporting layer for agent and LLM evals — is timely and differentiated. Finishing Phase 2A + 2B establishes the contract and makes it visible; Phase 3–4 drives ecosystem adoption through community.
+
+## Phase 5: Hosted evaluation platform (approved scope; implementation pending)
+
+The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
+
+See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 now has an initial shared gate-decision slice; its remaining semantics and all hosted milestones stay open in STATUS.
