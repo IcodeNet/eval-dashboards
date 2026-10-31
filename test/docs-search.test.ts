@@ -122,10 +122,10 @@ describe('built search index', () => {
   const load = async (): Promise<Entry[]> =>
     JSON.parse(await readFile(path.resolve(process.cwd(), 'docs-site/dist/search-index.json'), 'utf8')) as Entry[];
 
-  it('should cover all 86 docs, the glossary and 11 legacy pages when the site is built', async () => {
+  it('should cover all published docs, the glossary and 11 legacy pages when the site is built', async () => {
     const entries = await load();
 
-    expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/docs/'))).toHaveLength(87);
+    expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/docs/'))).toHaveLength(88);
     expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/v1/'))).toHaveLength(11);
   });
 

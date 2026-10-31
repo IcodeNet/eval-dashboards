@@ -11,6 +11,7 @@ These samples are hand-written to match each tool's export shape. They are not c
 | `braintrust-sample.json` | `braintrust` | `results[]` with `scores` |
 | `eval-ai-library-sample.json` | `eval-ai-library` | `results[]` with `actual_output`, `expected_output`, `retrieval_context` |
 | `langfuse-sample.json` | `langfuse` | `data[]` of score objects with a nested `trace` |
+| `langfuse-provenance-sample.json` | `langfuse` | `data[]` scores with optional `score_metadata` and `score_provenance` groups |
 | `langsmith-sample.json` | `langsmith` | `runs[]` with `inputs`, `outputs`, `session_name` |
 | `openai-evals-sample.jsonl` | `openai-evals` | JSON lines: a `spec` line, event lines for one `run_id`, then a `final_report` line |
 | `otel-genai-sample.json` | `otel-genai` | OTLP JSON `resourceSpans` with GenAI evaluation events |

@@ -116,6 +116,10 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 ## Next Phases
 
+### Import compatibility follow-ups (2026-10-31)
+
+- [x] Langfuse score metadata/provenance (4C.17), including explicit empty flattened IDs and malformed-value handling. Code: `src/cli/import-adapters.ts:651`; tests: `test/import-adapters-ragas-langfuse.test.ts:111`. See [PR #93 handoff](./reviews/2026-10-31-import-roadmap-handoff.md).
+
 ### Gate follow-ups (2026-10-19)
 
 - [x] Per-suite thresholds: `gates.suites.<suite>.minPassRate` and `.maxNewFailures` in the config file (`src/gates/check-gates.ts`, `src/gates/threshold-change.ts`, `test/gates-per-suite.test.ts`, `test/cli-check-per-suite.test.ts`, `test/threshold-change-suites.test.ts`, `docs/gates.md`).

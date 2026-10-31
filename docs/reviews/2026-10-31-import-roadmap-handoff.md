@@ -1,0 +1,59 @@
+# Import roadmap handoff — 2026-10-31
+
+## Langfuse PR #93
+
+[PR #93](https://github.com/IcodeNet/eval-dashboards/pull/93) already contains the
+4C.17 implementation. Continue that PR rather than submitting duplicate changes.
+
+Two review findings were verified and fixed:
+
+- `src/cli/import-adapters.ts:654`: flattened provenance IDs now require strings,
+  including empty strings, so an explicit empty value clears a stale nested ID.
+  Non-string values cannot overwrite nested evidence.
+- `test/import-adapters-ragas-langfuse.test.ts:180`: regressions cover empty and
+  malformed flattened IDs alongside the existing field mapping/schema tests.
+- `docs/integrations/langfuse.md`: use the actual Langfuse importer rather than the
+  generic mapper; let the report command select the generated run ID.
+
+Verification before staging the handoff:
+
+- `pnpm check`: pass, 86 files / 769 tests, typecheck, teaching replay, flag docs,
+  build, and 9 commit-hook tests.
+- `pnpm assets:verify`: pass, 18 tracked files reproduced including screenshots.
+- `node dist/cli/index.js import --from=langfuse --input=test/fixtures/langfuse-provenance-sample.json --out=/tmp/eval-pr93-oct31/import/report.json`: pass, 2 rows.
+- `node dist/cli/index.js report --input=/tmp/eval-pr93-oct31/import --reporter=html --reporter=json-summary --report-dir=/tmp/eval-pr93-oct31/report`: pass, HTML and JSON output.
+- `git diff --check`: pass. No schema version, public flags, or workflow files change.
+
+Commands use the installed project-pinned pnpm 12.14.0 first in PATH and
+`PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false`. Exact staged-tree checks and review
+must pass through `pnpm quality:record`, `pnpm quality:review`, and
+`pnpm quality:verify` before committing; their unmodified logs are stored in the
+worktree Git directory under `quality-evidence/`.
+
+## Raw GitHub Actions log inspection
+
+Inspected logs on original PR head `1f8917db04e718f80ef4fbfb3d81594c339397b9`:
+
+- [Title lint job 122693703729](https://github.com/IcodeNet/eval-dashboards/actions/runs/40651901838/job/122693703729):
+  failed because the title lacked a Conventional Commit prefix. The PR title was
+  corrected to `fix(import): preserve Langfuse score provenance`.
+- [CI job 122692942420](https://github.com/IcodeNet/eval-dashboards/actions/runs/40651671009/job/122692942420):
+  86 files / 767 tests passed; package, schema, CLI, teaching docs, accessibility,
+  and release assets ran. Audit reported 2 low and 7 moderate issues; no high or
+  critical issues, so the configured high-severity gate passed.
+- [Examples job 122693654912](https://github.com/IcodeNet/eval-dashboards/actions/runs/40651671009/job/122693654912):
+  both basic JSON and provider-free agent report examples executed.
+- [Composite action job 122692943315](https://github.com/IcodeNet/eval-dashboards/actions/runs/40651670953/job/122692943315):
+  includes an intentional gate failure and verifies the returned `passed=false`
+  output. Embedded exit-1 messages do not represent a silently skipped check.
+
+These logs apply to the original head; inspect the updated head's CI before
+claiming it merge-ready. No merge or package publication is authorized here.
+
+## External integration queue
+
+Rechecked [Assistant-UI PR #9044](https://github.com/assistant-ui/assistant-ui/pull/9044)
+on 2026-10-31: head remains `162962c9afc71352e068f85fe5c1a60f5c91dc2f`, still a
+conflicting draft, with no GitHub review submissions. 4C.4 stays open. The
+independent Inspect AI acceptance changes remain preserved in the original
+checkout for a separate follow-up. Publishing 1.0.0 stays on hold.

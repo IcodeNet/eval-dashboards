@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "id": "score-provenance-1",
+      "name": "factuality",
+      "value": true,
+      "score_metadata": {
+        "dimension": "factuality",
+        "reviewer": "auto"
+      },
+      "score_provenance": {
+        "author_user_id": "user-legacy",
+        "config_id": "cfg-legacy"
+      },
+      "author_user_id": "user-123",
+      "config_id": "cfg-1",
+      "execution_trace_id": "exec-trace-a"
+    },
+    {
+      "id": "score-provenance-2",
+      "name": "safety",
+      "value": 0,
+      "dataType": "BOOLEAN",
+      "scoreMetadata": {
+        "dimension": "safety"
+      },
+      "scoreProvenance": {
+        "author_user_id": "user-456",
+        "config_id": "cfg-2",
+        "queue_id": "queue-9",
+        "evaluator_id": "eval-17"
+      },
+      "evaluation_rule_id": "rule-5",
+      "execution_trace_id": "exec-trace-b"
+    }
+  ]
+}
