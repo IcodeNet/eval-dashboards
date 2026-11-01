@@ -7,6 +7,7 @@ import {
   GATE_MODES,
   GRADER_KINDS,
   RISK_AREAS,
+  REPEATED_SAMPLING_DESIGNS,
   ROW_LIFECYCLE_STATUSES,
   ROW_PROVENANCE_SOURCES,
   type DatasetSource,
@@ -358,6 +359,9 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           errors.push(`rows[${index}].repeated must be an object when provided.`);
         } else {
           const rep = row['repeated'];
+          if (rep['samplingDesign'] !== undefined && !(REPEATED_SAMPLING_DESIGNS as readonly unknown[]).includes(rep['samplingDesign'])) {
+            errors.push(`rows[${index}].repeated.samplingDesign must be one of 'fixed-independent', 'unknown'.`);
+          }
           if (!isNumber(rep['runs']) || rep['runs'] < 1 || !Number.isInteger(rep['runs'])) {
             errors.push(`rows[${index}].repeated.runs must be a positive integer.`);
           }

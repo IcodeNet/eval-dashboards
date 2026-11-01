@@ -59,6 +59,15 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
     workflow. It is dispatched manually from verified `main`, publishes through
     npm OIDC, and creates the version tag and GitHub release after publishing.
 
+## Next npm release — planned, not published
+
+Registry check 2026-11-01: `latest` remains `0.10.0`, published 2026-10-19.
+Proposed `0.11.0` targets the portable M1 analytics milestone after repeated-trial
+work, the shared full policy evaluator, Node compatibility verification, and
+release acceptance. M2–M6 remain hosted backlog. The package version has not yet been bumped; publication still needs explicit
+owner authorization. See the
+[next release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+
 ## Release Notes
 
 - The branch history was rewritten to reflect the current codebase.
@@ -262,9 +271,19 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
-- [ ] M1: Shared analytics and actual gate decision semantics. In progress: shared CLI gate evaluation, explicit report decisions, and matched-cohort/measured-telemetry analytics. An opt-in paired group comparison now exposes conservative bounds and explicit inconclusive decisions. Trial-level evidence/uncertainty remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
+- [ ] M1: Shared analytics and actual gate decision semantics. In progress: shared CLI gate evaluation, explicit report decisions, and matched-cohort/measured-telemetry analytics. An opt-in paired group comparison now exposes conservative bounds and explicit inconclusive decisions. Within-case trial bounds preserve unknown sampling evidence; the reusable complete policy evaluator remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
 - [ ] M2: Tenant-safe accounts and durable artifact ingestion.
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
 - [ ] M5: Resumable live progress and benchmarked query scale.
 - [ ] M6: Hosted launch acceptance and operations.
+
+
+### Hosted M1 follow-up — 2026-11-01
+
+- In progress: per-case repeated-trial uncertainty with optional declared sampling
+  design, missing-evidence handling, and shared reporter output. Full M1 remains
+  open; the future hosted API still needs a reusable complete policy evaluator.
+- Compatibility follow-up: PR #99's raw composite-action log reports a transitive
+  `content-type` Node >=22 engine requirement while running Node 20. The report
+  and gate smoke paths execute; strict-engine installs need investigation.

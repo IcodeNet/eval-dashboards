@@ -68,3 +68,6 @@ export { buildMatchedCohort, analyzeComparisonCohort, caseIdentity, type CohortS
 export { summarizeTelemetry, type MeasuredMetric } from './analytics/telemetry.js';
 
 export { comparePairedOutcomes, describePairedComparison, validatePairedComparisonOptions, type PairedComparisonOptions, type PairedOutcomeComparison } from './analytics/paired-comparison.js';
+
+export { REPEATED_SAMPLING_DESIGNS } from './model/eval-report-v1.js';
+export { summarizeRepeatedTrials, describeRepeatedTrials, describeRepeatedTrialCase, type TrialRateEstimate, type RepeatedTrialCase, type RepeatedTrialSummary } from './analytics/repeated-trials.js';

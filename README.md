@@ -2,7 +2,7 @@
 
 > **Product direction (2026-10-31):** a fully hosted platform with accounts, ingestion, and live dashboards is approved and planned. The current product remains the portable package. See [requirements and delivery sequence](docs/hosted-platform-requirements.md).
 
-Reports now show the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
+Repository source (not yet released on npm) shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/eval-dashboards-logo-dark.svg">
@@ -18,6 +18,11 @@ Reports now show the configured quality-gate decision across HTML, Markdown, tex
 [![Node ≥ 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
+
+Release status checked 2026-11-01: npm's latest is **0.10.0** (2026-10-19).
+The newer analytics and gate-reporting features are unreleased repository work.
+The [proposed 0.11.0 release plan](docs/npm-publishing.md#next-release-plan--checked-2026-11-01)
+targets the portable M1 milestone; publication still needs owner authorization.
 
 <div align="center">
 

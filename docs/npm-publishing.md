@@ -16,6 +16,78 @@ The former Semantic Release experiment was removed. It required a separate
 token-based release path and duplicated version, changelog, tag, and publish
 responsibilities. The trusted-publishing workflow is the sole supported path.
 
+## Next release plan — checked 2026-11-01
+
+npm currently exposes `0.10.0` as `latest`, published on 2026-10-19. Its registry
+`gitHead` is `3c535671c3e3571cc3c8c9c5369c36077be8f584`. GitHub's latest release
+is also `v0.10.0`. The package version in this repository is still `0.10.0`;
+merging features into main has not published them.
+
+**Proposed next version: `0.11.0`, the portable analytics milestone.** This is a
+plan, not publishing approval. Keep the current publishing hold. Use acceptance
+gates rather than a promised date; the remaining M1 work determines the cut.
+Do not wait for the hosted M2–M6 backlog to publish a coherent portable update.
+The existing `1.0.0` owner decision and stable-release gate remain separate.
+
+### Scope already merged for the candidate
+
+- Configured gate decisions in reports, with neutral pass-rate styling and
+  explicit not-evaluated output when no policy evaluation ran (#96).
+- Matching-case comparisons, introduced/removed failures, measurement versions,
+  score direction, and measured/missing telemetry coverage (#97).
+- Optional paired comparison with conservative bounds and an inconclusive
+  verdict; ordinary point-gate defaults remain unchanged (#99).
+- Promptfoo assertion evidence, Inspect AI mixed-score/error handling, Langfuse
+  provenance and ID fixes, and Phoenix decision/trace evidence (#92–#94, #100).
+- Malformed evidence-bundle validation, which verifies digest integrity and does
+  not authenticate a signer (#95).
+- Required PR structure, review/merge rules, consistent pnpm/dependency versions,
+  and reviewable metrics artifacts (#98, #101).
+
+### Work to finish before opening the release PR
+
+- [ ] Finish and merge the repeated-trial slice: optional sampling declarations,
+  within-case bounds, unknown evidence, shared reporter output, examples and
+  regression tests. It is in progress in repository source.
+- [ ] Finish M1's reusable complete policy evaluator for the future API. Prove
+  consistent decisions for critical failures, expected negatives, waivers,
+  calibration, baseline/threshold changes, and paired uncertainty. A hosted API
+  itself is M2 work and is not part of this npm cut.
+- [ ] Resolve the observed Node 20 transitive engine warning. Test the packed
+  package and supported feature paths on the advertised Node versions. Keep
+  `engines: >=20` only with evidence; propose and document any minimum-version
+  change explicitly before release.
+- [ ] Reconcile `CHANGELOG.md` with the actual npm gitHead-to-main changes, then
+  select the exact candidate commit. Do not list hosted accounts or ingestion as
+  shipped. Keep 4F.11 signed-bundle authentication open and describe integrity
+  verification accurately.
+- [ ] Prepare a focused release PR that sets `package.json` to `0.11.0`, moves
+  reviewed Unreleased notes into that version, and updates README, STATUS,
+  ROADMAP, publishing/example docs, and CLI help where behavior changed.
+
+### Release acceptance and publication
+
+1. Pass `CHECKS_LEDGER.md` and all protected-main checks for the release PR.
+   Include schema compatibility, teaching/flag checks, security audit, package
+   consumer verification, offline examples, and reproducible report assets.
+   Verify the actual tarball's public runtime/type/schema/CLI exports.
+2. Address review findings, reply with fixes and evidence, resolve addressed
+   threads, merge the release PR, and verify the resulting main revision and
+   its raw CI logs. A green feature branch alone is not a release candidate.
+3. Obtain the owner's explicit authorization to publish the concrete candidate.
+   The current request does not authorize publication.
+4. Dispatch `Publish to npm` from verified `main` with version `0.11.0`. Use the
+   existing OIDC workflow; create no alternate token-based release path.
+5. Inspect its raw log and verify registry version/dist-tags, the GitHub
+   release/tag, installed CLI version, and a report generated from the installed
+   tarball. If publication is partial or fails, inspect the registry before
+   retrying; npm versions cannot be overwritten.
+
+M2 accounts/ingestion, M3 hosted review screens, M4 richer analytics views,
+M5 live progress/scale, and M6 launch operations stay on their own roadmap.
+Assistant-ui remains parked. This plan neither publishes nor deploys a hosted
+platform, and it does not mark the whole roadmap or M1 complete.
+
 ## Required Secrets
 
 ### Trusted publishing

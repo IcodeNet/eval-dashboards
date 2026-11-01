@@ -1,6 +1,7 @@
 export const EVAL_REPORT_SCHEMA_VERSION = 'eval-report/v1' as const;
 
 export const EVAL_SEVERITIES = ['none', 'low', 'medium', 'high', 'critical'] as const;
+export const REPEATED_SAMPLING_DESIGNS = ['fixed-independent', 'unknown'] as const;
 export const SCORE_DIRECTIONS = ['higher-is-better', 'lower-is-better'] as const;
 export const EVAL_ROW_KINDS = ['deterministic', 'agent', 'llm-judge', 'human-review'] as const;
 export const EVAL_TARGETS = ['agent', 'conversation', 'judge', 'custom'] as const;
@@ -319,6 +320,8 @@ export type EvalRow = {
     runs: number;
     passes: number;
     aggregation: 'mean' | 'majority' | 'all';
+    /** Fixed trial count chosen before observing outcomes; independent trials under stable grading conditions. */
+    samplingDesign?: (typeof REPEATED_SAMPLING_DESIGNS)[number];
   };
   /**
    * 4F.24 — optional structured per-row assertion evidence: a row's `passed`

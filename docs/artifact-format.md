@@ -240,6 +240,7 @@ export type EvalRow = {
     runs: number;
     passes: number;
     aggregation: 'mean' | 'majority' | 'all';
+    samplingDesign?: 'fixed-independent' | 'unknown';
   };
   checks?: Array<{
     type: string;
@@ -567,3 +568,44 @@ If a row already has `metadata.provenance`, import preserves it; otherwise impor
 ## Identity and measurement integrity
 
 Each row must reference a declared suite (its ID or name), and quality gates require `(suite, id)` pairs to be unique within a run. Legacy importers may preserve duplicate explicit IDs for display, but those ambiguous runs cannot pass `check`. Use the `repeated` aggregation record for repeated evaluations instead of duplicating identities. Runtime validation rejects negative suite counts, durations, token counts, and usage costs. Zero measurements remain valid. These checks align numeric measurements with the published schema; unknown optional metadata stays supported.
+
+### Repeated-trial sampling and uncertainty
+
+`repeated.passes` counts trial-level `passed: true` outcomes before the row's
+aggregation rule is applied. For intentional negative cases (`expectedOutcome:
+'fail'`), analysis uses `runs - passes` as the number of outcomes matching the
+expectation. Counts are not reconstructed from the aggregate row boolean.
+
+`samplingDesign: 'fixed-independent'` declares that the trial count was chosen
+before observing results and trials were independent under stable case and
+grading conditions. Leave it absent or use `unknown` when that is not justified,
+including adaptive stopping or dependent retries. Older artifacts remain valid.
+The generic runner adapter preserves both `repeated` and `expectedOutcome`.
+
+`summary.json.analytics.repeatedTrials` reports per-case observed rates and
+conservative 95% Hoeffding bounds. Missing design leaves the interval unknown;
+it never implies zero uncertainty. The implementation also refuses unsafe
+integer counts. A matching-case change is estimated only for unique identities,
+compatible measurement versions, unchanged grouping, and declared designs in
+both runs. Its difference bound allocates half the error probability to each
+run, then subtracts interval endpoints (a union bound). It does not require
+independence between the two runs or infer paired trial identities.
+
+These are within-case trial estimates, not a release verdict or a pooled model
+accuracy estimate. Cases are not pooled; trial counts never increase the paired
+gate's independent group count. Bounds do not correct for searching many cases
+or inspecting results repeatedly. HTML, Markdown, and text display the same
+shared calculation as JSON. Counts cover all current repeated-case identities;
+the deterministic evidence list includes at most 20, sorted by suite and ID.
+Cases removed from the current run appear in the cohort summary instead.
+
+The [Hoeffding bound](https://www.cs.rpi.edu/academics/courses/spring06/random/hoefding.pdf)
+for bounded independent observations supplies the per-run interval. With error
+probability `alpha`, its half-width for Bernoulli trials is
+`sqrt(log(2 / alpha) / (2 * runs))`. For a difference, each run uses `alpha / 2`;
+subtracting the displayed individual 95% intervals would not give the same joint
+95% guarantee. See `examples/repeated-trials/README.md` for synthetic inputs.
+
+Reports show repeated-trial evidence only when current repeated cases exist. JSON
+still includes explicit counts for the shared analysis. Intervals describe
+uncertainty under the declared design; they do not establish causality.

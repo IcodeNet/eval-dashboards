@@ -10,6 +10,7 @@ import {
   GATE_MODES,
   GRADER_KINDS,
   RISK_AREAS,
+  REPEATED_SAMPLING_DESIGNS,
   SCORE_DIRECTIONS,
   ROW_LIFECYCLE_STATUSES,
   ROW_PROVENANCE_SOURCES,
@@ -48,6 +49,7 @@ const setConst = (path: string, value: string) => {
 };
 
 setConst('properties.schemaVersion', EVAL_REPORT_SCHEMA_VERSION);
+setArray('definitions.EvalRow.properties.repeated.properties.samplingDesign', REPEATED_SAMPLING_DESIGNS);
 setArray('definitions.EvalRow.properties.kind', EVAL_ROW_KINDS);
 setArray('definitions.EvalRow.properties.severity', EVAL_SEVERITIES);
 setArray('definitions.SuiteManifest.properties.target', EVAL_TARGETS);

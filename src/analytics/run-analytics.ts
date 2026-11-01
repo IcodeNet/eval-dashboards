@@ -1,3 +1,4 @@
+import { summarizeRepeatedTrials } from './repeated-trials.js';
 import { comparePairedOutcomes, type PairedComparisonOptions } from './paired-comparison.js';
 import type { EvalReportV1 } from '../model/eval-report-v1.js';
 import { analyzeComparisonCohort } from './cohort.js';
@@ -8,5 +9,6 @@ export const analyzeRun = (current: EvalReportV1, previous?: EvalReportV1, optio
   cohort: analyzeComparisonCohort(current, previous),
   pairedComparison: comparePairedOutcomes(current, previous, options?.paired),
   telemetry: summarizeTelemetry(current),
+  repeatedTrials: summarizeRepeatedTrials(current, previous),
 });
 export type RunAnalytics = ReturnType<typeof analyzeRun>;

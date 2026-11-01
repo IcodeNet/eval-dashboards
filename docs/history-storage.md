@@ -107,6 +107,9 @@ A store is an object with `read()` and `write(entries)` (the `HistoryStore` inte
 
 ## Matched cohorts and measured telemetry
 
+These shared analytics are currently in repository source and planned for
+0.11.0; they are not in npm 0.10.0. See the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+
 `analyzeRun(current, previous)` is the shared portable analytics function for
 reporters and future hosted queries. JSON summaries include its result under
 `analytics`; HTML, Markdown, and text render the same counts and eligibility.

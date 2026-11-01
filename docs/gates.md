@@ -4,6 +4,11 @@ Gates make eval quality enforceable in CI.
 
 ## Reported gate decisions
 
+Release availability checked 2026-11-01: configured report decisions, matched
+analytics, and the paired comparison below are unreleased repository features
+planned for 0.11.0. npm latest remains 0.10.0. Use the repository's `pnpm dev`
+commands while following the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+
 `eval-dashboards report` evaluates the same resolved policy as `check` for the
 same full-run inputs, baseline selection, and configuration. This includes
 blocking suite manifests, calibration, configured waivers, and threshold-change
@@ -29,7 +34,9 @@ thresholds to suggest policy approval. Baseline comparison without evidence is
 neutral. Row pass/fail evidence remains visible independently of gate policy.
 This is part of M1. Matching-case and missing-data semantics are described in
 [history storage](./history-storage.md#matched-cohorts-and-measured-telemetry);
-trial-level evidence and uncertainty remain open.
+per-case trial bounds are available for declared fixed-independent sampling,
+with counts and unknown uncertainty retained when sampling is unspecified.
+The reusable complete policy evaluator remains open for M1.
 
 ## Why This Matters
 

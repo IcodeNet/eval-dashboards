@@ -35,14 +35,19 @@ const captureScreenshot = async (
   browser: Awaited<ReturnType<typeof chromium.launch>>,
   htmlPath: string,
   screenshotPath: string,
-  options: { width?: number; height?: number; colorScheme?: 'light' | 'dark' } = {},
+  options: { width?: number; height?: number; colorScheme?: 'light' | 'dark'; section?: string; captureSelector?: string } = {},
 ): Promise<void> => {
   const page = await browser.newPage({
     viewport: { width: options.width ?? 1680, height: options.height ?? 1100 },
     colorScheme: options.colorScheme ?? 'light',
   });
   await page.goto(toFileUrl(htmlPath), { waitUntil: 'load' });
-  await page.screenshot({ path: screenshotPath, fullPage: true });
+  if (options.section) {
+    await page.locator(`${options.section} .section-toggle`).click();
+    await page.locator(options.captureSelector ?? options.section).screenshot({ path: screenshotPath });
+  } else {
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+  }
   await page.close();
 };
 
@@ -94,6 +99,9 @@ const main = async (): Promise<void> => {
     '--report-dir=.tmp/paired-report', '--paired-min-delta=0', '--paired-min-clusters=20',
     '--assume-independent-clusters']);
 
+  await run('node', ['examples/repeated-trials/generate.mjs', '.tmp/repeated-input']);
+  await run('pnpm', ['dev', 'report', '--input=.tmp/repeated-input', '--reporter=html', '--reporter=json-summary', '--report-dir=.tmp/repeated-report']);
+
   await mkdir(path.join(repoRoot, 'docs', 'images'), { recursive: true });
 
   const browser = await chromium.launch();
@@ -137,6 +145,12 @@ const main = async (): Promise<void> => {
       browser,
       path.join(repoRoot, '.tmp', 'paired-report', 'index.html'),
       path.join(repoRoot, 'docs', 'images', 'paired-comparison.png'),
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, '.tmp', 'repeated-report', 'index.html'),
+      path.join(repoRoot, 'docs', 'images', 'repeated-trials.png'),
+      { width: 1280, height: 900, section: '[data-section-id="comparison-evidence"]', captureSelector: '[data-evidence="repeated-trials"]' },
     );
   } finally {
     await browser.close();

@@ -1,0 +1,380 @@
+{
+  "recordedAt": "2026-11-01",
+  "purpose": "Synthetic behavior replay; no performance benchmark. Same installed dependencies and inputs for both source revisions.",
+  "baselineRevision": "f38b19c29fab446f8a2636fdd03ee0fa1f89b34d",
+  "afterSource": "Working tree subsequently committed in this PR; runtime fingerprints below identify the tested source.",
+  "generator": "examples/repeated-trials/generate.mjs",
+  "inputs": {
+    "current.json": {
+      "schemaVersion": "eval-report/v1",
+      "run": {
+        "id": "current",
+        "project": "repeated-trial-demo",
+        "generatedAt": "2026-11-01T00:00:00Z"
+      },
+      "rows": [
+        {
+          "id": "declared",
+          "suite": "quality",
+          "kind": "deterministic",
+          "severity": "none",
+          "category": "synthetic-repeat",
+          "input": "declared",
+          "expected": "pass",
+          "passed": true,
+          "repeated": {
+            "runs": 100,
+            "passes": 95,
+            "aggregation": "majority",
+            "samplingDesign": "fixed-independent"
+          }
+        },
+        {
+          "id": "unknown",
+          "suite": "quality",
+          "kind": "deterministic",
+          "severity": "none",
+          "category": "synthetic-repeat",
+          "input": "unknown",
+          "expected": "pass",
+          "passed": true,
+          "repeated": {
+            "runs": 100,
+            "passes": 95,
+            "aggregation": "majority"
+          }
+        }
+      ],
+      "suites": [
+        {
+          "id": "quality",
+          "total": 2,
+          "passed": 2,
+          "failed": 0
+        }
+      ],
+      "suiteManifests": [
+        {
+          "name": "quality",
+          "target": "custom",
+          "datasetSource": "synthetic",
+          "datasetVersion": "demo-1",
+          "rubricVersion": "outcome-1",
+          "graderVersion": "assertions-1",
+          "graders": [
+            "deterministic-assertions"
+          ],
+          "riskArea": "response-quality",
+          "gate": {
+            "mode": "report-only",
+            "thresholds": {}
+          }
+        }
+      ]
+    },
+    "previous.json": {
+      "schemaVersion": "eval-report/v1",
+      "run": {
+        "id": "previous",
+        "project": "repeated-trial-demo",
+        "generatedAt": "2026-10-31T00:00:00Z"
+      },
+      "rows": [
+        {
+          "id": "declared",
+          "suite": "quality",
+          "kind": "deterministic",
+          "severity": "none",
+          "category": "synthetic-repeat",
+          "input": "declared",
+          "expected": "pass",
+          "passed": true,
+          "repeated": {
+            "runs": 100,
+            "passes": 80,
+            "aggregation": "majority",
+            "samplingDesign": "fixed-independent"
+          }
+        },
+        {
+          "id": "unknown",
+          "suite": "quality",
+          "kind": "deterministic",
+          "severity": "none",
+          "category": "synthetic-repeat",
+          "input": "unknown",
+          "expected": "pass",
+          "passed": true,
+          "repeated": {
+            "runs": 100,
+            "passes": 80,
+            "aggregation": "majority"
+          }
+        }
+      ],
+      "suites": [
+        {
+          "id": "quality",
+          "total": 2,
+          "passed": 2,
+          "failed": 0
+        }
+      ],
+      "suiteManifests": [
+        {
+          "name": "quality",
+          "target": "custom",
+          "datasetSource": "synthetic",
+          "datasetVersion": "demo-1",
+          "rubricVersion": "outcome-1",
+          "graderVersion": "assertions-1",
+          "graders": [
+            "deterministic-assertions"
+          ],
+          "riskArea": "response-quality",
+          "gate": {
+            "mode": "report-only",
+            "thresholds": {}
+          }
+        }
+      ]
+    }
+  },
+  "inputSha256": {
+    "current.json": "550695f125851f2f7b1f9e1d19a7563446af0ebc11785fb0efce014353ed8731",
+    "previous.json": "d90a957755f41a8c716940de9fc085ec958aa3e4043c6a205fa47359924cf1e0"
+  },
+  "results": {
+    "before": {
+      "reportCommand": [
+        "node",
+        "--import",
+        "tsx/esm",
+        "/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before/src/cli/index.ts",
+        "report",
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
+        "--reporter=html",
+        "--reporter=json-summary",
+        "--reporter=markdown-summary",
+        "--report-dir=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before/report"
+      ],
+      "reportExitCode": 0,
+      "checkCommand": [
+        "node",
+        "--import",
+        "tsx/esm",
+        "/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before/src/cli/index.ts",
+        "check",
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
+        "--json-out=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before-check.json"
+      ],
+      "checkExitCode": 0,
+      "gateDecision": {
+        "status": "passed",
+        "failures": [],
+        "diagnostics": []
+      },
+      "repeatedTrials": null,
+      "reportOutputSha256": {
+        "summary.json": "1ea0089685057baf01cd4c5e0926d773c65cbcf6a2fc88f33ca30d910211021c",
+        "index.html": "de8fa29bd689432a1dc9c272cbcf37808b1f35261c28b4a7f1e1a36966ab87f4",
+        "summary.md": "5996cc436a42e2e6b46b88c156ebd436e7ea5ea1e9acf71f93eaf3a6deee2134",
+        "history.json": "6ee6138edf7f397b3654254b35e82aba9616d5754d8f4f8c4a179e57d64a94f2"
+      }
+    },
+    "after": {
+      "reportCommand": [
+        "node",
+        "--import",
+        "tsx/esm",
+        "/Users/byronth/.codex/worktrees/langfuse-review-fixes/eval-dashboards/src/cli/index.ts",
+        "report",
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
+        "--reporter=html",
+        "--reporter=json-summary",
+        "--reporter=markdown-summary",
+        "--report-dir=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/after/report"
+      ],
+      "reportExitCode": 0,
+      "checkCommand": [
+        "node",
+        "--import",
+        "tsx/esm",
+        "/Users/byronth/.codex/worktrees/langfuse-review-fixes/eval-dashboards/src/cli/index.ts",
+        "check",
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
+        "--json-out=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/after-check.json"
+      ],
+      "checkExitCode": 0,
+      "gateDecision": {
+        "status": "passed",
+        "failures": [],
+        "diagnostics": []
+      },
+      "repeatedTrials": {
+        "method": "hoeffding-union-bound",
+        "metric": "within-case-matched-expectation-rate",
+        "confidenceLevel": 0.95,
+        "currentCases": 2,
+        "estimatedCases": 1,
+        "unknownCases": 1,
+        "estimatedComparisons": 1,
+        "unavailableComparisons": 1,
+        "caseCount": 2,
+        "cases": [
+          {
+            "suite": "quality",
+            "id": "declared",
+            "current": {
+              "runs": 100,
+              "matchedExpectations": 95,
+              "observedRate": 0.95,
+              "status": "estimated",
+              "interval": {
+                "lower": 0.814189848425938,
+                "upper": 1
+              }
+            },
+            "previous": {
+              "runs": 100,
+              "matchedExpectations": 80,
+              "observedRate": 0.8,
+              "status": "estimated",
+              "interval": {
+                "lower": 0.6641898484259381,
+                "upper": 0.935810151574062
+              }
+            },
+            "comparison": {
+              "status": "estimated",
+              "observedDelta": 0.1499999999999999,
+              "interval": {
+                "lower": -0.14604143746015974,
+                "upper": 0.3480207187300798
+              }
+            }
+          },
+          {
+            "suite": "quality",
+            "id": "unknown",
+            "current": {
+              "runs": 100,
+              "matchedExpectations": 95,
+              "observedRate": 0.95,
+              "status": "unknown",
+              "reason": "sampling-design-unknown"
+            },
+            "previous": {
+              "runs": 100,
+              "matchedExpectations": 80,
+              "observedRate": 0.8,
+              "status": "unknown",
+              "reason": "sampling-design-unknown"
+            },
+            "comparison": {
+              "status": "unknown",
+              "reason": "both-sampling-designs-required"
+            }
+          }
+        ]
+      },
+      "reportOutputSha256": {
+        "summary.json": "330185e3ab6a004263b4dbe15da892b7976dfb1d5b034df84c7ee320026b9289",
+        "index.html": "1ace7c8b3ad71623e20ce4863c10520bfbb1af703d0ebfed9f491e470619974d",
+        "summary.md": "d991821ee00a38785c6b5a52c413c0fb38fa81cc602ad0f33ec7c911415fc158",
+        "history.json": "6ee6138edf7f397b3654254b35e82aba9616d5754d8f4f8c4a179e57d64a94f2"
+      }
+    }
+  },
+  "afterRuntimeSha256": {
+    "src/adapters/runner.ts": "28ad6e1e2c33cb490431e1cb7d3e663b95d34526e9e25784659846812c9f0b5b",
+    "src/adjudication/bundles.ts": "3dcfefd8e4aef9e3f0172be4397cb33b55508e4108716b313e0bc0d510e57dd4",
+    "src/analytics/cohort.ts": "50bba4705290906ed4e1cbf0fc10bc5092fa1245bdb1537a4214a848967f12a9",
+    "src/analytics/paired-comparison.ts": "75af2c3a1d7732b02accaa016ad60eb1167aff1ac0c027efacdf133f187628d9",
+    "src/analytics/repeated-trials.ts": "14ddbb73f208522ede840c8c3652fc044b8f13c890959d26b7a4eb8a0c46be78",
+    "src/analytics/run-analytics.ts": "d838fc0e1b97cbe9760869f77209b933106bf835d253ef31164942471e9905eb",
+    "src/analytics/telemetry.ts": "005470ca19b1d30c1e106e61543ef54b1c8c28809df3bdbf1c304f09722615f3",
+    "src/cli/args.ts": "4e5e80e372a3a92e0ba590998b1d284b77c5d6d4a7c98f7063810a509ef9458e",
+    "src/cli/completion.ts": "880b640d36b9824a18c79df456d20dcd123696521a4894e24c0881967e82f34f",
+    "src/cli/import-adapters.ts": "be4a5472aeff3f1372a6ddd65bc40321325c00af0ac5572b53ba7a2b62f22ef4",
+    "src/cli/index.ts": "6b0efce85c8e58737eb8a7e7dc96ba59e4ba471991846b937891ad5e2709151b",
+    "src/cli/init-scaffold.ts": "d66a9716ffaaf02ab2fec823e09d4d24c32a91904673cdbbee64ad32258a9a9b",
+    "src/cli/package-version.ts": "1b6fc90e7a61f621556825115b88e364bc6bb918bd6094e74714d62cd7194eeb",
+    "src/config/config.ts": "9fc4739f32b0cf58cd3a2f40f213e8cf0baeb32e75a3a556a371483d3d9f7acb",
+    "src/config/load-config.ts": "ca7691b105047c7cab1f473ad127af7d15b648cc6434a6546aa38b64986b07e8",
+    "src/config/validate-config.ts": "42b45850c83c3c5f83582ced3719c2f79d64369f380f0cf7428540e29f7afc1f",
+    "src/evidence/bundle.ts": "8be4e1ced93aba9b4af6042b9fa828bbe3b78b1140be8d5fd4c07d39c5328e3f",
+    "src/gates/bypass-accounting.ts": "54e715d57ba0a0ef71967a9c8c7abc7d05e7922ed0bf3be00dff60371331b03a",
+    "src/gates/check-gates.ts": "ff98c344a9017b077c88fdca1d15db405088814296086137655911e2448a866c",
+    "src/gates/decision.ts": "a751f545dd616d29044b703d99cba774fede67004775e5ea5b47c0a59eab20e2",
+    "src/gates/heartbeat.ts": "b2cbca91f8285f4f2b29e6e94693736bf429eba60aa4c2870fc78621ac78d1b2",
+    "src/gates/lint-taxonomy.ts": "54ca2511b4670fdc3f4ad50d30add6138b93e35025161e7ba2a493e02df6c361",
+    "src/gates/pr-tiering.ts": "bc110599a47afb5ed7cf1b1c91a37463da371e6f25f5c8d90cc906ae2535b0c4",
+    "src/gates/statistical.ts": "1877df27d0683dfce9a448db34bd6b10f840c6e64424db73da636ed66832a5f8",
+    "src/gates/step-summary.ts": "c0fe35a34d045d442c79d2291d657c05ec5a6e120e99cbe13f421e95cff781b5",
+    "src/gates/threshold-change.ts": "0ae1c88516f858095ea797e5185469b419ae03c609326d7686feb7f854085111",
+    "src/gates/waivers.ts": "1c4f6856d15e2d8bff38aae55992729bb719489781edb31b28180854520e7f79",
+    "src/history/baseline-compatibility.ts": "7d5c029c2521925487651fc20e5e128f1714cc433ed4e542dcd2e440680fd5de",
+    "src/history/history.ts": "1359ebb8e6d2c677374ec7f1194bcbdbc683d4bce7c73b518873f28ceb5fb185",
+    "src/history/org-rollup.ts": "50e1736c2d50e5a6e211557bfd078342c85c3673d487cfdad3e05f37c2ea22b9",
+    "src/history/query.ts": "73e720d35c67d98f6cc7d63fdf2dd256231134449b7e98e5c83219a2ac47c759",
+    "src/history/sqlite-store.ts": "99a4253e8518b7c8280448428427beec66fc16469c6bec3ae4af9285dd18a6c9",
+    "src/history/store.ts": "c4cc35edc6313eee1653eb58e4beadaba14fbfdfcd8985dfbb6072995e6ce3d7",
+    "src/index.ts": "867e3fbe2235d4ed536c5667ae9b8166d0c2b6fcc6dbcd3155c691d21769aa31",
+    "src/io/reports.ts": "4a1d39565a515da6e186b622899275fa77544d0de675d818b426189e86023ec9",
+    "src/model/eval-report-v1.ts": "3c109306503c1bf18524e272998d88a22dd2ef9a8055c75b20fcc7fb554e26f7",
+    "src/model/redact.ts": "d9f7262185190c67b9c8581d04b2c156ade27f028a024137feb2c85c4b29a751",
+    "src/model/validate.ts": "153b22a47b1e4baf1e09b1f7df97c67a24963064c5dc1db0335d5e239174bbfc",
+    "src/notifications/notify.ts": "5acd4cbc2114fd4929ec1458192c13f1a8bfc63c8fd1cb551f0c265526c57b74",
+    "src/publish/publish.ts": "ab305a709600f551f8ee608774cdf9679da226548319ef5d63d3abecca832f6b",
+    "src/reporters/history-trend.ts": "32ac612c107fa4a6cd22f6a9f0242970e94bcf82a3fc218241a93de007ef09da",
+    "src/reporters/org-rollup.ts": "e3e84894fca609677a2b2aa0c1b49e80eb859c11b19eb4c9de0618c09749fea4",
+    "src/reporters/render.ts": "9b405dfe7af83b80b25b65e16809edcbd2de88f9dc237a58f3c3feea88e38bf6",
+    "src/reporters/themes.ts": "efe3e8690b7a484954a7934ddf5699940141a434303fa11d447d6a6a7e0f9f61",
+    "src/sign/sign.ts": "3bd38f15926f665bfabcd23282604e4238c086db2c28d0f84949482b337657de",
+    "src/utils/format.ts": "56708ef5c1921d9e4464a5cf78a7077a66be17f0dcdb933b936196015e6b3275",
+    "src/utils/safe-filename.ts": "ad79e08166449c9f4445fd76a3764572c728a81de427c059401633d7bb8c2c49",
+    "src/utils/suggest.ts": "4f3c622cd2393d8c2fa10bfad4c3a3a3e29c9da65a9b2ae6ecbfdde48a143c98",
+    "src/utils/untrusted-text.ts": "394a05569cedb3a1594ba874c88f9972b4960e6f75f8109e181a82253ea8ae38"
+  },
+  "reviewFollowUp": {
+    "reviewedHead": "342eba5bb35ffd977fe03e82ffb391add8ca6fb0",
+    "findings": [
+      "Markdown retained ANSI control sequences in repeated-trial case descriptions",
+      "Publishing wording did not label not-evaluated as unreleased",
+      "Gate guide said trial uncertainty remained entirely open"
+    ],
+    "resolution": [
+      "Strip terminal controls before existing HTML and Markdown escaping",
+      "Explicitly distinguish repository 0.11.0 behavior from npm 0.10.0",
+      "Describe delivered declared-sampling bounds and remaining full evaluator"
+    ],
+    "regression": {
+      "command": "pnpm exec vitest run test/repeated-trials.test.ts",
+      "before": "1 failed, 23 passed; hostile Markdown ID retained ESC",
+      "after": "24 passed; Markdown retains HTML escaping and removes ESC and forged line breaks"
+    },
+    "rawCiReviewed": [
+      {
+        "head": "342eba5bb35ffd977fe03e82ffb391add8ca6fb0",
+        "job": 124910252379,
+        "result": "903 tests; package consumer; 3 CI assets; accessibility; schema; 111 CLI guards; teaching and flag docs; docs build; audit 2 low, 4 moderate, no high/critical"
+      },
+      {
+        "job": 124911079006,
+        "result": "Both example commands completed successfully"
+      },
+      {
+        "job": 124910252356,
+        "result": "Node 20 reports and expected failing gate exercised; existing content-type Node >=22 warning remains an explicit release gate"
+      },
+      {
+        "jobs": [
+          124910252729,
+          124910252886
+        ],
+        "result": "Title and actual template validation executed and passed"
+      }
+    ]
+  }
+}

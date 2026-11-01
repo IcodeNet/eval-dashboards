@@ -156,6 +156,13 @@ collapsing straight to a single boolean, rows can record the aggregation via
 }
 ```
 
+Counts alone do not establish independent evidence. Optional
+`repeated.samplingDesign: 'fixed-independent'` declares a trial count chosen
+before outcomes and independent trials under stable case/grading conditions.
+Leave it absent or use `unknown` for dependent retries or adaptive stopping.
+Reports can then show per-case rate intervals without pooling trials across
+cases. See [sampling and uncertainty](./artifact-format.md#repeated-trial-sampling-and-uncertainty).
+
 A row's `passed` value can also be the result of one or more named checks —
 structured per-row assertion evidence via `checks: Array<{ type, expected?,
 actual?, threshold?, pass, weight? }>`. `type` is a free-form string a runner

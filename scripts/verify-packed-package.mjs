@@ -25,8 +25,8 @@ try {
   }, null, 2));
   run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefer-offline']);
   fs.writeFileSync(path.join(temp, 'consumer.ts'), `
-import type { EvalReportV1, EvalRow } from '@icodenet/eval-dashboards';
-import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, type HistoryStore } from '@icodenet/eval-dashboards';
+import type { EvalReportV1, EvalRow, RepeatedTrialSummary } from '@icodenet/eval-dashboards';
+import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, REPEATED_SAMPLING_DESIGNS, type HistoryStore } from '@icodenet/eval-dashboards';
 import { readFileSync } from 'node:fs';
 const row: EvalRow = { id: 'consumer', suite: 'smoke', passed: true };
 const report: EvalReportV1 = {
@@ -39,6 +39,12 @@ const store: HistoryStore = createSqliteHistoryStore('unused.sqlite');
 if (typeof store.read !== 'function' || typeof createHistoryStoreForPath !== 'function') throw new Error('History store exports failed');
 const schema = JSON.parse(readFileSync(new URL(import.meta.resolve('@icodenet/eval-dashboards/schemas/eval-report-v1.schema.json')), 'utf8'));
 if (!schema.properties?.schemaVersion) throw new Error('Schema subpath export failed');
+const repeatedArtifact = createEvalReportArtifact({ cases: [{ id: 'repeat', suite: 'smoke', passed: false,
+  expectedOutcome: 'fail', repeated: { runs: 10, passes: 1, aggregation: 'majority', samplingDesign: REPEATED_SAMPLING_DESIGNS[0] } }] });
+const repeated: RepeatedTrialSummary = summarizeRepeatedTrials(repeatedArtifact);
+if (repeated.estimatedCases !== 1 || repeated.cases[0]?.current.observedRate !== 0.9) throw new Error('Repeated-trial public API or emitter lost evidence');
+if (!schema.definitions?.EvalRow?.properties?.repeated?.properties?.samplingDesign?.enum.includes('fixed-independent')) throw new Error('Repeated sampling schema export failed');
+
 console.log('Packed consumer: public types compile; runtime and schema exports work.');
 `);
   fs.writeFileSync(path.join(temp, 'tsconfig.json'), JSON.stringify({ compilerOptions: {
