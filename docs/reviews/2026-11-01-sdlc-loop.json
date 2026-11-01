@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-01",
+  "scope": "Document the owner-authorized cumulative implementation, review, reply, resolve, green-check, merge, repeat loop.",
+  "baseline": "Previously, CONTRIBUTING.md ended at opening a PR and contained an older free-form PR example.",
+  "after": "One versioned PR template; cumulative delivery guidance in AGENTS.md, CONTRIBUTING.md, CHECKS_LEDGER.md, always-applied Cursor rule, and a reference from the PR writing skill.",
+  "observedMerges": {
+    "95": "1959a6338ce2b3f9aa6d109c2ae5ba39be855ed0",
+    "96": "e771abf5bb20110a2301f9e4f923144e19b3a693"
+  },
+  "integrationCorrection": "PR #97 combines documentation from both merged branches; both page-count assertions changed from 89 to the observed 90 while link/orphan checks remain intact.",
+  "limitations": [
+    "This is agent/contributor guidance, not server-enforced branch protection.",
+    "No reviewer-time or comprehension benchmark was run.",
+    "Publishing and deployment are separate from authorized merges."
+  ]
+}

@@ -32,3 +32,7 @@ it exposes a recurring misunderstanding. Prefer narrow, useful edits over an
 accumulating checklist. Changes to the template are reviewed like other repo
 changes. Drafting a description does not itself authorize publishing it or
 changing a pull request; use the authorization already provided for the task.
+
+For the delivery process after opening a PR, follow the cumulative requirements
+and review/merge loop in `AGENTS.md` and `CHECKS_LEDGER.md`. This writing skill
+does not replace contract, documentation, verification, or release requirements.

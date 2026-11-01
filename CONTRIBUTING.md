@@ -132,40 +132,36 @@ Also export RowStability type and RowTrend for callers.
 Closes #456
 ```
 
-## Submitting a Pull Request
+## Submitting and completing a pull request
 
-1. **Check the ROADMAP** ([docs/ROADMAP.md](./docs/ROADMAP.md)) for current priorities
-2. **Reference an issue** — link to GitHub issue in PR description
-3. **Keep scope focused** — one feature or fix per PR
-4. **Update STATUS.md** — mark items as done when code + tests exist
-5. **All tests pass** — run `pnpm test` before pushing
-6. **TypeScript clean** — run `pnpm typecheck` before pushing
-7. **Build succeeds** — run `pnpm build` before pushing
+Use the [repository PR template](./.github/pull_request_template.md) and
+[plain-English PR skill](./.agents/skills/plain-english-prs/SKILL.md). Explain the
+problem with one concrete example, show what changes, link observed evidence,
+and give the everyday workflow. Do not present test totals as speed or quality
+benchmarks. Improve the template when reviewer feedback shows a clearer way.
 
-### Example PR Description
+1. Pick one focused task from [ROADMAP](./docs/ROADMAP.md) or
+   [STATUS](./docs/STATUS.md). Keep all existing project requirements in force.
+2. Implement it with appropriate tests. Keep the schema, docs, examples, CLI help,
+   and report assets consistent; mark work done only when acceptance is evidenced.
+3. Complete [CHECKS_LEDGER.md](./CHECKS_LEDGER.md), including exact-tree commit
+   evidence, then push and open the PR using the template.
+4. Monitor the PR's current head, checks, reviews, and comments. Resolve conflicts,
+   then review findings, then failing CI. Fix valid findings, verify and push the
+   fix, reply on the original thread with the commit and test evidence, and resolve
+   it. Explain invalid or obsolete findings before resolving them.
+5. Monitor again after every push. Before merging, refresh state and require
+   passing applicable checks with no outstanding actionable review comments or
+   change requests. Inspect raw CI logs for workflows changed by the PR; skipped
+   checks do not prove coverage. Never weaken checks or hide an unresolved issue.
+6. Maintainers, or agents explicitly authorized by the owner, merge dependency
+   PRs first and integrate into `origin/main`. Verify the remote merge, then
+   continue the next authorized task. Opening the PR is not completion.
 
-```markdown
-## Summary
-
-Add explicit baseline selection by run ID to `eval-dashboards check` command.
-
-## Changes
-
-- Added `--baseline-run-id` CLI flag to specify baseline for comparison
-- Updated `compareRuns()` to accept explicit baseline run
-- Added integration test for baseline selection
-
-## Closes
-
-Closes #789
-
-## Testing
-
-```bash
-pnpm test -- baseline
-pnpm dev check --baseline-run-id my-run-001
-```
-```
+These steps add to every existing requirement; they do not replace contract
+compatibility, plain English, docs synchronization, honest status, offline
+operation, or release controls. Publishing remains a separate authorized action.
+See [AGENTS.md](./AGENTS.md) for the complete agent delivery loop.
 
 ## Reporting Issues
 

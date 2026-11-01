@@ -1,0 +1,25 @@
+{
+  "reviewedAt": "2026-11-01",
+  "headRevision": "b6ff65c732ca29c23bd8b020df505782b9f4b5d3",
+  "pullRequest": 99,
+  "source": "Decoded raw GitHub Actions job logs, not status badges",
+  "jobs": [
+    {
+      "name": "lint-and-test (22.x)",
+      "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41230107642/job/124622365423",
+      "observed": ["89 test files passed; 846 tests passed", "Typecheck and build ran", "Package validation ran", "Release assets verified: 3 platform-independent files reproduced", "Accessibility: 3 themes x 2 viewports; no axe violations", "Schema sync and report-power reproduction ran", "111 CLI guards passed", "77 documented output lines matched across 12 exercises and 2 labs", "164 CLI flags documented", "Docs site check passed", "Audit: 2 low, 7 moderate findings; no high severity findings"]
+    },
+    {
+      "name": "composite-action",
+      "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41230107655/job/124622365609",
+      "observed": ["Packed local source and generated HTML and JSON", "The fixture's failing gate exited 1 as intended", "Action output assertions verified passed=false and generated files"],
+      "limitations": ["The Node 20 install emitted an engine warning: transitive content-type@3.1.1 declares Node >=22. Report and check executed, but strict-engine installation compatibility remains open."]
+    },
+    {
+      "name": "examples (22.x)",
+      "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41230107642/job/124623119146",
+      "observed": ["Basic JSON text report ran", "Provider-free agent example generated a report with 9/9 passed rows"]
+    }
+  ],
+  "notes": ["The diagnostic tool's main-job excerpt was truncated; the complete decoded job log was fetched and reviewed.", "CI intentionally excludes screenshot drift from platform-independent asset enforcement; local verification covered 19 assets including screenshots.", "CodeRabbit initially skipped the draft; readiness now requires checking the live review and current-head checks.", "This is evidence for the named source revision; later integration heads require their own green checks."]
+}
