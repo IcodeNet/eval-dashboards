@@ -44,13 +44,20 @@ Use `evaluateReportPolicy` from the package root to run the same complete
 policy as CLI `check` and `report`. Unlike `checkGates`, it includes calibration,
 waivers, baseline-policy loosening and optional tier budgets. It returns
 `gateDecision` plus the supporting waiver, threshold and budget evidence.
+Pass the resolved comparison settings to rendering as well, so descriptive
+evidence uses the same confidence level and criterion as the decision.
 
 ```ts
 const result = evaluateReportPolicy({
   current, previous, reports, gateConfig,
   waiverRegister, baselineGateConfig,
 });
-await renderReports({ ...reportContext, gateDecision: result.gateDecision }, ['html']);
+await renderReports({
+  ...reportContext,
+  gateDecision: result.gateDecision,
+  paired: result.gateConfig.paired,
+  statistical: result.gateConfig.statistical,
+}, ['html']);
 ```
 
 Supply validated artifacts and registers, and a resolved `GateConfig`. The caller

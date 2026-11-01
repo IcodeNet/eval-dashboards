@@ -190,7 +190,8 @@ Run `pnpm exec tsx examples/policy-evaluation/run.ts` from repository source.
 A synthetic answer passes ordinary gates but fails the complete policy because
 required calibration evidence is missing. The same evaluator powers CLI
 `check` and `report`; its README explains input validation and selection scope.
-This public API is unreleased and needs no provider, database or server.
+This public API is in the unpublished 0.11.0 candidate and needs no provider,
+database or server.
 
 ### Installed-package compatibility
 

@@ -1,6 +1,6 @@
 # Hosted evaluation platform: requirements and delivery plan
 
-Decision date: 2026-10-31. Status: approved product direction; initial M1 implementation in progress; hosted service pending.
+Decision date: 2026-10-31. Status: approved product direction; portable M1 acceptance covered in the 0.11.0 candidate; hosted service pending.
 
 The owner explicitly selected **a fully hosted platform with accounts, ingestion, and live dashboards**. This supersedes the earlier hosted-platform exclusion. The portable package, runner independence, additive `eval-report/v1` contract, and offline exports remain product requirements. Assistant-UI work remains parked.
 
@@ -78,7 +78,7 @@ Specific corrections:
 
 ## Ordered delivery and acceptance criteria
 
-All implementation milestones below are open. Documentation approval does not complete them.
+Portable M1 implementation meets the acceptance criteria in the 0.11.0 candidate, with code and tests cited below. M2–M6 remain open; the release candidate is not an npm publication.
 
 1. **M1 — Shared analytics and decision semantics.** Define actual verdict states, compatible cohorts, paired/repeated comparisons, metric units/direction, missing-data rules, and denominators. The same fixture must produce the same decisions in JSON, HTML, and the future API. Cover critical segment failures, intentional negative cases, incompatible baselines, and unknown telemetry.
 2. **M2 — Tenant-safe ingestion vertical slice.** Implement accounts/org/project roles and scoped API keys; validated artifact upload; PostgreSQL/private blob persistence; durable jobs; idempotent indexing. Prove cross-tenant isolation, duplicate delivery safety, explicit revision handling, and that invalid/partial uploads cannot become completed runs.
@@ -87,7 +87,7 @@ All implementation milestones below are open. Documentation approval does not co
 5. **M5 — Live progress and measured scale.** Add durable resumable events, retry/backpressure, incremental rollups, query pushdown, pagination, and realistic workload benchmarks. Verify reconnect/duplicate/reordered events and bounded query/memory behavior. Set numerical budgets from measurements, not invented throughput promises.
 6. **M6 — Hosted launch gate (required before launch).** Test authorization across all paths, redaction, audit, deletion/retention, portable exports, migration rollback, backup restoration, service observability, quotas, and accessibility. Use sanitized fixtures and provider-free CI. Hosting vendor, authentication provider, operating budget, and deployment approval remain launch decisions.
 
-M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; paired group bounds and inconclusive decisions are available through the opt-in paired gate; within-case trial bounds now require explicit sampling declarations; the reusable complete policy evaluator merged in #103 with CLI/public parity coverage. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
+M1 portable semantics are implemented: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; paired group bounds and inconclusive decisions are available through the opt-in paired gate; within-case trial bounds now require explicit sampling declarations; the reusable complete policy evaluator merged in #103 with CLI/public parity coverage. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document; no hosted platform deployment or npm publication is performed.
 
 ## Sources and interpretation
 
@@ -100,6 +100,9 @@ The supplied material informs requirements, not proof that the proposed schema i
 - [Next.js route handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route) documents the current route parameter contract.
 
 The eval.qa source could not be verified. Repository gaps and the delivery sequence above are our analysis, not claims attributed to those sources.
+
+The dated slice records below describe their state at the time. The final
+portable M1 acceptance record at the end supersedes their earlier open items.
 
 ## Initial M1 verification record — 2026-10-31
 
@@ -209,4 +212,23 @@ The caller must validate inputs, select runs and tiers, and scope calibration
 evidence to the same project and authorized tenant. No hosted endpoint, account
 or ingestion service is claimed. The slice merged in [#103](https://github.com/IcodeNet/eval-dashboards/pull/103), with 911 tests and packed-consumer checks verified
 in raw CI logs. CodeRabbit skipped due to its free allowance; no completed
-external review is claimed. M1 stays open for the final acceptance review.
+external review is claimed. The final acceptance tests below complete portable M1; the hosted endpoint remains M2.
+
+## Portable M1 acceptance — 2026-11-01
+
+The 0.11.0 candidate covers actual decision states and critical segment failures
+(`test/gate-decision.test.ts`), matching-case versions, score direction and
+measured/missing denominators (`test/run-analytics.test.ts`), conservative paired
+group bounds (`test/paired-comparison.test.ts`) and within-case trial uncertainty
+with unknown sampling preserved (`test/repeated-trials.test.ts`).
+
+Public complete policy, CLI check and reporters share the same evaluation.
+`test/evaluate-policy.test.ts` additionally checks passed/failed/inconclusive
+public decisions across JSON, HTML, Markdown and text using a non-default 80%
+comparison confidence level. The descriptive evidence and decision retain the
+same configured comparison. `test/cli-pr-tiering.test.ts` checks budget parity.
+
+This satisfies M1's reusable library semantics. It does not implement the future
+HTTP API, tenant isolation, accounts or ingestion. Those remain M2 and later.
+Package publication stays held until release checks, review, merge verification
+and explicit owner approval of the exact candidate revision.

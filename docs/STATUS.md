@@ -59,14 +59,18 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
     workflow. It is dispatched manually from verified `main`, publishes through
     npm OIDC, and creates the version tag and GitHub release after publishing.
 
-## Next npm release — planned, not published
+## Next npm release — candidate, not published
 
 Registry check 2026-11-01: `latest` remains `0.10.0`, published 2026-10-19.
-Proposed `0.11.0` targets the portable M1 analytics milestone after repeated-trial
-work, the shared full policy evaluator, Node compatibility verification, and
-release acceptance. M2–M6 remain hosted backlog. The package version has not yet been bumped; publication still needs explicit
-owner authorization. See the
-[next release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+Repository version `0.11.0` is the portable M1 release candidate. Repeated trials,
+the complete policy evaluator, and the Node compatibility fix merged in
+[#102](https://github.com/IcodeNet/eval-dashboards/pull/102),
+[#103](https://github.com/IcodeNet/eval-dashboards/pull/103), and
+[#104](https://github.com/IcodeNet/eval-dashboards/pull/104).
+M1 acceptance is covered by the committed analytics and public/CLI/reporter
+parity tests. The release PR must pass its own required checks, review and merge
+verification before publication, which needs explicit owner authorization. M2–M6
+remain hosted backlog. See the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
 
 ## Release Notes
 
@@ -271,7 +275,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
-- [ ] M1: Shared analytics and actual gate decision semantics. In progress: shared CLI gate evaluation, explicit report decisions, and matched-cohort/measured-telemetry analytics. An opt-in paired group comparison now exposes conservative bounds and explicit inconclusive decisions. Within-case trial bounds preserve unknown sampling evidence; the complete reusable evaluator merged in #103 with CLI/public parity tests. M1 acceptance review remains open. See [gate decisions](./gates.md#reported-gate-decisions).
+- [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. npm publication remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
 - [ ] M2: Tenant-safe accounts and durable artifact ingestion.
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
@@ -285,9 +289,8 @@ Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See
   unknown evidence and shared reporters (`test/repeated-trials.test.ts`).
 - Complete `evaluateReportPolicy` merged in [#103](https://github.com/IcodeNet/eval-dashboards/pull/103), with CLI/public parity,
   packed-consumer coverage and a provider-free example (`test/gate-decision.test.ts`,
-  `test/evaluate-policy.test.ts`). Full M1 remains open for acceptance review.
-- Compatibility follow-up: PR #99's raw composite-action log reports a transitive
-  `content-type` Node >=22 engine requirement while running Node 20. The report
-  and gate smoke paths execute. Strict installation reproduced a real Node 20
-  failure. A compatible Octokit dependency line and strict installed consumers
-  for Node 20/22/24/26 are in source review; this release gate remains open.
+  `test/evaluate-policy.test.ts`). M1 acceptance is covered by the release candidate tests.
+- Compatibility fix merged in [#104](https://github.com/IcodeNet/eval-dashboards/pull/104). Raw CI verified strict installed consumers on
+  Node 20.20.2 / 22.23.4 / 24.22.1 / 26.13.0, with no engine warnings and
+  restored Node 22 for the remaining checks. The version candidate is not a
+  published package. Optional SQLite still requires Node >=22.5.

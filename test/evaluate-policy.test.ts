@@ -1,5 +1,8 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { evaluateReportPolicy, type EvalReportV1, type WaiverRegisterV1 } from '../src/index.js';
+import { evaluateReportPolicy, compareRuns, renderReports, type EvalReportV1, type WaiverRegisterV1 } from '../src/index.js';
 
 const report = (passed = true, id = 'current'): EvalReportV1 => ({
   schemaVersion: 'eval-report/v1', run: { id, project: 'policy-demo', generatedAt: id === 'previous' ? '2026-10-30T00:00:00Z' : '2026-11-01T00:00:00Z' },
@@ -63,6 +66,24 @@ describe('complete reusable report policy', () => {
     expect(evaluateReportPolicy({ ...input, reports: [calibration, current] }).gateDecision.status).toBe('passed');
     calibration.rows[0].judgeModel = 'other';
     expect(evaluateReportPolicy({ ...input, reports: [calibration, current] }).gateDecision.status).toBe('failed');
+  });
+  it.each(['passed', 'failed', 'inconclusive'] as const)('renders the public %s verdict with the same configured comparison evidence', async status => {
+    const current = report(status !== 'failed'), previous = report(status !== 'passed', 'previous');
+    const gateConfig = { paired: { independentClusters: true, confidenceLevel: 0.8 } };
+    const evaluation = evaluateReportPolicy({ current, previous, gateConfig, now });
+    expect(evaluation.gateDecision.status).toBe(status);
+    const dir = await mkdtemp(path.join(tmpdir(), 'public-policy-report-'));
+    try {
+      const outputs = await renderReports({ current, previous, history: [], comparison: compareRuns(current, previous), reportDir: dir,
+        gateDecision: evaluation.gateDecision, paired: evaluation.gateConfig.paired }, ['html', 'markdown-summary', 'text', 'json-summary']);
+      const summary = JSON.parse(await readFile(path.join(dir, 'summary.json'), 'utf8'));
+      expect(summary.gateDecision).toEqual(JSON.parse(JSON.stringify(evaluation.gateDecision)));
+      expect(summary.analytics.pairedComparison).toEqual(summary.gateDecision.uncertainty);
+      expect(summary.analytics.pairedComparison.confidenceLevel).toBe(0.8);
+      expect(outputs.join('\n')).toContain(`Gate decision:    ${status}`);
+      expect(await readFile(path.join(dir, 'summary.md'), 'utf8')).toContain(`| Gate decision | ${status} |`);
+      expect(await readFile(path.join(dir, 'index.html'), 'utf8')).toContain(`>${status}</span>`);
+    } finally { await rm(dir, { recursive: true, force: true }); }
   });
   it('rejects invalid policies and invalid evaluation dates', () => {
     for (const gateConfig of [{ minPassRate: 2 }, { calibration: { maxAgeHours: -1 } }, { paired: { confidenceLevel: 1 } }]) {

@@ -14,8 +14,9 @@ is required. This API is unreleased source planned for 0.11.0.
 Applications import `evaluateReportPolicy` from `@icodenet/eval-dashboards` once
 that version is available. Supply validated artifacts, the resolved gate config,
 and optional validated waiver register, baseline gate config, calibration reports
-and tier budget. Pass `result.gateDecision` to `renderReports` for those same
-artifacts. `checkGates` remains the lower-level ordinary gate evaluator.
+and tier budget. Pass `result.gateDecision`, `result.gateConfig.paired` and
+`result.gateConfig.statistical` to the matching rendering context fields for
+those same artifacts, keeping the comparison settings consistent. `checkGates` remains the lower-level ordinary gate evaluator.
 
 The caller selects the current run, baseline and tier, and scopes calibration
 evidence to the same project and permitted tenant. The evaluator performs no

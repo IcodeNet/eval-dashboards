@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Proposed next minor: **0.11.0**, after the portable M1 release gates in
-[the release plan](docs/npm-publishing.md#next-release-plan--checked-2026-11-01).
-No new package has been published.
+No changes recorded after the 0.11.0 candidate. npm publication and the GitHub
+release/tag remain on hold until the owner authorizes the verified merged
+candidate. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
+
+## [0.11.0] — 2026-11-01
 
 ### Added
 
@@ -28,11 +30,9 @@ No new package has been published.
   independent scenario groups and compatible cases. Repeated counts do not
   inflate the independent group count.
 - Per-case repeated-trial intervals require an explicit sampling declaration;
-  unknown designs retain observed counts with unknown uncertainty. This slice
-  merged in #102 and remains unreleased on npm.
+  unknown designs retain observed counts with unknown uncertainty.
 - A reusable complete `evaluateReportPolicy` API shares CLI policy decisions,
   including calibration, waivers, threshold changes and optional tier budgets.
-  This slice merged in #103 and remains unreleased on npm.
 - Promptfoo assertion components, Langfuse score provenance, and Phoenix
   decision confidence/probabilities and trace links survive import.
 
@@ -40,7 +40,7 @@ No new package has been published.
 
 - Fresh Node 20 installs use a compatible GitHub client dependency line. Strict
   installed-package checks cover public APIs, offline reports/history, simulated
-  GitHub publishing and in-memory mail generation. This source fix is in review.
+  GitHub publishing and in-memory mail generation on Node 20/22/24/26.
 - Inspect AI imports respect mixed scorer failures and errors and preserve task
   and sample descriptions. Langfuse imports preserve explicit IDs and handle
   malformed optional evidence; Phoenix imports omit null trace IDs while
@@ -56,6 +56,7 @@ No new package has been published.
   resolved review conversations, and protected-main CI requirements.
 - Dependency and pnpm workflow updates are aligned. Scheduled adoption metrics
   produce review artifacts for normal PR updates.
+- A runnable VHS tape documents the install-and-report tutorial workflow.
 
 ## [0.10.0] — 2026-10-19
 

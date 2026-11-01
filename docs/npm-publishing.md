@@ -20,12 +20,13 @@ responsibilities. The trusted-publishing workflow is the sole supported path.
 
 npm currently exposes `0.10.0` as `latest`, published on 2026-10-19. Its registry
 `gitHead` is `3c535671c3e3571cc3c8c9c5369c36077be8f584`. GitHub's latest release
-is also `v0.10.0`. The package version in this repository is still `0.10.0`;
-merging features into main has not published them.
+is also `v0.10.0`. The package version in this release candidate is `0.11.0`;
+changing it and merging features do not publish a package.
 
-**Proposed next version: `0.11.0`, the portable analytics milestone.** This is a
-plan, not publishing approval. Keep the current publishing hold. Use acceptance
-gates rather than a promised date; the remaining M1 work determines the cut.
+**Prepared candidate: `0.11.0`, the portable analytics milestone.** This is
+release preparation, not publishing approval. Keep the current publishing hold. Use acceptance
+gates rather than a promised date. M1 semantics are covered; the candidate
+must pass release-PR verification before publication.
 Do not wait for the hosted M2–M6 backlog to publish a coherent portable update.
 The existing `1.0.0` owner decision and stable-release gate remain separate.
 
@@ -54,19 +55,17 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
   threshold changes and tier budgets (`test/gate-decision.test.ts`,
   `test/cli-pr-tiering.test.ts`). Paired statistics preserve raw observations
   (`test/evaluate-policy.test.ts`). A hosted API itself remains M2 work.
-- [ ] Resolve the observed Node 20 transitive engine warning. Test the packed
-  package and supported feature paths on the advertised Node versions. Keep
-  `engines: >=20` only with evidence; propose and document any minimum-version
-  change explicitly before release. A compatible dependency line and strict
-  consumer checks are in source review; keep this gate open until current-head
-  CI and its raw runtime logs are verified.
-- [ ] Reconcile `CHANGELOG.md` with the actual npm gitHead-to-main changes, then
-  select the exact candidate commit. Do not list hosted accounts or ingestion as
-  shipped. Keep 4F.11 signed-bundle authentication open and describe integrity
-  verification accurately.
-- [ ] Prepare a focused release PR that sets `package.json` to `0.11.0`, moves
-  reviewed Unreleased notes into that version, and updates README, STATUS,
-  ROADMAP, publishing/example docs, and CLI help where behavior changed.
+- [x] Node compatibility fix merged in [#104](https://github.com/IcodeNet/eval-dashboards/pull/104). Its raw CI verified strict consumers
+  on Node 20.20.2 / 22.23.4 / 24.22.1 / 26.13.0 and no engine warnings,
+  preserving `engines: >=20` (`scripts/verify-packed-package.mjs`).
+- [x] Reconcile `CHANGELOG.md` against npm gitHead
+  `3c535671c3e3571cc3c8c9c5369c36077be8f584` through merged main
+  `bbbe9d58227080fda45079008bac2a1640318441`. Hosted features are not shipped;
+  4F.11 signed-bundle authentication remains open.
+- [x] Prepare the focused `0.11.0` candidate: version, changelog section,
+  M1 acceptance tests and documentation are synced (`package.json`,
+  `test/evaluate-policy.test.ts`). The acceptance procedure below governs
+  checks, review, merge verification and approval of the exact merged revision.
 
 ### Release acceptance and publication
 
@@ -116,8 +115,8 @@ Required CI runs this installed consumer on Node 20, 22, 24 and 26, while keepin
 the full development test suite and documentation tools on Node 22. The main
 job restores Node 22 before its remaining checks. A future dependency upgrade
 must pass all consumer steps, not only the development suite's green badge.
-This source compatibility fix remains under review and does not change npm
-0.10.0 retroactively.
+This compatibility fix merged in #104 and does not change npm 0.10.0
+retroactively. The 0.11.0 candidate still needs authorized publication.
 
 ## Required Secrets
 

@@ -1,0 +1,90 @@
+{
+  "recordedAt": "2026-11-01",
+  "version": "0.11.0",
+  "status": "Prepared source candidate; required release-PR checks/review/merge and explicit owner publication authorization remain pending. No publish workflow dispatched.",
+  "baseRevision": "bbbe9d58227080fda45079008bac2a1640318441",
+  "npmBefore": {
+    "version": "0.10.0",
+    "dist-tags": {
+      "latest": "0.10.0"
+    },
+    "gitHead": "3c535671c3e3571cc3c8c9c5369c36077be8f584"
+  },
+  "publishedCliBefore": {
+    "command": "npm exec --yes --package=@icodenet/eval-dashboards@0.10.0 -- eval-dashboards --version",
+    "output": "0.10.0",
+    "exitCode": 0
+  },
+  "candidateNode20": {
+    "command": "PATH=/opt/homebrew/opt/node@20/bin:<pnpm-bin>:$PATH PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false node scripts/verify-packed-package.mjs",
+    "exitCode": 0,
+    "proof": [
+      "Packed consumer: installed GitHub comment create/update and Pages file update work with simulated fetch; zero external requests.",
+      "Packed consumer: public types compile; runtime, complete policy and schema exports work.",
+      "Packed consumer: CommonJS require works.",
+      "Packed optional dependency: mail stream generation works without SMTP or external delivery.",
+      "Packed CLI: version matches candidate 0.11.0.",
+      "Packed CLI: file history and offline HTML work on Node 20.20.2."
+    ],
+    "engineWarnings": [],
+    "logSha256": "628dc4ad534d74a2c9d19eb93107aff671c18d9b2cce74580adbf8f1a967f4d4"
+  },
+  "m1Acceptance": {
+    "command": "pnpm exec vitest run test/evaluate-policy.test.ts test/gate-decision.test.ts test/run-analytics.test.ts test/repeated-trials.test.ts test/paired-comparison.test.ts",
+    "result": "98 tests passed across 5 files",
+    "evidence": {
+      "decisionsAndCriticalSegments": "test/gate-decision.test.ts:54",
+      "compatibleCasesAndVersions": "test/run-analytics.test.ts:24",
+      "unitsDirectionMissingDenominators": "test/run-analytics.test.ts:124",
+      "pairedBoundsAndInconclusive": "test/paired-comparison.test.ts:27",
+      "repeatedBoundsAndUnknownSampling": "test/repeated-trials.test.ts:23",
+      "publicJsonHtmlMarkdownTextConfiguredParity": "test/evaluate-policy.test.ts:70",
+      "tierBudgetParity": "test/cli-pr-tiering.test.ts:113"
+    }
+  },
+  "changelogReview": {
+    "range": "3c535671c3e3571cc3c8c9c5369c36077be8f584..bbbe9d58227080fda45079008bac2a1640318441",
+    "command": "git log --oneline <npm-gitHead>..HEAD --no-merges; git diff --stat <npm-gitHead>..origin/main",
+    "included": "shared decisions and public policy; matching analytics/telemetry; paired/repeated bounds; Promptfoo/Inspect/Langfuse/Phoenix evidence; malformed bundle validation; Node 20 fix; docs/tutorial and review/CI process updates",
+    "excluded": "Hosted accounts, ingestion, live dashboards and signed-bundle authentication are not claimed as shipped."
+  },
+  "previousSliceRawCi": {
+    "pr": 104,
+    "head": "a4d6cf9cf426c81f048f32f6b2e217306747d98a",
+    "merge": "bbbe9d58227080fda45079008bac2a1640318441",
+    "jobs": [
+      124921041372,
+      124922116396,
+      124921041611,
+      124922289242,
+      124922289091
+    ],
+    "runtimes": [
+      "20.20.2",
+      "22.23.4",
+      "24.22.1",
+      "26.13.0"
+    ],
+    "result": "All five protected checks passed; raw changed-workflow logs verified four strict consumers, restored Node 22, 911 tests, assets/accessibility/schema, CLI/docs, audit 2 low / 4 moderate, and no EBADENGINE warnings. No review findings; CodeRabbit skipped allowance, not counted as completed external review.",
+    "postMergeDocs": {
+      "run": 41331514633,
+      "job": 124922440436,
+      "result": "Raw log verified docs link check and Pages Reported success!"
+    }
+  },
+  "limitations": [
+    "M1 completes reusable library semantics, not a hosted HTTP API or tenant boundary.",
+    "Package publication remains held; candidate is not npm latest.",
+    "No live GitHub publishing, SMTP delivery, hosted deployment or throughput benchmark is claimed."
+  ],
+  "candidateSourceSha256": {
+    "package.json": "2641e861e3d3a06083508f8b567eb52dc654cc85c17dc0b082c039fad6e890dc",
+    "scripts/verify-packed-package.mjs": "b27b30944f56a08d8fd627daf924b252dac0580c16e60d9bd4924865cc3c4c4e",
+    "test/evaluate-policy.test.ts": "6dec6691b3bcf21ab43abfa56ad5b547674733b14df6eabe77e0a746f2f6506f"
+  },
+  "localCandidateVerification": {
+    "stagedTreeBeforeFinalDocsSync": "b5feb0a079e7eb455f4efaeab83c024f305982eb",
+    "command": "pnpm quality:record",
+    "result": "All six groups passed: 914 tests, types/build, teaching/flag docs, schema, 111 CLI guards, strict installed consumer, 20 reproduced assets and audit. Final documentation wording is checked again before commit."
+  }
+}
