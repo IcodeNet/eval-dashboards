@@ -33,6 +33,40 @@
 No row flips detected.
 
 
+## Comparison evidence and measured coverage
+
+Cohort: unknown. Matched cases: 71; eligible cases: 0.
+Descriptive matched regressions: 0; introduced cases: 4; introduced failures: 0; removed cases: 4.
+Identity matches alone do not establish comparability; inspect version eligibility before attributing changes.
+Score comparisons: 0 measured pairs; 0 regressions; 71 unavailable pairs.
+Cost: unknown; measured 0/75, missing 75.
+Latency: sum 27270 ms; measured 75/75, missing 0.
+Tokens: unknown; measured 0/75, missing 75.
+Dataset and production population coverage: unknown without external denominators.
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Cohort issue: missing-suite-manifest (response-quality)
+- Score response-quality: mean 0.9115 suite-score; measured 40/40, missing 0; direction unknown.
+- Score safety: mean 0.93 suite-score; measured 15/15, missing 0; direction unknown.
+- Score tool-use: mean 0.93 suite-score; measured 20/20, missing 0; direction unknown.
+
 Gate diagnostic: Top failing categories: conciseness=1, groundedness=1
 
 Gate diagnostic: Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20, low-category-coverage=2

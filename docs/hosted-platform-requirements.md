@@ -4,6 +4,26 @@ Decision date: 2026-10-31. Status: approved product direction; initial M1 implem
 
 The owner explicitly selected **a fully hosted platform with accounts, ingestion, and live dashboards**. This supersedes the earlier hosted-platform exclusion. The portable package, runner independence, additive `eval-report/v1` contract, and offline exports remain product requirements. Assistant-UI work remains parked.
 
+## Free and open-source requirement — 2026-10-31
+
+The owner reaffirmed that the package must be open source and free. Preserve
+its MIT license, offline use, and a complete self-hosted path without mandatory
+paid cloud services. Managed databases or hosting may be optional deployment
+choices; their compute, storage, and operating costs are separate from the
+software being free. A public hosted service needs an explicit funding and
+capacity plan rather than a promise of unlimited free infrastructure.
+
+ClickHouse is a candidate **optional analytics backend**, not a replacement for
+transactional account, permission, ingestion-job, and review records. Start with
+PostgreSQL for the hosted system of record and retain file/SQLite operation for
+the portable package. Add a self-hosted ClickHouse adapter only when measured
+analytical workloads justify the extra service; do not require ClickHouse Cloud.
+This records a candidate, not an implemented adapter or a final database switch.
+
+Verified sources: [ClickHouse Apache-2.0 license](https://github.com/ClickHouse/ClickHouse/blob/master/LICENSE),
+[Cloud pricing](https://clickhouse.com/pricing) (paid usage with a time-limited trial),
+and [analytical versus transactional workloads](https://clickhouse.com/docs/concepts/features/operations/insert/inserting-data).
+
 ## What the repository already provides
 
 This is an extension of a substantial reporting core, not a new evaluation harness. The audit baseline is main commit `bb15899cd10ee945936b6125b452f6d7564ddfe7`.
@@ -67,7 +87,7 @@ All implementation milestones below are open. Documentation approval does not co
 5. **M5 — Live progress and measured scale.** Add durable resumable events, retry/backpressure, incremental rollups, query pushdown, pagination, and realistic workload benchmarks. Verify reconnect/duplicate/reordered events and bounded query/memory behavior. Set numerical budgets from measurements, not invented throughput promises.
 6. **M6 — Hosted launch gate (required before launch).** Test authorization across all paths, redaction, audit, deletion/retention, portable exports, migration rollback, backup restoration, service observability, quotas, and accessibility. Use sanitized fixtures and provider-free CI. Hosting vendor, authentication provider, operating budget, and deployment approval remain launch decisions.
 
-M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 remains open for cohort, repeated-trial, missing-data, and inconclusive-decision semantics. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
+M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; repeated-trial inference and inconclusive gate semantics remain open. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
 
 ## Sources and interpretation
 
@@ -109,3 +129,21 @@ and MP4 files remain local ignored outputs. No workflow or cloud deployment was
 changed, so workflow-specific raw Actions log verification is not applicable to
 this change. The commit evidence gate separately records its required checks
 against the exact staged tree.
+
+## M1 cohort and measured-telemetry slice — 2026-10-31
+
+The portable analytics API now separates introduced/removed cases from matched
+outcome changes, checks measurement-version eligibility, and detects score
+changes within passing bands using explicit scale/direction metadata. Optional
+`graderVersion` and `scoreDirection` fields, runtime validation, JSON Schema,
+and the taxonomy-complete fixture move together without breaking v1 artifacts.
+Cost/token/latency coverage has separate measured denominators and keeps absent
+values unknown. Population coverage is not inferred from submitted rows.
+
+Validation before commit: `pnpm check` passed with 814 tests plus typecheck,
+build, teaching/flag checks and hook tests; `pnpm assets:regenerate` and
+`pnpm assets:verify` reproduced all 18 tracked release assets;
+`pnpm artifacts:report-power` regenerated the runnable examples; the built docs
+link check passed. The reading exercise was replayed and its actual generated
+summary copied into the teaching text. No workflow was changed. M1 remains open
+for paired/repeated uncertainty and explicit inconclusive gate semantics.

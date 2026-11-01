@@ -61,3 +61,8 @@ export {
 } from './adapters/runner.js';
 
 export { gateDecisionFromResult, type GateDecision } from './gates/decision.js';
+
+export { SCORE_DIRECTIONS } from './model/eval-report-v1.js';
+export { analyzeRun, type RunAnalytics } from './analytics/run-analytics.js';
+export { buildMatchedCohort, analyzeComparisonCohort, caseIdentity, type CohortStatus, type CohortSummary, type CohortIssue, type MatchedCase, type ScoreChange } from './analytics/cohort.js';
+export { summarizeTelemetry, type MeasuredMetric } from './analytics/telemetry.js';

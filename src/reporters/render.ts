@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { analyzeRun, type RunAnalytics } from '../analytics/run-analytics.js';
+import type { MeasuredMetric } from '../analytics/telemetry.js';
 import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
 import { createHash } from 'node:crypto';
 import type { RunComparison, RunHistoryEntry } from '../history/history.js';
@@ -82,6 +84,7 @@ export const renderReports = async (
     } else if (reporter === 'json-summary') {
       const filePath = path.join(context.reportDir, 'summary.json');
       await writeJsonFile(filePath, {
+        analytics: analyzeRun(context.current, context.previous),
         gateDecision: context.gateDecision ?? gateDecisionFromResult(),
         summary: summarizeReport(context.current),
         comparison: context.comparison,
@@ -97,6 +100,7 @@ export const renderReports = async (
       await writeTextFile(filePath, renderHtml(context));
       await writeJsonFile(path.join(context.reportDir, 'history.json'), context.history);
       await writeJsonFile(path.join(context.reportDir, 'summary.json'), {
+        analytics: analyzeRun(context.current, context.previous),
         gateDecision: context.gateDecision ?? gateDecisionFromResult(),
         summary: summarizeReport(context.current),
         comparison: context.comparison,
@@ -116,6 +120,7 @@ export const renderReports = async (
 const renderText = (context: ReportContext): string => {
   const { locale } = context;
   const summary = summarizeReport(context.current);
+  const analytics = analyzeRun(context.current, context.previous);
 
   return [
     `Run:              ${summary.run.id}`,
@@ -125,10 +130,38 @@ const renderText = (context: ReportContext): string => {
     `Passed:           ${summary.passed}/${summary.total}`,
     `New failures:     ${context.comparison.newlyFailing.length}`,
     `New passes:       ${context.comparison.newlyPassing.length}`,
+    `Cohort:           ${analytics.cohort.status}; matched=${analytics.cohort.matchedCases}, eligible=${analytics.cohort.eligibleCases}`,
+    `Matched flips:    ${analytics.cohort.matchedRegressions} regressions (descriptive; see cohort eligibility)`,
+    `Introduced:       ${analytics.cohort.introducedCases} cases, ${analytics.cohort.introducedFailures} failures`,
+    `Measured cost:    ${metricDescription(analytics.telemetry.cost)}`,
+    `Measured latency: ${metricDescription(analytics.telemetry.duration)}`,
     `Baseline:         ${context.baselineCompatibility?.status ?? 'not compared'}`,
     ...(context.gateDecision?.failures ?? []).map(failure => `Gate failure:     ${failure}`),
     ...(context.gateDecision?.diagnostics ?? []).map(item => `Gate diagnostic:  ${item}`),
   ].join('\n');
+};
+
+const metricDescription = (metric: MeasuredMetric): string => {
+  const value = metric.sum ?? metric.mean;
+  const label = metric.sum !== undefined ? 'sum' : 'mean';
+  return `${value === undefined ? 'unknown' : `${label} ${Number(value.toPrecision(6))} ${metric.unit}`}; measured ${metric.measured}/${metric.total}, missing ${metric.missing}`;
+};
+
+const renderAnalyticsHtml = (analytics: RunAnalytics): string => {
+  const { cohort, telemetry } = analytics;
+  const statusTone = cohort.status === 'compatible' ? 'pass' : cohort.status === 'incompatible' || cohort.status === 'ambiguous' ? 'fail' : 'muted';
+  const body = `<div class="section-pad"><p>Identity matches are descriptive. Use eligible cases before attributing changes; unknown versions are not compatibility evidence.</p>
+    <p>Matched cases: ${cohort.matchedCases}; eligible: ${cohort.eligibleCases}; matched regressions: ${cohort.matchedRegressions}; matched recoveries: ${cohort.matchedRecoveries}.</p>
+    <p>Introduced cases: ${cohort.introducedCases}; introduced failures: ${cohort.introducedFailures}; removed cases: ${cohort.removedCases}; duplicate identities: ${cohort.duplicateIdentities}.</p>
+    <p>Score comparisons: ${cohort.scores.measuredPairs} measured pairs; ${cohort.scores.regressions} regressions; ${cohort.scores.unavailablePairs} unavailable pairs. Evidence lists show at most 20 examples.</p>
+    <ul>${cohort.issues.map(issue => `<li>${e(issue.status)}: ${e(issue.code)}${issue.suite ? ` (${e(issue.suite)})` : ''}</li>`).join('')}</ul>
+    <ul>${cohort.scores.changes.map(change => `<li>Score ${e(change.change)}: ${e(change.suite)}/${e(change.id)} ${change.previous} → ${change.current}; delta ${change.delta}; ${e(change.direction)}</li>`).join('')}</ul>
+    <p>Canonical usage telemetry; unmeasured values remain unknown. Duration sums are cumulative row durations, not run wall-clock time.</p>
+    <ul><li>Cost: ${e(metricDescription(telemetry.cost))}</li><li>Latency: ${e(metricDescription(telemetry.duration))}</li><li>Tokens: ${e(metricDescription(telemetry.tokens))}</li>
+    ${telemetry.suites.map(suite => `<li>Score ${e(suite.suite)}: ${e(metricDescription(suite.score))}; direction ${e(suite.score.direction)}</li>`).join('')}</ul>
+    <p>Dataset and production population coverage: unknown without external denominators.</p></div>`;
+  return renderCollapsibleSection({ id: 'comparison-evidence', title: 'Comparison evidence and measured coverage',
+    summary: `${cohort.status} • ${cohort.eligibleCases}/${cohort.matchedCases} eligible matched cases`, summaryTone: statusTone, body });
 };
 
 const statisticalContextSummary = (context: ReportContext): string | undefined => {
@@ -154,6 +187,7 @@ const statisticalContextSummary = (context: ReportContext): string | undefined =
 const mdTableCell = (value: string): string => value.replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
 
 export const renderMarkdown = (context: ReportContext): string => {
+  const analytics = analyzeRun(context.current, context.previous);
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
   const durationStats = calculateDurationStats(context.current.rows);
@@ -271,6 +305,18 @@ export const renderMarkdown = (context: ReportContext): string => {
     lines.push('');
   }
 
+  lines.push('', '## Comparison evidence and measured coverage', '',
+    `Cohort: ${analytics.cohort.status}. Matched cases: ${analytics.cohort.matchedCases}; eligible cases: ${analytics.cohort.eligibleCases}.`,
+    `Descriptive matched regressions: ${analytics.cohort.matchedRegressions}; introduced cases: ${analytics.cohort.introducedCases}; introduced failures: ${analytics.cohort.introducedFailures}; removed cases: ${analytics.cohort.removedCases}.`,
+    'Identity matches alone do not establish comparability; inspect version eligibility before attributing changes.',
+    `Score comparisons: ${analytics.cohort.scores.measuredPairs} measured pairs; ${analytics.cohort.scores.regressions} regressions; ${analytics.cohort.scores.unavailablePairs} unavailable pairs.`,
+    `Cost: ${metricDescription(analytics.telemetry.cost)}.`,
+    `Latency: ${metricDescription(analytics.telemetry.duration)}.`,
+    `Tokens: ${metricDescription(analytics.telemetry.tokens)}.`,
+    'Dataset and production population coverage: unknown without external denominators.');
+  for (const issue of analytics.cohort.issues) lines.push(`- Cohort issue: ${mdTableCell(issue.code)}${issue.suite ? ` (${mdTableCell(issue.suite)})` : ''}`);
+  for (const change of analytics.cohort.scores.changes) lines.push(`- Score ${change.change}: ${mdTableCell(change.suite)}/${mdTableCell(change.id)} ${change.previous} → ${change.current} (delta ${change.delta}; ${change.direction}).`);
+  for (const suite of analytics.telemetry.suites) lines.push(`- Score ${mdTableCell(suite.suite)}: ${metricDescription(suite.score)}; direction ${suite.score.direction}.`);
   for (const failure of context.gateDecision?.failures ?? []) lines.push('', `Gate failure: ${mdTableCell(failure)}`);
 
   for (const item of context.gateDecision?.diagnostics ?? []) lines.push('', `Gate diagnostic: ${mdTableCell(item)}`);
@@ -1535,6 +1581,7 @@ const renderHtml = (context: ReportContext): string => {
   const complianceCoverage = summarizeComplianceCoverage(current);
   const guardrailProfileEnabled = context.profile === 'guardrail';
   const statisticalSummary = statisticalContextSummary(context);
+  const analytics = analyzeRun(current, context.previous);
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : compatStatus === 'compatible' ? 'pass' : 'muted';
   const decision = context.gateDecision ?? gateDecisionFromResult();
@@ -1554,7 +1601,7 @@ const renderHtml = (context: ReportContext): string => {
   const suiteSummaryText = `${pluralize(current.suites.length, 'suite')} • ${summary.passed}/${summary.total} passed (${formatPassRate(summary.passed, summary.total)})`;
   const failingRowsSummary = failingRows.length === 0
     ? '0 rows • no failures'
-    : `${pluralize(failingRows.length, 'row')} • ${pluralize(newlyFailing.length, 'new regression')} • ${pluralize(comparison.persistentFailures.length, 'persistent failure')}`;
+    : `${pluralize(failingRows.length, 'row')} • ${pluralize(newlyFailing.length, 'new failure')} • ${pluralize(comparison.persistentFailures.length, 'persistent failure')}`;
   const allRowsSummary = `${pluralize(current.rows.length, 'row')} • ${summary.failed} failing • ${formatPassRate(summary.passed, summary.total)} pass rate`;
   const manifestBySuiteForRows = new Map((current.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
   const datasetChangelogSummary = `${pluralize(datasetChangelog.length, 'entry')} • +${datasetChangelogTotals.added} / ~${datasetChangelogTotals.updated} / -${datasetChangelogTotals.removed}`;
@@ -1799,6 +1846,7 @@ ${run.experimentId ? `        <span>Experiment&nbsp;<strong>${e(run.experimentId
 ${decision.failures.length ? `<ul>${decision.failures.map(failure => `<li>${e(failure)}</li>`).join('')}</ul>` : ''}
 ${decision.diagnostics.length ? `<details><summary>Gate diagnostics</summary><ul>${decision.diagnostics.map(item => `<li>${e(item)}</li>`).join('')}</ul></details>` : ''}
     </section>
+    ${renderAnalyticsHtml(analytics)}
     <div class="metrics">
       <div class="metric" data-tip="Percentage of eval rows that passed this run.\nExample: 66.7% means 2 of 3 rows passed.\nSet a minimum in CI with --min-pass-rate=0.9">
         <div class="metric-label">Pass rate</div>
@@ -1808,7 +1856,7 @@ ${decision.diagnostics.length ? `<details><summary>Gate diagnostics</summary><ul
         <div class="metric-label">Passed</div>
         <div class="metric-value">${summary.passed}<span style="font-size:16px;font-weight:400;color:var(--muted)">/${summary.total}</span></div>
       </div>
-      <div class="metric" data-tip="Regressions: rows that passed last run but fail now.\nExample: your prompt change broke the conciseness check.\nGate with --max-new-failures=0 to block merges on any regression.">
+      <div class="metric" data-tip="New failures include matched cases that regressed and failing cases newly added to the dataset. See comparison evidence to distinguish them.\nExample: your prompt change broke the conciseness check.\nGate with --max-new-failures=0 to block merges on any regression.">
         <div class="metric-label">New failures</div>
         <div class="metric-value ${newlyFailing.length > 0 ? 'fail' : 'pass'}">${newlyFailing.length}</div>
       </div>
@@ -1816,7 +1864,7 @@ ${decision.diagnostics.length ? `<details><summary>Gate diagnostics</summary><ul
         <div class="metric-label">New passes</div>
         <div class="metric-value ${newlyPassing.length > 0 ? 'pass' : ''}">${newlyPassing.length}</div>
       </div>
-      <div class="metric" data-tip="Are trend comparisons meaningful?\n• compatible — same dataset + rubric versions, safe to diff\n• warning — dataset or rubric version changed; treat trends as approximate\n• blocked — breaking version mismatch; new/lost failures may be noise, not signal\nExample: bumping datasetVersion from v1 to v2 triggers a warning.">
+      <div class="metric" data-tip="Are trend comparisons meaningful?\n• compatible — dataset + rubric versions match; also inspect cohort eligibility\n• warning — dataset or rubric version changed; treat trends as approximate\n• blocked — breaking version mismatch; new/lost failures may be noise, not signal\nExample: bumping datasetVersion from v1 to v2 triggers a warning.">
         <div class="metric-label">Baseline</div>
         <div class="metric-value" style="font-size:15px;padding-top:5px">
           <span class="compat-badge compat-${compatClass}">${e(compatStatus)}</span>

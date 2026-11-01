@@ -702,6 +702,36 @@
         "description": {
           "type": "string",
           "description": "Optional: narrative description of the suite purpose."
+        },
+        "scoreDirection": {
+          "type": "string",
+          "enum": [
+            "higher-is-better",
+            "lower-is-better"
+          ],
+          "description": "Interpretation of raw score deltas. Omitted means unknown."
+        },
+        "graderVersion": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "description": "Immutable version of grader implementations and scoring configuration."
+        },
+        "scoreScale": {
+          "type": "object",
+          "required": [
+            "min",
+            "max"
+          ],
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            }
+          },
+          "description": "Declared raw score bounds; runtime validation also requires min < max."
         }
       }
     },

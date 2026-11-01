@@ -1,6 +1,7 @@
 export const EVAL_REPORT_SCHEMA_VERSION = 'eval-report/v1' as const;
 
 export const EVAL_SEVERITIES = ['none', 'low', 'medium', 'high', 'critical'] as const;
+export const SCORE_DIRECTIONS = ['higher-is-better', 'lower-is-better'] as const;
 export const EVAL_ROW_KINDS = ['deterministic', 'agent', 'llm-judge', 'human-review'] as const;
 export const EVAL_TARGETS = ['agent', 'conversation', 'judge', 'custom'] as const;
 export const DATASET_SOURCES = [
@@ -152,6 +153,10 @@ export type SuiteManifest = {
    * without it keep the existing 0-1 assumption.
    */
   scoreScale?: { min: number; max: number };
+  /** Direction required to interpret score improvement; omitted means unknown. */
+  scoreDirection?: (typeof SCORE_DIRECTIONS)[number];
+  /** Immutable version of the suite's grader implementations and scoring configuration. */
+  graderVersion?: string;
 };
 
 export type RegisteredRubric = {

@@ -1,4 +1,234 @@
 {
+  "analytics": {
+    "cohort": {
+      "currentRunId": "agent-v4-2026-07-31",
+      "previousRunId": "agent-v3-2026-07-30",
+      "status": "unknown",
+      "currentRows": 75,
+      "previousRows": 75,
+      "matchedCases": 71,
+      "eligibleCases": 0,
+      "introducedCases": 4,
+      "introducedFailures": 0,
+      "removedCases": 4,
+      "matchedRegressions": 0,
+      "matchedRecoveries": 0,
+      "repeatedCases": 0,
+      "duplicateIdentities": 0,
+      "issues": [
+        {
+          "suite": "response-quality",
+          "id": "rq-0",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-1",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-10",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-11",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-12",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-13",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-14",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-15",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-16",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-17",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-18",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-19",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-2",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-20",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-21",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-22",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-23",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-24",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-25",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        },
+        {
+          "suite": "response-quality",
+          "id": "rq-26",
+          "code": "missing-suite-manifest",
+          "status": "unknown"
+        }
+      ],
+      "issueCount": 71,
+      "scores": {
+        "measuredPairs": 0,
+        "unavailablePairs": 71,
+        "regressions": 0,
+        "improvements": 0,
+        "unchanged": 0,
+        "changes": [],
+        "changeCount": 0
+      },
+      "currentMatchCoverage": 0.9466666666666667,
+      "previousMatchCoverage": 0.9466666666666667
+    },
+    "telemetry": {
+      "cost": {
+        "unit": "USD",
+        "direction": "lower-is-better",
+        "measured": 0,
+        "total": 75,
+        "missing": 75,
+        "coverage": 0
+      },
+      "tokens": {
+        "unit": "tokens",
+        "direction": "unknown",
+        "measured": 0,
+        "total": 75,
+        "missing": 75,
+        "coverage": 0
+      },
+      "duration": {
+        "unit": "ms",
+        "direction": "lower-is-better",
+        "measured": 75,
+        "total": 75,
+        "missing": 0,
+        "coverage": 1,
+        "sum": 27270,
+        "mean": 363.6,
+        "p50": 320,
+        "p95": 640
+      },
+      "suites": [
+        {
+          "suite": "response-quality",
+          "score": {
+            "unit": "suite-score",
+            "direction": "unknown",
+            "measured": 40,
+            "total": 40,
+            "missing": 0,
+            "coverage": 1,
+            "mean": 0.9114999999999998,
+            "p50": 0.93,
+            "p95": 0.93
+          }
+        },
+        {
+          "suite": "safety",
+          "score": {
+            "unit": "suite-score",
+            "direction": "unknown",
+            "measured": 15,
+            "total": 15,
+            "missing": 0,
+            "coverage": 1,
+            "mean": 0.9300000000000004,
+            "p50": 0.93,
+            "p95": 0.93
+          }
+        },
+        {
+          "suite": "tool-use",
+          "score": {
+            "unit": "suite-score",
+            "direction": "unknown",
+            "measured": 20,
+            "total": 20,
+            "missing": 0,
+            "coverage": 1,
+            "mean": 0.9299999999999998,
+            "p50": 0.93,
+            "p95": 0.93
+          }
+        }
+      ],
+      "populationCoverage": {
+        "dataset": "unknown",
+        "production": "unknown"
+      }
+    }
+  },
   "gateDecision": {
     "status": "passed",
     "failures": [],

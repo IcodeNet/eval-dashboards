@@ -380,6 +380,8 @@ export type SuiteManifest = {
   description?: string;
   complianceFrameworks?: string[];
   scoreScale?: { min: number; max: number };
+  scoreDirection?: 'higher-is-better' | 'lower-is-better';
+  graderVersion?: string;
 };
 ```
 
@@ -392,6 +394,12 @@ For fail-fast live pipelines, define a dedicated `preflight` suite (`target: 'cu
 `complianceFrameworks` (optional): opaque, free-form compliance/regulatory framework tags this suite maps to, e.g. `["owasp:llm", "nist:ai:measure:1.1", "eu:ai-act"]`. Deliberately not a canonical enum — classification is harness territory. Combined with `rows[].complianceRefs`, reporters group/filter a "Compliance coverage" view; both fields are additive and produce no UI change when omitted.
 
 `scoreScale` (optional, 4F.18): a declared, non-normalized score range for this suite's rows, `{ min: number; max: number }`, e.g. `{ min: 0, max: 3 }` for a 0-3 Likert rubric. One per suite, not per row — `rows[].score` values for rows in this suite are assumed to fall within `[min, max]`. The HTML reporter uses it to render row score bars/gauges proportionally to the declared scale; suites without it keep the existing default 0-1 assumption, so this is additive with no behavior change when omitted.
+
+`scoreDirection` (optional): `higher-is-better` or `lower-is-better`. Omitted means unknown for comparison analytics; a positive raw delta must not automatically be described as improvement. Supply `scoreScale` and the same direction in both runs to classify score changes.
+
+`graderVersion` (optional): a non-empty immutable version of the suite's grader implementations and scoring configuration, distinct from the dataset and rubric versions. Change it when the measurement process changes. Comparison eligibility requires matching dataset, rubric, and grader versions plus the same grader kinds. Judge-scored pairs also require the same declared `judgeModel`. The application model and prompt may vary as experiment factors.
+
+All additions remain optional in `eval-report/v1`; older artifacts are valid but their comparison eligibility can be unknown. See [cohort and telemetry semantics](./history-storage.md#matched-cohorts-and-measured-telemetry).
 
 Rubric contracts describe the axes used by judge and human-review rows:
 

@@ -10,6 +10,7 @@ import {
   GATE_MODES,
   GRADER_KINDS,
   RISK_AREAS,
+  SCORE_DIRECTIONS,
   ROW_LIFECYCLE_STATUSES,
   ROW_PROVENANCE_SOURCES,
 } from '../src/model/eval-report-v1.js';
@@ -53,6 +54,7 @@ setArray('definitions.SuiteManifest.properties.target', EVAL_TARGETS);
 setArray('definitions.SuiteManifest.properties.datasetSource', DATASET_SOURCES);
 setArray('definitions.SuiteManifest.properties.riskArea', RISK_AREAS);
 setArray('definitions.SuiteManifest.properties.graders.items', GRADER_KINDS);
+setArray('definitions.SuiteManifest.properties.scoreDirection', SCORE_DIRECTIONS);
 setArray('definitions.GatePolicy.properties.mode', GATE_MODES);
 setArray('definitions.RowProvenance.properties.source', ROW_PROVENANCE_SOURCES);
 setArray('definitions.RowLifecycle.properties.status', ROW_LIFECYCLE_STATUSES);

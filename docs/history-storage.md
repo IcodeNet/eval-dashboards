@@ -104,3 +104,50 @@ Several processes can write to one file. A writer waits up to 10 seconds for ano
 ## Adding another store
 
 A store is an object with `read()` and `write(entries)` (the `HistoryStore` interface in `src/history/store.ts`). `createHistoryStoreForPath` picks the store from the path. `createHistoryStoreForPath`, `createFileHistoryStore`, `createSqliteHistoryStore` and the `HistoryStore` type are exported from `@icodenet/eval-dashboards`.
+
+## Matched cohorts and measured telemetry
+
+`analyzeRun(current, previous)` is the shared portable analytics function for
+reporters and future hosted queries. JSON summaries include its result under
+`analytics`; HTML, Markdown, and text render the same counts and eligibility.
+No database or paid service is needed.
+
+- Cases match by the structured `(suite, id)` tuple. Duplicate identities or
+  suite manifests are ambiguous, never additional independent evidence.
+- Cohort status is `not-compared`, `compatible`, `unknown`, `incompatible`, or
+  `ambiguous`. Known project, dataset/rubric/grader versions, and grader kinds
+  must match for a case to be eligible. Changed judge models, known case input
+  or expected-output changes, expected-outcome changes, or changed score
+  definitions prevent attribution. Missing metadata remains unknown.
+- Introduced cases/failures and removed cases are separate from matched
+  regressions/recoveries. Descriptive flips count identity-matched cases even
+  when versions are unverified; eligibility must be checked before attribution.
+  Intentional negative cases use `expectedOutcome`, not raw passing alone.
+- Score changes can reveal regressions inside an unchanged pass band. They
+  require eligible pairs, finite scores within identical declared bounds, and
+  the same explicit score direction. Raw delta is current minus previous;
+  whether it improves quality depends on direction. Raw scores are not averaged
+  across different suites. Missing definitions do not default to approval.
+- Repeated aggregates remain one matched case each. The analytics do not expand
+  pass counts into fictitious independent trial observations. Changed repeat
+  aggregation rules make pairs incompatible, and one-sided repeat evidence is unknown; inferential trial analysis remains
+  a separate concern.
+- `telemetry.cost`, `tokens`, and `duration` each expose measured/total/missing
+  counts and measured coverage. Missing observations do not become zero; absent
+  aggregates are unknown. Actual zero remains measured. Canonical `row.usage`
+  fields are used; legacy cost aliases stay outside this explicitly scoped view.
+  Cost sums are reported row costs, not deduplicated generation-level spend;
+  emitters must not copy the same generation cost onto multiple assessment rows.
+- Units are USD, tokens, milliseconds, or suite-score. Latency percentiles use
+  nearest rank over measured rows. Duration sums are cumulative row durations,
+  not run wall-clock latency. Score direction is unknown unless declared;
+  token counts are not inherently a quality measure.
+- Dataset and production population coverage stay unknown without external
+  population denominators. Measured telemetry coverage is a different concept.
+- JSON carries complete counts but at most 20 issue and score-change examples;
+  sample lists are deterministic, prioritize ambiguity/incompatibility over unknown metadata, and must not be mistaken for total counts.
+
+The existing `comparison.newlyFailing` field and gate budgets retain their
+legacy meaning, including newly introduced failing rows. Existing statistical
+gates remain unchanged in this slice; this descriptive cohort view does not
+claim statistical significance or certify a deployment.
