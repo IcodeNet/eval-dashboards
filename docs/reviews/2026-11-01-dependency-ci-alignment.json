@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-01",
+  "pullRequests": [
+    90,
+    91
+  ],
+  "purpose": "Validate complementary pnpm package/workflow upgrades together and keep scheduled metrics compatible with the owner-authorized PR-only process.",
+  "sourceHeads": {
+    "90": "8d9a3465c195c970804511435d4d22d790ea0d5c",
+    "91": "af4afe0959d96532da84f54a8c697b37b7cf6539"
+  },
+  "before": {
+    "observed": "Separate PRs request different pnpm versions in package.json and workflow setup. Raw logs stop before tests with Multiple versions of pnpm specified.",
+    "jobs": [
+      123589122924,
+      122995884367
+    ]
+  },
+  "proposal": {
+    "pnpm": "12.16.1 in package declaration and all workflow setup pins",
+    "docsDependencies": [
+      "Astro 7.4.4",
+      "@astrojs/markdown-satteri 0.4.6",
+      "Satteri 0.11.6"
+    ],
+    "grouping": "Renovate groups pnpm dependency entries across managers to avoid separating complementary pins. Future grouping has not yet been observed in a new bot run.",
+    "metrics": "Scheduled job uses read-only contents permission and uploads a 30-day snapshot artifact for review; no direct main push or commit-hook bypass."
+  },
+  "validation": "Install the exact lockfile, complete the exact-tree ledger, inspect current-head required CI and touched-workflow raw logs, dispatch the artifact-only metrics workflow on this branch, and verify the generated artifact. Do not dispatch publishing.",
+  "priorPublishingLog": {
+    "head": "3c535671c3e3571cc3c8c9c5369c36077be8f584",
+    "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/39271699320/job/118125394622",
+    "observed": "Reviewed decoded historical raw log: release checks, asset reproduction, OIDC availability, npm publish and GitHub release succeeded. This does not verify publication from the current update.",
+    "limit": "Publishing remains on hold and is not run for this maintenance change."
+  },
+  "artifactActionSource": "https://github.com/actions/upload-artifact/releases/tag/v7.0.2",
+  "limits": [
+    "No performance or model-quality benchmark is claimed.",
+    "A snapshot upload is not an external-adoption outcome.",
+    "Live publishing and future Renovate grouping remain unrun."
+  ],
+  "localPolicyFinding": "The existing workflow-cost test required disabling git hooks for direct snapshot commits. Updated it to require read-only permissions, retained review artifacts, and no direct commits/pushes or hook bypass.",
+  "observedValidation": {
+    "head": "b334b0a443abd84eb16ca1ad7a7d275243de729e",
+    "pnpmVersion": "12.16.1",
+    "frozenInstall": "passed",
+    "localCommands": {
+      "pnpm check": "passed: 879 tests, typecheck/build, teaching/flag checks and commit-hook tests",
+      "pnpm schema:check": "passed",
+      "pnpm verify:cli": "passed: 111 guards",
+      "pnpm verify:package": "passed",
+      "pnpm assets:verify": "passed: 19 local assets",
+      "pnpm audit:ci": "passed: no high/critical findings"
+    },
+    "ci": {
+      "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41299698388/job/124827901647",
+      "rawLogReviewed": true,
+      "tests": 879,
+      "testFiles": 91,
+      "cliGuards": 111,
+      "platformIndependentAssets": 3,
+      "teachingOutputLines": 77,
+      "docsSiteVerified": true,
+      "audit": {
+        "low": 2,
+        "moderate": 4,
+        "high": 0,
+        "critical": 0
+      }
+    },
+    "composite": {
+      "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41299698468/job/124827901871",
+      "rawLogReviewed": true,
+      "observed": "pnpm 12.16.1 setup completed; reports generated; intentional gate failure produced passed=false and output assertions passed.",
+      "limitation": "The existing Node 20 transitive engine warning remains; this update does not prove all Node 20 feature paths."
+    },
+    "metrics": {
+      "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41299700844/job/124827911573",
+      "rawLogReviewed": true,
+      "contentsPermission": "read",
+      "artifactId": 13080538277,
+      "artifactName": "adoption-metrics-snapshot",
+      "sizeBytes": 687,
+      "artifactDigest": "sha256:faeb4e1657000785dab5b93ad9e7511e093db6b71b32ee31dcaf38918298768a",
+      "expiresAt": "2026-12-01T10:57:23Z",
+      "downloadedAndChecked": true,
+      "files": {
+        "latest.json": "24f239c88382c8eec6769ed05f9aecad441b9c8acac1b2eff6aba3860d5e9674",
+        "manual-signals.json": "9e8a4d33da519a8c60aa20c5360e608df33bc88e7f8bab43696ad848a85f3437"
+      },
+      "generatedAt": "2026-11-01T10:57:23.472Z",
+      "missingData": "schemaCitationSearchCount was null and printed as n/a; no zero was substituted."
+    },
+    "scope": "These observations name the tested source revision. The follow-up records evidence and replaces npx in one CLI test with the installed loader, a bounded child timeout, and an exact exit-1 assertion. Dashboard runtime and workflow fingerprints remain unchanged; current-head required checks must still pass."
+  },
+  "checkedFileSha256": {
+    "package.json": "0dfe655a685442e18829d34032a9e6c43da66be603ef8736f6c2545910b04292",
+    "pnpm-lock.yaml": "518d7164483377f9f4b13af99db6f5930daa18af6cc0453553c36ac289d51c9b",
+    "docs-site/package.json": "48f589d0f9293b4a140b95dced281e57ba25135b74d8862c3fc149541860e0b6",
+    "scripts/collect-adoption-metrics.ts": "e00378b31b2cf2daa70daa9d08035fec73b0213f5e11c688624191611320eb38",
+    "test/workflow-cost.test.ts": "7584e15cd2f3b3b4644572a27631a51dcab52c82161fb6a9601f6811308d4faa",
+    "renovate.json": "d234e25162d281f011ba64e12bc1c05fc44330ef396a9fbc328d5f7c85ae0b23",
+    ".github/workflows/ci.yml": "844beac7c15befe348785babc4fbd1033d886a264ff093b4f9860fa14debcd1d",
+    ".github/workflows/action-smoke-test.yml": "26c80d92e81e37ef31c82a30538153c434e68ad68c0328ce4851a85cff0c4155",
+    ".github/workflows/adoption-metrics.yml": "dda7f277b0a93e49e8b9e388cb52f1adccf43c1292832d439a33757fe784fc59",
+    ".github/workflows/docs-site-pages.yml": "f8a960b85e49745e14f94d0a2cfef048158dec05090f3da72a1576db7ed09d41",
+    ".github/workflows/publish.yml": "eec422c0131e76a35f5a7233f0ba59f14e86330c87273944ef5392801f24c03f",
+    "test/cli-config-zero-critical.test.ts": "0a375a078bd93dc2cbdd8473cc72a2652c2570e0d4ec07fe697de8411e69c56d"
+  },
+  "cliTestFollowUp": {
+    "observed": "An evidence-only local rerun timed out in cli-config-zero-critical.test.ts; 878 tests passed and one timed out. The test launched npx tsx from a temporary directory, allowing package resolution/downloads unrelated to the gate behavior.",
+    "change": "Use the installed tsx/esm public loader with process.execPath, a 20-second child timeout, and an exact exit-code-1 assertion. The global test timeout was not increased.",
+    "focusedCommand": "npm_config_offline=true pnpm test test/cli-config-zero-critical.test.ts",
+    "focusedResult": "1 passed with npm offline mode.",
+    "limit": "This removes a network-resolution path from the test; the observed timeout is not proof of an application-gate regression."
+  }
+}

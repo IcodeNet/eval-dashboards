@@ -3,6 +3,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const execFileAsync = promisify(execFile);
@@ -48,13 +50,15 @@ describe('check honors config-file gates.zeroCritical without a matching CLI fla
 
     const outPath = path.join(dir, 'check-result.json');
     const cliEntry = path.join(process.cwd(), 'src', 'cli', 'index.ts');
+    // Use the installed loader; npx from this fixture directory may resolve or download a tool.
+    const tsxLoader = pathToFileURL(createRequire(import.meta.url).resolve('tsx/esm')).href;
     await expect(
       execFileAsync(
-        'npx',
-        ['tsx', cliEntry, 'check', `--input=${inputDir}`, `--json-out=${outPath}`],
-        { cwd: dir },
+        process.execPath,
+        ['--import', tsxLoader, cliEntry, 'check', `--input=${inputDir}`, `--json-out=${outPath}`],
+        { cwd: dir, timeout: 20_000 },
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ code: 1 });
 
     const parsed = JSON.parse(await readFile(outPath, 'utf8')) as {
       passed: boolean;

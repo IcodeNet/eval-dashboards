@@ -5,11 +5,12 @@ This runbook makes docs-adoption measurement repeatable and ties friction direct
 ## Weekly operating loop
 
 1. Confirm `.github/workflows/adoption-metrics.yml` ran (or trigger it manually).
-2. Review `docs/adoption-metrics/latest.json`.
+2. Download its `adoption-metrics-snapshot` artifact and compare its `latest.json` with the tracked `docs/adoption-metrics/latest.json`.
 3. Update `docs/adoption-metrics/manual-signals.json` with maintainer-verified outcomes.
 4. Run page-to-action and cadence checks, then update `docs/adoption-friction-backlog.md`.
 5. Prioritize next docs edits using the highest-severity unresolved friction items.
 6. Log outreach and partnership stage changes in `docs/community-partnership-log.md`.
+7. Submit reviewed snapshot and manual-signal changes through the normal PR template, review, and required checks. The scheduled job uploads artifacts for 30 days; it does not push to protected `main`.
 
 ## Signals tracked (lightweight)
 
@@ -75,3 +76,22 @@ All conditions must be true for two consecutive weekly reviews:
 - For weekly checks, record pass/fail outcomes in the friction backlog and use `manual-signals.json` `notes` for a one-line summary.
 - External adoption outcomes are ongoing KPIs; completion means the loop exists and is actively used.
 - Keep this process runner-agnostic and artifact-first: prioritize `eval-report/v1` conversion quality over tool-specific UI flows.
+
+
+## Review a scheduled snapshot
+
+```sh
+gh run download <run-id> --name adoption-metrics-snapshot --dir .tmp/adoption-review
+```
+
+Compare `.tmp/adoption-review/latest.json` with the tracked snapshot before copying
+it into `docs/adoption-metrics/latest.json`. The artifact includes the manual
+signals used by that run as context; do not overwrite newer maintainer-verified
+outcomes with an older copy. Review the diff, use the repository PR template,
+and follow `CHECKS_LEDGER.md`. The workflow has read-only repository permissions
+and cannot bypass the protected-main review process.
+
+For a local refresh, `pnpm metrics:adoption` still writes the usual snapshot.
+Inspect `generatedAt` and any null or `n/a` values before treating measurements as current.
+A successful upload means files were retained; it is not evidence that external
+adoption increased.
