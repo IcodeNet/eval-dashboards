@@ -220,6 +220,9 @@
             "datasetVersion": "customer-support-v1.2",
             "rubricVersion": "helpfulness-2024-Q3",
             "riskArea": "response-quality",
+            "graderVersion": "1.0.0",
+            "scoreDirection": "higher-is-better",
+            "scoreScale": { "min": 0, "max": 1 },
             "graders": [
                 "llm-judge"
             ],
@@ -241,6 +244,9 @@
             "rubricVersion": "safety-2024-Q3",
             "riskArea": "pii",
             "complianceFrameworks": ["owasp:llm", "gdpr"],
+            "graderVersion": "1.0.0",
+            "scoreDirection": "higher-is-better",
+            "scoreScale": { "min": 0, "max": 1 },
             "graders": [
                 "llm-judge",
                 "deterministic-assertions"

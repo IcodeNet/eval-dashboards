@@ -1,5 +1,7 @@
 # Product Proposition: Schema + Taxonomy First
 
+> **Scope amendment — 2026-10-31:** the owner approved a fully hosted platform with accounts, ingestion, and live dashboards. This supersedes the historical hosted-platform non-goal below. Portable runner-agnostic artifacts and offline reporting remain required. See [hosted requirements](./hosted-platform-requirements.md).
+
 **Status:** Proposal — implement after foundation items in `STATUS.md` / `ROADMAP.md`  
 **Audience:** Maintainers and coding agents implementing the next product layer  
 **Related:** `docs/artifact-format.md`, `docs/PRP.md`, `docs/ROADMAP.md`, `docs/STATUS.md`
@@ -173,7 +175,7 @@ Implement in phases. Prefer small PRs. Do not invent a new schema version unless
 
 ## 5. Non-goals (for this initiative)
 
-- Building a hosted eval platform or requiring sign-up.
+- Historical non-goal: building a hosted eval platform. Superseded on 2026-10-31 by [the hosted platform requirements](./hosted-platform-requirements.md); using the portable core still does not require sign-up.
 - Replacing agent harnesses (Claude Code, Inspect, etc.); only standardising their **output**.
 - Forcing every field on every row — taxonomy fields stay optional, but **documented and encouraged**, with lint for completeness.
 - Breaking `eval-report/v1` without a versioned migration path.

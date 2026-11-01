@@ -1,0 +1,47 @@
+{
+  "results": {
+    "outputs": [
+      {
+        "id": "assertions-mixed",
+        "success": false,
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "componentResults": [
+            null,
+            {
+              "score": 0.8
+            },
+            {
+              "pass": true,
+              "score": 0,
+              "assertion": {
+                "type": " custom-check ",
+                "value": false,
+                "threshold": 0,
+                "weight": 0
+              }
+            },
+            {
+              "pass": false,
+              "score": 0.2
+            },
+            {
+              "pass": true,
+              "assertion": {
+                "type": "json-schema",
+                "value": {
+                  "required": [
+                    "answer"
+                  ]
+                },
+                "threshold": "invalid",
+                "weight": "invalid"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

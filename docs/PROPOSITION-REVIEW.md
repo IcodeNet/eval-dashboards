@@ -1,5 +1,7 @@
 # Proposition Review
 
+> **Historical review:** its original scope assumptions predate the owner-approved hosted platform decision of 2026-10-31. See [current requirements](./hosted-platform-requirements.md); implementation remains pending.
+
 **Date:** 2026-08-02  
 **Assumes:** `docs/ROADMAP.md`, aligned `docs/STATUS.md`, and `docs/PROPOSITION-AND-TAXONOMY.md` are in the repo; foundation STATUS items are done or in flight.  
 **Related:** `docs/PROPOSITION-AND-TAXONOMY.md`, `docs/artifact-format.md`, `docs/ROADMAP.md`

@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-10-18
+**Last updated:** 2026-10-31
 
 ---
 
@@ -29,6 +29,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 - [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
+- [Phase 5: Hosted evaluation platform](#phase-5-hosted-evaluation-platform-approved-scope-implementation-pending)
 
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
@@ -823,9 +824,18 @@ Rationale: Langfuse added optional score metadata/provenance field groups for sc
 
 Verification 2026-10-31: `src/cli/import-adapters.ts:651`, `test/import-adapters-ragas-langfuse.test.ts:111`, and [PR #93 handoff evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
 
-### 4C.18 Phoenix decision-model evidence parity (P1)
+### 4C.18 Promptfoo assertion-component evidence parity (P1)
 
-- [ ] Extend the Phoenix import adapter to preserve decision-model export evidence (`metadata.confidence`, `metadata.probabilities`) and trace links (`traceId`/`spanId` plus `traceUrl`/`spanUrl`) in `eval-report/v1` rows.
+- [x] Preserve `gradingResult.componentResults[]` in schema-valid `rows[].checks[]` using the existing runner-defined check type and pass fields.
+- [x] Cover mixed assertion sets, thresholds/weights, missing values, malformed components, and the public runner adapter; document mapping limits.
+
+Evidence: `src/cli/import-adapters.ts:215`, `src/adapters/runner.ts:100`, `test/import-adapters.test.ts:188`, `test/runner-adapter.test.ts:36`.
+
+Acceptance: assertion evidence survives JSON/JSONL import without changing row-level gate semantics or `eval-report/v1`. See [PR #92](https://github.com/IcodeNet/eval-dashboards/pull/92) and [Promptfoo exports](https://www.promptfoo.dev/docs/configuration/outputs/).
+
+### 4C.19 Phoenix decision-model evidence parity (P1)
+
+- [x] Extend the Phoenix import adapter to preserve decision-model export evidence (`metadata.confidence`, `metadata.probabilities`) and trace links (`traceId`/`spanId` plus `traceUrl`/`spanUrl`) in `eval-report/v1` rows.
 
 Acceptance criteria:
 
@@ -835,6 +845,8 @@ Acceptance criteria:
 - `docs/integrations/arize-phoenix.md` documents the mapping and uses the built-in `import` command path.
 
 Rationale: Phoenix release notes (2026-10-27) document decision-model evaluators emitting `metadata.probabilities` and `metadata.confidence`; preserving those fields prevents evidence loss during CI migration (https://arize.com/docs/phoenix/release-notes/10-2026/10-27-2026-decision-model-evaluators-and-project-onboarding).
+
+Verification 2026-11-01: `src/cli/import-adapters.ts:1037`, `test/import-adapters-phoenix-braintrust.test.ts:65` and `:111`; see [review evidence](./reviews/2026-11-01-phoenix-review.json). Null trace IDs are omitted without dropping valid aliases or URLs.
 
 ### 4C execution order
 
@@ -855,7 +867,7 @@ Rationale: Phoenix release notes (2026-10-27) document decision-model evaluators
 
 Mission
 
-Close the gaps identified by an external architect + methodology review before recommending eval-dashboards as the standard evals layer for agent teams building on shared CI/CD infrastructure. Stay a runner-agnostic, offline-first reporting/gating toolkit — do not expand into a hosted observability platform (that is a separate, explicitly out-of-scope decision; see "Non-goals for this phase" below).
+Close the gaps identified by an external architect + methodology review before recommending eval-dashboards as the standard evals layer for agent teams building on shared CI/CD infrastructure. Stay a runner-agnostic, offline-first reporting/gating toolkit — do not expand into a hosted observability platform (that is a separate, explicitly out-of-scope decision; see "Non-goals for this phase" below). **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 Review inputs
 
@@ -1015,7 +1027,7 @@ Rationale: OpenAI's eval workflow documentation explicitly uses uploaded JSONL d
 
 ### Non-goals for this phase
 
-- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API and auth-gated app remain out of scope.) They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase.
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API and auth-gated app remain out of scope.) They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 ### 4E execution order
 
@@ -1186,7 +1198,7 @@ Reference files (the bar, no changes needed): `teach-labs/04-release-readiness.m
 
 Mission
 
-Make eval results defensible as evidence and safe to publish, and make multi-agent rollout legible to product and leadership — without becoming a hosted platform. Every item here is an artifact field, a lint rule, a CLI flag, or a static output. The charter forbids hosting; it does not forbid evidence.
+Make eval results defensible as evidence and safe to publish, and make multi-agent rollout legible to product and leadership — without becoming a hosted platform. Every item here is an artifact field, a lint rule, a CLI flag, or a static output. The original phase excluded hosting; the owner-approved Phase 5 now owns hosted functionality.
 
 Review inputs (2026-09-14, four independent role reviews)
 
@@ -1373,7 +1385,7 @@ cost-budget failure, and invalid `--tier` rejection).
 
 ### 4F.11 Evidence export bundle (P2, 3-4 d)
 
-- [x] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest.
+- [ ] Produce one signed bundle per release containing report, gate result, active waivers, approval trail, and a manifest. Audit 2026-10-31: digest-manifest export and integrity checks exist, but an optional signature is only embedded; bundle/signer authentication is not verified. Signed-bundle acceptance remains open.
 
 Acceptance criteria:
 
@@ -1385,7 +1397,7 @@ check-result artifact, waiver register, optional bypass log, optional
 approval trail, optional `sign` detached signature), hashes it (sha256), and
 embeds its exact bytes verbatim, plus a top-level `bundleDigest` computed
 over all per-entry digests (so tampering with the entry list itself —
-add/remove/reorder/swap — is detectable even if an individual entry's own
+add/remove/swap — is detectable even if an individual entry's own
 digest still matches its contents). `verifyEvidenceBundle` recomputes both
 and fails closed on any mismatch, needing nothing but the bundle file
 itself. New CLI commands: `eval-dashboards evidence-export
@@ -1606,9 +1618,16 @@ Acceptance criteria:
       Not adopting promptfoo's YAML assertion syntax; only the taxonomy of
       "a check has a type/expected/actual/threshold/weight" is in scope.
 
+### 4F.25 Evidence-bundle input validation (P1, S)
+
+- [x] Validate entry shapes, known roles, string contents/source paths, and SHA-256 digest declarations before hashing. Malformed JSON bundles return deterministic diagnostics instead of throwing.
+- [x] Test malformed entries, unsupported digest algorithms, additive unknown properties, and CLI exit 1 for verification failures.
+
+Evidence: `src/evidence/bundle.ts:145`, `test/evidence-bundle-validation.test.ts:15`, `test/cli-evidence-export.test.ts:196`; see [verification record](./reviews/2026-10-31-evidence-verification.md). The digest algorithm and valid bundle format are unchanged. This hardens 4F.11 integrity verification; signer authentication remains separate pending work.
+
 ### Still out of scope in 4F
 
-- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API, auth-gated app and multi-tenant service remain non-goals.) Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package.
+- Hosted ingestion API, time-series store, auth-gated dashboard app, and multi-tenant service remain non-goals. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API, auth-gated app and multi-tenant service remain non-goals.) Access control, durable per-run URLs, and live dashboards should be solved by pairing with an existing hosted product or by a separately resourced component with its own owner and SLA — not by growing a service inside this package. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 ### 4F execution order
 
@@ -1710,7 +1729,7 @@ phase's commit message.
 
 ## 📦 npm release policy note (ship gate)
 
-- **Publishing is on hold until the owner releases it.** Phase 4K (full historical reports) is complete, but no release has been published. The only open roadmap item is 4C.4, which waits on the external Rupic review. Publish `1.0.0` only when the owner says so.
+- **Publishing is on hold until the owner releases it.** Phase 4K (full historical reports) is complete, but no 1.0.0 release has been published. Remaining work includes 4F.11 signed-bundle authentication and 4C.4, which is parked awaiting the external Rupic review. Publish `1.0.0` only when the owner says so.
 - npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.
 - When all remaining roadmap checklist items are complete, and verification passes (`pnpm test`, `pnpm typecheck`, `pnpm build`, plus CLI verifier scripts), publish the first stable milestone as `1.0.0`.
 - If a true first-ever release presentation is required, publish under a new package name/scope instead of attempting to reset existing npm history.
@@ -1980,7 +1999,7 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 **Why**: history today is file-based (`history.json` built in `src/history/history.ts`, rolled up by `org-rollup`). History is now queryable over long periods; `1.0.0` stays unpublished until the owner releases it.
 
-**Decision (supersedes the 4E and 4F non-goal on a time-series store)**: a history store is now in scope. The offline-by-default and artifact-first rules still hold, so the store sits behind a swappable adapter. SQLite is the first backend. The file store stays as the default and the fallback. Other backends (Redis, Cosmos) can be added later behind the same adapter. Redis is a weak fit for long-term history unless persistence is on. Hosted ingestion APIs and auth-gated dashboard apps stay out of scope.
+**Decision (supersedes the 4E and 4F non-goal on a time-series store)**: a history store is now in scope. The offline-by-default and artifact-first rules still hold, so the store sits behind a swappable adapter. SQLite is the first backend. The file store stays as the default and the fallback. Other backends (Redis, Cosmos) can be added later behind the same adapter. Redis is a weak fit for long-term history unless persistence is on. Hosted ingestion APIs and auth-gated dashboard apps stay out of scope. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 **Why SQLite**: it is a serverless single-file database, so there is nothing to host and no cost. It supports date, branch and suite queries with SQL and indexes. Node ships `node:sqlite` built in, so no native npm package is needed. Verified 2026-10-18: `node:sqlite` loads on Node 26.7.0 here. Web sources say it was added in Node 22.5.0 and is still experimental (prints a warning) on Node 22.
 
@@ -2015,3 +2034,9 @@ Rationale: Inspect AI added provider request/response id logging for every model
 - **Teaching via examples:** The taxonomy is taught through docs, schema, and runnable fixtures—not discovered by trial-and-error
 
 The core idea — an Istanbul-style, offline, artifact-first reporting layer for agent and LLM evals — is timely and differentiated. Finishing Phase 2A + 2B establishes the contract and makes it visible; Phase 3–4 drives ecosystem adoption through community.
+
+## Phase 5: Hosted evaluation platform (approved scope; implementation pending)
+
+The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
+
+See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 now has an initial shared gate-decision slice; its remaining semantics and all hosted milestones stay open in STATUS.

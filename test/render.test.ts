@@ -690,7 +690,7 @@ describe('render html safety and taxonomy scoring', () => {
     expect(html).toContain('class="section collapsible collapsed" data-section-id="suite-summary"');
     expect(html).toContain('class="section collapsible" data-section-id="pass-rate-trend"');
     expect(html).toContain('class="section-toggle-icon" aria-hidden="true">▸</span>');
-    expect(html).toContain('class="section-summary section-summary-pass">1 suite • 1/1 passed (100.0%)</span>');
+    expect(html).toContain('class="section-summary section-summary-muted">1 suite • 1/1 passed (100.0%)</span>');
     expect(html).toContain('Need at least 2 runs to show direction');
     expect(html).toContain('onclick="toggleSection(this)"');
   });

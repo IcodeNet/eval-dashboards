@@ -547,3 +547,12 @@ A: The team responsible for the eval suite (e.g., safety team, product team). Th
 - [Artifact Format](./artifact-format.md) — Full JSON schema reference
 - [Gates](./gates.md) — How gate policies are enforced
 - [Comparison with NYC/Istanbul](./comparison-with-nyc.md) — Design rationale
+
+### Comparison completeness
+
+For defensible comparisons, emit stable case IDs, the run's project, and suite
+`datasetVersion`, `rubricVersion`, and `graderVersion`. Add `scoreScale` and
+`scoreDirection` when emitting numeric scores. Judge evidence needs a stable
+`judgeModel`. These additions are optional: incomplete evidence stays valid,
+with comparison eligibility shown as unknown rather than assumed compatible.
+See [matched cohorts](./history-storage.md#matched-cohorts-and-measured-telemetry).

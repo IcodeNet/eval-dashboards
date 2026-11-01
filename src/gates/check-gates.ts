@@ -1,3 +1,4 @@
+import { comparePairedOutcomes, describePairedComparison, validatePairedComparisonOptions, type PairedComparisonOptions, type PairedOutcomeComparison } from '../analytics/paired-comparison.js';
 import type { RunComparison } from '../history/history.js';
 import { type EvalReportV1, summarizeReport } from '../model/eval-report-v1.js';
 import type { BaselineCompatibilityResult } from '../model/eval-report-v1.js';
@@ -25,6 +26,8 @@ export type SuiteGateConfig = {
 const SUITE_GATE_KEYS = ['minPassRate', 'maxNewFailures'] as const;
 
 export type GateConfig = {
+  /** Opt-in comparison gate over matched, version-compatible scenario/case groups. */
+  paired?: PairedComparisonOptions;
   minPassRate?: number;
   /**
    * Minimum rate of rows whose outcome matched their declared
@@ -119,10 +122,13 @@ export const validateGateConfig = (config: GateConfig): string[] => {
       errors.push(`suites.${suite}.maxNewFailures must be a non-negative integer.`);
     }
   }
+  errors.push(...validatePairedComparisonOptions(config.paired));
   return errors;
 };
 
 export type GateResult = {
+  status?: 'passed' | 'failed' | 'inconclusive';
+  pairedComparison?: PairedOutcomeComparison;
   passed: boolean;
   failures: string[];
   diagnostics: string[];
@@ -180,6 +186,8 @@ export const checkGates = (
   config: GateConfig,
   baselineCompatibility?: BaselineCompatibilityResult,
   previousReport?: EvalReportV1,
+  /** Raw observations when the primary report has policy waivers applied. */
+  observedCurrent?: EvalReportV1,
 ): GateResult => {
   const configErrors = validateGateConfig(config);
   if (configErrors.length > 0) return { passed: false, failures: configErrors, diagnostics: [] };
@@ -201,6 +209,8 @@ export const checkGates = (
     }
   }
   const diagnostics: string[] = [];
+  let pairedComparison: PairedOutcomeComparison | undefined;
+  let inconclusiveFailures = 0;
 
   if (config.minPassRate !== undefined && summary.passRate < config.minPassRate) {
     failures.push(
@@ -509,6 +519,19 @@ export const checkGates = (
     }
   }
 
+  if (config.paired !== undefined) {
+    if (observedCurrent && observedCurrent.run.id !== report.run.id) {
+      failures.push('Raw paired evidence must refer to the same current run.');
+    }
+    pairedComparison = comparePairedOutcomes(observedCurrent ?? report, previousReport, config.paired);
+    const description = describePairedComparison(pairedComparison);
+    diagnostics.push(description);
+    if (pairedComparison.status !== 'passed') {
+      failures.push(description);
+      if (pairedComparison.status === 'inconclusive') inconclusiveFailures += 1;
+    }
+  }
+
   if (config.repeat !== undefined) {
     const { runs, requiredPasses } = config.repeat;
     const repeatConfigErrors: string[] = [];
@@ -560,5 +583,9 @@ export const checkGates = (
     passed: failures.length === 0,
     failures,
     diagnostics,
+    ...(pairedComparison ? {
+      status: failures.length === 0 ? 'passed' as const : failures.length === inconclusiveFailures ? 'inconclusive' as const : 'failed' as const,
+      pairedComparison,
+    } : {}),
   };
 };

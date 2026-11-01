@@ -32,6 +32,12 @@ describe('runner adapter', () => {
     ]);
   });
 
+  it('preserves runner-defined assertion evidence through the default row mapper', () => {
+    const checks = [{ type: 'custom-check', pass: false, expected: { answer: true }, actual: 0.2, threshold: 0.8, weight: 2 }];
+    const report = createEvalReportArtifact({ cases: [{ id: 'checks', suite: 'quality', passed: false, checks }] }, { generatedAt });
+    expect(report.rows[0]?.checks).toEqual(checks);
+  });
+
   it('supports project-specific row mapping and generated suite manifests', () => {
     type LocalCase = RunnerEvalCaseResult & { expectedTool: string };
 

@@ -20,7 +20,7 @@ Use the built-in adapter:
 
 Preserved evidence:
 
-- `traceId`/`trace_id` and `spanId`/`span_id` map into `rows[].trace`.
+- `traceId`/`trace_id` and `spanId`/`span_id` map into `rows[].trace`. Null IDs are omitted; a valid alias or trace URL is still preserved.
 - `traceUrl`/`trace_url` and `spanUrl`/`span_url` map into `rows[].trace` when present.
 - Decision-model metadata fields from Phoenix exports map into row metadata:
   - `metadata.confidence` → `rows[].metadata.phoenixDecisionConfidence`

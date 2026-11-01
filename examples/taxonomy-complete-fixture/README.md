@@ -47,3 +47,9 @@ eval-dashboards report --input=my-evals
 - All optional fields are filled in, which is great for testing. In production, you may omit fields that don't apply to your eval.
 - The `metadata` field shows how to extend the schema with custom fields.
 - Both passing and failing rows are included to show how failures are categorized.
+
+The suite manifests also declare `graderVersion`, `scoreDirection`, and
+`scoreScale`. Keep those measurement definitions stable when comparing variants;
+change their versions when changing the scoring process. The reporter separates
+introduced cases from matched-case changes and shows unknown eligibility when
+version evidence is missing.

@@ -102,6 +102,25 @@ describe('phoenix and braintrust import adapters', () => {
     );
   });
 
+  it.each([
+    { fields: { trace_id: null, span_id: null }, expectedTrace: undefined },
+    { fields: { traceId: null, spanId: null }, expectedTrace: undefined },
+    { fields: { traceId: null, trace_id: null, spanId: null, span_id: null }, expectedTrace: undefined },
+    { fields: { traceId: null, trace_id: 'valid-trace', spanId: null, span_id: 'valid-span' }, expectedTrace: { traceId: 'valid-trace', spanId: 'valid-span' } },
+    { fields: { trace_id: null, span_id: null, trace_url: 'https://phoenix.example/traces/example' }, expectedTrace: { traceUrl: 'https://phoenix.example/traces/example' } },
+  ])('imports null Phoenix trace aliases without losing other evidence: $fields', async ({ fields, expectedTrace }) => {
+    const dir = await createTempDir();
+    const inputPath = path.join(dir, 'phoenix-null-trace.json');
+    const outPath = path.join(dir, 'report.json');
+    await writeFile(inputPath, JSON.stringify({ results: [{ id: 'null-trace', label: 'correct', ...fields,
+      metadata: { confidence: 0.9, probabilities: { correct: 0.9, incorrect: 0.1 } } }] }));
+    await importFromSource({ source: 'phoenix', inputPath, outPath });
+    const artifact = JSON.parse(await readFile(outPath, 'utf8'));
+    expect(validateEvalReport(artifact).ok).toBe(true);
+    expect(artifact.rows[0].trace).toEqual(expectedTrace);
+    expect(artifact.rows[0].metadata).toMatchObject({ phoenixDecisionConfidence: 0.9, phoenixDecisionProbabilities: { correct: 0.9, incorrect: 0.1 } });
+  });
+
   it('fails clearly when a phoenix row has no label or score', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'phoenix-empty.json');

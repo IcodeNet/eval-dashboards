@@ -58,6 +58,17 @@ type PromptfooResult = {
     reason?: string;
     comment?: string;
     verdict?: string;
+    componentResults?: Array<{
+      pass?: boolean;
+      score?: number;
+      reason?: string;
+      assertion?: {
+        type?: string;
+        value?: unknown;
+        threshold?: number;
+        weight?: number;
+      };
+    }>;
   };
   vars?: Record<string, unknown>;
   testCase?: {
@@ -198,6 +209,35 @@ const promptfooErrorText = (value: unknown): string | undefined => {
     if (typeof message === 'string' && message.trim().length > 0) return message.trim();
   }
   return stringifyIfObject(value);
+};
+
+
+const promptfooChecks = (row: PromptfooResult): RunnerEvalCaseResult['checks'] | undefined => {
+  const componentResults = row.gradingResult?.componentResults;
+  if (!Array.isArray(componentResults) || componentResults.length === 0) {
+    return undefined;
+  }
+
+  const checks: NonNullable<RunnerEvalCaseResult['checks']> = [];
+  componentResults.forEach((component, index) => {
+    if (typeof component?.pass !== 'boolean') return;
+    const assertion = component.assertion;
+    const type = typeof assertion?.type === 'string' && assertion.type.trim().length > 0
+      ? assertion.type.trim()
+      : `promptfoo-assertion-${index + 1}`;
+    checks.push({
+      type,
+      pass: component.pass,
+      ...(assertion && Object.prototype.hasOwnProperty.call(assertion, 'value')
+        ? { expected: assertion.value }
+        : {}),
+      ...(typeof component.score === 'number' && Number.isFinite(component.score) ? { actual: component.score } : {}),
+      ...(typeof assertion?.threshold === 'number' && Number.isFinite(assertion.threshold) ? { threshold: assertion.threshold } : {}),
+      ...(typeof assertion?.weight === 'number' && Number.isFinite(assertion.weight) ? { weight: assertion.weight } : {}),
+    });
+  });
+
+  return checks.length > 0 ? checks : undefined;
 };
 
 const inferPassFromSignals = (
@@ -451,6 +491,7 @@ const promptfooRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseRe
         promptfooError ??
         (row.failureReason !== undefined ? `promptfoo failureReason=${String(row.failureReason)}` : undefined),
       durationMs: row.latencyMs ?? row.response?.latencyMs,
+      checks: promptfooChecks(row),
       metadata: {
         provenance: {
           source: 'custom',
@@ -993,8 +1034,8 @@ const phoenixRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResu
       );
     }
 
-    const traceId = row.traceId ?? row.trace_id;
-    const spanId = row.spanId ?? row.span_id;
+    const traceId = row.traceId ?? row.trace_id ?? undefined;
+    const spanId = row.spanId ?? row.span_id ?? undefined;
     const traceUrl = row.traceUrl ?? row.trace_url ?? (typeof row.metadata?.traceUrl === 'string' ? row.metadata.traceUrl : undefined) ?? (typeof row.metadata?.trace_url === 'string' ? row.metadata.trace_url : undefined);
     const spanUrl = row.spanUrl ?? row.span_url ?? (typeof row.metadata?.spanUrl === 'string' ? row.metadata.spanUrl : undefined) ?? (typeof row.metadata?.span_url === 'string' ? row.metadata.span_url : undefined);
     const decisionProbabilities = asRecord(row.metadata?.probabilities);
@@ -1837,6 +1878,7 @@ export const importFromSource = async (options: {
         judgeReasoning: caseResult.judgeReasoning,
         reason: caseResult.reason,
         durationMs: caseResult.durationMs,
+        checks: caseResult.checks,
         metadata: caseResult.metadata,
         trace: caseResult.trace,
       }),

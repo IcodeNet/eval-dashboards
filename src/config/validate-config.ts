@@ -26,6 +26,7 @@ const CONFIG_KEYS: KeyTree = {
     requiredPassingSuites: null,
     suites: null,
     allowLoosening: null,
+    paired: { confidenceLevel: null, minDelta: null, minClusters: null, independentClusters: null },
     statistical: { mode: null, confidenceLevel: null, bootstrapSamples: null, minPassRateDelta: null },
     repeat: { runs: null, requiredPasses: null },
     calibration: { enabled: null, suite: null, maxAgeHours: null, allowBlockingWithoutRecentMatch: null },

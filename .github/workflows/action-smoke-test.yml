@@ -6,8 +6,8 @@ permissions:
 on:
   push:
     branches: [main]
+  # Includes stacked PRs whose base is another feature branch.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

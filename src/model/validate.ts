@@ -598,6 +598,15 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
           }
         }
 
+        if (manifest.scoreDirection !== undefined &&
+          manifest.scoreDirection !== 'higher-is-better' && manifest.scoreDirection !== 'lower-is-better') {
+          errors.push(`suiteManifests[${index}].scoreDirection must be higher-is-better or lower-is-better when provided.`);
+        }
+        if (manifest.graderVersion !== undefined &&
+          (!isString(manifest.graderVersion) || manifest.graderVersion.trim().length === 0)) {
+          errors.push(`suiteManifests[${index}].graderVersion must be a non-empty string when provided.`);
+        }
+
         if (manifest.scoreScale !== undefined) {
           if (!isObject(manifest.scoreScale)) {
             errors.push(`suiteManifests[${index}].scoreScale must be an object when provided.`);

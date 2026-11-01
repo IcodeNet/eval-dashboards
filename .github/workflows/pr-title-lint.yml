@@ -30,3 +30,15 @@ jobs:
             exit 1
           fi
           echo "PR title format is valid."
+
+  lint-description:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Validate description against the repository PR template
+        run: node scripts/verify-pr-description.mjs

@@ -21,6 +21,8 @@ import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, write
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
+import { validatePairedComparisonOptions, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
+import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
 import { stripControlCharacters } from '../utils/untrusted-text.js';
 import { readPackageVersion } from './package-version.js';
 import { BUILT_IN_THEMES, describeUnknownTheme } from '../reporters/themes.js';
@@ -49,7 +51,7 @@ import {
   type ReporterName,
 } from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
-import type { NotificationChannel, NotificationsConfig } from '../config/config.js';
+import type { EvalReportsConfig, NotificationChannel, NotificationsConfig } from '../config/config.js';
 import {
   assertKnownFlags,
   optionBoolean,
@@ -159,7 +161,11 @@ Options:
   --profile=<name>              default|guardrail report profile
   --theme=<name>                HTML theme override
   --locale=<tag>                Locale override for date/number formatting
-`;
+
+  --paired-min-delta=<number>      Enable paired gate; required expectation-rate delta (-1 to 1)
+  --paired-confidence-level=<number>  Confidence level for paired bound (0-1, exclusive)
+  --paired-min-clusters=<number>   Minimum independent scenario/case groups (at least 2)
+  --assume-independent-clusters    Declare independence of the comparison groups`;
 
 const checkUsage = `eval-dashboards check [options]
 
@@ -179,6 +185,10 @@ Options:
   --max-warning-code=<code:count>  Per-warning-code budget (repeatable)
   --fail-on-warning-code=<code>    Fail immediately when warning code appears (repeatable)
   --zero-critical                  Fail if any severity=critical row failed
+  --paired-min-delta=<number>      Enable paired gate; required expectation-rate delta (-1 to 1)
+  --paired-confidence-level=<number>  Confidence level for paired bound (0-1, exclusive)
+  --paired-min-clusters=<number>   Minimum independent scenario/case groups (at least 2)
+  --assume-independent-clusters    Declare independence of the comparison groups
   --statistical-mode=<mode>        off|bootstrap statistical gate mode
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
@@ -490,6 +500,7 @@ type CheckOutputWaiverSummary = {
 type CheckOutputPayload = {
   schemaVersion: 'eval-check-result/v1';
   gateRunStatus: 'ran';
+  gateDecision?: GateDecision;
   runId: string;
   baselineRunId?: string;
   passed: boolean;
@@ -1103,6 +1114,17 @@ const evaluateCalibrationChecks = (
   return { failures, diagnostics };
 };
 
+const pairedConfigFromOptions = (options: Record<string, string | boolean | string[]>): PairedComparisonOptions | undefined => {
+  const fields = {
+    minDelta: optionNumber(options, 'paired-min-delta'),
+    confidenceLevel: optionNumber(options, 'paired-confidence-level'),
+    minClusters: optionNumber(options, 'paired-min-clusters'),
+    independentClusters: Object.hasOwn(options, 'assume-independent-clusters') ? optionBoolean(options, 'assume-independent-clusters') : undefined,
+  };
+  const supplied = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+  return Object.keys(supplied).length ? supplied : undefined;
+};
+
 /** Translate supplied CLI flags into gate overrides without dropping invalid numeric policy. */
 const gateConfigFromOptions = (
   options: Record<string, string | boolean | string[]>,
@@ -1190,6 +1212,7 @@ const gateConfigFromOptions = (
       : undefined;
 
   return {
+    ...(pairedConfigFromOptions(options) ? { paired: pairedConfigFromOptions(options) } : {}),
     minPassRate: optionNumber(options, 'min-pass-rate'),
     minMatchedExpectationRate: optionNumber(options, 'min-matched-expectation-rate'),
     maxNewFailures: optionNumber(options, 'max-new-failures'),
@@ -1270,6 +1293,156 @@ const statisticalModeFromOptions = (
   });
 };
 
+/** One policy evaluation path for check and report; report never performs check side effects. */
+const evaluateConfiguredRun = async (
+  context: Awaited<ReturnType<typeof loadContext>>,
+  config: EvalReportsConfig,
+  options: Record<string, string | boolean | string[]>,
+  selectedTier?: 'pr' | 'full',
+) => {
+  const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
+  const cliGateOverrides = gateConfigFromOptions(options);
+  const cliGateOverridesDefined = Object.fromEntries(
+    Object.entries(cliGateOverrides).filter(([, value]) => value !== undefined),
+  ) as GateConfig;
+  const gateConfig: GateConfig = {
+    ...(config.gates ?? {}),
+    ...cliGateOverridesDefined,
+    ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
+  };
+
+  if (config.gates?.paired !== undefined || cliGateOverrides.paired !== undefined) {
+    gateConfig.paired = { ...config.gates?.paired, ...cliGateOverrides.paired };
+  }
+
+  if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
+    gateConfig.statistical = {
+      ...(config.gates?.statistical ?? {}),
+      ...(cliGateOverrides.statistical ?? {}),
+    };
+  }
+  if ((config.gates?.calibration ?? cliGateOverrides.calibration) !== undefined) {
+    gateConfig.calibration = {
+      ...(config.gates?.calibration ?? {}),
+      ...(cliGateOverrides.calibration ?? {}),
+    };
+  }
+  if ((config.gates?.repeat ?? cliGateOverrides.repeat) !== undefined) {
+    gateConfig.repeat = {
+      ...(config.gates?.repeat ?? {}),
+      ...(cliGateOverrides.repeat ?? {}),
+    } as GateConfig['repeat'];
+  }
+  const gateConfigErrors = validateGateConfig(gateConfig);
+  if (gateConfigErrors.length > 0) {
+    throw Object.assign(new Error(gateConfigErrors.join(' ')), { exitCode: 2 });
+  }
+  assertValidStatisticalGateConfig(gateConfig);
+  assertValidCalibrationGateConfig(gateConfig);
+
+  const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
+  const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
+  const prTierBudget = selectedTier
+    ? evaluatePrTierBudget(context.current, {
+        tier: selectedTier,
+        maxCostUsd: maxPrCostUsd,
+        maxDurationMs: maxPrDurationMs,
+      })
+    : undefined;
+
+  const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
+  const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
+  const waiverApplication = applyWaivers(context.current, waiverRegister);
+
+  const baselineGateConfigPath =
+    optionString(options, 'baseline-gate-config', '') || config.baselineGateConfigFile || '';
+  const allowGateLoosening =
+    optionBoolean(options, 'allow-gate-loosening') || gateConfig.allowLoosening === true;
+  let thresholdChangeResult:
+    | ReturnType<typeof detectGateConfigLoosening>
+    | undefined;
+  if (baselineGateConfigPath) {
+    let baselineGateConfigRaw: string;
+    try {
+      baselineGateConfigRaw = await readFile(baselineGateConfigPath, 'utf8');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw Object.assign(
+        new Error(`Could not read baseline gate config ${baselineGateConfigPath}: ${message}`),
+        { exitCode: 2 },
+      );
+    }
+    let baselineGateConfig: GateConfig;
+    try {
+      baselineGateConfig = JSON.parse(baselineGateConfigRaw) as GateConfig;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw Object.assign(
+        new Error(`Baseline gate config ${baselineGateConfigPath} is not valid JSON: ${message}`),
+        { exitCode: 2 },
+      );
+    }
+    const baselinePairedErrors = validatePairedComparisonOptions(baselineGateConfig?.paired);
+    if (baselinePairedErrors.length) {
+      throw Object.assign(new Error(`Invalid paired policy in baseline gate config: ${baselinePairedErrors.join(' ')}`), { exitCode: 2 });
+    }
+    thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
+  }
+
+  const gateResult = checkGates(
+    waiverApplication.reportForGating,
+    waiverApplication.active.length > 0
+      ? compareRuns(waiverApplication.reportForGating, context.previous)
+      : context.comparison,
+    gateConfig,
+    context.baselineCompatibility,
+    context.previous,
+    context.current,
+  );
+  const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
+  const thresholdChangeFailures =
+    thresholdChangeResult && thresholdChangeResult.loosened && !allowGateLoosening
+      ? thresholdChangeResult.failures
+      : [];
+  const combinedFailures = [
+    ...gateResult.failures,
+    ...calibrationChecks.failures,
+    ...waiverApplication.failures,
+    ...thresholdChangeFailures,
+    ...(prTierBudget?.failures ?? []),
+  ].map(stripControlCharacters);
+  const combinedDiagnostics = [
+    ...waiverApplication.diagnostics,
+    ...gateResult.diagnostics,
+    ...calibrationChecks.diagnostics,
+    ...(thresholdChangeResult?.diagnostics ?? []),
+    ...(thresholdChangeResult?.loosened && allowGateLoosening
+      ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
+      : []),
+    ...(prTierBudget?.diagnostics ?? []),
+  ].map(stripControlCharacters);
+  const gatePassed = combinedFailures.length === 0;
+  const gateDecision = gateDecisionFromResult({
+    passed: gatePassed,
+    status: gateResult.status === 'inconclusive' && combinedFailures.length === gateResult.failures.length ? 'inconclusive' : gatePassed ? 'passed' : 'failed',
+    pairedComparison: gateResult.pairedComparison,
+    failures: combinedFailures,
+    diagnostics: combinedDiagnostics,
+  });
+  return {
+    gateDecision,
+    gateConfig,
+    prTierBudget,
+    waiverApplication,
+    thresholdChangeResult,
+    allowGateLoosening,
+    allowBlockedBaseline,
+    gatePassed,
+    combinedFailures,
+    combinedDiagnostics,
+  };
+};
+
 const assertValidStatisticalGateConfig = (gateConfig: GateConfig): void => {
   const errors = validateStatisticalGateConfig(gateConfig.statistical);
   if (errors.length > 0) {
@@ -1322,6 +1495,8 @@ const main = async (): Promise<void> => {
 
   // Load file-based config, then merge CLI flags on top (CLI wins)
   const fileConfig = await loadConfig();
+  const pairedConfigErrors = validatePairedComparisonOptions(fileConfig.gates?.paired);
+  if (pairedConfigErrors.length) throw Object.assign(new Error(pairedConfigErrors.join(' ')), { exitCode: 2 });
   assertValidCalibrationGateConfig({ calibration: fileConfig.gates?.calibration });
   const mergedCalibration = (() => {
     const enabled = cliDisableCalibrationPreflight
@@ -1358,6 +1533,10 @@ const main = async (): Promise<void> => {
       ? (optionStrings(options, 'reporter', []) as ReporterName[])
       : undefined,
     gates: {
+      ...fileConfig.gates,
+      ...((fileConfig.gates?.paired !== undefined || pairedConfigFromOptions(options) !== undefined) ? {
+        paired: { ...fileConfig.gates?.paired, ...pairedConfigFromOptions(options) },
+      } : {}),
       minPassRate: optionNumber(options, 'min-pass-rate') ?? fileConfig.gates?.minPassRate,
       minMatchedExpectationRate:
         optionNumber(options, 'min-matched-expectation-rate') ?? fileConfig.gates?.minMatchedExpectationRate,
@@ -1708,8 +1887,11 @@ const main = async (): Promise<void> => {
     const locale = optionString(options, 'locale', '') || config.locale;
     assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });
     assertValidCalibrationGateConfig({ calibration: config.gates?.calibration });
+    const evaluation = await evaluateConfiguredRun(context, config, options);
     const outputs = await renderReports({
       ...context,
+      gateDecision: evaluation.gateDecision,
+      paired: evaluation.gateConfig.paired,
       theme,
       locale,
       profile,
@@ -1820,119 +2002,18 @@ const main = async (): Promise<void> => {
         baselineLookback,
         tier: selectedTier,
       });
-      const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
-      const cliGateOverrides = gateConfigFromOptions(options);
-      const cliGateOverridesDefined = Object.fromEntries(
-        Object.entries(cliGateOverrides).filter(([, value]) => value !== undefined),
-      ) as GateConfig;
-      const gateConfig: GateConfig = {
-        ...(config.gates ?? {}),
-        ...cliGateOverridesDefined,
-        ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
-      };
-
-      if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
-        gateConfig.statistical = {
-          ...(config.gates?.statistical ?? {}),
-          ...(cliGateOverrides.statistical ?? {}),
-        };
-      }
-      if ((config.gates?.calibration ?? cliGateOverrides.calibration) !== undefined) {
-        gateConfig.calibration = {
-          ...(config.gates?.calibration ?? {}),
-          ...(cliGateOverrides.calibration ?? {}),
-        };
-      }
-      if ((config.gates?.repeat ?? cliGateOverrides.repeat) !== undefined) {
-        gateConfig.repeat = {
-          ...(config.gates?.repeat ?? {}),
-          ...(cliGateOverrides.repeat ?? {}),
-        } as GateConfig['repeat'];
-      }
-      const gateConfigErrors = validateGateConfig(gateConfig);
-      if (gateConfigErrors.length > 0) {
-        throw Object.assign(new Error(gateConfigErrors.join(' ')), { exitCode: 2 });
-      }
-      assertValidStatisticalGateConfig(gateConfig);
-      assertValidCalibrationGateConfig(gateConfig);
-
-      const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
-      const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
-      const prTierBudget = selectedTier
-        ? evaluatePrTierBudget(context.current, {
-            tier: selectedTier,
-            maxCostUsd: maxPrCostUsd,
-            maxDurationMs: maxPrDurationMs,
-          })
-        : undefined;
-
-      const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
-      const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
-      const waiverApplication = applyWaivers(context.current, waiverRegister);
-
-      const baselineGateConfigPath =
-        optionString(options, 'baseline-gate-config', '') || config.baselineGateConfigFile || '';
-      const allowGateLoosening =
-        optionBoolean(options, 'allow-gate-loosening') || gateConfig.allowLoosening === true;
-      let thresholdChangeResult:
-        | ReturnType<typeof detectGateConfigLoosening>
-        | undefined;
-      if (baselineGateConfigPath) {
-        let baselineGateConfigRaw: string;
-        try {
-          baselineGateConfigRaw = await readFile(baselineGateConfigPath, 'utf8');
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw Object.assign(
-            new Error(`Could not read baseline gate config ${baselineGateConfigPath}: ${message}`),
-            { exitCode: 2 },
-          );
-        }
-        let baselineGateConfig: GateConfig;
-        try {
-          baselineGateConfig = JSON.parse(baselineGateConfigRaw) as GateConfig;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw Object.assign(
-            new Error(`Baseline gate config ${baselineGateConfigPath} is not valid JSON: ${message}`),
-            { exitCode: 2 },
-          );
-        }
-        thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
-      }
-
-      const gateResult = checkGates(
-        waiverApplication.reportForGating,
-        waiverApplication.active.length > 0
-          ? compareRuns(waiverApplication.reportForGating, context.previous)
-          : context.comparison,
+      const {
+        gateDecision,
         gateConfig,
-        context.baselineCompatibility,
-        context.previous,
-      );
-      const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
-      const thresholdChangeFailures =
-        thresholdChangeResult && thresholdChangeResult.loosened && !allowGateLoosening
-          ? thresholdChangeResult.failures
-          : [];
-      const combinedFailures = [
-        ...gateResult.failures,
-        ...calibrationChecks.failures,
-        ...waiverApplication.failures,
-        ...thresholdChangeFailures,
-        ...(prTierBudget?.failures ?? []),
-      ].map(stripControlCharacters);
-      const combinedDiagnostics = [
-        ...waiverApplication.diagnostics,
-        ...gateResult.diagnostics,
-        ...calibrationChecks.diagnostics,
-        ...(thresholdChangeResult?.diagnostics ?? []),
-        ...(thresholdChangeResult?.loosened && allowGateLoosening
-          ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
-          : []),
-        ...(prTierBudget?.diagnostics ?? []),
-      ].map(stripControlCharacters);
-      const gatePassed = combinedFailures.length === 0;
+        prTierBudget,
+        waiverApplication,
+        thresholdChangeResult,
+        allowGateLoosening,
+        allowBlockedBaseline,
+        gatePassed,
+        combinedFailures,
+        combinedDiagnostics,
+      } = await evaluateConfiguredRun(context, config, options, selectedTier);
 
       heartbeatRunId = context.current.run.id;
       heartbeatBaselineRunId = context.previous?.run.id;
@@ -1947,6 +2028,7 @@ const main = async (): Promise<void> => {
       const checkPayload: CheckOutputPayload = {
         schemaVersion: 'eval-check-result/v1',
         gateRunStatus: 'ran',
+        gateDecision,
         runId: context.current.run.id,
         baselineRunId: context.previous?.run.id,
         passed: gatePassed,

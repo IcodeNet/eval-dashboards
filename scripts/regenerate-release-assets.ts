@@ -89,6 +89,11 @@ const main = async (): Promise<void> => {
     '--out=eval-report/history-trend-recent.html',
   ]);
 
+  await run('node', ['examples/paired-comparison/generate.mjs', '.tmp/paired-input']);
+  await run('pnpm', ['dev', 'report', '--input=.tmp/paired-input', '--reporter=html',
+    '--report-dir=.tmp/paired-report', '--paired-min-delta=0', '--paired-min-clusters=20',
+    '--assume-independent-clusters']);
+
   await mkdir(path.join(repoRoot, 'docs', 'images'), { recursive: true });
 
   const browser = await chromium.launch();
@@ -127,6 +132,11 @@ const main = async (): Promise<void> => {
       path.join(repoRoot, 'eval-report', 'history-trend.html'),
       path.join(repoRoot, 'docs', 'images', 'history-trend-dark.png'),
       { width: 1100, height: 900, colorScheme: 'dark' },
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, '.tmp', 'paired-report', 'index.html'),
+      path.join(repoRoot, 'docs', 'images', 'paired-comparison.png'),
     );
   } finally {
     await browser.close();

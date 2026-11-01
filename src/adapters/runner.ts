@@ -40,6 +40,7 @@ export type RunnerEvalCaseResult = {
   category?: string;
   reason?: string;
   durationMs?: number;
+  checks?: EvalRow['checks'];
   metadata?: EvalRow['metadata'];
   trace?: EvalRow['trace'];
 };
@@ -96,6 +97,7 @@ const createDefaultRow = <CaseResult extends RunnerEvalCaseResult>(
   category: caseResult.category,
   reason: caseResult.reason,
   durationMs: caseResult.durationMs,
+  checks: caseResult.checks,
   metadata: caseResult.metadata,
   trace: caseResult.trace,
 });
