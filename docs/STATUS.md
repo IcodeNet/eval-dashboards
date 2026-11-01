@@ -129,6 +129,8 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 
 - [x] Langfuse score metadata/provenance (4C.17), including explicit empty flattened IDs and malformed-value handling. Code: `src/cli/import-adapters.ts:651`; tests: `test/import-adapters-ragas-langfuse.test.ts:111`. See [PR #93 handoff](./reviews/2026-10-31-import-roadmap-handoff.md).
 
+- [x] Phoenix decision-model evidence (4C.19): preserve confidence/probabilities and trace links, omit null trace IDs, and retain valid aliases/URLs. Code: `src/cli/import-adapters.ts:1037`; tests: `test/import-adapters-phoenix-braintrust.test.ts:65`, `:111`. See [review evidence](./reviews/2026-11-01-phoenix-review.json).
+
 ### Gate follow-ups (2026-10-19)
 
 - [x] Per-suite thresholds: `gates.suites.<suite>.minPassRate` and `.maxNewFailures` in the config file (`src/gates/check-gates.ts`, `src/gates/threshold-change.ts`, `test/gates-per-suite.test.ts`, `test/cli-check-per-suite.test.ts`, `test/threshold-change-suites.test.ts`, `docs/gates.md`).

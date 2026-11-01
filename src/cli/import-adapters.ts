@@ -795,7 +795,21 @@ type PhoenixResult = {
   trace_id?: string;
   spanId?: string;
   span_id?: string;
-  metadata?: { suite?: string; category?: string; severity?: ImportableSeverity };
+  traceUrl?: string;
+  trace_url?: string;
+  spanUrl?: string;
+  span_url?: string;
+  metadata?: (Record<string, unknown> & {
+    suite?: string;
+    category?: string;
+    severity?: ImportableSeverity;
+    confidence?: number;
+    probabilities?: Record<string, unknown>;
+    traceUrl?: string;
+    trace_url?: string;
+    spanUrl?: string;
+    span_url?: string;
+  });
 };
 
 type BraintrustResult = {
@@ -1020,6 +1034,12 @@ const phoenixRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResu
       );
     }
 
+    const traceId = row.traceId ?? row.trace_id ?? undefined;
+    const spanId = row.spanId ?? row.span_id ?? undefined;
+    const traceUrl = row.traceUrl ?? row.trace_url ?? (typeof row.metadata?.traceUrl === 'string' ? row.metadata.traceUrl : undefined) ?? (typeof row.metadata?.trace_url === 'string' ? row.metadata.trace_url : undefined);
+    const spanUrl = row.spanUrl ?? row.span_url ?? (typeof row.metadata?.spanUrl === 'string' ? row.metadata.spanUrl : undefined) ?? (typeof row.metadata?.span_url === 'string' ? row.metadata.span_url : undefined);
+    const decisionProbabilities = asRecord(row.metadata?.probabilities);
+
     return {
       id: rowLabel,
       suite,
@@ -1040,7 +1060,20 @@ const phoenixRows = (source: unknown, fallbackSuite: string): RunnerEvalCaseResu
           sourceRef: 'phoenix',
         },
         lifecycle: { status: 'active' },
+        ...(typeof row.metadata?.confidence === 'number'
+          ? { phoenixDecisionConfidence: row.metadata.confidence }
+          : {}),
+        ...(decisionProbabilities ? { phoenixDecisionProbabilities: decisionProbabilities } : {}),
       },
+      trace:
+        traceId !== undefined || spanId !== undefined || traceUrl !== undefined || spanUrl !== undefined
+          ? {
+              ...(traceId !== undefined ? { traceId } : {}),
+              ...(spanId !== undefined ? { spanId } : {}),
+              ...(traceUrl !== undefined ? { traceUrl } : {}),
+              ...(spanUrl !== undefined ? { spanUrl } : {}),
+            }
+          : undefined,
     };
   });
 };

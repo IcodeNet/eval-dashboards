@@ -8,20 +8,30 @@
 ## Tradeoffs
 
 - Observability exports often include fields not directly usable as gate metrics.
-- Python-sidecar assumptions are common in Phoenix-centric stacks.
+- Export schemas vary by evaluator type, so import rules must stay explicit.
 
 ## Minimal conversion path into `eval-report/v1`
 
-Export eval rows from Phoenix and map each row to schema fields.
+Use the built-in adapter:
 
-- Preserve `traceId`/`spanId` and links in `rows[].trace`.
-- Normalize pass/fail signals before gate checks.
+- Source: `--from=phoenix`
+- Accepted input shapes: JSON array, or objects with `results[]`, `rows[]`, or `evaluations[]`
+- Pass/fail mapping: label (`correct`/`incorrect` etc.) first, then `score >= 0.5`
+
+Preserved evidence:
+
+- `traceId`/`trace_id` and `spanId`/`span_id` map into `rows[].trace`. Null IDs are omitted; a valid alias or trace URL is still preserved.
+- `traceUrl`/`trace_url` and `spanUrl`/`span_url` map into `rows[].trace` when present.
+- Decision-model metadata fields from Phoenix exports map into row metadata:
+  - `metadata.confidence` → `rows[].metadata.phoenixDecisionConfidence`
+  - `metadata.probabilities` → `rows[].metadata.phoenixDecisionProbabilities`
 
 ## Concrete command/pattern
 
 ```sh
-pnpm tsx examples/custom-reporter-plugin/map-generic-export-to-eval-report.ts --source=phoenix --input=./phoenix-export.json --out=./.evals_output/phoenix-import.json
-eval-dashboards report --input=.evals_output --reporter=html --report-dir=eval-report
+eval-dashboards import --from=phoenix --input=./phoenix-export.json --out=.evals_output/import-phoenix.json
+eval-dashboards check --input=.evals_output
+eval-dashboards report --input=.evals_output --reporter=html --reporter=json-summary --report-dir=eval-report
 ```
 
 Related risks: [integration risk register](./risk-register.md)

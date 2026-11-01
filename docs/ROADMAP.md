@@ -833,6 +833,21 @@ Evidence: `src/cli/import-adapters.ts:215`, `src/adapters/runner.ts:100`, `test/
 
 Acceptance: assertion evidence survives JSON/JSONL import without changing row-level gate semantics or `eval-report/v1`. See [PR #92](https://github.com/IcodeNet/eval-dashboards/pull/92) and [Promptfoo exports](https://www.promptfoo.dev/docs/configuration/outputs/).
 
+### 4C.19 Phoenix decision-model evidence parity (P1)
+
+- [x] Extend the Phoenix import adapter to preserve decision-model export evidence (`metadata.confidence`, `metadata.probabilities`) and trace links (`traceId`/`spanId` plus `traceUrl`/`spanUrl`) in `eval-report/v1` rows.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=phoenix` maps `traceId`/`trace_id`, `spanId`/`span_id`, `traceUrl`/`trace_url`, and `spanUrl`/`span_url` into `rows[].trace` when present.
+- `metadata.confidence` maps to `rows[].metadata.phoenixDecisionConfidence` and `metadata.probabilities` maps to `rows[].metadata.phoenixDecisionProbabilities`.
+- Adapter tests cover the decision-model shape and schema validation still passes.
+- `docs/integrations/arize-phoenix.md` documents the mapping and uses the built-in `import` command path.
+
+Rationale: Phoenix release notes (2026-10-27) document decision-model evaluators emitting `metadata.probabilities` and `metadata.confidence`; preserving those fields prevents evidence loss during CI migration (https://arize.com/docs/phoenix/release-notes/10-2026/10-27-2026-decision-model-evaluators-and-project-onboarding).
+
+Verification 2026-11-01: `src/cli/import-adapters.ts:1037`, `test/import-adapters-phoenix-braintrust.test.ts:65` and `:111`; see [review evidence](./reviews/2026-11-01-phoenix-review.json). Null trace IDs are omitted without dropping valid aliases or URLs.
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation

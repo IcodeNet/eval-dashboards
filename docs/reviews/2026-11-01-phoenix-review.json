@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-01",
+  "pullRequest": 100,
+  "reviewedHead": "e1243119382e695930ba7ceeb3e6648227315529",
+  "finding": {
+    "thread": "PRRT_kwDOTqa2YM6yYRX9",
+    "commentId": 4434798979,
+    "issue": "Null snake_case trace IDs, including null alias pairs, enter the trace object and fail artifact validation."
+  },
+  "integration": "Preserved both roadmap entries: Promptfoo retains 4C.18; Phoenix is 4C.19. The original two entries had the same identifier and conflicted.",
+  "before": {
+    "source": "PR #100 plus main e08fab1, before the null-ID correction. The Phoenix mapping was unchanged by the main integration.",
+    "command": "pnpm test test/import-adapters-phoenix-braintrust.test.ts -t 'null Phoenix'",
+    "exitCode": 1,
+    "results": "3 failed, 2 passed, 6 skipped; the three failing cases report invalid trace IDs.",
+    "testLogSha256": "930c29fce60669c2b8e4c277b82d1f4d886028cc81a250483fccf768eb6841fa",
+    "importAdapterSha256": "9c6d2c32e183f356044be4cfa083b41e4ea16ed33053a2ff084250a9de6a95e6"
+  },
+  "after": {
+    "fix": "Normalize final null trace/span aliases to undefined before creating the trace object. Valid aliases and URLs remain intact; existing validation still rejects invalid non-null values.",
+    "command": "pnpm test test/import-adapters-phoenix-braintrust.test.ts",
+    "exitCode": 0,
+    "results": "11 passed, including the five null/alias cases and existing Phoenix/Braintrust fixtures.",
+    "testLogSha256": "25c667eb0fa5828a6e464bfbe2b9d9a7b8b963378d8e95b1ef044bc5c54c6685",
+    "importAdapterSha256": "be4a5472aeff3f1372a6ddd65bc40321325c00af0ac5572b53ba7a2b62f22ef4",
+    "testSourceSha256": "a36389a0ffb6ccba48f323e3c9f343b957a4a16eb421c328b22982f2ffdbcade"
+  },
+  "fixtures": "Synthetic data only: correct label, null/valid trace aliases, confidence 0.9 and class probabilities 0.9/0.1.",
+  "validation": "Re-run full exact-tree checks against latest protected main, push, reply on the finding with the commit and evidence, resolve it, monitor reviews/required checks, and merge.",
+  "limitations": [
+    "Imported confidence is evidence from the source, not a claim of calibration.",
+    "No performance or model-accuracy benchmark was run."
+  ]
+}

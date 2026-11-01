@@ -1,0 +1,26 @@
+{
+  "results": [
+    {
+      "id": "phoenix-decision-1",
+      "name": "classification-check",
+      "question": "Is this a billing request?",
+      "input": "I was charged twice for my subscription",
+      "output": "billing",
+      "label": "correct",
+      "score": 0.98,
+      "trace_id": "trace-decision-1",
+      "span_id": "span-decision-1",
+      "trace_url": "https://phoenix.example/traces/trace-decision-1",
+      "span_url": "https://phoenix.example/traces/trace-decision-1/spans/span-decision-1",
+      "metadata": {
+        "suite": "phoenix-classification",
+        "confidence": 0.97,
+        "probabilities": {
+          "billing": 0.97,
+          "shipping": 0.02,
+          "other": 0.01
+        }
+      }
+    }
+  ]
+}
