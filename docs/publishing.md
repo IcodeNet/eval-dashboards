@@ -4,6 +4,11 @@
 
 Publishing does not perform the shared `check`/`report` gate evaluation. Its regenerated reports explicitly show `not-evaluated`; publishing alone is not evidence of passing policy. Run `check` in CI to enforce the configured gates.
 
+This page describes publishing dashboard artifacts. npm package publication
+uses a separate [trusted-publishing workflow and next-release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+The latest verified npm package is 0.10.0 as of 2026-11-01; newer repository
+features remain unreleased until an authorized package release.
+
 Supported targets:
 
 - `dir`

@@ -11,9 +11,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Proposed next minor: **0.11.0**, after the portable M1 release gates in
+[the release plan](docs/npm-publishing.md#next-release-plan--checked-2026-11-01).
+No new package has been published.
+
+### Added
+
+- Reports share the configured quality-gate decision across HTML, Markdown,
+  text, and JSON. Report creation still succeeds when a policy fails; use
+  `check` to enforce the CI result.
+- Matching-case analytics distinguish regressions from newly added failures
+  and removed cases. Optional grader versions and score direction describe
+  compatible measurements; cost, tokens, and timing retain measured/missing
+  coverage instead of treating absent values as zero.
+- An opt-in paired gate reports passed, failed, or inconclusive using declared
+  independent scenario groups and compatible cases. Repeated counts do not
+  inflate the independent group count.
+- Per-case repeated-trial intervals require an explicit sampling declaration;
+  unknown designs retain observed counts with unknown uncertainty. This slice
+  is in progress in repository source and must merge before the release cut.
+- Promptfoo assertion components, Langfuse score provenance, and Phoenix
+  decision confidence/probabilities and trace links survive import.
+
 ### Fixed
 
-- The `Publish to npm` workflow pinned Node 22.14.0, which the Astro docs site refuses to build on, so a release stopped before publishing. It now uses the latest Node 22.
+- Inspect AI imports respect mixed scorer failures and errors and preserve task
+  and sample descriptions. Langfuse imports preserve explicit IDs and handle
+  malformed optional evidence; Phoenix imports omit null trace IDs while
+  retaining valid aliases and URLs.
+- Malformed evidence-bundle entries produce verification diagnostics instead
+  of throwing. Unsupported digest declarations are rejected. This checks
+  integrity; signed-bundle authentication remains pending.
+- Pass-rate styling no longer suggests approval when the configured gate fails.
+
+### Changed
+
+- Maintainer PRs use a versioned plain-English template, structural checks,
+  resolved review conversations, and protected-main CI requirements.
+- Dependency and pnpm workflow updates are aligned. Scheduled adoption metrics
+  produce review artifacts for normal PR updates.
 
 ## [0.10.0] — 2026-10-19
 
@@ -32,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unknown keys in the config file now fail with exit 2.** A misspelled key such as `gates.minPassRat` used to be ignored, which silently turned that gate off. The error names the key and suggests the closest valid one. If your config has extra keys, remove them or fix the spelling.
 
 ### Fixed
+
+- The `Publish to npm` workflow pinned Node 22.14.0, which the Astro docs site refuses to build on, so a release stopped before publishing. It now uses the latest Node 22. This workflow fix was already included in the source revision published as 0.10.0.
 
 - **`--waiver-file` now covers every gate it documents.** A waived row used to count as passed only for `--min-pass-rate`. It was still counted by `--zero-critical`, `--max-new-failures` and `--require-suite-pass`, so a waived critical failure still failed those gates. The waiver now clears the row's severity, recounts its suite, and recomputes the new-failure comparison. The waiver is still listed in the check result, and `newlyFailingRows` still shows the row.
 - `report --theme=<name>` with a name that is not built in (`default`, `dark`, `minimal`) now exits 2 with a "did you mean" hint. It used to exit 0 and use the default theme.

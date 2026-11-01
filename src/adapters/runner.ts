@@ -40,6 +40,8 @@ export type RunnerEvalCaseResult = {
   category?: string;
   reason?: string;
   durationMs?: number;
+  repeated?: EvalRow['repeated'];
+  expectedOutcome?: EvalRow['expectedOutcome'];
   checks?: EvalRow['checks'];
   metadata?: EvalRow['metadata'];
   trace?: EvalRow['trace'];
@@ -97,6 +99,8 @@ const createDefaultRow = <CaseResult extends RunnerEvalCaseResult>(
   category: caseResult.category,
   reason: caseResult.reason,
   durationMs: caseResult.durationMs,
+  repeated: caseResult.repeated,
+  expectedOutcome: caseResult.expectedOutcome,
   checks: caseResult.checks,
   metadata: caseResult.metadata,
   trace: caseResult.trace,

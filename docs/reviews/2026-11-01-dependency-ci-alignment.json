@@ -113,5 +113,16 @@
     "focusedCommand": "npm_config_offline=true pnpm test test/cli-config-zero-critical.test.ts",
     "focusedResult": "1 passed with npm offline mode.",
     "limit": "This removes a network-resolution path from the test; the observed timeout is not proof of an application-gate regression."
+  },
+  "postMergeDocsDeployment": {
+    "head": "f38b19c29fab446f8a2636fdd03ee0fa1f89b34d",
+    "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41319412950/job/124886240900",
+    "rawLogReviewed": true,
+    "observed": [
+      "pnpm 12.16.1 setup succeeded",
+      "Docs site built and link/asset check passed",
+      "Pages artifact uploaded",
+      "Deployment for the named main revision reported success"
+    ]
   }
 }

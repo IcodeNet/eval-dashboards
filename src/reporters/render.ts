@@ -1,3 +1,4 @@
+import { describeRepeatedTrials, describeRepeatedTrialCase, describeTrialReason, formatTrialRate, formatTrialInterval, formatTrialBaseline, formatTrialChange } from '../analytics/repeated-trials.js';
 import path from 'node:path';
 import { describePairedComparison, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
 import { analyzeRun, type RunAnalytics } from '../analytics/run-analytics.js';
@@ -16,6 +17,7 @@ import {
 } from '../model/eval-report-v1.js';
 import { writeJsonFile, writeTextFile } from '../io/reports.js';
 import { formatDate, formatPassRate, formatDuration } from '../utils/format.js';
+import { stripControlCharacters } from '../utils/untrusted-text.js';
 import { bootstrapPassRateDelta, type StatisticalGateConfig } from '../gates/statistical.js';
 import {
   resolveTheme,
@@ -136,6 +138,7 @@ const renderText = (context: ReportContext): string => {
     `Matched flips:    ${analytics.cohort.matchedRegressions} regressions (descriptive; see cohort eligibility)`,
     `Introduced:       ${analytics.cohort.introducedCases} cases, ${analytics.cohort.introducedFailures} failures`,
     describePairedComparison(analytics.pairedComparison),
+    ...(analytics.repeatedTrials.currentCases > 0 ? [describeRepeatedTrials(analytics.repeatedTrials), ...analytics.repeatedTrials.cases.map(entry => stripControlCharacters(describeRepeatedTrialCase(entry)).replace(/[\r\n]+/g, ' '))] : []),
     `Measured cost:    ${metricDescription(analytics.telemetry.cost)}`,
     `Measured latency: ${metricDescription(analytics.telemetry.duration)}`,
     `Baseline:         ${context.baselineCompatibility?.status ?? 'not compared'}`,
@@ -153,7 +156,19 @@ const metricDescription = (metric: MeasuredMetric): string => {
 const renderAnalyticsHtml = (analytics: RunAnalytics): string => {
   const { cohort, telemetry } = analytics;
   const statusTone = cohort.status === 'compatible' ? 'pass' : cohort.status === 'incompatible' || cohort.status === 'ambiguous' ? 'fail' : 'muted';
-  const body = `<div class="section-pad"><p>${e(describePairedComparison(analytics.pairedComparison))}</p><p>Paired bounds assume independent declared groups and use only matching, version-compatible cases. Repeated trials do not increase the independent group count.</p><p>Identity matches are descriptive. Use eligible cases before attributing changes; unknown versions are not compatibility evidence.</p>
+  const repeatedEvidence = analytics.repeatedTrials.currentCases > 0
+    ? `<div data-evidence="repeated-trials" style="padding:18px">
+      <h3 style="font-size:16px;margin-bottom:8px">Repeated trials</h3>
+      <p>${e(describeRepeatedTrials(analytics.repeatedTrials))}</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Case</th><th>Current rate</th><th>Baseline rate</th><th>${analytics.repeatedTrials.confidenceLevel * 100}% rate interval</th><th>${analytics.repeatedTrials.confidenceLevel * 100}% change interval</th></tr></thead>
+        <tbody>${analytics.repeatedTrials.cases.map(entry => `<tr><td>${e(entry.suite)}/${e(entry.id)}</td><td>${e(formatTrialRate(entry.current))}</td><td>${e(formatTrialBaseline(entry))}</td><td>${entry.current.interval ? e(formatTrialInterval(entry.current.interval)) : `unknown: ${e(describeTrialReason(entry.current.reason))}`}</td><td>${e(formatTrialChange(entry))}</td></tr>`).join('')}</tbody>
+      </table></div>
+      <p>Rates are fractions from 0 to 1; counts show outcomes matching the case expectation. Intervals assume a fixed trial count and independent trials within each case. Change intervals account for uncertainty in both runs.</p>
+      <p>These intervals do not adjust for reviewing many cases or checking results repeatedly. At most 20 cases are shown.</p>
+    </div>`
+    : '';
+  const body = `<div class="section-pad"><p>${e(describePairedComparison(analytics.pairedComparison))}</p><p>Paired bounds assume independent declared groups and use only matching, version-compatible cases. Repeated trials do not increase the independent group count.</p>${repeatedEvidence}<p>Identity matches are descriptive. Use eligible cases before attributing changes; unknown versions are not compatibility evidence.</p>
     <p>Matched cases: ${cohort.matchedCases}; eligible: ${cohort.eligibleCases}; matched regressions: ${cohort.matchedRegressions}; matched recoveries: ${cohort.matchedRecoveries}.</p>
     <p>Introduced cases: ${cohort.introducedCases}; introduced failures: ${cohort.introducedFailures}; removed cases: ${cohort.removedCases}; duplicate identities: ${cohort.duplicateIdentities}.</p>
     <p>Score comparisons: ${cohort.scores.measuredPairs} measured pairs; ${cohort.scores.regressions} regressions; ${cohort.scores.unavailablePairs} unavailable pairs. Evidence lists show at most 20 examples.</p>
@@ -310,6 +325,7 @@ export const renderMarkdown = (context: ReportContext): string => {
 
   lines.push('', '## Comparison evidence and measured coverage', '',
     describePairedComparison(analytics.pairedComparison),
+    ...(analytics.repeatedTrials.currentCases > 0 ? [describeRepeatedTrials(analytics.repeatedTrials), ...analytics.repeatedTrials.cases.map(entry => mdTableCell(e(describeRepeatedTrialCase(entry))))] : []),
     `Cohort: ${analytics.cohort.status}. Matched cases: ${analytics.cohort.matchedCases}; eligible cases: ${analytics.cohort.eligibleCases}.`,
     `Descriptive matched regressions: ${analytics.cohort.matchedRegressions}; introduced cases: ${analytics.cohort.introducedCases}; introduced failures: ${analytics.cohort.introducedFailures}; removed cases: ${analytics.cohort.removedCases}.`,
     'Identity matches alone do not establish comparability; inspect version eligibility before attributing changes.',

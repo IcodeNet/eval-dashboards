@@ -353,6 +353,40 @@
         "metadata": {
           "$ref": "#/definitions/RowMetadata",
           "description": "Optional: free-form metadata for extensions. Includes portable provenance/lifecycle conventions when present."
+        },
+        "repeated": {
+          "type": "object",
+          "required": [
+            "runs",
+            "passes",
+            "aggregation"
+          ],
+          "properties": {
+            "runs": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "passes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "aggregation": {
+              "enum": [
+                "mean",
+                "majority",
+                "all"
+              ]
+            },
+            "samplingDesign": {
+              "type": "string",
+              "enum": [
+                "fixed-independent",
+                "unknown"
+              ],
+              "description": "Fixed trial count chosen in advance, independent trials, and stable case/grading conditions. Absent means unknown."
+            }
+          },
+          "additionalProperties": true
         }
       }
     },

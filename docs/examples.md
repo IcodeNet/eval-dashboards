@@ -174,3 +174,12 @@ reports for the same 100 passing cases. Its README shows the opt-in paired gate
 and offline report commands. The example intentionally yields an inconclusive
 comparison rather than interpreting identical observed outcomes as perfect
 certainty. It uses no model provider, database, or paid service.
+
+
+### Repeated-trial uncertainty
+
+`examples/repeated-trials/` generates two synthetic artifacts with stable case
+and measurement versions. One case declares fixed independent trials; the other
+keeps its sampling design unknown. Run its README commands to inspect per-case
+rates and conservative difference bounds without a provider, database, or paid
+service. These are demonstration counts, not model benchmark results.

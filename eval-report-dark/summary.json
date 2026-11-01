@@ -246,6 +246,18 @@
         "dataset": "unknown",
         "production": "unknown"
       }
+    },
+    "repeatedTrials": {
+      "method": "hoeffding-union-bound",
+      "metric": "within-case-matched-expectation-rate",
+      "confidenceLevel": 0.95,
+      "currentCases": 0,
+      "estimatedCases": 0,
+      "unknownCases": 0,
+      "estimatedComparisons": 0,
+      "unavailableComparisons": 0,
+      "caseCount": 0,
+      "cases": []
     }
   },
   "gateDecision": {

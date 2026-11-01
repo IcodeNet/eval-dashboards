@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-11-01",
+  "npm": {
+    "package": "@icodenet/eval-dashboards",
+    "latest": "0.10.0",
+    "distTags": {
+      "latest": "0.10.0"
+    },
+    "publishedAt": "2026-10-19T14:53:53.537Z",
+    "gitHead": "3c535671c3e3571cc3c8c9c5369c36077be8f584",
+    "engines": {
+      "node": ">=20"
+    },
+    "verificationCommands": [
+      "npm view @icodenet/eval-dashboards version dist-tags time --json",
+      "npm view @icodenet/eval-dashboards gitHead engines dist.integrity --json"
+    ]
+  },
+  "github": {
+    "latestRelease": "v0.10.0",
+    "publishedAt": "2026-10-19T14:46:39Z",
+    "verificationCommand": "gh release list --repo IcodeNet/eval-dashboards --limit 3 --json tagName,publishedAt,isDraft,isPrerelease"
+  },
+  "currentMain": "f38b19c29fab446f8a2636fdd03ee0fa1f89b34d",
+  "proposedNextVersion": "0.11.0",
+  "status": "Plan only; package.json remains 0.10.0; no publishing workflow was dispatched.",
+  "scope": "Portable M1 analytics and decisions; hosted M2-M6 remain separate.",
+  "remainingGates": [
+    "Merge repeated-trial sampling/uncertainty slice",
+    "Complete reusable full policy evaluator",
+    "Resolve and verify advertised Node compatibility",
+    "Reconcile changelog and candidate version/docs",
+    "Pass ledger, protected-main CI, review, tarball and offline consumer checks",
+    "Obtain explicit owner authorization for the concrete publish candidate"
+  ],
+  "changelogCorrection": "The Node 22 release-workflow fix was present in npm gitHead 3c535671... and is moved from Unreleased to 0.10.0. No new release was inferred from the stale Unreleased label."
+}
