@@ -36,7 +36,7 @@ This is part of M1. Matching-case and missing-data semantics are described in
 [history storage](./history-storage.md#matched-cohorts-and-measured-telemetry);
 per-case trial bounds are available for declared fixed-independent sampling,
 with counts and unknown uncertainty retained when sampling is unspecified.
-The complete policy evaluator is also available in repository source; see below.
+The complete policy evaluator merged in #103 and is available in repository source; see below.
 
 ## Complete policy API (unreleased)
 

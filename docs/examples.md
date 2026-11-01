@@ -191,3 +191,11 @@ A synthetic answer passes ordinary gates but fails the complete policy because
 required calibration evidence is missing. The same evaluator powers CLI
 `check` and `report`; its README explains input validation and selection scope.
 This public API is unreleased and needs no provider, database or server.
+
+### Installed-package compatibility
+
+`pnpm verify:package` checks a fresh strict-engine tarball install, public API,
+offline HTML and file history. It also verifies GitHub comment create/update and
+Pages file updates using the real installed client with simulated fetch, plus
+mail message generation in memory. No GitHub request or email is sent. Required
+CI runs these consumers on Node 20/22/24/26; SQLite is checked on Node >=22.5.
