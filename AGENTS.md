@@ -110,6 +110,8 @@ Always include raw GitHub Actions log verification for workflows touched by your
 - Distinguish test results from benchmarks and code inspection. State when a baseline or measurement was not run; never invent evidence.
 - Improve the versioned template when reviewer feedback reveals a clearer approach. Keep it proportionate to the change rather than adding boilerplate by default.
 
+- `lint-description` checks the seven template sections and requires content. Renovate uses the same structure; CodeRabbit summaries belong in review comments. Passing structure does not prove clear wording or valid evidence.
+
 ## Delivery loop and cumulative requirements
 
 - Project requirements accumulate: new tasks and instructions add to existing
@@ -119,7 +121,7 @@ Always include raw GitHub Actions log verification for workflows touched by your
 - For owner-authorized roadmap work, finish one focused task, verify it, raise a
   PR, then monitor checks and review comments through completion. Opening a PR
   does not finish the task.
-- Refresh the PR head, base, CI, reviews, and discussion before each pass. Work
+- Refresh the PR head, base, CI, reviews, and discussion before each pass, including findings outside the inline diff. Work
   conflicts first, active review findings next, and CI failures after that.
 - Reproduce valid review findings, make the smallest correct fix, run required
   checks, and push. Reply on the original thread with the fix commit and evidence,

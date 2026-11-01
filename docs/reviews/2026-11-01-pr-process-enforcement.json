@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-01",
+  "pullRequest": 99,
+  "purpose": "Integrate protected main and persist observed PR-process enforcement without changing paired-comparison behavior.",
+  "beforeProtection": {
+    "classicProtection": "GET returned 404 Branch not protected",
+    "effectiveRules": "GET /rules/branches/main returned []"
+  },
+  "afterProtection": {
+    "required_status_checks": {
+      "strict": true,
+      "checks": [
+        {
+          "context": "lint-title",
+          "app_id": 15368
+        },
+        {
+          "context": "lint-description",
+          "app_id": 15368
+        },
+        {
+          "context": "lint-and-test (22.x)",
+          "app_id": 15368
+        },
+        {
+          "context": "examples (22.x)",
+          "app_id": 15368
+        },
+        {
+          "context": "composite-action",
+          "app_id": 15368
+        }
+      ]
+    },
+    "enforce_admins": true,
+    "required_pull_request_reviews": {
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": false,
+      "required_approving_review_count": 0,
+      "require_last_push_approval": false
+    },
+    "restrictions": null,
+    "required_conversation_resolution": true,
+    "allow_force_pushes": false,
+    "allow_deletions": false
+  },
+  "afterProtectionObserved": "GitHub accepted the update and returned all five GitHub Actions checks, strict up-to-date enforcement, administrator enforcement, zero additional required approvals, and conversation resolution. Read back before completion.",
+  "descriptionWorkflowEvidence": {
+    "head": "f1dba8aeaf08626e6044ac43770fe3eef6a14461",
+    "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41297221750/job/124820481916",
+    "observed": "Raw job log runs node scripts/verify-pr-description.mjs and reports the description follows the template."
+  },
+  "priorPairedIntegrationEvidence": {
+    "head": "aa00c0072554351dda3256d8d1308964fee4d11c",
+    "ci": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41296326971/job/124817832147",
+    "observed": [
+      "866 tests passed",
+      "111 CLI guards passed",
+      "3 platform-independent release assets reproduced",
+      "Teaching docs and docs site verified",
+      "Audit: 2 low, 7 moderate findings"
+    ],
+    "composite": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41296326972/job/124817832135",
+    "compositeObserved": "Reports generated; intentionally failing gate produced passed=false and output assertions passed; Node 20 transitive content-type engine warning remains."
+  },
+  "validationForThisIntegration": "Run the exact-tree completion gate, push, inspect current-head CI and raw workflow logs, refresh reviews, then merge when protected-main requirements pass.",
+  "limitations": [
+    "The structural check cannot prove prose quality or evidence truth.",
+    "GitHub conversation resolution covers inline threads; agents must also review outside-diff and conversation findings.",
+    "No paid review check is required.",
+    "Publishing remains separately authorized."
+  ]
+}

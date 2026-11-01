@@ -99,8 +99,9 @@ Using the sample report only, answer:
 1. 61.5%, from 13 rows (8 passed).
 2. No. The `Baseline blocked` chip means the dataset version changed between
    runs, so the count compares two different sets of questions.
-3. One — the persistent failure. The other four are flagged as new regressions,
-   but see answer 2 about how much that count is worth right now.
+3. One — the persistent failure. The other four are flagged as new failures
+   (matching-test regressions or newly added failing cases), but see answer 2
+   about how much that count is worth right now.
 4. No. All failing rows are `medium`.
 5. No, but not because the agent is proven worse. You cannot yet tell. The
    correct ask is a rebaseline on the new dataset version, not a fix.
