@@ -97,6 +97,20 @@ Record whether artifact regeneration produced expected diffs and whether those d
   or bypass the hook to conceal a failed check.
 - Review and trust `.codex/hooks.json` in Codex; hook installation does not grant trust.
 
+## 5b) Review and merge loop
+
+- Refresh the current PR head/base, checks, review submissions, and discussion.
+- Fix valid findings, verify and push, reply with the commit and evidence, then
+  resolve the addressed threads. Explain invalid or obsolete findings before
+  resolving them. No actionable comment or change request remains outstanding.
+- Monitor after every push; all applicable current-head checks must pass. Missing
+  or skipped jobs do not prove coverage. Do not weaken checks to make them pass.
+- For owner-authorized delivery, merge dependencies first into `origin/main`,
+  verify the remote merge, and continue the next roadmap task. PR creation alone
+  does not finish delivery. Publishing/deployment authorization remains separate.
+- Apply these checks together with all earlier project requirements, including
+  plain-English PRs, docs/schema/example sync, and honest completion claims.
+
 ## 6) Finish Gate (must be true)
 
 - Code, tests, and docs are in sync.
