@@ -2,7 +2,7 @@
 
 `eval-dashboards publish` renders a static dashboard and then publishes it to the selected target.
 
-Publishing does not perform the shared `check`/`report` gate evaluation. In unreleased repository source planned for 0.11.0, its regenerated reports explicitly show `not-evaluated` (npm 0.10.0 does not render this decision); publishing alone is not evidence of passing policy. Run `check` in CI to enforce the configured gates.
+Publishing does not perform the shared `check`/`report` gate evaluation. In unreleased repository source planned for 0.11.0, its regenerated reports explicitly show `not-evaluated` (npm 0.10.0 does not render this decision); publishing alone is not evidence of passing policy. Run `check` in CI to enforce the configured gates. Source applications can use the unreleased [complete policy API](./gates.md#complete-policy-api-unreleased) before rendering those same artifacts; publication still does not run that evaluation.
 
 This page describes publishing dashboard artifacts. npm package publication
 uses a separate [trusted-publishing workflow and next-release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).

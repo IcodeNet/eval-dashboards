@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
+import { evaluateReportPolicy, filterReportByTier, type EvalReportV1, type GateDecision } from '../src/index.js';
 
 const execFileAsync = promisify(execFile);
 const tempDirs: string[] = [];
@@ -18,7 +19,7 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
-const buildReport = (runId: string) => ({
+const buildReport = (runId: string): EvalReportV1 => ({
   schemaVersion: 'eval-report/v1',
   run: { id: runId, generatedAt: '2026-09-15T00:00:00.000Z' },
   suites: [
@@ -105,7 +106,11 @@ describe('4F.10 PR-subset vs full-suite tiering', () => {
     const payload = JSON.parse(await readFile(outPath, 'utf8')) as {
       passed: boolean;
       failures: string[];
+      gateDecision: GateDecision;
     };
+    const evaluated = evaluateReportPolicy({ current: filterReportByTier(buildReport('r2'), 'pr'), gateConfig: { minPassRate: 0 },
+      prTierBudget: { tier: 'pr', maxCostUsd: 0.001 } });
+    expect(evaluated.gateDecision).toEqual(payload.gateDecision);
     expect(payload.passed).toBe(false);
     expect(payload.failures.some((f) => /budget/.test(f))).toBe(true);
   });

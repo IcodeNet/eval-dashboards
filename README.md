@@ -20,7 +20,8 @@ Repository source (not yet released on npm) shows the configured quality-gate de
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
 Release status checked 2026-11-01: npm's latest is **0.10.0** (2026-10-19).
-The newer analytics and gate-reporting features are unreleased repository work.
+The newer analytics, complete `evaluateReportPolicy` API, and gate-reporting
+features are unreleased repository work. See the [runnable policy example](examples/policy-evaluation/README.md).
 The [proposed 0.11.0 release plan](docs/npm-publishing.md#next-release-plan--checked-2026-11-01)
 targets the portable M1 milestone; publication still needs owner authorization.
 

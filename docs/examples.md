@@ -183,3 +183,11 @@ and measurement versions. One case declares fixed independent trials; the other
 keeps its sampling design unknown. Run its README commands to inspect per-case
 rates and conservative difference bounds without a provider, database, or paid
 service. These are demonstration counts, not model benchmark results.
+
+### Complete policy evaluation
+
+Run `pnpm exec tsx examples/policy-evaluation/run.ts` from repository source.
+A synthetic answer passes ordinary gates but fails the complete policy because
+required calibration evidence is missing. The same evaluator powers CLI
+`check` and `report`; its README explains input validation and selection scope.
+This public API is unreleased and needs no provider, database or server.
