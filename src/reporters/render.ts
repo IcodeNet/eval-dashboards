@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { describePairedComparison, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
 import { analyzeRun, type RunAnalytics } from '../analytics/run-analytics.js';
 import type { MeasuredMetric } from '../analytics/telemetry.js';
 import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
@@ -38,6 +39,7 @@ export type ReportContext = {
   locale?: string;
   profile?: ReportProfile;
   statistical?: StatisticalGateConfig;
+  paired?: PairedComparisonOptions;
 };
 
 type GroupedIndexGroup = {
@@ -84,7 +86,7 @@ export const renderReports = async (
     } else if (reporter === 'json-summary') {
       const filePath = path.join(context.reportDir, 'summary.json');
       await writeJsonFile(filePath, {
-        analytics: analyzeRun(context.current, context.previous),
+        analytics: analyzeRun(context.current, context.previous, { paired: context.paired }),
         gateDecision: context.gateDecision ?? gateDecisionFromResult(),
         summary: summarizeReport(context.current),
         comparison: context.comparison,
@@ -100,7 +102,7 @@ export const renderReports = async (
       await writeTextFile(filePath, renderHtml(context));
       await writeJsonFile(path.join(context.reportDir, 'history.json'), context.history);
       await writeJsonFile(path.join(context.reportDir, 'summary.json'), {
-        analytics: analyzeRun(context.current, context.previous),
+        analytics: analyzeRun(context.current, context.previous, { paired: context.paired }),
         gateDecision: context.gateDecision ?? gateDecisionFromResult(),
         summary: summarizeReport(context.current),
         comparison: context.comparison,
@@ -120,7 +122,7 @@ export const renderReports = async (
 const renderText = (context: ReportContext): string => {
   const { locale } = context;
   const summary = summarizeReport(context.current);
-  const analytics = analyzeRun(context.current, context.previous);
+  const analytics = analyzeRun(context.current, context.previous, { paired: context.paired });
 
   return [
     `Run:              ${summary.run.id}`,
@@ -133,6 +135,7 @@ const renderText = (context: ReportContext): string => {
     `Cohort:           ${analytics.cohort.status}; matched=${analytics.cohort.matchedCases}, eligible=${analytics.cohort.eligibleCases}`,
     `Matched flips:    ${analytics.cohort.matchedRegressions} regressions (descriptive; see cohort eligibility)`,
     `Introduced:       ${analytics.cohort.introducedCases} cases, ${analytics.cohort.introducedFailures} failures`,
+    describePairedComparison(analytics.pairedComparison),
     `Measured cost:    ${metricDescription(analytics.telemetry.cost)}`,
     `Measured latency: ${metricDescription(analytics.telemetry.duration)}`,
     `Baseline:         ${context.baselineCompatibility?.status ?? 'not compared'}`,
@@ -150,7 +153,7 @@ const metricDescription = (metric: MeasuredMetric): string => {
 const renderAnalyticsHtml = (analytics: RunAnalytics): string => {
   const { cohort, telemetry } = analytics;
   const statusTone = cohort.status === 'compatible' ? 'pass' : cohort.status === 'incompatible' || cohort.status === 'ambiguous' ? 'fail' : 'muted';
-  const body = `<div class="section-pad"><p>Identity matches are descriptive. Use eligible cases before attributing changes; unknown versions are not compatibility evidence.</p>
+  const body = `<div class="section-pad"><p>${e(describePairedComparison(analytics.pairedComparison))}</p><p>Paired bounds assume independent declared groups and use only matching, version-compatible cases. Repeated trials do not increase the independent group count.</p><p>Identity matches are descriptive. Use eligible cases before attributing changes; unknown versions are not compatibility evidence.</p>
     <p>Matched cases: ${cohort.matchedCases}; eligible: ${cohort.eligibleCases}; matched regressions: ${cohort.matchedRegressions}; matched recoveries: ${cohort.matchedRecoveries}.</p>
     <p>Introduced cases: ${cohort.introducedCases}; introduced failures: ${cohort.introducedFailures}; removed cases: ${cohort.removedCases}; duplicate identities: ${cohort.duplicateIdentities}.</p>
     <p>Score comparisons: ${cohort.scores.measuredPairs} measured pairs; ${cohort.scores.regressions} regressions; ${cohort.scores.unavailablePairs} unavailable pairs. Evidence lists show at most 20 examples.</p>
@@ -187,7 +190,7 @@ const statisticalContextSummary = (context: ReportContext): string | undefined =
 const mdTableCell = (value: string): string => value.replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
 
 export const renderMarkdown = (context: ReportContext): string => {
-  const analytics = analyzeRun(context.current, context.previous);
+  const analytics = analyzeRun(context.current, context.previous, { paired: context.paired });
   const summary = summarizeReport(context.current);
   const changelogCount = context.current.datasetChangelog?.length ?? 0;
   const durationStats = calculateDurationStats(context.current.rows);
@@ -306,6 +309,7 @@ export const renderMarkdown = (context: ReportContext): string => {
   }
 
   lines.push('', '## Comparison evidence and measured coverage', '',
+    describePairedComparison(analytics.pairedComparison),
     `Cohort: ${analytics.cohort.status}. Matched cases: ${analytics.cohort.matchedCases}; eligible cases: ${analytics.cohort.eligibleCases}.`,
     `Descriptive matched regressions: ${analytics.cohort.matchedRegressions}; introduced cases: ${analytics.cohort.introducedCases}; introduced failures: ${analytics.cohort.introducedFailures}; removed cases: ${analytics.cohort.removedCases}.`,
     'Identity matches alone do not establish comparability; inspect version eligibility before attributing changes.',
@@ -1581,11 +1585,11 @@ const renderHtml = (context: ReportContext): string => {
   const complianceCoverage = summarizeComplianceCoverage(current);
   const guardrailProfileEnabled = context.profile === 'guardrail';
   const statisticalSummary = statisticalContextSummary(context);
-  const analytics = analyzeRun(current, context.previous);
+  const analytics = analyzeRun(current, context.previous, { paired: context.paired });
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : compatStatus === 'compatible' ? 'pass' : 'muted';
   const decision = context.gateDecision ?? gateDecisionFromResult();
-  const decisionTone = decision.status === 'passed' ? 'pass' : decision.status === 'failed' ? 'fail' : 'muted';
+  const decisionTone = decision.status === 'passed' ? 'pass' : decision.status === 'failed' ? 'fail' : decision.status === 'inconclusive' ? 'warn' : 'muted';
   const durationStats = calculateDurationStats(rows);
   const frontierSummary = summarizeQualityFrontiers(rows);
   const totalDurationMs = durationStats?.totalMs ?? 0;
@@ -1784,6 +1788,7 @@ ${renderCssVariables(theme)}
     .compat-muted { color: var(--muted); }
     .gate-decision { margin-bottom: 24px; }
     .gate-decision h2 { font-size: 20px; }
+    .gate-decision .warn { color: var(--warn); font-weight: 700; }
     .compat-pass { background: var(--pass-soft); color: var(--pass); }
     .compat-warn { background: var(--warn-soft); color: var(--warn); }
     .compat-fail { background: var(--fail-soft); color: var(--fail); }
@@ -1842,7 +1847,7 @@ ${run.experimentId ? `        <span>Experiment&nbsp;<strong>${e(run.experimentId
   <main class="page">
     <section class="gate-decision" aria-label="Quality gate decision">
       <h2>Quality gate: <span class="${decisionTone}">${e(decision.status)}</span></h2>
-      ${decision.status === 'not-evaluated' ? '<p>No completed gate evaluation was supplied. Pass rate alone is not policy approval.</p>' : '<p>Evaluated against the resolved gate policy and selected baseline. This decision applies to this report’s evaluation scope.</p>'}
+      ${decision.status === 'not-evaluated' ? '<p>No completed gate evaluation was supplied. Pass rate alone is not policy approval.</p>' : decision.status === 'inconclusive' ? '<p>The comparison does not provide enough evidence to decide whether the required change was met.</p>' : '<p>Evaluated against the resolved gate policy and selected baseline. This decision applies to this report’s evaluation scope.</p>'}
 ${decision.failures.length ? `<ul>${decision.failures.map(failure => `<li>${e(failure)}</li>`).join('')}</ul>` : ''}
 ${decision.diagnostics.length ? `<details><summary>Gate diagnostics</summary><ul>${decision.diagnostics.map(item => `<li>${e(item)}</li>`).join('')}</ul></details>` : ''}
     </section>

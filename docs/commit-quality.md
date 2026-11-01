@@ -77,3 +77,31 @@ guard rejects common bypass flags and compound commit commands; it is not a
 general shell interpreter or a security boundary against arbitrary scripts.
 
 Official hook format and trust behavior: <https://learn.chatgpt.com/docs/hooks>.
+
+
+## Required merge checks and PR descriptions
+
+The PR description uses `.github/pull_request_template.md`. CI reads its headings
+and requires a populated section for each one. This is a structure check: authors
+and reviewers still need to judge plain English, examples, and actual evidence.
+Renovate uses the same layout, and CodeRabbit keeps its summary in review comments.
+
+The owner-authorized policy for `main` is recorded in
+`.github/main-branch-protection.json`: GitHub Actions must provide `lint-title`,
+`lint-description`, `lint-and-test (22.x)`, `examples (22.x)`, and `composite-action`.
+The PR must be up to date and review conversations resolved. These restrictions
+include administrators. The policy requires a PR but adds no minimum human
+approval count; do not bypass an outstanding change request or actionable comment.
+No paid review service is required to satisfy the check list.
+
+A maintainer can inspect the actual remote settings without changing them:
+
+```sh
+gh api repos/IcodeNet/eval-dashboards/branches/main/protection
+```
+
+Treat the JSON file as the reviewed expected policy, not as proof that GitHub is
+configured. Compare it with the API response when changing checks or repository
+settings. Keep check names and required-check settings in sync; a required check
+that never runs blocks merging. Changing a PR description reruns its validation.
+Release/deployment authorization remains separate from merge authorization.

@@ -11,7 +11,8 @@ checks. Put shared policy in the config file; check-only CLI overrides and
 `--tier` budgets do not automatically carry over to a separate report command.
 
 HTML, Markdown, text, and `summary.json` expose `gateDecision` (`passed`, `failed`,
-or `not-evaluated`) with failures and diagnostics. `check --json-out` and
+`inconclusive`, or `not-evaluated`) with failures and diagnostics. The opt-in
+paired gate can produce an inconclusive decision. `check --json-out` and
 `--json-v2-out` include the same additive decision field. Report generation
 still exits `0` when a report is written even if gates fail; use `check` for CI
 exit `1`. Invalid policy inputs exit `2`.
@@ -26,8 +27,9 @@ authorization or release approval record.
 Pass-rate numbers and suite summary headings no longer use fixed 90%/60%
 thresholds to suggest policy approval. Baseline comparison without evidence is
 neutral. Row pass/fail evidence remains visible independently of gate policy.
-This is the first M1 slice; cohort, repeated-trial, missing-data, and
-inconclusive-decision semantics remain open.
+This is part of M1. Matching-case and missing-data semantics are described in
+[history storage](./history-storage.md#matched-cohorts-and-measured-telemetry);
+trial-level evidence and uncertainty remain open.
 
 ## Why This Matters
 
@@ -598,3 +600,82 @@ high/critical advisories, not that the check was skipped.
 ## Input and policy integrity
 
 Numeric CLI options must contain finite numbers; invalid values exit 2 instead of dropping a gate. Pass-rate policies must be between 0 and 1 inclusive, and failure/warning count budgets must be non-negative integers. Invalid configured policies also exit 2. Empty scored runs fail `check`, even without an explicit pass-rate threshold; reporting empty artifacts remains available.
+
+## Paired comparison gate
+
+Use `gates.paired` when a policy requires evidence that matching test cases meet
+a minimum change in expected-outcome success, rather than treating a lack of
+clear regression as a pass. Existing bootstrap settings and gate defaults are
+unchanged. Any paired CLI setting enables this additional gate.
+
+```js
+export default {
+  gates: {
+    paired: {
+      minDelta: -0.05,
+      confidenceLevel: 0.95,
+      minClusters: 20,
+      independentClusters: true,
+    },
+  },
+};
+```
+
+Here `minDelta: -0.05` allows at most a five-percentage-point decrease in the
+comparison metric. Zero requires evidence of no decrease. The bound is
+conservative, so a small sample can stay inconclusive even when observed
+outcomes are unchanged. The minimum group count is a floor, not a promise that
+the sample can establish the chosen margin.
+
+Equivalent CLI settings are `--paired-min-delta=-0.05`,
+`--paired-confidence-level=0.95`, `--paired-min-clusters=20`, and
+`--assume-independent-clusters`. These flags work with `check` and `report`.
+The declaration of independent groups is required to produce an interval;
+it is a dataset-design assumption, not something inferred from unique row IDs.
+
+The same stable cases must have matching project, dataset, rubric, grader, and
+judge evidence (where relevant). Known grouping changes, duplicate identities,
+missing versions, and absent baselines make the result inconclusive. New or
+removed cases are outside the paired estimate and remain visible separately.
+
+Rows sharing `scenarioId` and `datasetId` form one comparison group, even across
+suites/axes. Without a declared scenario, each stable `(suite, id)` is a group.
+Each group gets equal weight, so the metric is the change in the mean of
+per-group expected-outcome success rates, not necessarily the run's row-weighted
+pass rate. Expected negative cases use `expectedOutcome`. Repeated aggregates
+count as one case; `repeated.runs` never inflates the independent sample size.
+Trial-level uncertainty cannot be recovered from aggregate pass counts alone.
+
+For independent group differences in `[-1, 1]`, the two-sided Hoeffding bound
+has half-width `sqrt(2 * log(2 / (1 - confidenceLevel)) / groupCount)`, clipped
+to that possible difference range. This finite-sample bound does not collapse
+to a zero-width interval when all observed differences are equal. It assumes
+independent groups and does not establish representative population sampling.
+See [Hoeffding's original paper](https://www.cs.rpi.edu/academics/courses/spring06/random/hoefding.pdf).
+
+- **Passed:** the interval's lower end meets `minDelta`.
+- **Failed:** its upper end is below `minDelta`, or another policy fails.
+- **Inconclusive:** evidence is incomplete, too few groups are available, the
+  independence assumption is undeclared, or the interval overlaps the margin.
+
+`check` exits `1` for failed or inconclusive policy results. Report generation
+still exits `0` when it writes the files. Invalid settings exit `2`.
+`gateDecision.uncertainty` and `analytics.pairedComparison` expose the method,
+metric, assumptions, group/case counts, observed change, interval (when
+available), and reasons. A hard failure takes priority over an inconclusive
+comparison. Programmatic callers use `comparePairedOutcomes` for the same result.
+
+Waivers continue to affect ordinary policy gates, but the paired calculation
+uses the original observations. A waiver cannot turn a failure into a measured
+improvement. The baseline-policy guard detects removal of this gate, a lower
+required change/confidence/group floor, or a newly asserted independence
+assumption. Such changes require the existing explicit loosening override.
+
+
+The paired bound is for one fixed comparison under the stated assumptions. It
+is not adjusted for selecting the best of many variants, repeated peeking, or
+an unrepresentative sample. Use point gates when the policy concerns only the
+observed finite dataset. A runnable, provider-free example is in
+`examples/paired-comparison/README.md`.
+
+![An offline report shows an inconclusive paired comparison despite a 100 percent observed pass rate.](./images/paired-comparison.png)

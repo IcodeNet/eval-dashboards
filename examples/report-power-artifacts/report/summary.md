@@ -35,6 +35,7 @@ No row flips detected.
 
 ## Comparison evidence and measured coverage
 
+Paired comparison: inconclusive; change=unknown; required minimum=0; comparison groups=0; matching cases=71; confidence interval=unavailable; measurement versions or other comparison evidence are missing
 Cohort: unknown. Matched cases: 71; eligible cases: 0.
 Descriptive matched regressions: 0; introduced cases: 4; introduced failures: 0; removed cases: 4.
 Identity matches alone do not establish comparability; inspect version eligibility before attributing changes.

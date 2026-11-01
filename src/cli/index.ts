@@ -21,6 +21,7 @@ import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, write
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
+import { validatePairedComparisonOptions, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
 import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
 import { stripControlCharacters } from '../utils/untrusted-text.js';
 import { readPackageVersion } from './package-version.js';
@@ -160,7 +161,11 @@ Options:
   --profile=<name>              default|guardrail report profile
   --theme=<name>                HTML theme override
   --locale=<tag>                Locale override for date/number formatting
-`;
+
+  --paired-min-delta=<number>      Enable paired gate; required expectation-rate delta (-1 to 1)
+  --paired-confidence-level=<number>  Confidence level for paired bound (0-1, exclusive)
+  --paired-min-clusters=<number>   Minimum independent scenario/case groups (at least 2)
+  --assume-independent-clusters    Declare independence of the comparison groups`;
 
 const checkUsage = `eval-dashboards check [options]
 
@@ -180,6 +185,10 @@ Options:
   --max-warning-code=<code:count>  Per-warning-code budget (repeatable)
   --fail-on-warning-code=<code>    Fail immediately when warning code appears (repeatable)
   --zero-critical                  Fail if any severity=critical row failed
+  --paired-min-delta=<number>      Enable paired gate; required expectation-rate delta (-1 to 1)
+  --paired-confidence-level=<number>  Confidence level for paired bound (0-1, exclusive)
+  --paired-min-clusters=<number>   Minimum independent scenario/case groups (at least 2)
+  --assume-independent-clusters    Declare independence of the comparison groups
   --statistical-mode=<mode>        off|bootstrap statistical gate mode
   --confidence-level=<number>      Bootstrap confidence level (0-1)
   --bootstrap-samples=<number>     Bootstrap sample count
@@ -1105,6 +1114,17 @@ const evaluateCalibrationChecks = (
   return { failures, diagnostics };
 };
 
+const pairedConfigFromOptions = (options: Record<string, string | boolean | string[]>): PairedComparisonOptions | undefined => {
+  const fields = {
+    minDelta: optionNumber(options, 'paired-min-delta'),
+    confidenceLevel: optionNumber(options, 'paired-confidence-level'),
+    minClusters: optionNumber(options, 'paired-min-clusters'),
+    independentClusters: Object.hasOwn(options, 'assume-independent-clusters') ? optionBoolean(options, 'assume-independent-clusters') : undefined,
+  };
+  const supplied = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+  return Object.keys(supplied).length ? supplied : undefined;
+};
+
 /** Translate supplied CLI flags into gate overrides without dropping invalid numeric policy. */
 const gateConfigFromOptions = (
   options: Record<string, string | boolean | string[]>,
@@ -1192,6 +1212,7 @@ const gateConfigFromOptions = (
       : undefined;
 
   return {
+    ...(pairedConfigFromOptions(options) ? { paired: pairedConfigFromOptions(options) } : {}),
     minPassRate: optionNumber(options, 'min-pass-rate'),
     minMatchedExpectationRate: optionNumber(options, 'min-matched-expectation-rate'),
     maxNewFailures: optionNumber(options, 'max-new-failures'),
@@ -1290,6 +1311,10 @@ const evaluateConfiguredRun = async (
     ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
   };
 
+  if (config.gates?.paired !== undefined || cliGateOverrides.paired !== undefined) {
+    gateConfig.paired = { ...config.gates?.paired, ...cliGateOverrides.paired };
+  }
+
   if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
     gateConfig.statistical = {
       ...(config.gates?.statistical ?? {}),
@@ -1357,6 +1382,10 @@ const evaluateConfiguredRun = async (
         { exitCode: 2 },
       );
     }
+    const baselinePairedErrors = validatePairedComparisonOptions(baselineGateConfig?.paired);
+    if (baselinePairedErrors.length) {
+      throw Object.assign(new Error(`Invalid paired policy in baseline gate config: ${baselinePairedErrors.join(' ')}`), { exitCode: 2 });
+    }
     thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
   }
 
@@ -1368,6 +1397,7 @@ const evaluateConfiguredRun = async (
     gateConfig,
     context.baselineCompatibility,
     context.previous,
+    context.current,
   );
   const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
   const thresholdChangeFailures =
@@ -1392,7 +1422,15 @@ const evaluateConfiguredRun = async (
     ...(prTierBudget?.diagnostics ?? []),
   ].map(stripControlCharacters);
   const gatePassed = combinedFailures.length === 0;
+  const gateDecision = gateDecisionFromResult({
+    passed: gatePassed,
+    status: gateResult.status === 'inconclusive' && combinedFailures.length === gateResult.failures.length ? 'inconclusive' : gatePassed ? 'passed' : 'failed',
+    pairedComparison: gateResult.pairedComparison,
+    failures: combinedFailures,
+    diagnostics: combinedDiagnostics,
+  });
   return {
+    gateDecision,
     gateConfig,
     prTierBudget,
     waiverApplication,
@@ -1457,6 +1495,8 @@ const main = async (): Promise<void> => {
 
   // Load file-based config, then merge CLI flags on top (CLI wins)
   const fileConfig = await loadConfig();
+  const pairedConfigErrors = validatePairedComparisonOptions(fileConfig.gates?.paired);
+  if (pairedConfigErrors.length) throw Object.assign(new Error(pairedConfigErrors.join(' ')), { exitCode: 2 });
   assertValidCalibrationGateConfig({ calibration: fileConfig.gates?.calibration });
   const mergedCalibration = (() => {
     const enabled = cliDisableCalibrationPreflight
@@ -1494,6 +1534,9 @@ const main = async (): Promise<void> => {
       : undefined,
     gates: {
       ...fileConfig.gates,
+      ...((fileConfig.gates?.paired !== undefined || pairedConfigFromOptions(options) !== undefined) ? {
+        paired: { ...fileConfig.gates?.paired, ...pairedConfigFromOptions(options) },
+      } : {}),
       minPassRate: optionNumber(options, 'min-pass-rate') ?? fileConfig.gates?.minPassRate,
       minMatchedExpectationRate:
         optionNumber(options, 'min-matched-expectation-rate') ?? fileConfig.gates?.minMatchedExpectationRate,
@@ -1847,7 +1890,8 @@ const main = async (): Promise<void> => {
     const evaluation = await evaluateConfiguredRun(context, config, options);
     const outputs = await renderReports({
       ...context,
-      gateDecision: gateDecisionFromResult({ passed: evaluation.gatePassed, failures: evaluation.combinedFailures, diagnostics: evaluation.combinedDiagnostics }),
+      gateDecision: evaluation.gateDecision,
+      paired: evaluation.gateConfig.paired,
       theme,
       locale,
       profile,
@@ -1959,6 +2003,7 @@ const main = async (): Promise<void> => {
         tier: selectedTier,
       });
       const {
+        gateDecision,
         gateConfig,
         prTierBudget,
         waiverApplication,
@@ -1983,7 +2028,7 @@ const main = async (): Promise<void> => {
       const checkPayload: CheckOutputPayload = {
         schemaVersion: 'eval-check-result/v1',
         gateRunStatus: 'ran',
-        gateDecision: gateDecisionFromResult({ passed: gatePassed, failures: combinedFailures, diagnostics: combinedDiagnostics }),
+        gateDecision,
         runId: context.current.run.id,
         baselineRunId: context.previous?.run.id,
         passed: gatePassed,

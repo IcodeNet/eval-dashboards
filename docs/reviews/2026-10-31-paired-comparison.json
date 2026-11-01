@@ -1,0 +1,115 @@
+{
+  "recordedOn": "2026-10-31",
+  "purpose": "Behavior comparison of the existing bootstrap policy and the new opt-in paired policy for the same observed runs; defaults are unchanged. Performance was not measured.",
+  "generator": "examples/paired-comparison/generate.mjs",
+  "generatorSha256": "b5e9f80b39a0cc5db56a86954fd4ef3c8db370f71ca5f5f9810f3551725b827f",
+  "inputSha256": {
+    "current.json": "e2e2a820fbbeca55e07af812c4597c014002032777947e5f12be1683935d9e51",
+    "previous.json": "0aaa782ae1d44bb30b5a0bb1e25a2a92afe0ae505910c849187138b647266436"
+  },
+  "inputs": {
+    "runs": 2,
+    "casesPerRun": 100,
+    "allObservedCasesPass": true,
+    "project": "paired-comparison-demo",
+    "measurementVersionsMatch": true
+  },
+  "methodReference": "https://www.cs.rpi.edu/academics/courses/spring06/random/hoefding.pdf",
+  "results": {
+    "before": {
+      "sourceRevision": "688b28eb0444020b50f7eef1434064ac223bcf68",
+      "policy": {
+        "gates": {
+          "statistical": {
+            "mode": "bootstrap",
+            "confidenceLevel": 0.95,
+            "bootstrapSamples": 2000,
+            "minPassRateDelta": 0
+          }
+        }
+      },
+      "checkExit": 0,
+      "reportExit": 0,
+      "checkPassed": true,
+      "gateDecision": {
+        "status": "passed",
+        "failures": [],
+        "diagnostics": [
+          "Statistical gate (bootstrap, confidence=0.95, samples=2000): observed \u0394passRate=0.000, CI=[0.000, 0.000], required min \u0394=0.000."
+        ]
+      },
+      "reportDecisionMatchesCheck": true,
+      "diagnostics": [
+        "Statistical gate (bootstrap, confidence=0.95, samples=2000): observed \u0394passRate=0.000, CI=[0.000, 0.000], required min \u0394=0.000."
+      ]
+    },
+    "after": {
+      "sourceRevision": "runtime source committed with this evidence record",
+      "policy": {
+        "gates": {
+          "paired": {
+            "confidenceLevel": 0.95,
+            "minDelta": 0,
+            "minClusters": 20,
+            "independentClusters": true
+          }
+        }
+      },
+      "checkExit": 1,
+      "reportExit": 0,
+      "checkPassed": false,
+      "gateDecision": {
+        "status": "inconclusive",
+        "uncertainty": {
+          "status": "inconclusive",
+          "method": "paired-hoeffding",
+          "metric": "cluster-mean-matched-expectation-rate-delta",
+          "samplingUnit": "declared-scenario-or-case",
+          "currentRunId": "current",
+          "previousRunId": "previous",
+          "confidenceLevel": 0.95,
+          "minDelta": 0,
+          "minClusters": 20,
+          "independentClusters": true,
+          "matchedCases": 100,
+          "eligibleCases": 100,
+          "clusters": 100,
+          "repeatedCases": 0,
+          "reasons": [
+            "interval-overlaps-required-delta"
+          ],
+          "observedCurrentRate": 1,
+          "observedPreviousRate": 1,
+          "observedDelta": 0,
+          "interval": {
+            "lower": -0.27162030314812385,
+            "upper": 0.27162030314812385
+          }
+        },
+        "failures": [
+          "Paired comparison: inconclusive; change=0.000; required minimum=0; comparison groups=100; matching cases=100; 95.0% confidence interval=[-0.272, 0.272]; the interval crosses the required change"
+        ],
+        "diagnostics": [
+          "Paired comparison: inconclusive; change=0.000; required minimum=0; comparison groups=100; matching cases=100; 95.0% confidence interval=[-0.272, 0.272]; the interval crosses the required change"
+        ]
+      },
+      "reportDecisionMatchesCheck": true,
+      "diagnostics": [
+        "Paired comparison: inconclusive; change=0.000; required minimum=0; comparison groups=100; matching cases=100; 95.0% confidence interval=[-0.272, 0.272]; the interval crosses the required change"
+      ]
+    }
+  },
+  "afterRuntimeSha256": {
+    "src/analytics/paired-comparison.ts": "75af2c3a1d7732b02accaa016ad60eb1167aff1ac0c027efacdf133f187628d9",
+    "src/analytics/run-analytics.ts": "d5fabe65c826ca3803bd0459ae1af3de07bf9ca1865646ec20b66e057349720b",
+    "src/cli/args.ts": "4e5e80e372a3a92e0ba590998b1d284b77c5d6d4a7c98f7063810a509ef9458e",
+    "src/cli/completion.ts": "880b640d36b9824a18c79df456d20dcd123696521a4894e24c0881967e82f34f",
+    "src/cli/index.ts": "6b0efce85c8e58737eb8a7e7dc96ba59e4ba471991846b937891ad5e2709151b",
+    "src/config/validate-config.ts": "42b45850c83c3c5f83582ced3719c2f79d64369f380f0cf7428540e29f7afc1f",
+    "src/gates/check-gates.ts": "ff98c344a9017b077c88fdca1d15db405088814296086137655911e2448a866c",
+    "src/gates/decision.ts": "a751f545dd616d29044b703d99cba774fede67004775e5ea5b47c0a59eab20e2",
+    "src/gates/threshold-change.ts": "0ae1c88516f858095ea797e5185469b419ae03c609326d7686feb7f854085111",
+    "src/index.ts": "d2de85f8dabf2ea89997456dbcf071b5329929cb8799cb263057d4f18210f088",
+    "src/reporters/render.ts": "f96a3c5667074bcd64df2b2baca509124f890ee8ef7057d62a5e7d8b585adf71"
+  }
+}
