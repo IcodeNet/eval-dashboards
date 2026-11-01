@@ -1730,9 +1730,10 @@ phase's commit message.
 ## 📦 npm release policy note (ship gate)
 
 Registry verification 2026-11-01: npm latest is still `0.10.0` (2026-10-19).
-The proposed next minor is `0.11.0` after the portable M1 acceptance gates;
+Repository version `0.11.0` is the portable M1 release candidate; required
+release-PR verification and owner publishing authorization are still pending;
 see the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
-This proposal does not authorize publishing, change the stable 1.0.0 gate, or
+This candidate does not authorize publishing, change the stable 1.0.0 gate, or
 require finishing hosted milestones M2–M6 before a portable minor release.
 
 - **Publishing is on hold until the owner releases it.** Phase 4K (full historical reports) is complete, but no 1.0.0 release has been published. Remaining work includes 4F.11 signed-bundle authentication and 4C.4, which is parked awaiting the external Rupic review. Publish `1.0.0` only when the owner says so.
@@ -2045,4 +2046,4 @@ The core idea — an Istanbul-style, offline, artifact-first reporting layer for
 
 The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
 
-See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 has shared decisions, matching-case analytics, paired/repeated uncertainty, and a complete policy evaluator merged in #103. Its acceptance review and all hosted milestones stay open in STATUS.
+See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 has shared decisions, matching-case analytics, paired/repeated uncertainty, and a complete policy evaluator merged in #103. Portable M1 acceptance is covered by committed regression tests, including public/CLI/reporter parity. M2–M6 and npm publication stay open in STATUS.

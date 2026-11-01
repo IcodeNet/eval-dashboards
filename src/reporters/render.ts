@@ -199,7 +199,7 @@ const statisticalContextSummary = (context: ReportContext): string | undefined =
     seedHint: `${context.current.run.id}:${context.previous.run.id}`,
   });
   const minPassRateDelta = context.statistical?.minPassRateDelta ?? 0;
-  return `bootstrap CI (${(stats.confidenceLevel * 100).toFixed(0)}%, n=${stats.bootstrapSamples}) ΔpassRate=${stats.observedDelta.toFixed(3)} CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min Δ=${minPassRateDelta.toFixed(3)}`;
+  return `raw bootstrap CI (${(stats.confidenceLevel * 100).toFixed(0)}%, n=${stats.bootstrapSamples}) ΔpassRate=${stats.observedDelta.toFixed(3)} CI=[${stats.lowerBound.toFixed(3)}, ${stats.upperBound.toFixed(3)}], required min Δ=${minPassRateDelta.toFixed(3)}`;
 };
 
 const mdTableCell = (value: string): string => value.replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');

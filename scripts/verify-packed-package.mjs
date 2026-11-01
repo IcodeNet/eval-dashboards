@@ -94,6 +94,10 @@ console.log('Packed consumer: public types compile; runtime, complete policy and
   run(process.execPath, ['consumer.cjs']);
   run(process.execPath, ['--input-type=module', '-e', "import nodemailer from 'nodemailer'; const info = await nodemailer.createTransport({ streamTransport: true, buffer: true }).sendMail({ from: 'sender@example.invalid', to: 'recipient@example.invalid', subject: 'Synthetic compatibility check', text: 'Offline mail smoke' }); if (!Buffer.isBuffer(info.message) || !info.message.toString().includes('Offline mail smoke')) throw new Error('Optional mail transport failed'); console.log('Packed optional dependency: mail stream generation works without SMTP or external delivery.');"]);
   run(process.execPath, ['node_modules/@icodenet/eval-dashboards/dist/cli/index.js', '--help']);
+  const expectedVersion = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+  const installedVersion = execFileSync(process.execPath, ['node_modules/@icodenet/eval-dashboards/dist/cli/index.js', '--version'], { cwd: temp, encoding: 'utf8' }).trim();
+  if (installedVersion !== expectedVersion) throw new Error('Installed CLI version differs from package candidate');
+  console.log('Packed CLI: version matches candidate ' + installedVersion + '.');
   fs.mkdirSync(path.join(temp, 'file-runs'));
   fs.writeFileSync(path.join(temp, 'file-runs/run.json'), JSON.stringify({
     schemaVersion: 'eval-report/v1', run: { id: 'file-smoke', generatedAt: '2026-11-01T00:00:00Z' },

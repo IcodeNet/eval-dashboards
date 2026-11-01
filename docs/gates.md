@@ -4,10 +4,11 @@ Gates make eval quality enforceable in CI.
 
 ## Reported gate decisions
 
-Release availability checked 2026-11-01: configured report decisions, matched
-analytics, and the paired comparison below are unreleased repository features
-planned for 0.11.0. npm latest remains 0.10.0. Use the repository's `pnpm dev`
-commands while following the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+Release-preparation snapshot (2026-11-01): npm latest was 0.10.0; configured
+report decisions, matched analytics and paired comparisons were prepared in
+0.11.0 source. These additions are not in 0.10.0. Check the npm registry for
+current availability, or use repository `pnpm dev` commands with the
+[release procedure](./npm-publishing.md#next-release-plan--checked-2026-11-01).
 
 `eval-dashboards report` evaluates the same resolved policy as `check` for the
 same full-run inputs, baseline selection, and configuration. This includes
@@ -38,20 +39,33 @@ per-case trial bounds are available for declared fixed-independent sampling,
 with counts and unknown uncertainty retained when sampling is unspecified.
 The complete policy evaluator merged in #103 and is available in repository source; see below.
 
-## Complete policy API (unreleased)
+## Complete policy API
 
-Use `evaluateReportPolicy` from the package root to run the same complete
+Added in 0.11.0 source, `evaluateReportPolicy` runs the same complete
 policy as CLI `check` and `report`. Unlike `checkGates`, it includes calibration,
 waivers, baseline-policy loosening and optional tier budgets. It returns
 `gateDecision` plus the supporting waiver, threshold and budget evidence.
+Pass the resolved comparison settings to rendering as well, so descriptive
+evidence uses the configured confidence level and criterion.
 
 ```ts
 const result = evaluateReportPolicy({
   current, previous, reports, gateConfig,
   waiverRegister, baselineGateConfig,
 });
-await renderReports({ ...reportContext, gateDecision: result.gateDecision }, ['html']);
+await renderReports({
+  ...reportContext,
+  gateDecision: result.gateDecision,
+  paired: result.gateConfig.paired,
+  statistical: result.gateConfig.statistical, // Raw-outcome bootstrap context.
+}, ['html']);
 ```
+
+Rendered **raw bootstrap CI** describes the original rows. An active waiver
+can make the legacy bootstrap gate pass on waiver-adjusted rows while that raw
+interval still shows a decline. The gate diagnostics contain the waiver-adjusted
+interval; the displayed raw interval is descriptive, not another policy verdict.
+Paired comparison evidence continues to use original observations even for gates.
 
 Supply validated artifacts and registers, and a resolved `GateConfig`. The caller
 selects the run/baseline, resolves config overrides, and scopes calibration
@@ -69,7 +83,7 @@ coverage remains visible rather than becoming an assertion of complete cost.
 
 The [runnable source example](../examples/policy-evaluation/README.md) compares
 ordinary and complete gates for a missing-calibration case. The public API is
-planned for 0.11.0 and is not in npm 0.10.0.
+part of 0.11.0 source and is not in npm 0.10.0.
 
 ## Why This Matters
 
