@@ -62,6 +62,46 @@ describe('phoenix and braintrust import adapters', () => {
     expect(lint.issues.filter((issue) => issue.code === 'missing-kind')).toHaveLength(0);
   });
 
+  it('preserves Phoenix decision-model confidence/probabilities and trace links when present', async () => {
+    const dir = await createTempDir();
+    const outPath = path.join(dir, '.evals_output', 'import-phoenix-decision.json');
+
+    const imported = await importFromSource({
+      source: 'phoenix',
+      inputPath: path.join(fixturesDir, 'phoenix-decision-model-sample.json'),
+      outPath,
+      suiteName: 'phoenix-classification',
+    });
+
+    expect(imported.rowCount).toBe(1);
+
+    const reportRaw = await readFile(outPath, 'utf8');
+    const validated = validateEvalReport(JSON.parse(reportRaw) as unknown);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    const row = validated.report.rows[0];
+    expect(row?.passed).toBe(true);
+    expect(row?.trace).toEqual(
+      expect.objectContaining({
+        traceId: 'trace-decision-1',
+        spanId: 'span-decision-1',
+        traceUrl: 'https://phoenix.example/traces/trace-decision-1',
+        spanUrl: 'https://phoenix.example/traces/trace-decision-1/spans/span-decision-1',
+      }),
+    );
+    expect(row?.metadata).toEqual(
+      expect.objectContaining({
+        phoenixDecisionConfidence: 0.97,
+        phoenixDecisionProbabilities: {
+          billing: 0.97,
+          shipping: 0.02,
+          other: 0.01,
+        },
+      }),
+    );
+  });
+
   it('fails clearly when a phoenix row has no label or score', async () => {
     const dir = await createTempDir();
     const inputPath = path.join(dir, 'phoenix-empty.json');

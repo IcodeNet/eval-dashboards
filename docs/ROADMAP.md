@@ -823,6 +823,19 @@ Rationale: Langfuse added optional score metadata/provenance field groups for sc
 
 Verification 2026-10-31: `src/cli/import-adapters.ts:651`, `test/import-adapters-ragas-langfuse.test.ts:111`, and [PR #93 handoff evidence](./reviews/2026-10-31-import-roadmap-handoff.md).
 
+### 4C.18 Phoenix decision-model evidence parity (P1)
+
+- [ ] Extend the Phoenix import adapter to preserve decision-model export evidence (`metadata.confidence`, `metadata.probabilities`) and trace links (`traceId`/`spanId` plus `traceUrl`/`spanUrl`) in `eval-report/v1` rows.
+
+Acceptance criteria:
+
+- `eval-dashboards import --from=phoenix` maps `traceId`/`trace_id`, `spanId`/`span_id`, `traceUrl`/`trace_url`, and `spanUrl`/`span_url` into `rows[].trace` when present.
+- `metadata.confidence` maps to `rows[].metadata.phoenixDecisionConfidence` and `metadata.probabilities` maps to `rows[].metadata.phoenixDecisionProbabilities`.
+- Adapter tests cover the decision-model shape and schema validation still passes.
+- `docs/integrations/arize-phoenix.md` documents the mapping and uses the built-in `import` command path.
+
+Rationale: Phoenix release notes (2026-10-27) document decision-model evaluators emitting `metadata.probabilities` and `metadata.confidence`; preserving those fields prevents evidence loss during CI migration (https://arize.com/docs/phoenix/release-notes/10-2026/10-27-2026-decision-model-evaluators-and-project-onboarding).
+
 ### 4C execution order
 
 1. 4C.1 Docs site foundation
