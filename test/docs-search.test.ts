@@ -125,7 +125,7 @@ describe('built search index', () => {
   it('should cover all published docs, the glossary and 11 legacy pages when the site is built', async () => {
     const entries = await load();
 
-    expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/docs/'))).toHaveLength(88);
+    expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/docs/'))).toHaveLength(89);
     expect(entries.filter((item) => item.url.startsWith('/eval-dashboards/v1/'))).toHaveLength(11);
   });
 

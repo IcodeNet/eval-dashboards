@@ -127,6 +127,7 @@ export const SIDEBAR = [
       'reviews/2026-10-11-sandbox-gap-remediation',
       'reviews/2026-10-18-user-question-audit',
       'reviews/2026-10-31-import-roadmap-handoff',
+      'reviews/2026-10-31-evidence-verification',
     ],
   },
 ];
