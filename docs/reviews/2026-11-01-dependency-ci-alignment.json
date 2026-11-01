@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-01",
+  "pullRequests": [
+    90,
+    91
+  ],
+  "purpose": "Validate complementary pnpm package/workflow upgrades together and keep scheduled metrics compatible with the owner-authorized PR-only process.",
+  "sourceHeads": {
+    "90": "8d9a3465c195c970804511435d4d22d790ea0d5c",
+    "91": "af4afe0959d96532da84f54a8c697b37b7cf6539"
+  },
+  "before": {
+    "observed": "Separate PRs request different pnpm versions in package.json and workflow setup. Raw logs stop before tests with Multiple versions of pnpm specified.",
+    "jobs": [
+      123589122924,
+      122995884367
+    ]
+  },
+  "proposal": {
+    "pnpm": "12.16.1 in package declaration and all workflow setup pins",
+    "docsDependencies": [
+      "Astro 7.4.4",
+      "@astrojs/markdown-satteri 0.4.6",
+      "Satteri 0.11.6"
+    ],
+    "grouping": "Renovate groups pnpm dependency entries across managers to avoid separating complementary pins. Future grouping has not yet been observed in a new bot run.",
+    "metrics": "Scheduled job uses read-only contents permission and uploads a 30-day snapshot artifact for review; no direct main push or commit-hook bypass."
+  },
+  "validation": "Install the exact lockfile, complete the exact-tree ledger, inspect current-head required CI and touched-workflow raw logs, dispatch the artifact-only metrics workflow on this branch, and verify the generated artifact. Do not dispatch publishing.",
+  "priorPublishingLog": {
+    "head": "3c535671c3e3571cc3c8c9c5369c36077be8f584",
+    "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/39271699320/job/118125394622",
+    "observed": "Reviewed decoded historical raw log: release checks, asset reproduction, OIDC availability, npm publish and GitHub release succeeded. This does not verify publication from the current update.",
+    "limit": "Publishing remains on hold and is not run for this maintenance change."
+  },
+  "artifactActionSource": "https://github.com/actions/upload-artifact/releases/tag/v7.0.2",
+  "limits": [
+    "No performance or model-quality benchmark is claimed.",
+    "A snapshot upload is not an external-adoption outcome.",
+    "Live publishing and future Renovate grouping remain unrun."
+  ],
+  "localPolicyFinding": "The existing workflow-cost test required disabling git hooks for direct snapshot commits. Updated it to require read-only permissions, retained review artifacts, and no direct commits/pushes or hook bypass."
+}

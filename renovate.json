@@ -23,6 +23,13 @@
         "github-actions"
       ],
       "groupName": "github actions"
+    },
+    {
+      "description": "Keep pnpm package-manager and workflow pins in the same reviewed update",
+      "matchDepNames": [
+        "pnpm"
+      ],
+      "groupName": "pnpm across package and workflows"
     }
   ],
   "prBodyTemplate": "## What issue does this solve?\n\nKeep the repository's dependencies current. Review the exact proposed versions below; an update is not proof that an existing bug or vulnerability is fixed.\n\n## Example of the problem\n\nThe current package and workflow declarations use the older versions listed below. Check that related package-manager declarations stay consistent before merging.\n\n## Proposal and solution\n\nApply the generated dependency changes and lockfile updates together, then run the repository's required checks and review loop.\n\n## Why this is better\n\nThis groups dependency maintenance into a reviewable change. Compatibility still needs verification; no speed, security, or accuracy improvement is claimed without evidence.\n\n## Before and after\n\nThe generated change list provides the current and proposed versions:\n\n{{{table}}}\n\n## Evidence and results\n\nVersion declarations are the observed before/after evidence. Runtime or performance comparisons have not been run by this description generator. Read current-head CI and raw logs before merging; authors must add concrete fix and test evidence when resolving findings.\n\n{{{warnings}}}\n{{{notes}}}\n\n## How to use it in everyday work\n\nAfter merge, install the reviewed lockfile with `pnpm install --frozen-lockfile` and run the normal repository checks. Keep docs and configuration in sync. Publishing and deployment remain separately authorized.\n\n{{{controls}}}\n{{{footer}}}\n"

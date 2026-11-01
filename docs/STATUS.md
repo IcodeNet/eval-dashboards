@@ -68,7 +68,7 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
 ## Ongoing (live KPIs)
 
 - [x] Create community feedback loop infrastructure and early-runner outreach tracker (Phase 4 readiness).
-	- Added weekly metrics loop via `pnpm metrics:adoption` and snapshot output in `docs/adoption-metrics/latest.json`.
+	- Added weekly metrics loop via `pnpm metrics:adoption` and snapshot output in `docs/adoption-metrics/latest.json`. The scheduled job uploads reviewable snapshot artifacts; maintainers submit tracked updates through the normal protected-main PR process.
 	- Added manual signal tracker at `docs/adoption-metrics/manual-signals.json`.
 	- Added partnership log and outreach stages in `docs/community-partnership-log.md`.
 	- External adoption outcomes continue as live KPIs, not static checklist items.

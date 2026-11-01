@@ -23,7 +23,7 @@ describe('workflow cost controls', () => {
 });
 
 describe('renovate config', () => {
-  it('should batch non-major updates into one weekly pull request when dependencies are bumped', async () => {
+  it('should batch general non-major updates into one weekly pull request when dependencies are bumped', async () => {
     const config = JSON.parse(await read('renovate.json')) as {
       schedule: string[];
       prConcurrentLimit: number;
@@ -40,9 +40,16 @@ describe('renovate config', () => {
 });
 
 describe('adoption metrics workflow', () => {
-  it('should turn off git hooks when the scheduled job commits so the commit-evidence hook cannot block it', async () => {
+  it('should retain snapshots for PR review without pushing to protected main or bypassing hooks', async () => {
     const workflow = await read('.github/workflows/adoption-metrics.yml');
 
-    expect(workflow).toMatch(/name: Commit snapshot updates\n\s+env:\n(?:\s+#.*\n)?\s+LEFTHOOK: "0"/);
+    expect(workflow).toMatch(/permissions:\n\s+contents: read/);
+    expect(workflow).not.toContain('contents: write');
+    expect(workflow).not.toMatch(/git (?:push|commit)/);
+    expect(workflow).not.toContain('LEFTHOOK');
+    expect(workflow).toContain('uses: actions/upload-artifact@v7');
+    expect(workflow).toContain('docs/adoption-metrics/latest.json');
+    expect(workflow).toContain('docs/adoption-metrics/manual-signals.json');
+    expect(workflow).toContain('if-no-files-found: error');
   });
 });

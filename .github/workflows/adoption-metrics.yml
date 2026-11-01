@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   refresh-metrics:
@@ -23,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 12.14.0
+          version: 12.16.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -39,17 +39,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm metrics:adoption
 
-      - name: Commit snapshot updates
-        env:
-          # The repo's commit-evidence hook expects a local checks file that CI never has.
-          LEFTHOOK: "0"
+      - name: Upload snapshot for PR review
+        uses: actions/upload-artifact@v7
+        with:
+          name: adoption-metrics-snapshot
+          path: |
+            docs/adoption-metrics/latest.json
+            docs/adoption-metrics/manual-signals.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Explain snapshot review
         run: |
-          if [ -n "$(git status --porcelain -- docs/adoption-metrics/latest.json docs/adoption-metrics/manual-signals.json)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add docs/adoption-metrics/latest.json docs/adoption-metrics/manual-signals.json
-            git commit -m "chore: refresh adoption metrics snapshot"
-            git push
-          else
-            echo "No adoption metrics changes to commit"
-          fi
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          The adoption snapshot is available in the adoption-metrics-snapshot artifact.
+          Download it, compare latest.json with the tracked snapshot, and submit reviewed changes through the repository PR template.
+          Manual signals remain maintainer-verified. This job does not commit or push to main.
+          See docs/adoption-feedback-loop.md for the ordinary review workflow.
+          EOF
