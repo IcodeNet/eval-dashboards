@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-01",
+  "pullRequest": 97,
+  "reviewedHead": "525778d7945aa53ae07f01e19ebeab4432e5bcd8",
+  "finding": "An outside-diff CodeRabbit review comment identified stale new regressions wording in teaching answer 3.",
+  "before": "3. One \u2014 the persistent failure. The other four are flagged as new regressions,\n   but see answer 2 about how much that count is worth right now.",
+  "after": "3. One \u2014 the persistent failure. The other four are flagged as new failures\n   (matching-test regressions or newly added failing cases), but see answer 2\n   about how much that count is worth right now.",
+  "decision": "Valid: the answer contradicted the same exercise and the renamed descriptive counter.",
+  "verification": "Use the required exact-tree quality gates, including teach:verify, before committing; then inspect current-head CI and review state.",
+  "discussion": "The finding is in a review submission, not an inline thread. Reply in the PR conversation with the commit and verification; there is no GitHub thread to mark resolved.",
+  "priorHeadCi": {
+    "url": "https://github.com/IcodeNet/eval-dashboards/actions/runs/41295859209/job/124816461758",
+    "source": "Decoded raw job log",
+    "observed": [
+      "835 tests passed",
+      "111 CLI guards passed",
+      "3 platform-independent release assets reproduced",
+      "Teaching output verified",
+      "Docs site check passed",
+      "Audit: 2 low and 7 moderate findings"
+    ]
+  },
+  "limits": "No runtime or documented CLI output changes; no performance claim."
+}

@@ -11,6 +11,12 @@
   "limitations": [
     "This is agent/contributor guidance, not server-enforced branch protection.",
     "No reviewer-time or comprehension benchmark was run.",
-    "Publishing and deployment are separate from authorized merges."
+    "Publishing and deployment are separate from authorized merges.",
+    "Structural lint cannot judge prose quality or verify the truth of evidence."
+  ],
+  "followUp": "User observed remaining non-template PRs. Rewrote PRs 90, 91, 95, and 100; removed an appended CodeRabbit heading from 97. Added a template-derived structural CI check, Renovate body layout, and CodeRabbit walkthrough-summary placement.",
+  "configurationSources": [
+    "https://docs.renovatebot.com/configuration-options/#prbodytemplate",
+    "https://www.coderabbit.ai/integrations/schema.v2.json"
   ]
 }

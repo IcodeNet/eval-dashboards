@@ -138,7 +138,11 @@ Use the [repository PR template](./.github/pull_request_template.md) and
 [plain-English PR skill](./.agents/skills/plain-english-prs/SKILL.md). Explain the
 problem with one concrete example, show what changes, link observed evidence,
 and give the everyday workflow. Do not present test totals as speed or quality
-benchmarks. Improve the template when reviewer feedback shows a clearer way.
+benchmarks. Improve the template when reviewer feedback shows a clearer way. The
+`lint-description` CI check reads the headings from that template and requires
+content in every section. It checks structure; reviewers still assess wording
+and evidence. Renovate uses the same layout, and CodeRabbit keeps its summary
+in the review conversation.
 
 1. Pick one focused task from [ROADMAP](./docs/ROADMAP.md) or
    [STATUS](./docs/STATUS.md). Keep all existing project requirements in force.
