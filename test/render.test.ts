@@ -1030,7 +1030,7 @@ describe('render html safety and taxonomy scoring', () => {
     );
 
     const md = await readFile(path.join(reportDir, 'summary.md'), 'utf8');
-    expect(md).toContain('| Statistical context | bootstrap CI (90%, n=400)');
+    expect(md).toContain('| Statistical context | raw bootstrap CI (90%, n=400)');
     expect(md).toContain('required min Δ=0.000');
 
     const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');

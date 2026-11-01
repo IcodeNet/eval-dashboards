@@ -77,14 +77,54 @@
     "Package publication remains held; candidate is not npm latest.",
     "No live GitHub publishing, SMTP delivery, hosted deployment or throughput benchmark is claimed."
   ],
-  "candidateSourceSha256": {
-    "package.json": "2641e861e3d3a06083508f8b567eb52dc654cc85c17dc0b082c039fad6e890dc",
-    "scripts/verify-packed-package.mjs": "b27b30944f56a08d8fd627daf924b252dac0580c16e60d9bd4924865cc3c4c4e",
-    "test/evaluate-policy.test.ts": "6dec6691b3bcf21ab43abfa56ad5b547674733b14df6eabe77e0a746f2f6506f"
-  },
   "localCandidateVerification": {
     "stagedTreeBeforeFinalDocsSync": "b5feb0a079e7eb455f4efaeab83c024f305982eb",
     "command": "pnpm quality:record",
     "result": "All six groups passed: 914 tests, types/build, teaching/flag docs, schema, 111 CLI guards, strict installed consumer, 20 reproduced assets and audit. Final documentation wording is checked again before commit."
+  },
+  "initialCandidateHead": "d10cb6282a0a6bc3b6ba54f728a37b5b2c6ebf06",
+  "initialCandidateSourceSha256": {
+    "package.json": "2641e861e3d3a06083508f8b567eb52dc654cc85c17dc0b082c039fad6e890dc",
+    "scripts/verify-packed-package.mjs": "b27b30944f56a08d8fd627daf924b252dac0580c16e60d9bd4924865cc3c4c4e",
+    "test/evaluate-policy.test.ts": "6dec6691b3bcf21ab43abfa56ad5b547674733b14df6eabe77e0a746f2f6506f"
+  },
+  "reviewFollowUp": {
+    "reviewedHead": "d10cb6282a0a6bc3b6ba54f728a37b5b2c6ebf06",
+    "findings": [
+      "Raw rendered bootstrap interval was not labelled; active waivers can change legacy gate outcomes separately.",
+      "Bundled README stated ongoing unpublished status rather than a historical preparation snapshot.",
+      "Outside-diff release-plan disclaimer still said M1 was not complete."
+    ],
+    "resolution": [
+      "Label the HTML/Markdown interval raw bootstrap CI and document raw versus waiver-adjusted gate diagnostics; preserve gate math.",
+      "Use dated preparation snapshots and version-specific API wording across README and usage guides.",
+      "Distinguish completed portable M1 from open hosted M2-M6."
+    ],
+    "regression": {
+      "command": "pnpm exec vitest run test/evaluate-policy.test.ts",
+      "before": "1 failed / 11 passed: raw interval label absent despite passing waived gate and raw decline.",
+      "afterCommand": "pnpm exec vitest run test/evaluate-policy.test.ts test/render.test.ts",
+      "after": "41 passed. Waiver-adjusted gate interval [0,0] remains passing; displayed raw interval [-1,-1] is labelled explicitly."
+    },
+    "assets": "pnpm assets:regenerate completed; default fixture assets have no tracked changes. Report-power regeneration and full verification follow the ledger.",
+    "initialHeadRawCi": {
+      "jobs": [
+        124964714097,
+        124965780635,
+        124964714005,
+        124964714316,
+        124964714092
+      ],
+      "result": "All five protected checks passed; raw logs verified 914 tests, installed version 0.11.0 and strict consumers on Node 20.20.2 / 22.23.4 / 24.22.1 / 26.13.0, restored Node 22, no engine warnings, assets/accessibility/schema, CLI/docs, examples and audit 2 low / 4 moderate."
+    },
+    "sourceSha256": {
+      "src/reporters/render.ts": "25615405e9a03f7cec8b20f84bc813316a4863328cb2169ae39a0384ec0aec33",
+      "test/evaluate-policy.test.ts": "91d301ea15cc819f8b581a5afe7b6771290c9d7881b264dc91876cd79a10e7dd",
+      "test/render.test.ts": "113ae80939bf7f593b14d01d61af27e87c9ecefd3ead558efd50f26a57374816",
+      "README.md": "0fef780bc66b582d68527d7ec0fce2728cd0405d9c8466a54193a4669a631924",
+      "docs/gates.md": "a911ce9ee7b09a9d9dbf52913e191359ac69ff696dce0672200643867b8a36ae",
+      "docs/npm-publishing.md": "d98ece8fb5f87182c8457e346e53480111c8d7687150e96ee89c1611e3192f8b"
+    },
+    "status": "Review findings fixed locally; current-head protected CI and thread replies/resolution follow the verified commit."
   }
 }

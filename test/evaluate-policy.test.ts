@@ -85,6 +85,22 @@ describe('complete reusable report policy', () => {
       expect(await readFile(path.join(dir, 'index.html'), 'utf8')).toContain(`>${status}</span>`);
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
+  it('labels rendered bootstrap outcomes as raw when waiver-adjusted gates pass', async () => {
+    const current = report(false), previous = report(true, 'previous');
+    const gateConfig = { statistical: { mode: 'bootstrap' as const, confidenceLevel: 0.9, bootstrapSamples: 400 } };
+    const evaluation = evaluateReportPolicy({ current, previous, gateConfig, waiverRegister: waivers, now });
+    expect(evaluation.gateDecision.status).toBe('passed');
+    expect(evaluation.combinedDiagnostics.join(' ')).toContain('observed ΔpassRate=0.000, CI=[0.000, 0.000]');
+    const dir = await mkdtemp(path.join(tmpdir(), 'waived-bootstrap-report-'));
+    try {
+      await renderReports({ current, previous, history: [], comparison: compareRuns(current, previous), reportDir: dir,
+        gateDecision: evaluation.gateDecision, statistical: evaluation.gateConfig.statistical }, ['html', 'markdown-summary']);
+      const markdown = await readFile(path.join(dir, 'summary.md'), 'utf8');
+      expect(markdown).toContain('| Gate decision | passed |');
+      expect(markdown).toContain('raw bootstrap CI (90%, n=400) ΔpassRate=-1.000 CI=[-1.000, -1.000]');
+      expect(await readFile(path.join(dir, 'index.html'), 'utf8')).toContain('raw bootstrap CI');
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
   it('rejects invalid policies and invalid evaluation dates', () => {
     for (const gateConfig of [{ minPassRate: 2 }, { calibration: { maxAgeHours: -1 } }, { paired: { confidenceLevel: 1 } }]) {
       expect(() => evaluateReportPolicy({ current: report(), gateConfig })).toThrow();

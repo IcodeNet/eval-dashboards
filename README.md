@@ -2,7 +2,7 @@
 
 > **Product direction (2026-10-31):** a fully hosted platform with accounts, ingestion, and live dashboards is approved and planned. The current product remains the portable package. See [requirements and delivery sequence](docs/hosted-platform-requirements.md).
 
-Repository source (not yet released on npm) shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
+The 0.11.0 source shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/eval-dashboards-logo-dark.svg">
@@ -19,12 +19,13 @@ Repository source (not yet released on npm) shows the configured quality-gate de
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
-Release status checked 2026-11-01: npm's latest is **0.10.0** (2026-10-19).
-Repository version **0.11.0** is a release candidate; it has not been published.
-Its analytics, complete `evaluateReportPolicy` API, and gate-reporting features
-remain unreleased on npm. See the [runnable policy example](examples/policy-evaluation/README.md).
-The [0.11.0 release plan](docs/npm-publishing.md#next-release-plan--checked-2026-11-01)
-targets the portable M1 milestone; publication still needs owner authorization.
+Release-preparation snapshot (2026-11-01): npm latest was **0.10.0**
+(published 2026-10-19), and **0.11.0** was the prepared source candidate.
+The 0.11.0 source includes analytics, the complete `evaluateReportPolicy` API,
+and shared gate reporting. See the [runnable policy example](examples/policy-evaluation/README.md).
+For current package availability, use the npm badge above. The
+[release procedure](docs/npm-publishing.md#release-acceptance-and-publication)
+requires verification and owner authorization before publication.
 Strict installed-package checks passed on Node 20/22/24/26;
 see [runtime support](docs/npm-publishing.md#runtime-compatibility).
 

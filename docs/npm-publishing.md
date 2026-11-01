@@ -88,7 +88,8 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
 M2 accounts/ingestion, M3 hosted review screens, M4 richer analytics views,
 M5 live progress/scale, and M6 launch operations stay on their own roadmap.
 Assistant-ui remains parked. This plan neither publishes nor deploys a hosted
-platform, and it does not mark the whole roadmap or M1 complete.
+platform. Portable M1 semantics are complete in the candidate; hosted M2–M6
+and the rest of the roadmap remain open.
 
 ## Runtime compatibility
 
