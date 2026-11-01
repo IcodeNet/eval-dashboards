@@ -29,6 +29,11 @@ requires verification and owner authorization before publication.
 Strict installed-package checks passed on Node 20/22/24/26;
 see [runtime support](docs/npm-publishing.md#runtime-compatibility).
 
+M2 source work now includes a [tenant-scoped PostgreSQL storage foundation](hosted/postgres/README.md)
+with real database checks. Authentication, upload APIs and workers remain open.
+The portable package and static reports require no database.
+
+
 <div align="center">
 
 <picture>

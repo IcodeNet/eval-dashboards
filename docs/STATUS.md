@@ -68,7 +68,8 @@ the complete policy evaluator, and the Node compatibility fix merged in
 [#103](https://github.com/IcodeNet/eval-dashboards/pull/103), and
 [#104](https://github.com/IcodeNet/eval-dashboards/pull/104).
 M1 acceptance is covered by the committed analytics and public/CLI/reporter
-parity tests. The release PR must pass its own required checks, review and merge
+parity tests. Release preparation merged in [#105](https://github.com/IcodeNet/eval-dashboards/pull/105) after 915 tests and
+strict consumers on Node 20/22/24/26; npm publication remains held. The release PR must pass its own required checks, review and merge
 verification before publication, which needs explicit owner authorization. M2–M6
 remain hosted backlog. See the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
 
@@ -276,7 +277,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
 - [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. npm publication remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
-- [ ] M2: Tenant-safe accounts and durable artifact ingestion.
+- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; authentication, API credentials, upload/blob persistence, intake protocol and workers remain open. See [storage foundation](../hosted/postgres/README.md).
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
 - [ ] M5: Resumable live progress and benchmarked query scale.
@@ -294,3 +295,18 @@ Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See
   Node 20.20.2 / 22.23.4 / 24.22.1 / 26.13.0, with no engine warnings and
   restored Node 22 for the remaining checks. The version candidate is not a
   published package. Optional SQLite still requires Node >=22.5.
+
+### M2 storage foundation — 2026-11-01
+
+Source includes a transactional PostgreSQL migration and isolated integration
+checks (`hosted/postgres/migrations/001-storage-foundation.sql`,
+`scripts/hosted-db.test.mjs`). Verified against real PostgreSQL 17.11 using a
+restricted runtime login, including permissive PUBLIC default grants, missing
+scope, forged tenant/project writes, composite references, immutable revisions,
+scoped idempotency associations, job metadata and transaction-local scope reset.
+
+The harness pins the official test image, rejects remote Docker endpoints,
+uses no external database URL, and removes its owned container. Required CI
+runs `pnpm test:hosted-db`; normal `pnpm test` and portable exports remain
+database-free. This is storage groundwork, not completed M2 accounts or ingestion.
+No hosted deployment or npm publication is performed.

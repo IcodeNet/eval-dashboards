@@ -1,0 +1,91 @@
+{
+  "recordedAt": "2026-11-01",
+  "purpose": "M2 PostgreSQL storage foundation only. Functional isolation/constraint checks, not a hosted authentication boundary, ingestion service or scale benchmark.",
+  "baselineRevision": "62a321a1b5fefd8d17e56f7ec1be9c03bb7bebff",
+  "baselineState": "Repository had no hosted storage schema or account/upload service; no existing production tenant leak is claimed.",
+  "command": "pnpm test:hosted-db",
+  "result": {
+    "exitCode": 0,
+    "database": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2)",
+    "tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "runtime": "Node 26.7.0 / macOS arm64; PostgreSQL runs in the pinned Linux image",
+    "fixtures": {
+      "tenants": 2,
+      "projects": 3,
+      "immutableArtifacts": 3,
+      "syntheticPrivateAccounts": 2,
+      "scopedDeliveryKeys": 2
+    },
+    "highlights": [
+      "Real database: 17.11 (Debian 17.11-1.pgdg13+2); isolated container; no external database",
+      "Synthetic UUID-only FK control accepted 1 cross-tenant reference; scoped schema rejected the same IDs with SQLSTATE 23503.",
+      "Owned PostgreSQL test container removed."
+    ],
+    "logSha256": "054bd7b449ccc6c20b887bf7468a8d97f37fd3172866542244d8a2b389662d59"
+  },
+  "beforeAfterControl": {
+    "before": "A synthetic conventional UUID-only foreign key accepted one child whose tenant differed from its referenced project. This is a control model, not old deployed application behavior.",
+    "after": "The scoped migration rejected the same tenant/project IDs with SQLSTATE 23503, even under the migration owner. Real restricted-login tests also verified tenant/project row policies."
+  },
+  "manualReviewRegression": {
+    "case": "Permissive ALTER DEFAULT PRIVILEGES granting all tables to PUBLIC",
+    "beforeCommand": "node --test --test-name-pattern='global identity records' scripts/hosted-db.test.mjs",
+    "before": "One focused test failed: application access to global accounts incorrectly succeeded in the initial local draft.",
+    "beforeLogSha256": "216c549e49ea39205c2bd034054fdc619adf9c376e68ca31d0fdda8e80659153",
+    "resolution": "Explicitly revoke PUBLIC/application default table access before least-privilege grants. Refuse pre-existing application roles with unknown rights rather than reusing them.",
+    "after": "All 19 checks pass with permissive owner defaults, a real restricted runtime login, owner-role escalation denial and row_security=off denial."
+  },
+  "localOnlyGuard": {
+    "command": "env -u DOCKER_CONTEXT DOCKER_HOST=tcp://not-a-test-host.invalid:2375 node --test scripts/hosted-db.test.mjs",
+    "expectedExitCode": 1,
+    "result": "Rejected before any Docker resource command: Hosted DB checks require a local Docker socket",
+    "logSha256": "60ffe332b7b6bbd742a222ac6099a74ee96170ed8a2b4b031a63d45c44321973"
+  },
+  "docs": {
+    "commands": [
+      "pnpm docs:build",
+      "pnpm docs:check"
+    ],
+    "result": "90 pages built; link/asset check passed. No additional docs page count was invented for the source-only guide."
+  },
+  "sourceSha256": {
+    "hosted/postgres/migrations/001-storage-foundation.sql": "5640016b05c869f511063c6d0fae4857ffba185357c3744404ffbb22719ba8a3",
+    "hosted/postgres/test/Dockerfile": "67356aa130145832e59cad2cbac4e34531747941354b0c552da435cec1d17542",
+    "scripts/hosted-db.test.mjs": "5054f79622550cff4bb045024c1a8fb8317f2d4b0b2a15e30003a6909c5a2b44",
+    ".github/workflows/ci.yml": "6ad0d6790c2b00d21ca043072d480ae8ac1c76d508cbec46906423b9cebaebce"
+  },
+  "limitations": [
+    "Context settings must come from a future authenticated/authorized trusted service. Arbitrary SQL access with application credentials can change them.",
+    "No login, key issuance, HTTP authorization, upload limits, artifact validation, blob persistence, intake replay/conflict handling or worker protocol is implemented by this schema.",
+    "Job constraints validate metadata combinations, not proof that a worker ran or blob contents match the digest.",
+    "M2 remains open; no hosted deployment or npm publication was performed.",
+    "The specialized security-review subagent required by the skill was unavailable; no completed independent security review is claimed. Manual review and actual PostgreSQL tests were performed.",
+    "Current-head raw verification of the changed CI workflow remains pending the PR run."
+  ],
+  "previousReleaseVerification": {
+    "pr": 105,
+    "head": "710e6f1c8d27cfcbf34ce42a1635c66dcc1e32ab",
+    "merge": "62a321a1b5fefd8d17e56f7ec1be9c03bb7bebff",
+    "rawJobs": [
+      124968523810,
+      124969595735,
+      124968524241,
+      124969912371,
+      124969912766
+    ],
+    "result": "915 tests; strict installed 0.11.0 on Node 20.20.2 / 22.23.4 / 24.22.1 / 26.13.0; restored Node 22; no engine warnings; assets/accessibility/schema, CLI/docs, audit 2 low / 4 moderate, examples. All five protected checks passed. Both inline review findings fixed/replied/resolved; outside-diff finding fixed and replied.",
+    "postMergeDocs": {
+      "run": 41347406824,
+      "job": 124970086194,
+      "result": "Raw log verified docs link check and Pages Reported success!"
+    },
+    "publication": "Held; OIDC publish workflow was not dispatched."
+  },
+  "manualDocumentationReview": {
+    "finding": "Staged diff review caught roadmap content accidentally copied into the requirements and examples guides by an edit script. No commit, PR or deployment contained that error.",
+    "resolution": "Restore each guide from the current committed base and append only its intended M2 section. Review their final diff and rerun the ledger before commit."
+  }
+}

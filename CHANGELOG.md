@@ -11,9 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No changes recorded after the 0.11.0 candidate. npm publication and the GitHub
-release/tag remain on hold until the owner authorizes the verified merged
-candidate. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
+### Added
+
+- Source-only M2 PostgreSQL storage foundation: tenant/project row policies and
+  composite references, immutable artifact/idempotency records, separate job
+  processing and quality states, and isolated real-database tests. No hosted
+  authentication, upload API, worker or deployment is included. The portable
+  npm package remains database-free.
+
+The 0.11.0 candidate's publication and GitHub release/tag remain on hold until
+the owner authorizes the verified candidate. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
 
 ## [0.11.0] — 2026-11-01
 

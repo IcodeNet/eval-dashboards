@@ -2047,3 +2047,11 @@ The core idea — an Istanbul-style, offline, artifact-first reporting layer for
 The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
 
 See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 has shared decisions, matching-case analytics, paired/repeated uncertainty, and a complete policy evaluator merged in #103. Portable M1 acceptance is covered by committed regression tests, including public/CLI/reporter parity. M2–M6 and npm publication stay open in STATUS.
+
+M2 begins with the [PostgreSQL storage foundation](../hosted/postgres/README.md):
+tenant/project row policies and composite keys, immutable artifact references,
+idempotency associations, and processing/quality state separation with real
+database checks. Remaining M2 slices are authentication and scoped credentials,
+bounded validated uploads/private blobs, transactional intake and revision
+handling, worker claiming/retries/indexing, then end-to-end isolation and replay
+acceptance. A schema alone does not complete the hosted vertical slice.
