@@ -7,7 +7,9 @@ Publishing does not perform the shared `check`/`report` gate evaluation. In unre
 This page describes publishing dashboard artifacts. npm package publication
 uses a separate [trusted-publishing workflow and next-release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
 The latest verified npm package is 0.10.0 as of 2026-11-01; newer repository
-features remain unreleased until an authorized package release.
+features remain unreleased until an authorized package release. Source uses a
+Node 20-compatible GitHub client and checks the installed publisher with simulated
+responses; see [runtime compatibility](./npm-publishing.md#runtime-compatibility).
 
 Supported targets:
 

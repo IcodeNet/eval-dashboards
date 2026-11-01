@@ -1,0 +1,114 @@
+{
+  "recordedAt": "2026-11-01",
+  "baselineRevision": "3f95ba7f0641ce6679a1d998fe396ce5fd7344c3",
+  "purpose": "Fresh installed-package engine compatibility, not a performance benchmark. No version bump or npm publication.",
+  "runtime": "Node 20.20.2 / npm 10.8.2 on macOS arm64",
+  "before": {
+    "command": "PATH=/opt/homebrew/opt/node@20/bin:<pnpm-bin>:$PATH PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false npm_config_engine_strict=true node scripts/verify-packed-package.mjs",
+    "exitCode": 1,
+    "diagnostic": [
+      "npm error code EBADENGINE",
+      "npm error engine Unsupported engine",
+      "npm error engine Not compatible with your version of node/npm: content-type@3.1.1",
+      "npm error notsup Not compatible with your version of node/npm: content-type@3.1.1",
+      "npm error notsup Required: {\"node\":\">=22\"}",
+      "npm error notsup Actual:   {\"npm\":\"10.8.2\",\"node\":\"v20.20.2\"}"
+    ],
+    "logSha256": "f6f24a4b5cf5f9df7b9369482970eeab9c7a59b1ce608f218b54d024b293bdd6",
+    "freshDependencyProbe": {
+      "commands": [
+        "npm install --prefix <scratch> --ignore-scripts --no-audit --no-fund @octokit/rest@22.0.1",
+        "npm ls --prefix <scratch> @octokit/rest @octokit/request content-type --all --json"
+      ],
+      "tree": {
+        "dependencies": {
+          "@octokit/rest": {
+            "version": "22.0.1",
+            "overridden": false,
+            "dependencies": {
+              "@octokit/core": {
+                "version": "7.0.8",
+                "overridden": false,
+                "dependencies": {
+                  "@octokit/graphql": {
+                    "version": "9.0.5",
+                    "overridden": false,
+                    "dependencies": {
+                      "@octokit/request": {
+                        "version": "10.0.16"
+                      }
+                    }
+                  },
+                  "@octokit/request": {
+                    "version": "10.0.16",
+                    "overridden": false,
+                    "dependencies": {
+                      "content-type": {
+                        "version": "3.1.1",
+                        "overridden": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "after": {
+    "command": "PATH=/opt/homebrew/opt/node@20/bin:<pnpm-bin>:$PATH PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false node scripts/verify-packed-package.mjs",
+    "exitCode": 0,
+    "runtimeDependencies": {
+      "@octokit/rest": "21.1.1",
+      "@octokit/core": "6.1.6",
+      "@octokit/request": "9.2.4"
+    },
+    "results": [
+      "Packed consumer: installed GitHub comment create/update and Pages file update work with simulated fetch; zero external requests.",
+      "Packed consumer: public types compile; runtime, complete policy and schema exports work.",
+      "Packed consumer: CommonJS require works.",
+      "Packed optional dependency: mail stream generation works without SMTP or external delivery.",
+      "Packed CLI: file history and offline HTML work on Node 20.20.2."
+    ],
+    "engineWarnings": [],
+    "logSha256": "5555115a662d010869736b1fff890db4de50800d85be27522575e640e36d8e8c"
+  },
+  "audit": {
+    "command": "pnpm audit --audit-level=high",
+    "exitCode": 0,
+    "output": "6 vulnerabilities found\nSeverity: 2 low | 4 moderate"
+  },
+  "limitations": [
+    "Simulated GitHub fetch validates the installed client and endpoint calls; it does not prove live permissions or cloud deployment.",
+    "Mail generation uses an in-memory stream; no SMTP connection or email delivery is attempted.",
+    "Node 20 supports file history; optional node:sqlite needs Node >=22.5.",
+    "Other runtime checks and touched-workflow verification remain pending current-head CI.",
+    "A direct request pin was tested but rejected because npm still installed a nested incompatible request client."
+  ],
+  "testedSourceSha256": {
+    "package.json": "f5794fe9d2d7d6792dfeed5cbacfe136e50b3c9af9a7f4df534b3b53a8f64707",
+    "pnpm-lock.yaml": "f8029c4c627d2524327d0cea58f08dd0cb255336f3382138033c6f3b454c00e1",
+    "scripts/verify-packed-package.mjs": "f12fdcb54bd21845f7141d4baf6fc816d3612cf3f926f69be25a0cfb9bf5062e",
+    ".github/workflows/ci.yml": "946d7a4976450601aae249081ce459a724e688f5a2b28a0b00944e7c23e6ba43"
+  },
+  "previousSliceVerification": {
+    "pr": 103,
+    "head": "194062ff49df1c8b7c512dccd8767c50804ce175",
+    "merge": "3f95ba7f0641ce6679a1d998fe396ce5fd7344c3",
+    "rawCiJobs": [
+      124916337318,
+      124917307421,
+      124916337339,
+      124917523774,
+      124917524041
+    ],
+    "results": "911 tests; installed complete-policy API; assets/accessibility/schema; 111 CLI guards; teaching/flag docs; docs links; examples; audit 2 low / 4 moderate, no high/critical. All five required checks passed. No review findings; CodeRabbit skipped due to free allowance, not counted as completed review.",
+    "postMergeDocs": {
+      "run": 41329937547,
+      "job": 124917713042,
+      "result": "Raw log verified docs links and Reported success! for Pages deployment."
+    }
+  }
+}

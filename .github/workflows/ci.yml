@@ -54,6 +54,37 @@ jobs:
       - name: Verify packed-package consumer
         run: pnpm verify:package
 
+      # Keep the full development suite on Node 22; exercise the installed
+      # tarball separately on the other advertised even-numbered runtimes.
+      - name: Setup Node 20 for packed-package compatibility
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Verify strict installed package on Node 20
+        run: node scripts/verify-packed-package.mjs
+
+      - name: Setup Node 24 for packed-package compatibility
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Verify strict installed package on Node 24
+        run: node scripts/verify-packed-package.mjs
+
+      - name: Setup Node 26 for packed-package compatibility
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Verify strict installed package on Node 26
+        run: node scripts/verify-packed-package.mjs
+
+      - name: Restore Node 22 for remaining checks
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+
       - name: Install release-asset browser
         run: pnpm exec playwright install --with-deps chromium
 

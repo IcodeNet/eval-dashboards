@@ -25,6 +25,10 @@ Codex. Install Git hooks with `pnpm exec lefthook install` after cloning.
    then run `pnpm quality:review /absolute/path/review.json`.
 6. Run `pnpm quality:verify`, then use a standalone `git commit -m "..."`.
 
+The installed-package check uses `--engine-strict`; required CI also runs its
+consumer on Node 20/22/24/26. Keep the development suite on Node 22 and restore
+that runtime before the remaining checks. See [runtime compatibility](./npm-publishing.md#runtime-compatibility).
+
 Review record shape (replace the example values with the actual review):
 
 ```json

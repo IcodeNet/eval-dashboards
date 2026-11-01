@@ -24,6 +24,8 @@ The newer analytics, complete `evaluateReportPolicy` API, and gate-reporting
 features are unreleased repository work. See the [runnable policy example](examples/policy-evaluation/README.md).
 The [proposed 0.11.0 release plan](docs/npm-publishing.md#next-release-plan--checked-2026-11-01)
 targets the portable M1 milestone; publication still needs owner authorization.
+Node 20 compatibility is being verified with strict installed-package checks;
+see [runtime support](docs/npm-publishing.md#runtime-compatibility).
 
 <div align="center">
 

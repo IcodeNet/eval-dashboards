@@ -32,12 +32,15 @@ No new package has been published.
   merged in #102 and remains unreleased on npm.
 - A reusable complete `evaluateReportPolicy` API shares CLI policy decisions,
   including calibration, waivers, threshold changes and optional tier budgets.
-  This source slice is in review before the release cut.
+  This slice merged in #103 and remains unreleased on npm.
 - Promptfoo assertion components, Langfuse score provenance, and Phoenix
   decision confidence/probabilities and trace links survive import.
 
 ### Fixed
 
+- Fresh Node 20 installs use a compatible GitHub client dependency line. Strict
+  installed-package checks cover public APIs, offline reports/history, simulated
+  GitHub publishing and in-memory mail generation. This source fix is in review.
 - Inspect AI imports respect mixed scorer failures and errors and preserve task
   and sample descriptions. Langfuse imports preserve explicit IDs and handle
   malformed optional evidence; Phoenix imports omit null trace IDs while

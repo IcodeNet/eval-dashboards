@@ -49,15 +49,17 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
 - [x] Repeated-trial slice merged in [#102](https://github.com/IcodeNet/eval-dashboards/pull/102): optional sampling declarations,
   within-case bounds, unknown evidence, shared reporter output, examples and
   regression tests (`test/repeated-trials.test.ts`).
-- [ ] Finish M1's reusable complete policy evaluator for the future API. Prove
-  consistent decisions for critical failures, expected negatives, waivers,
-  calibration, baseline/threshold changes, and paired uncertainty. A hosted API
-  itself is M2 work and is not part of this npm cut. The source extraction and
-  parity coverage are in progress; this remains open until reviewed and merged.
+- [x] Complete reusable policy evaluator merged in [#103](https://github.com/IcodeNet/eval-dashboards/pull/103), with public/CLI/report parity
+  for critical failures, expected negatives, waivers, calibration, baseline drift,
+  threshold changes and tier budgets (`test/gate-decision.test.ts`,
+  `test/cli-pr-tiering.test.ts`). Paired statistics preserve raw observations
+  (`test/evaluate-policy.test.ts`). A hosted API itself remains M2 work.
 - [ ] Resolve the observed Node 20 transitive engine warning. Test the packed
   package and supported feature paths on the advertised Node versions. Keep
   `engines: >=20` only with evidence; propose and document any minimum-version
-  change explicitly before release.
+  change explicitly before release. A compatible dependency line and strict
+  consumer checks are in source review; keep this gate open until current-head
+  CI and its raw runtime logs are verified.
 - [ ] Reconcile `CHANGELOG.md` with the actual npm gitHead-to-main changes, then
   select the exact candidate commit. Do not list hosted accounts or ingestion as
   shipped. Keep 4F.11 signed-bundle authentication open and describe integrity
@@ -88,6 +90,34 @@ M2 accounts/ingestion, M3 hosted review screens, M4 richer analytics views,
 M5 live progress/scale, and M6 launch operations stay on their own roadmap.
 Assistant-ui remains parked. This plan neither publishes nor deploys a hosted
 platform, and it does not mark the whole roadmap or M1 complete.
+
+## Runtime compatibility
+
+The package keeps `engines.node: >=20`. Its optional SQLite history store needs
+Node 22.5 or newer; file history and static HTML remain available on Node 20.
+
+A fresh npm install resolves runtime dependencies independently of this
+repository's pnpm lockfile. The Octokit 22 line currently resolves a request
+client that depends on `content-type` 3, whose declared engine is Node >=22.
+Strict Node 20 installation therefore fails even though the locked local tree
+and non-strict action smoke test can run. Repository source now uses the
+compatible Octokit 21 line (resolved REST 21.1.1 / request 9.2.4), preserving
+Node 20 support. Revisit that choice when an upgrade passes the same checks;
+do not waive the engine error or silently raise the package minimum.
+
+`pnpm verify:package` builds a real tarball, installs it in a fresh consumer with
+`--engine-strict`, prints the resolved Octokit tree, compiles public types and
+runs ESM/CommonJS, complete-policy, schema, CLI, file-history and offline HTML
+checks. It also exercises the installed GitHub client with simulated fetch
+responses and generates a mail message in memory. These checks make no live
+GitHub writes or email deliveries. SQLite round-trips run where supported.
+
+Required CI runs this installed consumer on Node 20, 22, 24 and 26, while keeping
+the full development test suite and documentation tools on Node 22. The main
+job restores Node 22 before its remaining checks. A future dependency upgrade
+must pass all consumer steps, not only the development suite's green badge.
+This source compatibility fix remains under review and does not change npm
+0.10.0 retroactively.
 
 ## Required Secrets
 
