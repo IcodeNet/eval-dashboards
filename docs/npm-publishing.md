@@ -46,13 +46,14 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
 
 ### Work to finish before opening the release PR
 
-- [ ] Finish and merge the repeated-trial slice: optional sampling declarations,
+- [x] Repeated-trial slice merged in [#102](https://github.com/IcodeNet/eval-dashboards/pull/102): optional sampling declarations,
   within-case bounds, unknown evidence, shared reporter output, examples and
-  regression tests. It is in progress in repository source.
+  regression tests (`test/repeated-trials.test.ts`).
 - [ ] Finish M1's reusable complete policy evaluator for the future API. Prove
   consistent decisions for critical failures, expected negatives, waivers,
   calibration, baseline/threshold changes, and paired uncertainty. A hosted API
-  itself is M2 work and is not part of this npm cut.
+  itself is M2 work and is not part of this npm cut. The source extraction and
+  parity coverage are in progress; this remains open until reviewed and merged.
 - [ ] Resolve the observed Node 20 transitive engine warning. Test the packed
   package and supported feature paths on the advertised Node versions. Keep
   `engines: >=20` only with evidence; propose and document any minimum-version

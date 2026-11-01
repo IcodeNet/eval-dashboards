@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
+import { evaluateReportPolicy } from '../src/index.js';
 import type { EvalReportsConfig } from '../src/config/config.js';
 import { gateDecisionFromResult } from '../src/gates/decision.js';
 import { compareRuns } from '../src/history/history.js';
@@ -70,6 +71,7 @@ describe('shared gate decision', () => {
     // Producing a failed report succeeds; check retains the CI gate exit code.
     const summary = JSON.parse(await readFile(path.join(dir, 'out/summary.json'), 'utf8'));
     expect(summary.gateDecision).toEqual(checked.gateDecision);
+    expect(evaluateReportPolicy({ current: fixture(negative), gateConfig: gates }).gateDecision).toEqual(checked.gateDecision);
     expect(summary.gateDecision.status).toBe(status);
     expect(reported.stdout).toContain(`Gate decision:    ${status}`);
     expect(await readFile(path.join(dir, 'out/summary.md'), 'utf8')).toContain(`| Gate decision | ${status} |`);
@@ -112,6 +114,11 @@ describe('shared gate decision', () => {
       const checked = JSON.parse(await readFile(path.join(dir, 'check.json'), 'utf8'));
       const summary = JSON.parse(await readFile(path.join(dir, 'out/summary.json'), 'utf8'));
       expect(summary.gateDecision).toEqual(checked.gateDecision);
+      const previous = scenario === 'blocked baseline' ? JSON.parse(await readFile(path.join(dir, 'in/previous.json'), 'utf8')) : undefined;
+      const waiverRegister = scenario === 'waiver' ? JSON.parse(await readFile(path.join(dir, 'waivers.json'), 'utf8')) : undefined;
+      const baselineGateConfig = scenario === 'threshold change' ? { minPassRate: 1 } : undefined;
+      expect(evaluateReportPolicy({ current, previous, reports: previous ? [previous, current] : [current],
+        gateConfig: config.gates, waiverRegister, baselineGateConfig }).gateDecision).toEqual(checked.gateDecision);
       const evidence = [...summary.gateDecision.failures, ...summary.gateDecision.diagnostics].join(' ');
       expect(evidence).toContain({ waiver: 'ACTIVE WAIVER', 'threshold change': 'minPassRate', calibration: 'Calibration preflight', 'blocked baseline': 'Baseline compatibility is blocked' }[scenario]);
     },

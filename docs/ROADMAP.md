@@ -2045,4 +2045,4 @@ The core idea — an Istanbul-style, offline, artifact-first reporting layer for
 
 The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
 
-See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 now has an initial shared gate-decision slice; its remaining semantics and all hosted milestones stay open in STATUS.
+See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 has shared decisions, matching-case analytics, paired/repeated uncertainty, and a complete policy evaluator in source review. Its acceptance review and all hosted milestones stay open in STATUS.

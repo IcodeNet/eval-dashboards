@@ -20,16 +20,16 @@ import { renderOrgRollupHtml } from '../reporters/org-rollup.js';
 import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, writeTextFile, appendTextFile } from '../io/reports.js';
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
-import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
+import { validateGateConfig, type GateConfig } from '../gates/check-gates.js';
 import { validatePairedComparisonOptions, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
-import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
+import { type GateDecision } from '../gates/decision.js';
 import { stripControlCharacters } from '../utils/untrusted-text.js';
 import { readPackageVersion } from './package-version.js';
 import { BUILT_IN_THEMES, describeUnknownTheme } from '../reporters/themes.js';
 import { renderStepSummary } from '../gates/step-summary.js';
-import { applyWaivers, loadWaiverRegister } from '../gates/waivers.js';
-import { detectGateConfigLoosening } from '../gates/threshold-change.js';
-import { filterReportByTier, evaluatePrTierBudget, type TierCostSummary } from '../gates/pr-tiering.js';
+import { loadWaiverRegister } from '../gates/waivers.js';
+import { evaluateReportPolicy, assertValidCalibrationGateConfig } from '../gates/evaluate-policy.js';
+import { filterReportByTier, type TierCostSummary } from '../gates/pr-tiering.js';
 import {
   buildBypassLogEntry,
   parseBypassLog,
@@ -947,8 +947,6 @@ const loadContext = async (
   };
 };
 
-const CALIBRATION_DEFAULT_SUITE = 'judge-calibration';
-const CALIBRATION_DEFAULT_MAX_AGE_HOURS = 168;
 
 const parseCalibrationMaxAgeHours = (
   options: Record<string, string | boolean | string[]>,
@@ -978,140 +976,6 @@ const parseCalibrationMaxAgeHours = (
   }
 
   return parsed;
-};
-
-type CalibrationCheckResult = {
-  failures: string[];
-  diagnostics: string[];
-};
-
-const isJudgeScoredSuite = (manifest: SuiteManifest): boolean =>
-  manifest.graders.includes('llm-judge') || manifest.graders.includes('human-labelled-calibration');
-
-const evaluateCalibrationChecks = (
-  reports: EvalReportV1[],
-  current: EvalReportV1,
-  gateConfig: GateConfig,
-): CalibrationCheckResult => {
-  const failures: string[] = [];
-  const diagnostics: string[] = [];
-
-  const calibrationConfig = gateConfig.calibration ?? {};
-  if (calibrationConfig.enabled === false) {
-    return { failures, diagnostics };
-  }
-
-  const suiteId = calibrationConfig.suite ?? CALIBRATION_DEFAULT_SUITE;
-  const maxAgeHours = calibrationConfig.maxAgeHours ?? CALIBRATION_DEFAULT_MAX_AGE_HOURS;
-  const allowBlockingWithoutRecentMatch = calibrationConfig.allowBlockingWithoutRecentMatch === true;
-  if (!current.suiteManifests?.length) {
-    return { failures, diagnostics };
-  }
-
-  const targetSuites = current.suiteManifests.filter(
-    (manifest) => manifest.name !== suiteId && isJudgeScoredSuite(manifest),
-  );
-  if (targetSuites.length === 0) {
-    return { failures, diagnostics };
-  }
-
-  const calibrationConfigured = current.suiteManifests.some((manifest) => manifest.name === suiteId);
-  const forceEnabled = calibrationConfig.enabled === true;
-  if (!calibrationConfigured && !forceEnabled) {
-    return { failures, diagnostics };
-  }
-
-  const expectedCalibrationRubricVersion =
-    current.suiteManifests.find((manifest) => manifest.name === suiteId)?.rubricVersion ??
-    current.rubricContracts?.find((contract) => contract.suiteName === suiteId)?.rubricVersion;
-
-  if (calibrationConfigured && expectedCalibrationRubricVersion === undefined) {
-    throw Object.assign(
-      new Error(
-        `Invalid calibration gate config: calibration suite "${suiteId}" requires rubric metadata ` +
-          '(suite manifest or rubric contract) in the current artifact.',
-      ),
-      { exitCode: 2 },
-    );
-  }
-
-  const nowMs = Number.isFinite(Date.parse(current.run.generatedAt))
-    ? Date.parse(current.run.generatedAt)
-    : Date.now();
-  const cutoffMs = nowMs - maxAgeHours * 60 * 60 * 1000;
-
-  const evidenceRuns = reports.filter((report) => {
-    const generatedAtMs = Date.parse(report.run.generatedAt);
-    if (!Number.isFinite(generatedAtMs)) {
-      return false;
-    }
-    return generatedAtMs >= cutoffMs && generatedAtMs <= nowMs;
-  });
-
-  for (const manifest of targetSuites) {
-    const suiteRows = current.rows.filter((row) => row.suite === manifest.name);
-    const judgeModels = [...new Set(suiteRows.map((row) => row.judgeModel).filter((value): value is string => typeof value === 'string' && value.length > 0))];
-
-    if (judgeModels.length === 0) {
-      const issue =
-        `Calibration preflight: suite "${manifest.name}" has no judgeModel values in current rows; ` +
-        'calibration evidence cannot be matched.';
-      if (manifest.gate.mode === 'blocking' && !allowBlockingWithoutRecentMatch) {
-        failures.push(issue);
-      } else {
-        diagnostics.push(`${issue} (warning-only)`);
-      }
-      continue;
-    }
-
-    for (const judgeModel of judgeModels) {
-      const evidenceCandidates =
-        manifest.gate.mode === 'blocking'
-          ? evidenceRuns.filter((report) => report.run.id !== current.run.id)
-          : evidenceRuns;
-
-      const hasRecentMatch = evidenceCandidates.some((report) => {
-        const calibrationManifest = report.suiteManifests?.find((candidate) => candidate.name === suiteId);
-        if (!calibrationManifest) {
-          return false;
-        }
-
-        const calibrationRubricVersion =
-          calibrationManifest.rubricVersion ??
-          report.rubricContracts?.find((contract) => contract.suiteName === suiteId)?.rubricVersion;
-        if (
-          expectedCalibrationRubricVersion !== undefined &&
-          calibrationRubricVersion !== expectedCalibrationRubricVersion
-        ) {
-          return false;
-        }
-
-        return report.rows.some(
-          (row) =>
-            row.suite === suiteId &&
-            row.judgeModel === judgeModel &&
-            row.groundTruthVerdict !== undefined,
-        );
-      });
-
-      if (hasRecentMatch) {
-        continue;
-      }
-
-      const issue =
-        `Calibration preflight: suite "${manifest.name}" requires recent "${suiteId}" evidence ` +
-        `(judgeModel="${judgeModel}", calibrationRubricVersion="${expectedCalibrationRubricVersion ?? 'n/a'}", maxAgeHours=${maxAgeHours}) ` +
-        'but no matching calibration run was found.';
-
-      if (manifest.gate.mode === 'blocking' && !allowBlockingWithoutRecentMatch) {
-        failures.push(issue);
-      } else {
-        diagnostics.push(`${issue} (warning-only)`);
-      }
-    }
-  }
-
-  return { failures, diagnostics };
 };
 
 const pairedConfigFromOptions = (options: Record<string, string | boolean | string[]>): PairedComparisonOptions | undefined => {
@@ -1340,27 +1204,14 @@ const evaluateConfiguredRun = async (
   assertValidStatisticalGateConfig(gateConfig);
   assertValidCalibrationGateConfig(gateConfig);
 
-  const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
-  const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
-  const prTierBudget = selectedTier
-    ? evaluatePrTierBudget(context.current, {
-        tier: selectedTier,
-        maxCostUsd: maxPrCostUsd,
-        maxDurationMs: maxPrDurationMs,
-      })
-    : undefined;
-
   const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
   const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
-  const waiverApplication = applyWaivers(context.current, waiverRegister);
 
   const baselineGateConfigPath =
     optionString(options, 'baseline-gate-config', '') || config.baselineGateConfigFile || '';
   const allowGateLoosening =
     optionBoolean(options, 'allow-gate-loosening') || gateConfig.allowLoosening === true;
-  let thresholdChangeResult:
-    | ReturnType<typeof detectGateConfigLoosening>
-    | undefined;
+  let baselineGateConfig: GateConfig | undefined;
   if (baselineGateConfigPath) {
     let baselineGateConfigRaw: string;
     try {
@@ -1372,7 +1223,6 @@ const evaluateConfiguredRun = async (
         { exitCode: 2 },
       );
     }
-    let baselineGateConfig: GateConfig;
     try {
       baselineGateConfig = JSON.parse(baselineGateConfigRaw) as GateConfig;
     } catch (error) {
@@ -1382,64 +1232,23 @@ const evaluateConfiguredRun = async (
         { exitCode: 2 },
       );
     }
-    const baselinePairedErrors = validatePairedComparisonOptions(baselineGateConfig?.paired);
-    if (baselinePairedErrors.length) {
-      throw Object.assign(new Error(`Invalid paired policy in baseline gate config: ${baselinePairedErrors.join(' ')}`), { exitCode: 2 });
-    }
-    thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
   }
-
-  const gateResult = checkGates(
-    waiverApplication.reportForGating,
-    waiverApplication.active.length > 0
-      ? compareRuns(waiverApplication.reportForGating, context.previous)
-      : context.comparison,
-    gateConfig,
-    context.baselineCompatibility,
-    context.previous,
-    context.current,
-  );
-  const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
-  const thresholdChangeFailures =
-    thresholdChangeResult && thresholdChangeResult.loosened && !allowGateLoosening
-      ? thresholdChangeResult.failures
-      : [];
-  const combinedFailures = [
-    ...gateResult.failures,
-    ...calibrationChecks.failures,
-    ...waiverApplication.failures,
-    ...thresholdChangeFailures,
-    ...(prTierBudget?.failures ?? []),
-  ].map(stripControlCharacters);
-  const combinedDiagnostics = [
-    ...waiverApplication.diagnostics,
-    ...gateResult.diagnostics,
-    ...calibrationChecks.diagnostics,
-    ...(thresholdChangeResult?.diagnostics ?? []),
-    ...(thresholdChangeResult?.loosened && allowGateLoosening
-      ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
-      : []),
-    ...(prTierBudget?.diagnostics ?? []),
-  ].map(stripControlCharacters);
-  const gatePassed = combinedFailures.length === 0;
-  const gateDecision = gateDecisionFromResult({
-    passed: gatePassed,
-    status: gateResult.status === 'inconclusive' && combinedFailures.length === gateResult.failures.length ? 'inconclusive' : gatePassed ? 'passed' : 'failed',
-    pairedComparison: gateResult.pairedComparison,
-    failures: combinedFailures,
-    diagnostics: combinedDiagnostics,
-  });
   return {
-    gateDecision,
-    gateConfig,
-    prTierBudget,
-    waiverApplication,
-    thresholdChangeResult,
-    allowGateLoosening,
+    ...evaluateReportPolicy({
+      current: context.current,
+      previous: context.previous,
+      reports: context.reports,
+      gateConfig,
+      waiverRegister,
+      baselineGateConfig,
+      allowGateLoosening,
+      prTierBudget: selectedTier ? {
+        tier: selectedTier,
+        maxCostUsd: optionNumber(options, 'max-pr-cost-usd'),
+        maxDurationMs: optionNumber(options, 'max-pr-duration-ms'),
+      } : undefined,
+    }),
     allowBlockedBaseline,
-    gatePassed,
-    combinedFailures,
-    combinedDiagnostics,
   };
 };
 
@@ -1449,23 +1258,6 @@ const assertValidStatisticalGateConfig = (gateConfig: GateConfig): void => {
     throw Object.assign(new Error(`Invalid statistical gate config: ${errors[0]}`), {
       exitCode: 2,
     });
-  }
-};
-
-const assertValidCalibrationGateConfig = (gateConfig: GateConfig): void => {
-  const calibration = gateConfig.calibration;
-  if (!calibration) {
-    return;
-  }
-
-  if (calibration.maxAgeHours !== undefined) {
-    const maxAgeHours = Number(calibration.maxAgeHours);
-    if (!Number.isFinite(maxAgeHours) || maxAgeHours <= 0) {
-      throw Object.assign(
-        new Error('Invalid calibration gate config: maxAgeHours must be a finite number greater than 0.'),
-        { exitCode: 2 },
-      );
-    }
   }
 };
 

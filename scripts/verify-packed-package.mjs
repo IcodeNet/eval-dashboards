@@ -26,7 +26,7 @@ try {
   run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefer-offline']);
   fs.writeFileSync(path.join(temp, 'consumer.ts'), `
 import type { EvalReportV1, EvalRow, RepeatedTrialSummary } from '@icodenet/eval-dashboards';
-import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, REPEATED_SAMPLING_DESIGNS, type HistoryStore } from '@icodenet/eval-dashboards';
+import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1 } from '@icodenet/eval-dashboards';
 import { readFileSync } from 'node:fs';
 const row: EvalRow = { id: 'consumer', suite: 'smoke', passed: true };
 const report: EvalReportV1 = {
@@ -45,7 +45,12 @@ const repeated: RepeatedTrialSummary = summarizeRepeatedTrials(repeatedArtifact)
 if (repeated.estimatedCases !== 1 || repeated.cases[0]?.current.observedRate !== 0.9) throw new Error('Repeated-trial public API or emitter lost evidence');
 if (!schema.definitions?.EvalRow?.properties?.repeated?.properties?.samplingDesign?.enum.includes('fixed-independent')) throw new Error('Repeated sampling schema export failed');
 
-console.log('Packed consumer: public types compile; runtime and schema exports work.');
+const register: WaiverRegisterV1 = { schemaVersion: 'eval-waiver-register/v1', waivers: [] };
+const policy: ReportPolicyResult = evaluateReportPolicy({ current: report, waiverRegister: register, gateConfig: { minPassRate: 1 } });
+if (policy.gateDecision.status !== 'passed') throw new Error('Complete policy public API failed');
+const blocked = evaluateReportPolicy({ current: report, gateConfig: { minPassRate: 0.9 }, baselineGateConfig: { minPassRate: 1 } });
+if (blocked.gateDecision.status !== 'failed' || !blocked.thresholdChangeResult?.loosened) throw new Error('Complete policy lost threshold change checks');
+console.log('Packed consumer: public types compile; runtime, complete policy and schema exports work.');
 `);
   fs.writeFileSync(path.join(temp, 'tsconfig.json'), JSON.stringify({ compilerOptions: {
     target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', strict: true,

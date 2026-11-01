@@ -71,3 +71,7 @@ export { comparePairedOutcomes, describePairedComparison, validatePairedComparis
 
 export { REPEATED_SAMPLING_DESIGNS } from './model/eval-report-v1.js';
 export { summarizeRepeatedTrials, describeRepeatedTrials, describeRepeatedTrialCase, type TrialRateEstimate, type RepeatedTrialCase, type RepeatedTrialSummary } from './analytics/repeated-trials.js';
+
+export { evaluateReportPolicy, type ReportPolicyOptions, type ReportPolicyResult } from './gates/evaluate-policy.js';
+export type { WaiverRegisterV1, WaiverV1 } from './gates/waivers.js';
+export { filterReportByTier, type PrTierBudgetConfig } from './gates/pr-tiering.js';

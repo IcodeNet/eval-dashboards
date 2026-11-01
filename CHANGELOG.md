@@ -29,7 +29,10 @@ No new package has been published.
   inflate the independent group count.
 - Per-case repeated-trial intervals require an explicit sampling declaration;
   unknown designs retain observed counts with unknown uncertainty. This slice
-  is in progress in repository source and must merge before the release cut.
+  merged in #102 and remains unreleased on npm.
+- A reusable complete `evaluateReportPolicy` API shares CLI policy decisions,
+  including calibration, waivers, threshold changes and optional tier budgets.
+  This source slice is in review before the release cut.
 - Promptfoo assertion components, Langfuse score provenance, and Phoenix
   decision confidence/probabilities and trace links survive import.
 

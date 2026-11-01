@@ -36,7 +36,40 @@ This is part of M1. Matching-case and missing-data semantics are described in
 [history storage](./history-storage.md#matched-cohorts-and-measured-telemetry);
 per-case trial bounds are available for declared fixed-independent sampling,
 with counts and unknown uncertainty retained when sampling is unspecified.
-The reusable complete policy evaluator remains open for M1.
+The complete policy evaluator is also available in repository source; see below.
+
+## Complete policy API (unreleased)
+
+Use `evaluateReportPolicy` from the package root to run the same complete
+policy as CLI `check` and `report`. Unlike `checkGates`, it includes calibration,
+waivers, baseline-policy loosening and optional tier budgets. It returns
+`gateDecision` plus the supporting waiver, threshold and budget evidence.
+
+```ts
+const result = evaluateReportPolicy({
+  current, previous, reports, gateConfig,
+  waiverRegister, baselineGateConfig,
+});
+await renderReports({ ...reportContext, gateDecision: result.gateDecision }, ['html']);
+```
+
+Supply validated artifacts and registers, and a resolved `GateConfig`. The caller
+selects the run/baseline, resolves config overrides, and scopes calibration
+reports to the same project and authorized tenant. The function performs no
+file loading, authentication, ingestion, notification or publication. This is
+library reuse for a future API, not an implemented hosted endpoint.
+
+For tiered evaluation, use the exported `filterReportByTier` on every input
+report before selection, and pass the matching `prTierBudget` when needed.
+A budget alone does not filter rows for ordinary gates. Pass `now: new Date(...)`
+for reproducible waiver expiry; calibration freshness uses the artifact time
+when valid, with `now` as fallback. Original observations remain unchanged for
+paired statistics even when a waiver affects ordinary gates. Unknown cost
+coverage remains visible rather than becoming an assertion of complete cost.
+
+The [runnable source example](../examples/policy-evaluation/README.md) compares
+ordinary and complete gates for a missing-calibration case. The public API is
+planned for 0.11.0 and is not in npm 0.10.0.
 
 ## Why This Matters
 

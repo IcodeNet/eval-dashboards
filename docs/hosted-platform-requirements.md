@@ -87,7 +87,7 @@ All implementation milestones below are open. Documentation approval does not co
 5. **M5 — Live progress and measured scale.** Add durable resumable events, retry/backpressure, incremental rollups, query pushdown, pagination, and realistic workload benchmarks. Verify reconnect/duplicate/reordered events and bounded query/memory behavior. Set numerical budgets from measurements, not invented throughput promises.
 6. **M6 — Hosted launch gate (required before launch).** Test authorization across all paths, redaction, audit, deletion/retention, portable exports, migration rollback, backup restoration, service observability, quotas, and accessibility. Use sanitized fixtures and provider-free CI. Hosting vendor, authentication provider, operating budget, and deployment approval remain launch decisions.
 
-M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; paired group bounds and inconclusive decisions are available through the opt-in paired gate; within-case trial bounds now require explicit sampling declarations; the reusable complete policy evaluator remains open. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
+M1 is in progress: the first slice shares configured CLI gate evaluation and reports its decision across outputs (see [gate decisions](./gates.md#reported-gate-decisions)). M1 now also has descriptive matched-cohort and measured-telemetry analytics; paired group bounds and inconclusive decisions are available through the opt-in paired gate; within-case trial bounds now require explicit sampling declarations; the reusable complete policy evaluator is in source review with CLI/public parity coverage. M2 is the first complete hosted vertical slice. Existing portable integrations remain supported. No hosted service feature is marked shipped by this document, and no release or deployment is performed.
 
 ## Sources and interpretation
 
@@ -185,7 +185,7 @@ Optional artifact sampling declarations support conservative within-case trial
 bounds and matching-case rate differences. Unknown sampling stays unknown;
 trial counts do not change the paired gate's independent case-group count.
 This slice shares calculations across JSON, HTML, Markdown, and text and retains
-ordinary gate behavior. M1 remains open for the reusable full policy evaluator
+ordinary gate behavior. M1 remains open for acceptance review of the reusable full policy evaluator
 needed by future hosted APIs; no hosted API is implemented by this slice.
 
 PR #99's raw logs were reviewed at `b6ff65c`: CI ran 846 tests, 111 CLI guards,
@@ -195,3 +195,17 @@ failing gate path; examples passed. Its Node 20 package installation emitted a
 transitive `content-type` Node >=22 engine warning, which remains a compatibility
 follow-up. Audit results were 2 low and 7 moderate findings, below the configured
 high-severity failure threshold. See PR #99's linked job logs.
+
+## M1 reusable policy slice — 2026-11-01
+
+`evaluateReportPolicy` extracts complete evaluation from the CLI. It consumes
+validated selected artifacts and resolved policy, then returns the shared
+verdict plus waiver, calibration, threshold-change and tier-budget evidence.
+CLI `check` and `report` call it; public-API parity tests cover critical failures,
+expected negatives, blocking baseline drift, waivers, calibration, threshold
+loosening and tier budgets. Paired decisions continue to use raw observations.
+
+The caller must validate inputs, select runs and tiers, and scope calibration
+evidence to the same project and authorized tenant. No hosted endpoint, account
+or ingestion service is claimed. The slice remains in review; M1 is not marked
+complete until its acceptance evidence and merge are verified.
