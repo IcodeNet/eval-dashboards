@@ -150,23 +150,23 @@
         "node",
         "--import",
         "tsx/esm",
-        "/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/before/src/cli/index.ts",
+        "/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before/src/cli/index.ts",
         "report",
-        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/input",
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
         "--reporter=html",
         "--reporter=json-summary",
         "--reporter=markdown-summary",
-        "--report-dir=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/before/report"
+        "--report-dir=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before/report"
       ],
       "reportExitCode": 0,
       "checkCommand": [
         "node",
         "--import",
         "tsx/esm",
-        "/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/before/src/cli/index.ts",
+        "/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before/src/cli/index.ts",
         "check",
-        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/input",
-        "--json-out=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/before-check.json"
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
+        "--json-out=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/before-check.json"
       ],
       "checkExitCode": 0,
       "gateDecision": {
@@ -189,11 +189,11 @@
         "tsx/esm",
         "/Users/byronth/.codex/worktrees/langfuse-review-fixes/eval-dashboards/src/cli/index.ts",
         "report",
-        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/input",
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
         "--reporter=html",
         "--reporter=json-summary",
         "--reporter=markdown-summary",
-        "--report-dir=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/after/report"
+        "--report-dir=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/after/report"
       ],
       "reportExitCode": 0,
       "checkCommand": [
@@ -202,8 +202,8 @@
         "tsx/esm",
         "/Users/byronth/.codex/worktrees/langfuse-review-fixes/eval-dashboards/src/cli/index.ts",
         "check",
-        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/input",
-        "--json-out=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-0i74b8ci/after-check.json"
+        "--input=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/input",
+        "--json-out=/var/folders/11/yh5wr8ks2m79yyr0f51zq1dc0000gn/T/repeated-replay-au2ec13s/after-check.json"
       ],
       "checkExitCode": 0,
       "gateDecision": {
@@ -329,12 +329,52 @@
     "src/publish/publish.ts": "ab305a709600f551f8ee608774cdf9679da226548319ef5d63d3abecca832f6b",
     "src/reporters/history-trend.ts": "32ac612c107fa4a6cd22f6a9f0242970e94bcf82a3fc218241a93de007ef09da",
     "src/reporters/org-rollup.ts": "e3e84894fca609677a2b2aa0c1b49e80eb859c11b19eb4c9de0618c09749fea4",
-    "src/reporters/render.ts": "0acb1dc5f9f19fce5de5e79bdb69ca8a9509a605eb49022aebf3561ab0aae798",
+    "src/reporters/render.ts": "9b405dfe7af83b80b25b65e16809edcbd2de88f9dc237a58f3c3feea88e38bf6",
     "src/reporters/themes.ts": "efe3e8690b7a484954a7934ddf5699940141a434303fa11d447d6a6a7e0f9f61",
     "src/sign/sign.ts": "3bd38f15926f665bfabcd23282604e4238c086db2c28d0f84949482b337657de",
     "src/utils/format.ts": "56708ef5c1921d9e4464a5cf78a7077a66be17f0dcdb933b936196015e6b3275",
     "src/utils/safe-filename.ts": "ad79e08166449c9f4445fd76a3764572c728a81de427c059401633d7bb8c2c49",
     "src/utils/suggest.ts": "4f3c622cd2393d8c2fa10bfad4c3a3a3e29c9da65a9b2ae6ecbfdde48a143c98",
     "src/utils/untrusted-text.ts": "394a05569cedb3a1594ba874c88f9972b4960e6f75f8109e181a82253ea8ae38"
+  },
+  "reviewFollowUp": {
+    "reviewedHead": "342eba5bb35ffd977fe03e82ffb391add8ca6fb0",
+    "findings": [
+      "Markdown retained ANSI control sequences in repeated-trial case descriptions",
+      "Publishing wording did not label not-evaluated as unreleased",
+      "Gate guide said trial uncertainty remained entirely open"
+    ],
+    "resolution": [
+      "Strip terminal controls before existing HTML and Markdown escaping",
+      "Explicitly distinguish repository 0.11.0 behavior from npm 0.10.0",
+      "Describe delivered declared-sampling bounds and remaining full evaluator"
+    ],
+    "regression": {
+      "command": "pnpm exec vitest run test/repeated-trials.test.ts",
+      "before": "1 failed, 23 passed; hostile Markdown ID retained ESC",
+      "after": "24 passed; Markdown retains HTML escaping and removes ESC and forged line breaks"
+    },
+    "rawCiReviewed": [
+      {
+        "head": "342eba5bb35ffd977fe03e82ffb391add8ca6fb0",
+        "job": 124910252379,
+        "result": "903 tests; package consumer; 3 CI assets; accessibility; schema; 111 CLI guards; teaching and flag docs; docs build; audit 2 low, 4 moderate, no high/critical"
+      },
+      {
+        "job": 124911079006,
+        "result": "Both example commands completed successfully"
+      },
+      {
+        "job": 124910252356,
+        "result": "Node 20 reports and expected failing gate exercised; existing content-type Node >=22 warning remains an explicit release gate"
+      },
+      {
+        "jobs": [
+          124910252729,
+          124910252886
+        ],
+        "result": "Title and actual template validation executed and passed"
+      }
+    ]
   }
 }

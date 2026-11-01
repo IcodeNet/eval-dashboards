@@ -325,7 +325,7 @@ export const renderMarkdown = (context: ReportContext): string => {
 
   lines.push('', '## Comparison evidence and measured coverage', '',
     describePairedComparison(analytics.pairedComparison),
-    ...(analytics.repeatedTrials.currentCases > 0 ? [describeRepeatedTrials(analytics.repeatedTrials), ...analytics.repeatedTrials.cases.map(entry => mdTableCell(e(describeRepeatedTrialCase(entry))))] : []),
+    ...(analytics.repeatedTrials.currentCases > 0 ? [describeRepeatedTrials(analytics.repeatedTrials), ...analytics.repeatedTrials.cases.map(entry => mdTableCell(e(stripControlCharacters(describeRepeatedTrialCase(entry)))))] : []),
     `Cohort: ${analytics.cohort.status}. Matched cases: ${analytics.cohort.matchedCases}; eligible cases: ${analytics.cohort.eligibleCases}.`,
     `Descriptive matched regressions: ${analytics.cohort.matchedRegressions}; introduced cases: ${analytics.cohort.introducedCases}; introduced failures: ${analytics.cohort.introducedFailures}; removed cases: ${analytics.cohort.removedCases}.`,
     'Identity matches alone do not establish comparability; inspect version eligibility before attributing changes.',

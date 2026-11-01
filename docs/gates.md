@@ -34,7 +34,9 @@ thresholds to suggest policy approval. Baseline comparison without evidence is
 neutral. Row pass/fail evidence remains visible independently of gate policy.
 This is part of M1. Matching-case and missing-data semantics are described in
 [history storage](./history-storage.md#matched-cohorts-and-measured-telemetry);
-trial-level evidence and uncertainty remain open.
+per-case trial bounds are available for declared fixed-independent sampling,
+with counts and unknown uncertainty retained when sampling is unspecified.
+The reusable complete policy evaluator remains open for M1.
 
 ## Why This Matters
 

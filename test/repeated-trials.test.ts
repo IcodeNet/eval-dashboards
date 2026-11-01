@@ -140,7 +140,11 @@ describe('within-case repeated-trial evidence', () => {
       const html = await readFile(path.join(dir, 'index.html'), 'utf8');
       expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
       expect(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '')).not.toContain('<img src=x onerror=alert(1)>');
-      expect(await readFile(path.join(dir, 'summary.md'), 'utf8')).toContain('Repeated trials: 1/1 cases');
+      const markdown = await readFile(path.join(dir, 'summary.md'), 'utf8');
+      expect(markdown).toContain('Repeated trials: 1/1 cases');
+      expect(markdown).not.toContain('\u001b');
+      expect(markdown).toContain('&lt;img src=x onerror=alert(1)&gt;');
+      expect(markdown).not.toContain('\nforged');
       expect(JSON.stringify(result)).toContain('Repeated trials: 1/1 cases');
       const text = result.find(output => output.startsWith('Run:'))!;
       expect(text).not.toContain('\u001b');
