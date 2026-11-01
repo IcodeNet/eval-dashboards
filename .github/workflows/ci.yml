@@ -45,6 +45,9 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+      - name: Verify hosted PostgreSQL storage foundation
+        run: pnpm test:hosted-db
+
       - name: Build
         run: pnpm build
 

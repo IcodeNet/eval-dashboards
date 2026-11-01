@@ -77,6 +77,15 @@ If report rendering, report fixtures, or report assets changed, regenerate and v
 
 Record whether artifact regeneration produced expected diffs and whether those diffs were committed.
 
+### Hosted storage changes
+
+When changing `hosted/postgres/`, `scripts/hosted-db.test.mjs`, or the related CI
+step, also run `pnpm test:hosted-db`. It must execute against the pinned real
+PostgreSQL image; do not skip a missing Docker engine or substitute mocks. The
+harness accepts no external database URL and removes only its own disposable
+container. Inspect the required CI job's raw database test output and cleanup.
+Normal `pnpm test` and portable package use do not require PostgreSQL or Docker.
+
 ## 4) History and Trend Integrity
 
 - Confirm run-history files are preserved when trend behavior is expected.

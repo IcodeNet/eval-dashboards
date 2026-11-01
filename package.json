@@ -73,7 +73,8 @@
     "quality:record": "node scripts/commit-evidence.mjs check",
     "quality:review": "node scripts/commit-evidence.mjs review",
     "quality:verify": "node scripts/commit-evidence.mjs verify",
-    "audit:ci": "pnpm audit --audit-level=high"
+    "audit:ci": "pnpm audit --audit-level=high",
+    "test:hosted-db": "node --test scripts/hosted-db.test.mjs"
   },
   "keywords": [
     "evals",

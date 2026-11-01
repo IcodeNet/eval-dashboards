@@ -232,3 +232,27 @@ This satisfies M1's reusable library semantics. It does not implement the future
 HTTP API, tenant isolation, accounts or ingestion. Those remain M2 and later.
 Package publication stays held until release checks, review, merge verification
 and explicit owner approval of the exact candidate revision.
+
+## M2 storage foundation — 2026-11-01
+
+The first M2 slice is [source-only PostgreSQL metadata and integration checks](../hosted/postgres/README.md).
+It keeps tenant/project IDs in parent/child keys, scopes application reads and
+writes under trusted transaction context, and models immutable artifacts,
+idempotency associations and durable job metadata. One artifact can contain
+many datasets, models, suites and graders; no single-model/dataset restriction
+is added to `eval-report/v1`. Processing completion may carry a failed quality
+decision. Analytical facts and blob persistence are not implemented here.
+
+Real PostgreSQL tests include a conventional UUID-only foreign-key control that
+accepts a mismatched tenant/project, while the scoped schema rejects the same
+IDs. They also check restricted runtime privileges, permissive default grants,
+project scope, immutable revisions, exact-digest idempotency references and
+lease/completion metadata. This is functional evidence, not a scale benchmark.
+
+Row-policy context is not authentication: future service code must derive it
+from verified identity/credentials and permissions. Database access remains
+inside the trusted service; superusers and BYPASSRLS users are outside these
+row policies. HTTP authorization, credential issuance, bounded intake with core
+validation, private blobs, atomic jobs, replay/conflict handling, and worker
+protocols remain required before M2 is complete. PostgreSQL stays optional for
+the portable package; ClickHouse remains a later measured analytics candidate.
