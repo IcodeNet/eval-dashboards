@@ -32,3 +32,8 @@ eval-reports.code-workspace
 
 # Astro generated files
 docs-site/.astro/
+
+# VHS tutorial recordings and installation workspace
+docs/tutorials/vhs/*.gif
+docs/tutorials/vhs/*.mp4
+docs/tutorials/vhs/eval-demo/

@@ -185,6 +185,9 @@
     .json-pane { padding: 16px 20px; }
     .json-pane pre { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 4px; padding: 12px 16px; overflow: auto; max-height: 600px; white-space: pre; }
     .compat-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .compat-muted { color: var(--muted); }
+    .gate-decision { margin-bottom: 24px; }
+    .gate-decision h2 { font-size: 20px; }
     .compat-pass { background: var(--pass-soft); color: var(--pass); }
     .compat-warn { background: var(--warn-soft); color: var(--warn); }
     .compat-fail { background: var(--fail-soft); color: var(--fail); }
@@ -241,12 +244,18 @@
   </header>
 
   <main class="page">
+    <section class="gate-decision" aria-label="Quality gate decision">
+      <h2>Quality gate: <span class="pass">passed</span></h2>
+      <p>Evaluated against the resolved gate policy and selected baseline. This decision applies to this report’s evaluation scope.</p>
+
+<details><summary>Gate diagnostics</summary><ul><li>Top failing categories: conciseness=1, groundedness=1</li><li>Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20, low-category-coverage=2</li></ul></details>
+    </section>
     <div class="metrics">
       <div class="metric" data-tip="Percentage of eval rows that passed this run.
 Example: 66.7% means 2 of 3 rows passed.
 Set a minimum in CI with --min-pass-rate=0.9">
         <div class="metric-label">Pass rate</div>
-        <div class="metric-value pass">97.3%</div>
+        <div class="metric-value">97.3%</div>
       </div>
       <div class="metric" data-tip="Rows that met their pass threshold this run.
 Example: 2/3 means one case still fails.
@@ -369,7 +378,7 @@ Failed: 0">safety 100.0%</span></div>
             <span class="section-toggle-icon" aria-hidden="true">▾</span>
             <span class="section-toggle-label">Pass-rate trend</span>
           </button>
-          <span class="section-summary section-summary-pass">97.3% current</span>
+          <span class="section-summary section-summary-muted">97.3% current</span>
         </div>
       </div>
       <div id="section-body-pass-rate-trend" class="section-body">
@@ -390,7 +399,7 @@ Failed: 0">safety 100.0%</span></div>
             <span class="section-toggle-icon" aria-hidden="true">▸</span>
             <span class="section-toggle-label">Suite summary</span>
           </button>
-          <span class="section-summary section-summary-pass">3 suites • 73/75 passed (97.3%)</span>
+          <span class="section-summary section-summary-muted">3 suites • 73/75 passed (97.3%)</span>
         </div>
       </div>
       <div id="section-body-suite-summary" class="section-body"><div class="table-wrap"><table>

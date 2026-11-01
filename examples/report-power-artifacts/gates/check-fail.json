@@ -1,6 +1,16 @@
 {
   "schemaVersion": "eval-check-result/v1",
   "gateRunStatus": "ran",
+  "gateDecision": {
+    "status": "failed",
+    "failures": [
+      "Pass rate 0.973 is below required 0.990."
+    ],
+    "diagnostics": [
+      "Top failing categories: conciseness=1, groundedness=1",
+      "Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20, low-category-coverage=2"
+    ]
+  },
   "runId": "agent-v4-2026-07-31",
   "baselineRunId": "agent-v3-2026-07-30",
   "passed": false,

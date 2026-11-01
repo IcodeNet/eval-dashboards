@@ -39,7 +39,7 @@ export type EvalReportsConfig = {
   reportDir?: string;
   /** Reporters to run. Default: ['html', 'text'] */
   reporters?: ReporterName[];
-  /** Gate configuration applied by eval-dashboards check. */
+  /** Gate configuration evaluated by both check and report; only check enforces the CI exit code. */
   gates?: GateConfig;
   /** Built-in theme name ('default' | 'dark' | 'minimal') or a custom theme object. */
   theme?: string | Partial<EvalReportsTheme>;

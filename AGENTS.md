@@ -83,7 +83,7 @@ Always include raw GitHub Actions log verification for workflows touched by your
    - HTML: kind / riskArea / severity / suite governance / judge evidence / baseline banner
 3. Implement with tests.
 4. Update STATUS only when done for real.
-5. Do not expand scope into a hosted platform or a new eval harness.
+5. Hosted accounts, ingestion, and live dashboards are owner-approved scope (2026-10-31); follow `docs/hosted-platform-requirements.md`. Preserve the portable offline core. Do not build a new eval harness.
 
 ## Safe change patterns
 

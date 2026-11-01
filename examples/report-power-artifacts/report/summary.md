@@ -3,6 +3,7 @@
 | Metric | Value |
 | --- | --- |
 | Run | agent-v4-2026-07-31 |
+| Gate decision | passed |
 | Pass rate | 97.3% |
 | Passed | 73/75 |
 | New failures | 0 |
@@ -30,3 +31,8 @@
 ## Diff vs previous run
 
 No row flips detected.
+
+
+Gate diagnostic: Top failing categories: conciseness=1, groundedness=1
+
+Gate diagnostic: Lint warning breakdown: missing-judge-model=55, missing-judge-reasoning=55, missing-agent-versioning=20, low-category-coverage=2

@@ -97,6 +97,7 @@ export const SIDEBAR = [
   {
     label: 'Product and roadmap',
     items: [
+      'hosted-platform-requirements',
       'PROPOSITION-AND-TAXONOMY',
       'PROPOSITION-REVIEW',
       'PRP',

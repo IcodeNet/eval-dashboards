@@ -21,6 +21,7 @@ import { readEvalReports, findJsonReports, findFilesByName, writeJsonFile, write
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { lintReportsTaxonomy } from '../gates/lint-taxonomy.js';
 import { checkGates, validateGateConfig, type GateConfig } from '../gates/check-gates.js';
+import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
 import { stripControlCharacters } from '../utils/untrusted-text.js';
 import { readPackageVersion } from './package-version.js';
 import { BUILT_IN_THEMES, describeUnknownTheme } from '../reporters/themes.js';
@@ -49,7 +50,7 @@ import {
   type ReporterName,
 } from '../reporters/render.js';
 import { loadConfig, mergeConfig } from '../config/load-config.js';
-import type { NotificationChannel, NotificationsConfig } from '../config/config.js';
+import type { EvalReportsConfig, NotificationChannel, NotificationsConfig } from '../config/config.js';
 import {
   assertKnownFlags,
   optionBoolean,
@@ -490,6 +491,7 @@ type CheckOutputWaiverSummary = {
 type CheckOutputPayload = {
   schemaVersion: 'eval-check-result/v1';
   gateRunStatus: 'ran';
+  gateDecision?: GateDecision;
   runId: string;
   baselineRunId?: string;
   passed: boolean;
@@ -1270,6 +1272,139 @@ const statisticalModeFromOptions = (
   });
 };
 
+/** One policy evaluation path for check and report; report never performs check side effects. */
+const evaluateConfiguredRun = async (
+  context: Awaited<ReturnType<typeof loadContext>>,
+  config: EvalReportsConfig,
+  options: Record<string, string | boolean | string[]>,
+  selectedTier?: 'pr' | 'full',
+) => {
+  const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
+  const cliGateOverrides = gateConfigFromOptions(options);
+  const cliGateOverridesDefined = Object.fromEntries(
+    Object.entries(cliGateOverrides).filter(([, value]) => value !== undefined),
+  ) as GateConfig;
+  const gateConfig: GateConfig = {
+    ...(config.gates ?? {}),
+    ...cliGateOverridesDefined,
+    ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
+  };
+
+  if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
+    gateConfig.statistical = {
+      ...(config.gates?.statistical ?? {}),
+      ...(cliGateOverrides.statistical ?? {}),
+    };
+  }
+  if ((config.gates?.calibration ?? cliGateOverrides.calibration) !== undefined) {
+    gateConfig.calibration = {
+      ...(config.gates?.calibration ?? {}),
+      ...(cliGateOverrides.calibration ?? {}),
+    };
+  }
+  if ((config.gates?.repeat ?? cliGateOverrides.repeat) !== undefined) {
+    gateConfig.repeat = {
+      ...(config.gates?.repeat ?? {}),
+      ...(cliGateOverrides.repeat ?? {}),
+    } as GateConfig['repeat'];
+  }
+  const gateConfigErrors = validateGateConfig(gateConfig);
+  if (gateConfigErrors.length > 0) {
+    throw Object.assign(new Error(gateConfigErrors.join(' ')), { exitCode: 2 });
+  }
+  assertValidStatisticalGateConfig(gateConfig);
+  assertValidCalibrationGateConfig(gateConfig);
+
+  const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
+  const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
+  const prTierBudget = selectedTier
+    ? evaluatePrTierBudget(context.current, {
+        tier: selectedTier,
+        maxCostUsd: maxPrCostUsd,
+        maxDurationMs: maxPrDurationMs,
+      })
+    : undefined;
+
+  const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
+  const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
+  const waiverApplication = applyWaivers(context.current, waiverRegister);
+
+  const baselineGateConfigPath =
+    optionString(options, 'baseline-gate-config', '') || config.baselineGateConfigFile || '';
+  const allowGateLoosening =
+    optionBoolean(options, 'allow-gate-loosening') || gateConfig.allowLoosening === true;
+  let thresholdChangeResult:
+    | ReturnType<typeof detectGateConfigLoosening>
+    | undefined;
+  if (baselineGateConfigPath) {
+    let baselineGateConfigRaw: string;
+    try {
+      baselineGateConfigRaw = await readFile(baselineGateConfigPath, 'utf8');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw Object.assign(
+        new Error(`Could not read baseline gate config ${baselineGateConfigPath}: ${message}`),
+        { exitCode: 2 },
+      );
+    }
+    let baselineGateConfig: GateConfig;
+    try {
+      baselineGateConfig = JSON.parse(baselineGateConfigRaw) as GateConfig;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw Object.assign(
+        new Error(`Baseline gate config ${baselineGateConfigPath} is not valid JSON: ${message}`),
+        { exitCode: 2 },
+      );
+    }
+    thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
+  }
+
+  const gateResult = checkGates(
+    waiverApplication.reportForGating,
+    waiverApplication.active.length > 0
+      ? compareRuns(waiverApplication.reportForGating, context.previous)
+      : context.comparison,
+    gateConfig,
+    context.baselineCompatibility,
+    context.previous,
+  );
+  const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
+  const thresholdChangeFailures =
+    thresholdChangeResult && thresholdChangeResult.loosened && !allowGateLoosening
+      ? thresholdChangeResult.failures
+      : [];
+  const combinedFailures = [
+    ...gateResult.failures,
+    ...calibrationChecks.failures,
+    ...waiverApplication.failures,
+    ...thresholdChangeFailures,
+    ...(prTierBudget?.failures ?? []),
+  ].map(stripControlCharacters);
+  const combinedDiagnostics = [
+    ...waiverApplication.diagnostics,
+    ...gateResult.diagnostics,
+    ...calibrationChecks.diagnostics,
+    ...(thresholdChangeResult?.diagnostics ?? []),
+    ...(thresholdChangeResult?.loosened && allowGateLoosening
+      ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
+      : []),
+    ...(prTierBudget?.diagnostics ?? []),
+  ].map(stripControlCharacters);
+  const gatePassed = combinedFailures.length === 0;
+  return {
+    gateConfig,
+    prTierBudget,
+    waiverApplication,
+    thresholdChangeResult,
+    allowGateLoosening,
+    allowBlockedBaseline,
+    gatePassed,
+    combinedFailures,
+    combinedDiagnostics,
+  };
+};
+
 const assertValidStatisticalGateConfig = (gateConfig: GateConfig): void => {
   const errors = validateStatisticalGateConfig(gateConfig.statistical);
   if (errors.length > 0) {
@@ -1358,6 +1493,7 @@ const main = async (): Promise<void> => {
       ? (optionStrings(options, 'reporter', []) as ReporterName[])
       : undefined,
     gates: {
+      ...fileConfig.gates,
       minPassRate: optionNumber(options, 'min-pass-rate') ?? fileConfig.gates?.minPassRate,
       minMatchedExpectationRate:
         optionNumber(options, 'min-matched-expectation-rate') ?? fileConfig.gates?.minMatchedExpectationRate,
@@ -1708,8 +1844,10 @@ const main = async (): Promise<void> => {
     const locale = optionString(options, 'locale', '') || config.locale;
     assertValidStatisticalGateConfig({ statistical: config.gates?.statistical });
     assertValidCalibrationGateConfig({ calibration: config.gates?.calibration });
+    const evaluation = await evaluateConfiguredRun(context, config, options);
     const outputs = await renderReports({
       ...context,
+      gateDecision: gateDecisionFromResult({ passed: evaluation.gatePassed, failures: evaluation.combinedFailures, diagnostics: evaluation.combinedDiagnostics }),
       theme,
       locale,
       profile,
@@ -1820,119 +1958,17 @@ const main = async (): Promise<void> => {
         baselineLookback,
         tier: selectedTier,
       });
-      const allowBlockedBaseline = optionBoolean(options, 'allow-blocked-baseline');
-      const cliGateOverrides = gateConfigFromOptions(options);
-      const cliGateOverridesDefined = Object.fromEntries(
-        Object.entries(cliGateOverrides).filter(([, value]) => value !== undefined),
-      ) as GateConfig;
-      const gateConfig: GateConfig = {
-        ...(config.gates ?? {}),
-        ...cliGateOverridesDefined,
-        ...(allowBlockedBaseline ? { failOnBaselineBlocked: false } : {}),
-      };
-
-      if ((config.gates?.statistical ?? cliGateOverrides.statistical) !== undefined) {
-        gateConfig.statistical = {
-          ...(config.gates?.statistical ?? {}),
-          ...(cliGateOverrides.statistical ?? {}),
-        };
-      }
-      if ((config.gates?.calibration ?? cliGateOverrides.calibration) !== undefined) {
-        gateConfig.calibration = {
-          ...(config.gates?.calibration ?? {}),
-          ...(cliGateOverrides.calibration ?? {}),
-        };
-      }
-      if ((config.gates?.repeat ?? cliGateOverrides.repeat) !== undefined) {
-        gateConfig.repeat = {
-          ...(config.gates?.repeat ?? {}),
-          ...(cliGateOverrides.repeat ?? {}),
-        } as GateConfig['repeat'];
-      }
-      const gateConfigErrors = validateGateConfig(gateConfig);
-      if (gateConfigErrors.length > 0) {
-        throw Object.assign(new Error(gateConfigErrors.join(' ')), { exitCode: 2 });
-      }
-      assertValidStatisticalGateConfig(gateConfig);
-      assertValidCalibrationGateConfig(gateConfig);
-
-      const maxPrCostUsd = optionNumber(options, 'max-pr-cost-usd');
-      const maxPrDurationMs = optionNumber(options, 'max-pr-duration-ms');
-      const prTierBudget = selectedTier
-        ? evaluatePrTierBudget(context.current, {
-            tier: selectedTier,
-            maxCostUsd: maxPrCostUsd,
-            maxDurationMs: maxPrDurationMs,
-          })
-        : undefined;
-
-      const waiverFilePath = optionString(options, 'waiver-file', '') || config.waiverFile || '';
-      const waiverRegister = waiverFilePath ? await loadWaiverRegister(waiverFilePath) : undefined;
-      const waiverApplication = applyWaivers(context.current, waiverRegister);
-
-      const baselineGateConfigPath =
-        optionString(options, 'baseline-gate-config', '') || config.baselineGateConfigFile || '';
-      const allowGateLoosening =
-        optionBoolean(options, 'allow-gate-loosening') || gateConfig.allowLoosening === true;
-      let thresholdChangeResult:
-        | ReturnType<typeof detectGateConfigLoosening>
-        | undefined;
-      if (baselineGateConfigPath) {
-        let baselineGateConfigRaw: string;
-        try {
-          baselineGateConfigRaw = await readFile(baselineGateConfigPath, 'utf8');
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw Object.assign(
-            new Error(`Could not read baseline gate config ${baselineGateConfigPath}: ${message}`),
-            { exitCode: 2 },
-          );
-        }
-        let baselineGateConfig: GateConfig;
-        try {
-          baselineGateConfig = JSON.parse(baselineGateConfigRaw) as GateConfig;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw Object.assign(
-            new Error(`Baseline gate config ${baselineGateConfigPath} is not valid JSON: ${message}`),
-            { exitCode: 2 },
-          );
-        }
-        thresholdChangeResult = detectGateConfigLoosening(baselineGateConfig, gateConfig);
-      }
-
-      const gateResult = checkGates(
-        waiverApplication.reportForGating,
-        waiverApplication.active.length > 0
-          ? compareRuns(waiverApplication.reportForGating, context.previous)
-          : context.comparison,
+      const {
         gateConfig,
-        context.baselineCompatibility,
-        context.previous,
-      );
-      const calibrationChecks = evaluateCalibrationChecks(context.reports, context.current, gateConfig);
-      const thresholdChangeFailures =
-        thresholdChangeResult && thresholdChangeResult.loosened && !allowGateLoosening
-          ? thresholdChangeResult.failures
-          : [];
-      const combinedFailures = [
-        ...gateResult.failures,
-        ...calibrationChecks.failures,
-        ...waiverApplication.failures,
-        ...thresholdChangeFailures,
-        ...(prTierBudget?.failures ?? []),
-      ].map(stripControlCharacters);
-      const combinedDiagnostics = [
-        ...waiverApplication.diagnostics,
-        ...gateResult.diagnostics,
-        ...calibrationChecks.diagnostics,
-        ...(thresholdChangeResult?.diagnostics ?? []),
-        ...(thresholdChangeResult?.loosened && allowGateLoosening
-          ? ['Gate configuration loosening detected but explicitly allowed via --allow-gate-loosening.']
-          : []),
-        ...(prTierBudget?.diagnostics ?? []),
-      ].map(stripControlCharacters);
-      const gatePassed = combinedFailures.length === 0;
+        prTierBudget,
+        waiverApplication,
+        thresholdChangeResult,
+        allowGateLoosening,
+        allowBlockedBaseline,
+        gatePassed,
+        combinedFailures,
+        combinedDiagnostics,
+      } = await evaluateConfiguredRun(context, config, options, selectedTier);
 
       heartbeatRunId = context.current.run.id;
       heartbeatBaselineRunId = context.previous?.run.id;
@@ -1947,6 +1983,7 @@ const main = async (): Promise<void> => {
       const checkPayload: CheckOutputPayload = {
         schemaVersion: 'eval-check-result/v1',
         gateRunStatus: 'ran',
+        gateDecision: gateDecisionFromResult({ passed: gatePassed, failures: combinedFailures, diagnostics: combinedDiagnostics }),
         runId: context.current.run.id,
         baselineRunId: context.previous?.run.id,
         passed: gatePassed,
