@@ -103,6 +103,42 @@ Always include raw GitHub Actions log verification for workflows touched by your
 - Add heavy UI frameworks if static HTML already meets the need.
 - Couple core to Azure/GitHub APIs beyond publish adapters.
 
+## Writing pull requests
+
+- Use `.github/pull_request_template.md` for every PR description and read `.agents/skills/plain-english-prs/SKILL.md` when drafting or updating one.
+- Write in simple English for a reviewer who has not read the chat. Explain the problem, show the same example before and after, include observed evidence, and give the everyday workflow.
+- Distinguish test results from benchmarks and code inspection. State when a baseline or measurement was not run; never invent evidence.
+- Improve the versioned template when reviewer feedback reveals a clearer approach. Keep it proportionate to the change rather than adding boilerplate by default.
+
+- `lint-description` checks the seven template sections and requires content. Renovate uses the same structure; CodeRabbit summaries belong in review comments. Passing structure does not prove clear wording or valid evidence.
+
+## Delivery loop and cumulative requirements
+
+- Project requirements accumulate: new tasks and instructions add to existing
+  requirements unless the owner explicitly changes one. Keep docs/schema/examples
+  in sync, use simple English and the PR template, and follow `CHECKS_LEDGER.md`
+  for implementation, review fixes, and integration changes alike.
+- For owner-authorized roadmap work, finish one focused task, verify it, raise a
+  PR, then monitor checks and review comments through completion. Opening a PR
+  does not finish the task.
+- Refresh the PR head, base, CI, reviews, and discussion before each pass, including findings outside the inline diff. Work
+  conflicts first, active review findings next, and CI failures after that.
+- Reproduce valid review findings, make the smallest correct fix, run required
+  checks, and push. Reply on the original thread with the fix commit and evidence,
+  then resolve it. For invalid or obsolete findings, reply with the concrete
+  reason before resolving. Never resolve an unaddressed issue to clear a badge.
+- After a push, monitor again for new comments and checks. Read actual failing
+  logs; inspect raw logs for workflows touched by the change. A skipped check
+  is not passing evidence, and a corrected title's newer check supersedes its
+  earlier failure. Do not weaken checks to get a green result.
+- Merge when the current head is mergeable, applicable checks pass, and no
+  actionable review comments or change requests remain. Integrate dependency
+  PRs first, retarget stacked PRs to `main`, and verify the remote merge into
+  `origin/main`. Continue with the next authorized roadmap item.
+- Stop for a concrete blocker needing an owner decision; explain what failed
+  and what is needed. Do not invent a new approval step for authorized merges.
+  Publishing and deployment still need their existing separate authorization.
+
 ## Useful commands
 
 ```sh

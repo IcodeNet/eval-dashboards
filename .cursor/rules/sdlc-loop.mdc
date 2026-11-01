@@ -1,0 +1,31 @@
+---
+description: Complete authorized roadmap work through implementation, review fixes, green checks, and merge; retain every existing project requirement.
+alwaysApply: true
+---
+
+# Roadmap delivery loop
+
+Read the delivery-loop section of `AGENTS.md`, `CHECKS_LEDGER.md`, and the
+plain-English PR skill. These requirements apply together; a new task or rule
+does not cancel earlier requirements. Keep docs, schema, examples, evidence,
+and implementation consistent throughout review fixes.
+
+Within owner-authorized roadmap work, implement one focused task, verify it,
+open a PR using the repo template, and monitor CI and review threads. Fix valid
+findings, rerun checks, reply with the fix and evidence, and resolve addressed
+threads. Explain invalid findings before resolving them. Never close a thread
+merely to make the PR look ready.
+
+Before merging, refresh the PR head, base, checks, reviews, and comments. Resolve
+conflicts without discarding either side's intent. Require all applicable checks
+to pass and every actionable comment to be addressed; skipped checks are not
+proof of coverage. Merge dependency PRs first, target `main` on `origin`, verify
+the merge remotely, then continue the next roadmap task.
+
+Example: a reviewer finds that a null trace ID aborts import. Reproduce it, fix
+the mapper, add a regression test, pass the required checks, push, reply with
+the commit/test, and resolve that thread. Recheck CI and new comments before
+merging. Do not resolve it just because a fix has been planned.
+
+Retain the free, open-source, runner-agnostic offline core and honest STATUS.
+Keep assistant-ui parked and publishing on hold unless separately authorized.

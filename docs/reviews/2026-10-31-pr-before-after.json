@@ -1,0 +1,359 @@
+{
+  "recordedOn": "2026-10-31",
+  "purpose": "Observed before/after behavior for PR descriptions #96 and #97. These are behavior checks; performance was not measured.",
+  "method": {
+    "checkout": "git archive <revision> src package.json into isolated temporary directories; share the installed node_modules for unchanged dependencies",
+    "cli": "node --import tsx/esm <temporary-root>/src/cli/index.ts",
+    "pr96Commands": [
+      "check --input=pr96 --json-out=check96.json",
+      "report --input=pr96 --reporter=html --report-dir=out96"
+    ],
+    "pr97Command": "report --input=pr97 --run-id=current --baseline-run-id=previous --reporter=html --report-dir=out97"
+  },
+  "inputs": {
+    "pr96": {
+      "config": {
+        "gates": {
+          "zeroCritical": true
+        }
+      },
+      "current": {
+        "schemaVersion": "eval-report/v1",
+        "run": {
+          "id": "current",
+          "project": "review-example",
+          "generatedAt": "2026-10-31T00:00:00Z"
+        },
+        "suites": [
+          {
+            "id": "quality",
+            "total": 20,
+            "passed": 19,
+            "failed": 1
+          }
+        ],
+        "rows": [
+          {
+            "id": "case-0",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": false,
+            "severity": "critical"
+          },
+          {
+            "id": "case-1",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-2",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-3",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-4",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-5",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-6",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-7",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-8",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-9",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-10",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-11",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-12",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-13",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-14",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-15",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-16",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-17",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-18",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          },
+          {
+            "id": "case-19",
+            "suite": "quality",
+            "kind": "deterministic",
+            "passed": true,
+            "severity": "none"
+          }
+        ]
+      }
+    },
+    "pr97": {
+      "config": {},
+      "previous": {
+        "schemaVersion": "eval-report/v1",
+        "run": {
+          "id": "previous",
+          "project": "review-example",
+          "generatedAt": "2026-10-30T00:00:00Z"
+        },
+        "suites": [
+          {
+            "id": "quality",
+            "total": 2,
+            "passed": 2,
+            "failed": 0
+          }
+        ],
+        "rows": [
+          {
+            "id": "existing",
+            "suite": "quality",
+            "passed": true,
+            "score": 0.9
+          },
+          {
+            "id": "removed",
+            "suite": "quality",
+            "passed": true,
+            "score": 0.9
+          }
+        ],
+        "suiteManifests": [
+          {
+            "name": "quality",
+            "target": "agent",
+            "datasetSource": "synthetic",
+            "datasetVersion": "dataset-1",
+            "rubricVersion": "rubric-1",
+            "graderVersion": "grader-1",
+            "graders": [
+              "deterministic-assertions"
+            ],
+            "riskArea": "response-quality",
+            "scoreScale": {
+              "min": 0,
+              "max": 1
+            },
+            "scoreDirection": "higher-is-better",
+            "gate": {
+              "mode": "report-only",
+              "thresholds": {}
+            }
+          }
+        ]
+      },
+      "current": {
+        "schemaVersion": "eval-report/v1",
+        "run": {
+          "id": "current",
+          "project": "review-example",
+          "generatedAt": "2026-10-31T00:00:00Z"
+        },
+        "suites": [
+          {
+            "id": "quality",
+            "total": 2,
+            "passed": 0,
+            "failed": 2
+          }
+        ],
+        "rows": [
+          {
+            "id": "existing",
+            "suite": "quality",
+            "passed": false,
+            "score": 0.4
+          },
+          {
+            "id": "new",
+            "suite": "quality",
+            "passed": false,
+            "score": 0.4,
+            "usage": {
+              "costUsd": 0
+            },
+            "durationMs": 0
+          }
+        ],
+        "suiteManifests": [
+          {
+            "name": "quality",
+            "target": "agent",
+            "datasetSource": "synthetic",
+            "datasetVersion": "dataset-1",
+            "rubricVersion": "rubric-1",
+            "graderVersion": "grader-1",
+            "graders": [
+              "deterministic-assertions"
+            ],
+            "riskArea": "response-quality",
+            "scoreScale": {
+              "min": 0,
+              "max": 1
+            },
+            "scoreDirection": "higher-is-better",
+            "gate": {
+              "mode": "report-only",
+              "thresholds": {}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "results": {
+    "pr96": {
+      "before96": {
+        "revision": "bb15899cd10ee945936b6125b452f6d7564ddfe7",
+        "checkExit": 1,
+        "reportExit": 0,
+        "checkPassed": false,
+        "reportGateDecision": null,
+        "passRate": 0.95,
+        "passRateMarkup": "<div class=\"metric-value pass\">95.0%</div>"
+      },
+      "after96": {
+        "revision": "89c9849523357f749ead7c9801a11a2cb658b985",
+        "checkExit": 1,
+        "reportExit": 0,
+        "checkPassed": false,
+        "reportGateDecision": {
+          "status": "failed",
+          "failures": [
+            "Critical failures 1 exceed allowed 0."
+          ],
+          "diagnostics": [
+            "Top failing categories: uncategorized=1",
+            "Lint warning breakdown: missing-category=20"
+          ]
+        },
+        "passRate": 0.95,
+        "passRateMarkup": "<div class=\"metric-value\">95.0%</div>"
+      }
+    },
+    "pr97": {
+      "after96": {
+        "revision": "89c9849523357f749ead7c9801a11a2cb658b985",
+        "reportExit": 0,
+        "legacyNewFailures": 2,
+        "matchingCaseEvidence": null,
+        "measuredCost": null
+      },
+      "after97": {
+        "revision": "c2a5f5e15ca122fbd6bfd44febf55879aa4612b7",
+        "reportExit": 0,
+        "legacyNewFailures": 2,
+        "matchingCaseEvidence": {
+          "status": "compatible",
+          "matchedCases": 1,
+          "eligibleCases": 1,
+          "matchedRegressions": 1,
+          "introducedCases": 1,
+          "introducedFailures": 1,
+          "removedCases": 1
+        },
+        "measuredCost": {
+          "unit": "USD",
+          "direction": "lower-is-better",
+          "measured": 1,
+          "total": 2,
+          "missing": 1,
+          "coverage": 0.5,
+          "sum": 0,
+          "mean": 0,
+          "p50": 0,
+          "p95": 0
+        }
+      }
+    }
+  }
+}
