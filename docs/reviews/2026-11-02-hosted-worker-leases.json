@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-02",
+  "scope": "M2 private worker lease coordination, not an indexing service or hosted deployment",
+  "baseline": {
+    "revision": "2431c0b7ab2cd0fdf28308d27c0ef711577b11df",
+    "inspection": "Migration 004 absent by source-object lookup (exit 128). Queued jobs existed but no claim/renew/settle protocol. No old worker replay or benchmark was possible."
+  },
+  "observed": [
+    "Concurrent workers claim distinct jobs and tokens.",
+    "A locked oldest job is skipped while the next queued job is claimed.",
+    "Expired work is reclaimed with a fresh token and incremented attempt count.",
+    "Expired/old tokens cannot renew or settle; duplicate completion returns false.",
+    "Heartbeat preserves or extends the existing expiration.",
+    "Retry delay blocks early claiming; third retry failure becomes RETRY_EXHAUSTED.",
+    "Expired final attempt is retired with a null lease instead of reclaimed.",
+    "Old transaction time does not revive an expired lease.",
+    "Claim rollback consumes no attempt; caller context is restored.",
+    "Completed processing can have failed evaluation quality."
+  ],
+  "checks": [
+    {
+      "command": "pnpm test:hosted-db",
+      "result": "49 passed, zero failures/skips; PostgreSQL 17.11; non-superuser migrations; restricted runtime logins; owned container removed."
+    },
+    {
+      "command": "/opt/homebrew/opt/node@20/bin/node --test scripts/hosted-db.test.mjs",
+      "result": "49 passed, zero failures/skips; Node 20.20.2."
+    }
+  ],
+  "developmentFindings": [
+    {
+      "issue": "Expiry fixtures initially moved started_at before created_at.",
+      "resolution": "Corrected synthetic fixture timestamps while preserving the existing database constraint; all checks pass."
+    }
+  ],
+  "limits": [
+    "Protocol is for trusted service SQL callers; supplied tenant/project scope is not authentication.",
+    "Application role retains direct table permissions; cooperating workers must use lease functions.",
+    "At-least-once processing and bounded polling; no exactly-once side-effect or throughput claim.",
+    "Indexing, process scheduling, account/key lifecycle and operations remain open. M2 is incomplete.",
+    "No portable API/dependency/schema change and no package release or hosted deployment.",
+    "No independent security audit claimed. Exact-head CI/review evidence belongs to the PR."
+  ]
+}

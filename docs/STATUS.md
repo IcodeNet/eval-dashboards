@@ -279,7 +279,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
 - [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. Portable 0.11.0 is published; hosted M2–M6 remain open. See [gate decisions](./gates.md#reported-gate-decisions).
-- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Source includes tenant/project-scoped PostgreSQL metadata, project-bound bearer authentication, bounded HTTP artifact validation, private durable files and transactional acceptance with retries/revision conflicts. Accounts, credential issuance, service composition, workers and operations remain open. See [storage foundation](../hosted/postgres/README.md).
+- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Source includes tenant/project-scoped PostgreSQL metadata, project-bound bearer authentication, bounded HTTP artifact validation, private durable files and transactional acceptance with retries/revision conflicts. Worker claims, lease renewal, retry delays and stale-token settlement are implemented; accounts, credential issuance, service composition, artifact indexing and operations remain open. See [storage foundation](../hosted/postgres/README.md).
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
 - [ ] M5: Resumable live progress and benchmarked query scale.
@@ -364,3 +364,18 @@ concurrent deliveries/conflicts, scoped reads and transaction rollback.
 See [usage and limits](../hosted/ingestion/README.md). M2 remains open for
 accounts, key issuance, service composition, worker processing and operations.
 No hosted deployment or portable npm API change is included.
+
+
+### M2 worker lease protocol — 2026-11-02
+
+Migration 004 adds scoped `FOR UPDATE SKIP LOCKED` claims, renewable random
+lease tokens, delayed retries and per-job attempt caps. Settlement requires the
+current unexpired lease; stale workers cannot settle through this protocol.
+Real PostgreSQL tests cover concurrent workers, locked work, lease reclamation,
+old tokens, heartbeat, backoff, exhaustion, old transaction clocks and rollback.
+See [worker usage and trust boundary](../hosted/workers/README.md).
+
+This is coordination source, not a running indexing service. The next slice
+must verify private artifact bytes and atomically index results under the lease.
+Accounts, key issuance, service composition and operations remain open; M2 is
+incomplete. Portable APIs/dependencies and `eval-report/v1` are unchanged.

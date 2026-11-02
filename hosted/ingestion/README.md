@@ -128,3 +128,8 @@ Integration completion also requires the [risk register](../../docs/integrations
 use the shared validator for schema drift, keep client/runtime compatibility
 checks, and preserve portable offline use. These tests use synthetic fixtures;
 they do not demonstrate production-data quality or production readiness.
+
+
+The later [worker lease protocol](../workers/README.md) now handles concurrent
+claiming, renewal and bounded retry/settlement for these queued jobs. Actual
+artifact indexing and service composition remain open.

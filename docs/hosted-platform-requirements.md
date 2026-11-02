@@ -306,3 +306,18 @@ issuance, service wiring, worker claiming/indexing/retries, retention and launch
 controls remain open. Orphan private files can remain after an interrupted or
 conflicting database write; coordinated cleanup is still required. M2 is not
 complete and no throughput benchmark or production launch is claimed.
+
+
+### M2 worker coordination — 2026-11-02
+
+[Migration 004](../hosted/workers/README.md) adds scoped concurrent claims,
+lease renewal, delayed bounded retries and current-token settlement. Real
+database checks verify lock skipping and reject stale/expired completion even
+inside an old transaction. Completed processing may still carry failed eval
+quality. A crashed final attempt is retired rather than endlessly reclaimed.
+
+This coordinates trusted workers; the SQL login can still perform direct
+writes and must use the protocol. The next artifact-indexing slice must make
+fact writes and completion one fenced transaction. No indexing worker,
+process scheduler, account service or hosted deployment is claimed. M2 remains
+open, and the portable package stays offline and database-free.

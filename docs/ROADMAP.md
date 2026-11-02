@@ -2063,6 +2063,7 @@ parsed headers against the stored project/scope on every request. Private
 [artifact intake](../hosted/ingestion/README.md) now connects authenticated HTTP,
 bounded core validation, durable private files and transactional PostgreSQL
 artifact/key/job acceptance. Real HTTP/database checks cover retries, revision
-conflicts, rollback and tenant isolation. M2 remains open for accounts and key
-issuance, service composition, worker claiming/retries/indexing, retention and
+conflicts, rollback and tenant isolation. The [worker lease protocol](../hosted/workers/README.md) now adds concurrent
+claims, heartbeat, bounded retries and fenced settlement. M2 remains open for
+accounts and key issuance, service composition, artifact indexing, retention and
 operational acceptance. No hosted deployment is claimed.

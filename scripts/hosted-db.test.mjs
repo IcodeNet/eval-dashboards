@@ -88,6 +88,7 @@ before(async () => {
   console.log('Storage-only baseline has no credential table or resolver; applying credential migration.');
   sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
   sql(readFileSync(new URL('../hosted/postgres/migrations/003-artifact-intake.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/004-worker-leases.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
   sql('CREATE ROLE eval_hosted_auth_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_auth_lookup TO eval_hosted_auth_test_login');
   sql('CREATE ROLE eval_hosted_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_app TO eval_hosted_test_login');
   console.log(`Migrations applied as ${sql('SELECT current_user', undefined, 'eval_hosted_migration_test')}; non-superuser database owner with CREATEROLE.`);
@@ -216,7 +217,7 @@ test('global identity records and schema changes are not granted to the applicat
 });
 test('migration reapply fails transactionally and preserves existing artifacts', () => {
   sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'), '42710', 'eval_hosted_migration_test');
-  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3\n4');
   assert.equal(sql('SELECT count(*) FROM eval_hosted.artifacts'), '3');
 });
 
@@ -293,7 +294,7 @@ test('lookup ignores caller search path and temporary table shadows', () => {
 });
 test('credential migration reapply rolls back without changing migration history', () => {
   sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), '42710', 'eval_hosted_migration_test');
-  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3\n4');
 });
 
 test('a separately connected lookup login resolves an active key without owner privileges', () => {
@@ -406,7 +407,7 @@ test('intake scoping, restricted privileges, invalid metadata and rollback remai
   assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.artifacts WHERE external_run_id='rolled-back-intake'"), '0');
   assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.idempotency_records WHERE request_key='rolled-back-intake'"), '0');
   sql(readFileSync(new URL('../hosted/postgres/migrations/003-artifact-intake.sql', import.meta.url), 'utf8'), '42723', 'eval_hosted_migration_test');
-  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3\n4');
 });
 test('real HTTP intake validates bytes, persists private files and returns durable PostgreSQL receipts', async () => {
   const root = await mkdtemp(join(tmpdir(), 'eval-hosted-http-'));
@@ -482,4 +483,136 @@ test('concurrent changed payloads for one revision allow one winner and one conf
   const rejected = results.find(r => r.status === 'rejected');
   assert.match(rejected.reason.stderr, /Artifact conflict/);
   assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.artifacts WHERE external_run_id='intake-competing'"), '1');
+});
+
+const workerProject = (count = 1) => {
+  const project = randomUUID();
+  sql(`INSERT INTO eval_hosted.projects (tenant_id,id,name) VALUES ('${tenantA}','${project}','Synthetic worker queue')`);
+  const jobs = [];
+  for (let i = 0; i < count; i++) jobs.push(JSON.parse(appSql(intakeCall(tenantA, project,
+    `worker-${i}`, 1, createHash('sha256').update(project + i).digest('hex'), `worker-${i}`))));
+  return { project, jobs };
+};
+const claimCall = (project, seconds = 60, tenant = tenantA) =>
+  `SELECT coalesce(json_agg(r),'[]'::json) FROM eval_hosted.claim_ingestion_job('${tenant}','${project}',${seconds}) r`;
+const claim = (project, seconds = 60) => JSON.parse(appSql(claimCall(project, seconds)))[0];
+const renewCall = (project, job, token = job.lease_token, seconds = 60, tenant = tenantA) =>
+  `SELECT eval_hosted.renew_ingestion_lease('${tenant}','${project}','${job.job_id}',${literal(token)},${seconds})`;
+const finishCall = (project, job, action = 'complete', quality = 'failed', error = null, backoff = 0, token = job.lease_token, tenant = tenantA) =>
+  `SELECT eval_hosted.finish_ingestion_job(${[tenant,project,job.job_id,token,action,quality,error,backoff].map(literal).join(',')})`;
+const expire = (project, job) => sql(`UPDATE eval_hosted.ingestion_jobs SET created_at=clock_timestamp()-interval '3 seconds', started_at=clock_timestamp()-interval '2 seconds',
+  lease_expires_at=clock_timestamp()-interval '1 second' WHERE tenant_id='${tenantA}' AND project_id='${project}' AND id='${job.job_id}'`);
+
+test('worker claims return scoped source metadata with fresh leases and durable attempts', () => {
+  const { project, jobs } = workerProject();
+  const job = claim(project);
+  assert.equal(job.outcome, 'claimed'); assert.equal(job.job_id, jobs[0].job_id);
+  assert.equal(job.artifact_id, jobs[0].artifact_id); assert.equal(job.attempts, 1);
+  assert.match(job.lease_token, /^[a-f0-9-]{36}$/);
+  assert.equal(job.object_key, `artifacts/${tenantA}/${project}/${job.sha256.slice(2)}`);
+  assert.equal(job.content_bytes, 123); assert.equal(job.run_id, 'worker-0'); assert.equal(job.revision, 1);
+  assert.equal(claim(project), undefined);
+  assert.equal(scoped(tenantA, project, 'SELECT max_attempts FROM eval_hosted.ingestion_jobs'), '3');
+});
+test('concurrent workers claim distinct jobs and cannot duplicate an active lease', async () => {
+  const { project } = workerProject(2);
+  const results = (await Promise.all([asyncSql(claimCall(project)), asyncSql(claimCall(project)), asyncSql(claimCall(project))])).flatMap(JSON.parse);
+  assert.equal(results.length, 2); assert.equal(new Set(results.map(r=>r.job_id)).size, 2);
+  assert.equal(new Set(results.map(r=>r.lease_token)).size, 2);
+});
+test('a locked oldest job does not block claiming the next queued job', async () => {
+  const { project } = workerProject(2);
+  const ids = scoped(tenantA, project, 'SELECT id FROM eval_hosted.ingestion_jobs ORDER BY created_at,id').split('\n');
+  const marker = Math.floor(Math.random()*1_000_000_000)+1;
+  const held = asyncSql(`BEGIN; SET LOCAL eval_hosted.tenant_id='${tenantA}'; SET LOCAL eval_hosted.project_id='${project}';
+    SELECT id FROM eval_hosted.ingestion_jobs WHERE id='${ids[0]}' FOR UPDATE;
+    SELECT pg_advisory_xact_lock(${marker}); SELECT pg_sleep(60); COMMIT;`).then(()=>null,error=>error);
+  let pid;
+  try {
+    for (let i=0; i<30; i++) {
+      pid=sql(`SELECT pid FROM pg_locks WHERE locktype='advisory' AND objid=${marker}`);
+      if (pid) break;
+      await delay(10);
+    }
+    assert.ok(pid, 'Owned test transaction did not acquire its sentinel lock');
+    assert.equal(claim(project).job_id, ids[1]);
+  } finally {
+    if (pid) sql(`SELECT pg_cancel_backend(${Number(pid)})`);
+    const error=await held;
+    assert.match(error?.stderr ?? '', /canceling statement due to user request/);
+  }
+});
+test('expired leases are reclaimed with a fresh token and stale workers cannot renew or finish', () => {
+  const { project } = workerProject(); const first = claim(project);
+  expire(project, first);
+  assert.equal(appSql(renewCall(project, first)), '');
+  assert.equal(appSql(finishCall(project, first)), 'f');
+  const second = claim(project);
+  assert.equal(second.job_id, first.job_id); assert.equal(second.attempts, 2);
+  assert.notEqual(second.lease_token, first.lease_token);
+  assert.equal(appSql(renewCall(project, first)), '');
+  assert.equal(appSql(finishCall(project, first)), 'f');
+  assert.equal(appSql(finishCall(project, second)), 't');
+  assert.equal(appSql(finishCall(project, second)), 'f');
+  assert.equal(scoped(tenantA, project, "SELECT state || ':' || quality_status || ':' || (lease_token IS NULL)::text FROM eval_hosted.ingestion_jobs"), 'completed:failed:true');
+});
+test('heartbeat renews an active lease without shortening it and rejects wrong scope or token', () => {
+  const { project } = workerProject(); const job = claim(project, 120);
+  assert.equal(appSql(renewCall(project, job, randomUUID())), '');
+  assert.equal(appSql(renewCall(projectB, job, job.lease_token, 60, tenantB)), '');
+  const renewed = Date.parse(appSql(renewCall(project, job, job.lease_token, 1)));
+  assert.ok(renewed>=Date.parse(job.lease_expires_at));
+  assert.equal(appSql(finishCall(projectB, job, 'complete', 'passed', null, 0, job.lease_token, tenantB)), 'f');
+});
+test('retry backoff prevents early claims and the last allowed failure becomes terminal', () => {
+  const { project } = workerProject(); let job = claim(project);
+  assert.equal(appSql(finishCall(project, job, 'retry', null, 'TEMPORARY_IO', 60)), 't');
+  assert.equal(claim(project), undefined);
+  assert.equal(scoped(tenantA, project, "SELECT state || ':' || last_error_code FROM eval_hosted.ingestion_jobs"), 'queued:TEMPORARY_IO');
+  sql(`UPDATE eval_hosted.ingestion_jobs SET next_attempt_at=clock_timestamp()-interval '1 second' WHERE project_id='${project}'`);
+  job=claim(project); assert.equal(job.attempts, 2);
+  assert.equal(appSql(finishCall(project, job, 'retry', null, 'TEMPORARY_IO')), 't');
+  job=claim(project); assert.equal(job.attempts, 3);
+  assert.equal(appSql(finishCall(project, job, 'retry', null, 'TEMPORARY_IO')), 't');
+  assert.equal(scoped(tenantA, project, "SELECT state || ':' || error_code || ':' || last_error_code FROM eval_hosted.ingestion_jobs"), 'failed:RETRY_EXHAUSTED:TEMPORARY_IO');
+  assert.equal(claim(project), undefined);
+});
+test('an expired final attempt is retired without granting another lease', () => {
+  const { project } = workerProject();
+  sql(`UPDATE eval_hosted.ingestion_jobs SET max_attempts=1 WHERE project_id='${project}'`);
+  const first=claim(project); expire(project,first);
+  const retired=claim(project);
+  assert.equal(retired.outcome,'exhausted'); assert.equal(retired.attempts,1); assert.equal(retired.lease_token,null);
+  assert.equal(claim(project),undefined);
+  assert.equal(scoped(tenantA, project, "SELECT state || ':' || error_code || ':' || last_error_code FROM eval_hosted.ingestion_jobs"), 'failed:RETRY_EXHAUSTED:LEASE_EXPIRED');
+});
+test('lease checks use the wall clock even inside an old transaction', () => {
+  const { project }=workerProject(); const job=claim(project);
+  const out=sql(`BEGIN; UPDATE eval_hosted.ingestion_jobs SET created_at=transaction_timestamp()-interval '2 seconds', started_at=transaction_timestamp()-interval '1 second',
+    lease_expires_at=transaction_timestamp()+interval '1 microsecond' WHERE id='${job.job_id}'; SELECT pg_sleep(0.01);
+    SET LOCAL ROLE eval_hosted_app; ${renewCall(project,job)}; ${finishCall(project,job)}; ROLLBACK;`);
+  assert.equal(out.trim(),'f');
+});
+test('worker operations restore existing context and claim rollback does not consume an attempt', () => {
+  const { project }=workerProject();
+  appSql(`BEGIN; ${claimCall(project)}; ROLLBACK;`);
+  const job=claim(project); assert.equal(job.attempts,1);
+  const out=appSql(`BEGIN; SET LOCAL eval_hosted.tenant_id='${tenantB}'; SET LOCAL eval_hosted.project_id='${projectB}';
+    ${renewCall(project,job)}; SELECT eval_hosted.current_tenant() || ':' || eval_hosted.current_project();
+    ${finishCall(project,job,'fail',null,'INVALID_ARTIFACT')}; SELECT eval_hosted.current_tenant() || ':' || eval_hosted.current_project(); COMMIT;`);
+  assert.equal(out.split('\n').filter(line=>line===`${tenantB}:${projectB}`).length,2);
+  assert.equal(appSql('SELECT count(*) FROM eval_hosted.ingestion_jobs'),'0');
+});
+test('worker metadata validation, lookup-role denial and migration rollback remain enforced', () => {
+  const { project }=workerProject(); const job=claim(project);
+  for (const seconds of [0,3601,'NULL']) appSql(claimCall(project,seconds),'22023');
+  authSql(claimCall(project),'42501'); authSql(renewCall(project,job),'42501'); authSql(finishCall(project,job),'42501');
+  appSql(finishCall(project,job,'complete',null),'22023');
+  appSql(finishCall(project,job,'retry','passed','TEMP_IO'),'22023');
+  appSql(finishCall(project,job,'retry',null,'contains private text'),'22023');
+  appSql(finishCall(project,job,'retry',null,'TEMP_IO',3601),'22023');
+  assert.deepEqual(JSON.parse(appSql(claimCall(projectB,60,tenantA))),[]);
+  sql(readFileSync(new URL('../hosted/postgres/migrations/004-worker-leases.sql',import.meta.url),'utf8'),'42701','eval_hosted_migration_test');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'),'1\n2\n3\n4');
+  console.log('Worker leases: concurrent claims distinct; locked work skipped; expired-token writes denied; backoff and three-attempt cap enforced; completed processing may carry failed quality.');
 });
