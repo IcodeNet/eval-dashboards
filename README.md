@@ -2,7 +2,7 @@
 
 > **Product direction (2026-10-31):** a fully hosted platform with accounts, ingestion, and live dashboards is approved and planned. The current product remains the portable package. See [requirements and delivery sequence](docs/hosted-platform-requirements.md).
 
-Version 0.11.0 shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
+Release-preparation snapshot (2026-11-02): the 0.11.0 source candidate shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/eval-dashboards-logo-dark.svg">
@@ -19,9 +19,10 @@ Version 0.11.0 shows the configured quality-gate decision across HTML, Markdown,
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
-Version **0.11.0** includes analytics, the complete `evaluateReportPolicy` API,
+Release-preparation snapshot (2026-11-02): the **0.11.0 source candidate** includes analytics, the complete `evaluateReportPolicy` API,
 and shared gate reporting. See the [runnable policy example](examples/policy-evaluation/README.md).
-Use the npm badge above for current package availability. Maintainers follow
+At that pre-publication check npm latest was 0.10.0. Use the npm badge above
+for current package availability. Maintainers follow
 the [verified release procedure](docs/npm-publishing.md#release-acceptance-and-publication).
 Strict installed-package checks passed on Node 20/22/24/26;
 see [runtime support](docs/npm-publishing.md#runtime-compatibility).

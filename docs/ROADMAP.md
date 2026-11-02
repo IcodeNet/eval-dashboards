@@ -1730,12 +1730,14 @@ phase's commit message.
 ## 📦 npm release policy note (ship gate)
 
 Pre-publication registry verification 2026-11-02: npm latest was `0.10.0` (2026-10-19).
-Repository version `0.11.0` is the portable M1 release candidate; required
+Repository version `0.11.0` is the portable M1 release candidate;
 release-PR verification is required. The owner authorized this portable
 release on 2026-11-02 after requesting a new version for merged functionality;
 see the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-02).
-This authorization does not change the stable 1.0.0 gate or require finishing
-hosted milestones M2–M6 before the portable minor release.
+Merge reviewed green PRs into main and release coherent portable 0.x
+milestones under the standing owner instruction. This does not require a bump
+for each PR or finishing hosted M2–M6 before the portable minor release. The
+separate stable 1.0.0 and hosted-deployment owner gates remain.
 
 - **The 1.0.0 release remains an owner decision.** Phase 4K (full historical reports) is complete, but no 1.0.0 release has been published. Remaining work includes 4F.11 signed-bundle authentication and 4C.4, which is parked awaiting the external Rupic review. Publish `1.0.0` only when the owner says so.
 - npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.

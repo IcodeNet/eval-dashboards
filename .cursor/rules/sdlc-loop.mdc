@@ -28,4 +28,11 @@ the commit/test, and resolve that thread. Recheck CI and new comments before
 merging. Do not resolve it just because a fix has been planned.
 
 Retain the free, open-source, runner-agnostic offline core and honest STATUS.
-Keep assistant-ui parked and publishing on hold unless separately authorized.
+Keep assistant-ui parked. Under the owner's 2026-11-02 standing instruction,
+release coherent portable 0.x milestones after reviewed green merges. Follow
+`docs/npm-publishing.md`: verify main, publish through the existing OIDC path,
+inspect raw logs and verify registry/tag/installed consumers. Record scope and
+evidence. Do not bump for every PR, docs-only change or private hosted slice.
+Example: completed portable M1 supports 0.11.0; a README correction alone does
+not require another package release. The explicit 1.0.0 and hosted-deployment
+owner gates remain separate.

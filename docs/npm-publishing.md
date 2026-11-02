@@ -31,7 +31,12 @@ changing it and merging features do not publish a package.
 had landed. Portable M1 functionality has landed, so that request authorizes
 this release after verification and supersedes the earlier publication hold.
 The release PR and resulting main revision must pass the acceptance steps below.
-This authorization does not include 1.0.0 or deploying the hosted platform.
+The owner also reaffirmed the standing delivery rule: merge reviewed green PRs
+to main and release package versions at reasonable milestones. Apply that rule
+to coherent portable 0.x releases after the checks below, rather than bumping
+after every PR. Documentation-only changes and private hosted groundwork do
+not by themselves require a package release. Record the milestone and evidence.
+The existing explicit owner gates for 1.0.0 and hosted deployment still apply.
 Do not wait for the hosted M2–M6 backlog to publish a coherent portable update.
 The existing `1.0.0` owner decision and stable-release gate remain separate.
 
@@ -81,10 +86,11 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
 2. Address review findings, reply with fixes and evidence, resolve addressed
    threads, merge the release PR, and verify the resulting main revision and
    its raw CI logs. A green feature branch alone is not a release candidate.
-3. Record the owner's explicit authorization for the concrete candidate.
-   The 2026-11-02 request authorizes the verified portable 0.11.0 release. Future
-   releases still need their own applicable authorization; do not infer it from
-   merging a PR alone.
+3. Record the applicable owner authorization and concrete milestone scope.
+   The 2026-11-02 request authorizes portable 0.11.0 for completed M1 and
+   establishes normal 0.x milestone releases after verified merges. Merging
+   one PR does not itself establish a release milestone. Keep the separate
+   1.0.0 and hosted-deployment owner gates.
 4. Dispatch `Publish to npm` from verified `main` with version `0.11.0`. Use the
    existing OIDC workflow; create no alternate token-based release path.
 5. Inspect its raw log and verify registry version/dist-tags, the GitHub

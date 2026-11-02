@@ -116,7 +116,10 @@ Normal `pnpm test` and portable package use do not require PostgreSQL or Docker.
   or skipped jobs do not prove coverage. Do not weaken checks to make them pass.
 - For owner-authorized delivery, merge dependencies first into `origin/main`,
   verify the remote merge, and continue the next roadmap task. PR creation alone
-  does not finish delivery. Publishing/deployment authorization remains separate.
+  does not finish delivery. Apply the standing owner instruction for coherent
+  portable 0.x milestone releases through `docs/npm-publishing.md`; verify the
+  resulting main, raw publish logs, registry/tag and installed consumer. Do not
+  bump for every PR. The 1.0.0 and hosted-deployment owner gates remain separate.
 - Apply these checks together with all earlier project requirements, including
   plain-English PRs, docs/schema/example sync, and honest completion claims.
 

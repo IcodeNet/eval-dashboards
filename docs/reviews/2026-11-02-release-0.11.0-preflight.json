@@ -10,7 +10,9 @@
       "No 1.0.0 release",
       "No hosted platform deployment",
       "Source-only hosted modules are not portable package exports"
-    ]
+    ],
+    "standingInstruction": "Remember we need to merge PRs that are green and pass all the testing to main, yeah? And then at reasonable milestones we should release package versions.",
+    "standingScope": "Reviewed green merges followed by coherent portable 0.x milestone releases through the existing verified process. Not every PR, documentation correction or private hosted slice requires a package bump. Explicit 1.0.0 and hosted-deployment owner gates remain."
   },
   "baselineMain": "0e73598bbd1e19131ac5032adf65b6e654275919",
   "registryBefore": {
@@ -182,6 +184,12 @@
     "excludedClosedPrs": {
       "108": "Unsafe generated update removed Node 20/24 compatibility runtimes; closed with explanation, not merged.",
       "109": "Actual Node 20 strict install fails EBADENGINE; closed with raw-log evidence, not merged."
+    },
+    "closedThreadAudit": {
+      "90": 0,
+      "91": 0,
+      "108": 0,
+      "109": 0
     }
   },
   "localChecks": [
@@ -231,5 +239,45 @@
     "Existing hosted/private source work stays outside the portable offering and M2 remains incomplete.",
     "1.0.0 and hosted deployment remain separate owner decisions.",
     "CodeRabbit allowance was exhausted on PR #111; no completed independent review for that PR is claimed. Manual staged review and protected CI passed."
-  ]
+  ],
+  "snapshotScope": "Original preflight/source hashes describe initial release head daa1684e6b3bca579129011d1bee40c0b8c269fe. Follow-up below has separate updated source hashes and documentation checks; final publication proof is recorded after dispatch.",
+  "initialReleasePrCi": {
+    "head": "daa1684e6b3bca579129011d1bee40c0b8c269fe",
+    "run": 41434090084,
+    "rawJobs": [
+      125239527089,
+      125241228967,
+      125239527423,
+      125239528552,
+      125239528190
+    ],
+    "result": "All five protected checks passed; raw CI verified 957 tests, 32 real PostgreSQL checks with cleanup and zero skips, strict installed consumers on Node 20/22/24/26, assets/schema/accessibility/CLI/docs/audit. CodeRabbit completed review with two release-wording findings."
+  },
+  "reviewFollowUp": {
+    "findings": [
+      {
+        "comment": 4441701360,
+        "issue": "Changelog could imply all release/registry verification already completed.",
+        "resolution": "Call it the authorized portable release candidate and explicitly date verification/publication as pending at the preparation step."
+      },
+      {
+        "comment": 4441701398,
+        "issue": "README could imply 0.11.0 was already available through npm latest.",
+        "resolution": "Use dated pre-publication source-candidate snapshots in both locations, with the observed 0.10.0 registry baseline and live badge for current availability. This remains historically accurate inside an immutable npm archive after publication."
+      }
+    ],
+    "standingRule": "Update existing always-applied SDLC rule, AGENTS and completion ledger to preserve the owner instruction across sessions. Keep every earlier review, test, documentation and free/offline requirement.",
+    "docsCommand": "pnpm docs:build && pnpm docs:check",
+    "docsResult": "90 pages built and links/assets passed.",
+    "docsLogSha256": "5d08ab0172466a47c8859a7028765853b332ad0d36e59d45e01c38ef4923f34e",
+    "updatedSourceSha256": {
+      "README.md": "72325f77b3771c3415c19bec9225df6546feeb723119f63cd2af269c756f748b",
+      "CHANGELOG.md": "cc4562904289dd7cce37551448f68f9d6dfc877cf39d1f542e48b9923faade70",
+      "docs/npm-publishing.md": "5d09373eb6d918e10bd724c36c1d0caa881b38d4146029947470fbf34b92ce60",
+      "AGENTS.md": "e7e26be00e34f32a38dc6cad9ae5830318874c562614dd977983177277efa59d",
+      "CHECKS_LEDGER.md": "32f6dd74f7c35be8ed94ba6438d3a6f41fcb325d666e3b11d8677696948c9352",
+      ".cursor/rules/sdlc-loop.mdc": "816b9ea3a5b2768663cec43e2ed9b92f9beae77d5dfd033daa220c6fd5449125"
+    },
+    "manualReview": "Reviewed final candidate/publication distinction and scope of standing 0.x releases; no CI, package version, runtime or 1.0.0/deployment gate weakened. Fresh full staged-tree ledger and fix-head CI required before merge."
+  }
 }
