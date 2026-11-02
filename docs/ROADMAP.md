@@ -29,7 +29,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 - [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
-- [Phase 5: Hosted evaluation platform](#phase-5-hosted-evaluation-platform-approved-scope-implementation-pending)
+- [Phase 5: Hosted evaluation platform](#phase-5-hosted-evaluation-platform-approved-scope-foundations-in-progress)
 
 > **Note on ordering:** sections below are in the order they were added, not
 > strict numeric order. Physical order is 4A, 4B, 4C, 4E, 4G, 4F, 4H, 4I, 4D, 4J, 4K.
@@ -2045,7 +2045,9 @@ Rationale: Inspect AI added provider request/response id logging for every model
 
 The core idea — an Istanbul-style, offline, artifact-first reporting layer for agent and LLM evals — is timely and differentiated. Finishing Phase 2A + 2B establishes the contract and makes it visible; Phase 3–4 drives ecosystem adoption through community.
 
-## Phase 5: Hosted evaluation platform (approved scope; implementation pending)
+<a id="phase-5-hosted-evaluation-platform-approved-scope-implementation-pending"></a>
+
+## Phase 5: Hosted evaluation platform (approved scope; foundations in progress)
 
 The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
 
@@ -2057,7 +2059,10 @@ idempotency associations, and processing/quality state separation with real
 database checks. Project-bound credential lookup now intersects stored key scopes
 with current membership and rejects expired/revoked keys. Private
 [bearer helpers](../hosted/auth/README.md) generate random secrets and check
-parsed headers against the stored project/scope on every request. Remaining M2
-work includes HTTP route integration, credential issuance, bounded validated
-uploads/private blobs, transactional intake and revision handling, worker
-claiming/retries/indexing, and end-to-end isolation and replay acceptance. A schema alone does not complete the hosted vertical slice.
+parsed headers against the stored project/scope on every request. Private
+[artifact intake](../hosted/ingestion/README.md) now connects authenticated HTTP,
+bounded core validation, durable private files and transactional PostgreSQL
+artifact/key/job acceptance. Real HTTP/database checks cover retries, revision
+conflicts, rollback and tenant isolation. M2 remains open for accounts and key
+issuance, service composition, worker claiming/retries/indexing, retention and
+operational acceptance. No hosted deployment is claimed.

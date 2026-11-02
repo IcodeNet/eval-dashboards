@@ -83,3 +83,9 @@ each route, map denied/unavailable results appropriately (normally 401/403/503),
 use TLS, limit headers/requests, and redact logs. This helper installs none of
 those routes or transport controls. Account sessions, issuance/rotation/audit,
 bounded uploads, private blobs and workers remain open; M2 is incomplete.
+
+
+The later [artifact intake handler](../ingestion/README.md) now connects these
+helpers to a raw-header-aware Node HTTP upload route and durable acceptance.
+It is private service source, not a deployed endpoint. Persistent key issuance,
+browser accounts and launch controls remain open.

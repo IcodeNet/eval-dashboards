@@ -279,7 +279,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
 - [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. Portable 0.11.0 is published; hosted M2–M6 remain open. See [gate decisions](./gates.md#reported-gate-decisions).
-- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; HTTP route integration/credential issuance, upload/blob persistence, intake protocol and workers remain open; project-bound database lookup and private bearer-header helpers are implemented and tested. See [storage foundation](../hosted/postgres/README.md).
+- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Source includes tenant/project-scoped PostgreSQL metadata, project-bound bearer authentication, bounded HTTP artifact validation, private durable files and transactional acceptance with retries/revision conflicts. Accounts, credential issuance, service composition, workers and operations remain open. See [storage foundation](../hosted/postgres/README.md).
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
 - [ ] M5: Resumable live progress and benchmarked query scale.
@@ -347,3 +347,20 @@ See [the runnable example and integration limits](../hosted/auth/README.md).
 There is no HTTP endpoint or persistent issuer. Raw-header duplicate detection,
 route integration, browser sign-in, issuance/rotation/audit, uploads and workers
 remain open. M2 is incomplete; the portable package remains database-free.
+
+
+### M2 authenticated artifact intake — 2026-11-02
+
+Private source in `hosted/ingestion/` accepts bounded UTF-8 JSON uploads only
+after stored project/ingest authorization. It uses the portable validator,
+preserves exact bytes in private durable files and calls migration 003 to
+record the artifact, immutable delivery key and one queued job atomically.
+Exact retries reuse that job; changed bytes require an explicit revision and
+new delivery key. Processing state is separate from evaluation quality.
+
+Tests cover real loopback HTTP, raw duplicate headers, incomplete/time-limited
+bodies, authorization denial, private-file corruption/symlinks, actual PostgreSQL
+concurrent deliveries/conflicts, scoped reads and transaction rollback.
+See [usage and limits](../hosted/ingestion/README.md). M2 remains open for
+accounts, key issuance, service composition, worker processing and operations.
+No hosted deployment or portable npm API change is included.

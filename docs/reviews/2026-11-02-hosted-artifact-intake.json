@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-02",
+  "scope": "M2 authenticated artifact intake source; no deployment or package release",
+  "baseline": {
+    "revision": "77b012cea34604448538945dc937e48b9f0b24c5",
+    "inspection": "Route absent at baseline by source-object lookup, exit 128. Storage and credential foundations existed; no prior handler replay or performance benchmark."
+  },
+  "after": {
+    "fixture": "examples/basic-json/run-001.json with synthetic run.id http-intake",
+    "observed": [
+      "Initial upload: 202 queued, replayed false.",
+      "Exact retry: 202 with same artifactId/jobId, replayed true.",
+      "Changed bytes, same run/revision: 409.",
+      "Changed bytes, explicit revision 2 and unused key: 202.",
+      "Malformed JSON: 422, unchanged artifact count.",
+      "Revoked key: 401.",
+      "Private file matches original bytes at server-derived digest path.",
+      "Another tenant cannot read the artifact. Queued job quality status remains NULL.",
+      "Concurrent identical deliveries converge on one artifact/job; competing payloads produce one winner and one conflict.",
+      "Injected job insertion failure rolls back artifact and delivery key."
+    ]
+  },
+  "localChecks": [
+    {
+      "command": "pnpm exec vitest run test/hosted-artifact-intake.test.ts",
+      "result": "32 passed; actual loopback HTTP and disposable private files."
+    },
+    {
+      "command": "pnpm test:hosted-db",
+      "result": "39 passed, zero failures/skips; PostgreSQL 17.11, non-superuser migrations, restricted runtime logins; owned container removed."
+    },
+    {
+      "command": "pnpm typecheck",
+      "result": "Passed."
+    }
+  ],
+  "environment": {
+    "node": "26.7.0",
+    "pnpm": "12.16.1",
+    "postgres": "17.11"
+  },
+  "developmentFindings": [
+    {
+      "issue": "Initial raw-header test framing omitted Host.",
+      "resolution": "Added valid framing and diagnostic failure handling; duplicate-header tests pass."
+    },
+    {
+      "issue": "Function SET custom settings failed under non-superuser migrations.",
+      "resolution": "Explicit context capture/restore replaces those clauses without expanded privileges; real tests pass."
+    },
+    {
+      "issue": "HTTP revision fixture reused a project-wide key already bound to another run.",
+      "resolution": "Conflict was correct; distinct fixture key permits the explicit revision."
+    },
+    {
+      "issue": "Full repository check found an outdated Phase 5 table-of-contents anchor after the heading update.",
+      "resolution": "Updated the TOC and preserved the old explicit anchor for existing links."
+    },
+    {
+      "issue": "Manual review found a late client error could outlive the body-specific listeners.",
+      "resolution": "Keep a request-lifetime error handler; the client-abort regression emits a late error and verifies no persistence."
+    }
+  ],
+  "limits": [
+    "Private service source with an injected bound-parameter query client; no driver or server bootstrap installed.",
+    "Operator-provisioned durable POSIX private filesystem; shared root for processes using this database.",
+    "Interrupted/conflicting database writes can leave private unreferenced files; coordinated cleanup remains open.",
+    "Project-serialized READ COMMITTED acceptance; no scale benchmark.",
+    "Accounts, key issuance, service composition, worker indexing/retries and operations remain open. M2 is incomplete.",
+    "Portable schema, exports and runtime dependencies are unchanged.",
+    "No independent security audit claimed; exact-head CI and review evidence belong to the PR."
+  ]
+}
