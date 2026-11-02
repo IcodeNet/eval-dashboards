@@ -206,7 +206,9 @@ CI runs these consumers on Node 20/22/24/26; SQLite is checked on Node >=22.5.
 Run `pnpm test:hosted-db` with a local Docker engine. The harness starts and
 removes its own network-isolated PostgreSQL container and checks tenant/project
 policies, composite references, immutable revisions, idempotency associations
-and job metadata using a restricted runtime login. It rejects remote Docker
+and job metadata using a restricted runtime login. Credential checks use a
+separate lookup login and cover stored scope, expiry, revocation, membership
+changes and denied direct table access. It rejects remote Docker
 endpoints and takes no external database URL. See the
 [storage guide](../hosted/postgres/README.md). This does not implement a login,
 upload endpoint or worker; portable examples continue to need no database.

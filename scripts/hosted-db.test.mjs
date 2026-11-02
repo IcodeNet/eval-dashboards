@@ -45,6 +45,7 @@ const sql = (input, errorCode, user = 'postgres') => {
   assert.equal(result.status, 0, result.stderr || result.error?.message);
   return result.stdout.trim();
 };
+const authSql = (input, errorCode) => sql(input, errorCode, 'eval_hosted_auth_test_login');
 const appSql = (input, errorCode) => sql(input, errorCode, 'eval_hosted_test_login');
 const scoped = (tenant, project, query, errorCode, rollback = false) => appSql(`BEGIN; SET LOCAL ROLE eval_hosted_app;
   SET LOCAL eval_hosted.tenant_id = '${tenant}'; SET LOCAL eval_hosted.project_id = '${project ?? ''}';
@@ -71,6 +72,10 @@ before(async () => {
   // explicitly remove PUBLIC table access before granting its application role.
   sql('ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL ON TABLES TO PUBLIC');
   sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'));
+  assert.equal(sql("SELECT (to_regclass('eval_hosted.api_credentials') IS NULL)::int || ':' || (to_regprocedure('eval_hosted.resolve_api_credential(bytea)') IS NULL)::int"), '1:1');
+  console.log('Storage-only baseline has no credential table or resolver; applying credential migration.');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'));
+  sql('CREATE ROLE eval_hosted_auth_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_auth_lookup TO eval_hosted_auth_test_login');
   sql('CREATE ROLE eval_hosted_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_app TO eval_hosted_test_login');
   console.log(`Real database: ${sql('SHOW server_version')}; isolated container; no external database`);
   sql(`INSERT INTO eval_hosted.tenants (id, name) VALUES ('${tenantA}', 'Synthetic A'), ('${tenantB}', 'Synthetic B');
@@ -197,6 +202,100 @@ test('global identity records and schema changes are not granted to the applicat
 });
 test('migration reapply fails transactionally and preserves existing artifacts', () => {
   sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'), '42710');
-  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations'), '1');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2');
   assert.equal(sql('SELECT count(*) FROM eval_hosted.artifacts'), '3');
+});
+
+// Credential fixtures contain synthetic digests, never real bearer tokens.
+const accountA = '40000000-0000-0000-0000-000000000001';
+const accountB = '40000000-0000-0000-0000-000000000002';
+const credentialId = '50000000-0000-0000-0000-000000000001';
+const credentialHash = `decode('${'aa'.repeat(32)}','hex')`;
+const credentialFixture = `
+  INSERT INTO eval_hosted.accounts (id,email) VALUES ('${accountA}','credential-a@example.invalid'), ('${accountB}','credential-b@example.invalid');
+  INSERT INTO eval_hosted.memberships (tenant_id,account_id,role) VALUES ('${tenantA}','${accountA}','editor'), ('${tenantB}','${accountB}','viewer');
+  INSERT INTO eval_hosted.api_credentials (id,tenant_id,project_id,account_id,secret_sha256,scopes,expires_at)
+  VALUES ('${credentialId}','${tenantA}','${projectA}','${accountA}',${credentialHash},ARRAY['read','ingest'],now()+interval '1 hour');`;
+const resolve = `SELECT tenant_id || ':' || project_id || ':' || array_to_string(scopes,',') FROM eval_hosted.resolve_api_credential(${credentialHash})`;
+const ownerFixture = (query, code) => sql(`BEGIN; ${credentialFixture} ${query}; ROLLBACK;`, code);
+const authFixture = (query, expected) => {
+  // Fixture writes are privileged; the lookup itself uses the restricted role.
+  const out = ownerFixture(`SET LOCAL ROLE eval_hosted_auth_test_login; ${query}`);
+  assert.equal(out, expected);
+};
+
+test('credential lookup is callable by a restricted login with no table access', () => {
+  assert.equal(authSql('SELECT current_user'), 'eval_hosted_auth_test_login');
+  for (const table of ['api_credentials','memberships','projects','accounts','artifacts']) authSql(`SELECT * FROM eval_hosted.${table}`, '42501');
+  authSql('SET ROLE eval_hosted_auth_owner', '42501');
+  authSql('SET ROLE eval_hosted_app', '42501');
+  appSql(`SELECT * FROM eval_hosted.resolve_api_credential(${credentialHash})`, '42501');
+  appSql('SELECT * FROM eval_hosted.api_credentials', '42501');
+  assert.equal(sql("SELECT count(*) FROM pg_roles WHERE rolname IN ('eval_hosted_auth_owner','eval_hosted_auth_lookup') AND NOT (rolsuper OR rolbypassrls OR rolcanlogin OR rolcreaterole OR rolcreatedb)"), '2');
+  assert.equal(sql("SELECT pg_get_userbyid(proowner) || ':' || prosecdef::text FROM pg_proc WHERE oid='eval_hosted.resolve_api_credential(bytea)'::regprocedure"), 'eval_hosted_auth_owner:true');
+  assert.equal(sql("SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='eval_hosted.api_credentials'::regclass"), 't');
+  assert.equal(sql("SELECT has_schema_privilege('eval_hosted_auth_owner','eval_hosted','CREATE')"), 'f');
+});
+test('active credentials resolve only their stored project even under forged context', () => {
+  authFixture(`SET LOCAL eval_hosted.tenant_id='${tenantB}'; SET LOCAL eval_hosted.project_id='${projectB}'; ${resolve}`, `${tenantA}:${projectA}:read,ingest`);
+});
+test('unknown, null, and malformed credential digests return no identity', () => {
+  for (const hash of ["NULL", "decode('aa','hex')", `decode('${'bb'.repeat(32)}','hex')`])
+    assert.equal(authSql(`SELECT count(*) FROM eval_hosted.resolve_api_credential(${hash})`), '0');
+});
+test('revoked, expired, and not-yet-valid credentials return no identity', () => {
+  for (const update of ["revoked_at=now()", "created_at=now()-interval '2 hours',expires_at=now()-interval '1 hour'", "created_at=now()+interval '1 hour',expires_at=now()+interval '2 hours'"])
+    authFixture(`RESET ROLE; UPDATE eval_hosted.api_credentials SET ${update}; SET LOCAL ROLE eval_hosted_auth_test_login; SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash})`, '0');
+});
+test('membership downgrade removes ingest immediately, and key scopes never escalate', () => {
+  const out = ownerFixture(`${resolve}; UPDATE eval_hosted.memberships SET role='viewer' WHERE account_id='${accountA}';
+    SET LOCAL ROLE eval_hosted_auth_test_login; ${resolve}; RESET ROLE;
+    UPDATE eval_hosted.api_credentials SET scopes=ARRAY['ingest']; SET LOCAL ROLE eval_hosted_auth_test_login;
+    SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash}); RESET ROLE;
+    UPDATE eval_hosted.memberships SET role='owner' WHERE account_id='${accountA}'; UPDATE eval_hosted.api_credentials SET scopes=ARRAY['read'];
+    SET LOCAL ROLE eval_hosted_auth_test_login; ${resolve}`);
+  assert.equal(out, `${tenantA}:${projectA}:read,ingest\n${tenantA}:${projectA}:read\n0\n${tenantA}:${projectA}:read`);
+});
+test('membership removal invalidates credentials and rejoining does not resurrect them', () => {
+  authFixture(`RESET ROLE; DELETE FROM eval_hosted.memberships WHERE account_id='${accountA}';
+    INSERT INTO eval_hosted.memberships (tenant_id,account_id,role) VALUES ('${tenantA}','${accountA}','editor');
+    SET LOCAL ROLE eval_hosted_auth_test_login; SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash})`, '0');
+});
+test('credential foreign keys reject mismatched tenant membership and project', () => {
+  ownerFixture(`UPDATE eval_hosted.api_credentials SET account_id='${accountB}'`, '23503');
+  ownerFixture(`UPDATE eval_hosted.api_credentials SET project_id='${projectB}'`, '23503');
+});
+test('credential bounds reject unknown or duplicate scopes, bad digests and unlimited expiry', () => {
+  for (const update of ["scopes=ARRAY['admin']", "scopes=ARRAY[]::text[]", "scopes=ARRAY['read','read']", "scopes=ARRAY['read',NULL]", "secret_sha256=decode('aa','hex')", "expires_at='infinity'", "expires_at=created_at", "revoked_at=created_at-interval '1 second'"])
+    ownerFixture(`UPDATE eval_hosted.api_credentials SET ${update}`, '23514');
+  ownerFixture(`INSERT INTO eval_hosted.api_credentials (tenant_id,project_id,account_id,secret_sha256,scopes,expires_at)
+    SELECT tenant_id,project_id,account_id,secret_sha256,scopes,expires_at FROM eval_hosted.api_credentials`, '23505');
+});
+test('lookup ignores caller search path and temporary table shadows', () => {
+  authFixture(`CREATE TEMP TABLE api_credentials (secret_sha256 bytea); CREATE TEMP TABLE memberships (role text);
+    SET LOCAL search_path=pg_temp,public; ${resolve}`, `${tenantA}:${projectA}:read,ingest`);
+  assert.equal(sql("SELECT proconfig::text FROM pg_proc WHERE oid='eval_hosted.resolve_api_credential(bytea)'::regprocedure"), '{"search_path=pg_catalog, pg_temp"}');
+});
+test('credential migration reapply rolls back without changing migration history', () => {
+  sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), '42710');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2');
+});
+
+test('a separately connected lookup login resolves an active key without owner privileges', () => {
+  sql(credentialFixture);
+  try {
+    assert.equal(authSql(resolve), `${tenantA}:${projectA}:read,ingest`);
+    authSql('TRUNCATE eval_hosted.api_credentials', '42501');
+    authSql("CREATE TABLE eval_hosted.forbidden (id integer)", '42501');
+  } finally {
+    sql(`DELETE FROM eval_hosted.api_credentials WHERE account_id='${accountA}';
+      DELETE FROM eval_hosted.memberships WHERE account_id IN ('${accountA}','${accountB}');
+      DELETE FROM eval_hosted.accounts WHERE id IN ('${accountA}','${accountB}')`);
+  }
+});
+test('expiry uses each statement time even inside an already-open transaction', () => {
+  const out = ownerFixture(`UPDATE eval_hosted.api_credentials SET expires_at=statement_timestamp()+interval '300 milliseconds';
+    SET LOCAL ROLE eval_hosted_auth_test_login; SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash});
+    SELECT pg_sleep(0.4); SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash})`);
+  assert.deepEqual(out.split('\n').filter(Boolean), ['1','0']);
 });

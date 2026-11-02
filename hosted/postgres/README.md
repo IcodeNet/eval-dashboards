@@ -1,6 +1,6 @@
 # Hosted PostgreSQL storage foundation
 
-This is the first M2 storage slice. It adds a schema and real database tests,
+These are the initial M2 storage and credential slices. They add a schema and real database tests,
 not a hosted application. The portable npm package still works offline and has
 no PostgreSQL dependency. PostgreSQL is [free software](https://www.postgresql.org/about/licence/) and can be self-hosted;
 no managed database or paid service is required.
@@ -84,12 +84,13 @@ login separate from the migration owner.
 
 These settings are not credentials. Anyone permitted to execute arbitrary SQL
 as the application role can set them; database credentials must stay within the
-trusted service. Row security does not implement authentication, membership
-permission checks or an HTTP tenant boundary. Superusers/BYPASSRLS roles also
+trusted service. Row security alone does not implement authentication or an HTTP tenant boundary.
+The credential lookup below checks current membership, but HTTP code must still
+verify the bearer token and enforce the returned operation scopes. Superusers/BYPASSRLS roles also
 bypass it; the application must not use them. Global identity records receive
 no application grant in this migration.
 
-Next M2 slices still need authentication and scoped credentials, bounded artifact
+Next M2 slices still need HTTP authentication and credential issuance, bounded artifact
 upload and validation, private blob persistence, transactional job creation,
 idempotent delivery/conflict handling, and worker indexing/retries. M2 remains
 open. There is no deployment, account signup, ingestion endpoint or live stream
@@ -98,3 +99,55 @@ in this slice. ClickHouse remains an optional later analytics candidate.
 PostgreSQL references: [row security and privileged-role behavior](https://www.postgresql.org/docs/17/ddl-rowsecurity.html),
 [composite constraints](https://www.postgresql.org/docs/17/ddl-constraints.html),
 and [transaction-local settings](https://www.postgresql.org/docs/17/sql-set.html).
+
+## Project-scoped credential lookup — source only
+
+Apply `migrations/002-api-credentials.sql` after 001, as the migration owner.
+It requires unused `eval_hosted_auth_owner` and `eval_hosted_auth_lookup` role
+names and records migration version 2. Both migrations are transactional and
+apply once; neither is a production migration runner. Back up and test migrations
+before deployment. No deployment or issuance endpoint is provided here.
+
+Each stored key binds one account's tenant membership to one project, with
+explicit `read` and/or `ingest` scopes, a finite expiry, an optional revocation
+time, and a unique 32-byte SHA-256 digest. Composite references reject a key
+whose member or project belongs to another tenant. Deleting a membership
+removes its keys; rejoining does not restore them. The database stores no raw
+token. The future issuer must generate at least 32 cryptographically random
+secret bytes, return the secret once, and hash the full canonical token before
+storage/lookup. This digest design is for random API secrets, not passwords.
+Token format, parsing, issuance/rotation UX and audit records remain future work.
+
+A dedicated service login may inherit **only** `eval_hosted_auth_lookup` and
+call `eval_hosted.resolve_api_credential($1::bytea)` with a bound digest. It
+cannot list hashes, read account emails, issue/revoke keys or write artifacts.
+The function returns at most one credential ID, tenant ID, project ID, account
+ID and effective scope array. No caller-supplied tenant/project context affects
+the lookup. Unknown, malformed, expired, revoked or future-dated keys return
+no rows. Expiry uses the current statement's time, including in an older
+transaction. Each query uses its PostgreSQL statement snapshot; this is not a
+promise to cancel requests already authorized before a revocation commits.
+
+Effective scopes are the intersection of the key's scopes and the current
+membership: owner/admin/editor allow read and ingest; viewer allows only read.
+A viewer's ingest-only key returns no identity. A read-only key never gains
+ingest when its member is promoted. Changes are checked on each lookup;
+no authorization cache is implemented. An account membership currently applies
+to all projects in its tenant; project-specific member assignments are not modeled.
+
+The function runs as `eval_hosted_auth_owner`, a non-login, non-superuser,
+non-BYPASSRLS role with SELECT only on credentials, memberships and projects.
+Its narrow SELECT policies permit this lookup across tenants. Runtime logins
+must never inherit that owner role. The fixed search path and fully qualified
+relations prevent temporary-table substitution. PUBLIC and application-role
+execution are revoked in the same transaction. See PostgreSQL's
+[security-definer guidance](https://www.postgresql.org/docs/17/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY).
+
+Future HTTP handlers must parse and hash a presented token, require a returned
+identity and the operation's scope, then use only the returned tenant/project
+in a fresh application transaction. Keep lookup and application database logins
+separate from the migration owner; neither login may be exposed to end users.
+Database lookup alone does not enforce an HTTP route, authenticate browser
+sessions, limit requests, or validate/upload artifacts. Those remain M2 work.
+Run `pnpm test:hosted-db` for actual restricted-login, cross-tenant, expiry,
+revocation, membership-change and hostile search-path checks.

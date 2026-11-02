@@ -13,7 +13,8 @@ Node 20-compatible GitHub client and checks the installed publisher with simulat
 responses; see [runtime compatibility](./npm-publishing.md#runtime-compatibility).
 
 The [hosted PostgreSQL storage foundation](../hosted/postgres/README.md) is
-separate source-only work. Static `publish` does not write that database or
+separate source-only work, including project-bound credential lookup. Static
+`publish` does not write that database or
 provide artifact ingestion; the offline portable package still needs no server.
 
 Supported targets:
