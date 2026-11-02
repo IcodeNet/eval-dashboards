@@ -27,7 +27,9 @@ propose a reviewed image refresh. Required CI runs the same checks; ordinary
 `migrations/001-storage-foundation.sql` defines tenants, private account records,
 memberships, projects, immutable artifact references, idempotency associations
 and ingestion-job metadata. It applies in one transaction to a new dedicated
-database using a migration owner with role-creation permission. The schema and
+database using a database owner with role-creation permission. A superuser is
+not required; the integration harness applies both migrations as a non-superuser
+`CREATEROLE` database owner. The schema and
 `eval_hosted_app` role names must be unused. Reapplying fails without changing
 existing records; a production migration runner is still future work.
 
@@ -104,7 +106,9 @@ and [transaction-local settings](https://www.postgresql.org/docs/17/sql-set.html
 
 Apply `migrations/002-api-credentials.sql` after 001, as the migration owner.
 It requires unused `eval_hosted_auth_owner` and `eval_hosted_auth_lookup` role
-names and records migration version 2. Both migrations are transactional and
+names and records migration version 2. Ownership transfer explicitly grants
+the trusted migration owner SET permission on the new function-owner role,
+with inheritance disabled. Runtime logins receive no such membership. Both migrations are transactional and
 apply once; neither is a production migration runner. Back up and test migrations
 before deployment. No deployment or issuance endpoint is provided here.
 

@@ -58,12 +58,17 @@ AS $$
     AND ('read' = ANY(c.scopes) OR m.role IN ('owner','admin','editor'))
 $$;
 REVOKE ALL ON FUNCTION eval_hosted.resolve_api_credential(bytea) FROM PUBLIC, eval_hosted_app;
+-- Grant execution while the migration role still owns the function.
+GRANT EXECUTE ON FUNCTION eval_hosted.resolve_api_credential(bytea) TO eval_hosted_auth_lookup;
 -- PostgreSQL requires CREATE on the containing schema to transfer ownership.
--- It is removed immediately within this transaction, before any runtime grant.
+-- It is removed within this transaction, before the lookup becomes visible.
 GRANT CREATE ON SCHEMA eval_hosted TO eval_hosted_auth_owner;
+-- A non-superuser creator initially has ADMIN but not SET on its new role.
+-- Only the trusted migration owner gets SET; do not inherit private read grants.
+GRANT eval_hosted_auth_owner TO CURRENT_USER WITH INHERIT FALSE;
+GRANT eval_hosted_auth_owner TO CURRENT_USER WITH SET TRUE;
 ALTER FUNCTION eval_hosted.resolve_api_credential(bytea) OWNER TO eval_hosted_auth_owner;
 REVOKE CREATE ON SCHEMA eval_hosted FROM eval_hosted_auth_owner;
-GRANT EXECUTE ON FUNCTION eval_hosted.resolve_api_credential(bytea) TO eval_hosted_auth_lookup;
 
 INSERT INTO eval_hosted.schema_migrations (version) VALUES (2);
 COMMIT;

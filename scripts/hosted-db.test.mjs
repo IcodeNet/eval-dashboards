@@ -70,13 +70,15 @@ before(async () => {
   assert.ok(ready, 'Isolated PostgreSQL did not become ready');
   // Simulate an existing cluster with permissive defaults. The migration must
   // explicitly remove PUBLIC table access before granting its application role.
-  sql('ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL ON TABLES TO PUBLIC');
-  sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'));
+  sql('CREATE ROLE eval_hosted_migration_test LOGIN CREATEROLE NOSUPERUSER NOCREATEDB NOREPLICATION NOBYPASSRLS; ALTER DATABASE eval_hosted_test OWNER TO eval_hosted_migration_test');
+  sql('ALTER DEFAULT PRIVILEGES FOR ROLE eval_hosted_migration_test GRANT ALL ON TABLES TO PUBLIC');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
   assert.equal(sql("SELECT (to_regclass('eval_hosted.api_credentials') IS NULL)::int || ':' || (to_regprocedure('eval_hosted.resolve_api_credential(bytea)') IS NULL)::int"), '1:1');
   console.log('Storage-only baseline has no credential table or resolver; applying credential migration.');
-  sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'));
+  sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
   sql('CREATE ROLE eval_hosted_auth_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_auth_lookup TO eval_hosted_auth_test_login');
   sql('CREATE ROLE eval_hosted_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_app TO eval_hosted_test_login');
+  console.log(`Migrations applied as ${sql('SELECT current_user', undefined, 'eval_hosted_migration_test')}; non-superuser database owner with CREATEROLE.`);
   console.log(`Real database: ${sql('SHOW server_version')}; isolated container; no external database`);
   sql(`INSERT INTO eval_hosted.tenants (id, name) VALUES ('${tenantA}', 'Synthetic A'), ('${tenantB}', 'Synthetic B');
     INSERT INTO eval_hosted.projects (tenant_id, id, name) VALUES
@@ -201,7 +203,7 @@ test('global identity records and schema changes are not granted to the applicat
   appSql('SET row_security=off; SELECT * FROM eval_hosted.artifacts', '42501');
 });
 test('migration reapply fails transactionally and preserves existing artifacts', () => {
-  sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'), '42710');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'), '42710', 'eval_hosted_migration_test');
   assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2');
   assert.equal(sql('SELECT count(*) FROM eval_hosted.artifacts'), '3');
 });
@@ -225,6 +227,7 @@ const authFixture = (query, expected) => {
 };
 
 test('credential lookup is callable by a restricted login with no table access', () => {
+  assert.equal(sql("SELECT rolcreaterole AND NOT (rolsuper OR rolbypassrls) FROM pg_roles WHERE rolname='eval_hosted_migration_test'"), 't');
   assert.equal(authSql('SELECT current_user'), 'eval_hosted_auth_test_login');
   for (const table of ['api_credentials','memberships','projects','accounts','artifacts']) authSql(`SELECT * FROM eval_hosted.${table}`, '42501');
   authSql('SET ROLE eval_hosted_auth_owner', '42501');
@@ -277,7 +280,7 @@ test('lookup ignores caller search path and temporary table shadows', () => {
   assert.equal(sql("SELECT proconfig::text FROM pg_proc WHERE oid='eval_hosted.resolve_api_credential(bytea)'::regprocedure"), '{"search_path=pg_catalog, pg_temp"}');
 });
 test('credential migration reapply rolls back without changing migration history', () => {
-  sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), '42710');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), '42710', 'eval_hosted_migration_test');
   assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2');
 });
 
@@ -294,8 +297,11 @@ test('a separately connected lookup login resolves an active key without owner p
   }
 });
 test('expiry uses each statement time even inside an already-open transaction', () => {
-  const out = ownerFixture(`UPDATE eval_hosted.api_credentials SET expires_at=statement_timestamp()+interval '300 milliseconds';
-    SET LOCAL ROLE eval_hosted_auth_test_login; SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash});
-    SELECT pg_sleep(0.4); SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash})`);
-  assert.deepEqual(out.split('\n').filter(Boolean), ['1','0']);
+  // Anchor expiry to the old transaction clock, then move past it before any
+  // lookup. Scheduler pauses only make it older; no active-key timing race.
+  const out = ownerFixture(`SELECT pg_sleep(0.01);
+    UPDATE eval_hosted.api_credentials SET expires_at=transaction_timestamp()+interval '1 microsecond';
+    SELECT expires_at > transaction_timestamp() AND expires_at < statement_timestamp() FROM eval_hosted.api_credentials;
+    SET LOCAL ROLE eval_hosted_auth_test_login; SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash})`);
+  assert.deepEqual(out.split('\n').filter(Boolean), ['t','0']);
 });

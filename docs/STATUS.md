@@ -313,6 +313,10 @@ No hosted deployment or npm publication is performed.
 
 ### M2 credential lookup foundation — 2026-11-02
 
+See the [dated verification record](./reviews/2026-11-02-hosted-credentials.json)
+and [PR #110](https://github.com/IcodeNet/eval-dashboards/pull/110) for revision-specific
+checks, raw CI evidence and review replies.
+
 Source adds `hosted/postgres/migrations/002-api-credentials.sql`: project-bound
 API secret digests, finite expiry/revocation, and a restricted lookup function
 that intersects key scopes with current membership. Real PostgreSQL checks in
