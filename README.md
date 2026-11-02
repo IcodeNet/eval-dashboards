@@ -30,7 +30,9 @@ M2 source work includes [tenant-scoped PostgreSQL storage](hosted/postgres/READM
 project-bound credentials and [authenticated artifact intake](hosted/ingestion/README.md).
 The intake handler validates bounded uploads, saves private files and records one
 queued job per artifact with safe retries and explicit revision conflicts.
-Accounts, credential issuance, workers and hosted deployment remain open.
+The [worker lease protocol](hosted/workers/README.md) adds concurrent claims,
+renewal, retry delays and stale-token checks. Accounts, credential issuance,
+artifact indexing and hosted deployment remain open.
 The portable package and static reports require no database.
 
 

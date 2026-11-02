@@ -174,3 +174,13 @@ owner and exercises real HTTP/private files/database acceptance, concurrent
 retries/conflicts and rollback. Accounts, key issuance, worker processing and
 operations remain open. Earlier slice records above describe their original
 scope; no hosted deployment or portable database dependency is added.
+
+
+## Worker coordination — source only
+
+Apply `004-worker-leases.sql` after 001–003. It adds per-job attempt policy,
+retry readiness and categorical failure history, with scoped atomic claim,
+heartbeat and settlement functions. See [worker operations and limits](../workers/README.md).
+The integration harness applies all four migrations and verifies real competing
+workers, stale leases, retry exhaustion and rollback. Artifact indexing and the
+hosted service remain future work; no portable dependency is added.

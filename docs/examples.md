@@ -219,3 +219,8 @@ The [bearer-header example](../hosted/auth/README.md#try-the-example) runs with
 `pnpm exec tsx hosted/auth/example.ts` and prints only decisions. Its in-memory
 lookup is a demonstration; the database checks also authenticate a generated
 secret through the real restricted PostgreSQL lookup.
+
+
+The same `pnpm test:hosted-db` run verifies the [worker lease protocol](../hosted/workers/README.md):
+concurrent claims, locked work, stale-token denial, heartbeat, delayed retries
+and bounded attempts. It exercises database coordination, not a running indexer.
