@@ -2052,8 +2052,9 @@ M2 begins with the [PostgreSQL storage foundation](../hosted/postgres/README.md)
 tenant/project row policies and composite keys, immutable artifact references,
 idempotency associations, and processing/quality state separation with real
 database checks. Project-bound credential lookup now intersects stored key scopes
-with current membership and rejects expired/revoked keys. Remaining M2 slices
-are HTTP authentication and credential issuance,
-bounded validated uploads/private blobs, transactional intake and revision
-handling, worker claiming/retries/indexing, then end-to-end isolation and replay
-acceptance. A schema alone does not complete the hosted vertical slice.
+with current membership and rejects expired/revoked keys. Private
+[bearer helpers](../hosted/auth/README.md) generate random secrets and check
+parsed headers against the stored project/scope on every request. Remaining M2
+work includes HTTP route integration, credential issuance, bounded validated
+uploads/private blobs, transactional intake and revision handling, worker
+claiming/retries/indexing, and end-to-end isolation and replay acceptance. A schema alone does not complete the hosted vertical slice.
