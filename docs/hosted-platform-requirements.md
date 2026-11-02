@@ -256,3 +256,17 @@ row policies. HTTP authorization, credential issuance, bounded intake with core
 validation, private blobs, atomic jobs, replay/conflict handling, and worker
 protocols remain required before M2 is complete. PostgreSQL stays optional for
 the portable package; ClickHouse remains a later measured analytics candidate.
+
+### M2 credential lookup foundation — 2026-11-02
+
+Source adds `hosted/postgres/migrations/002-api-credentials.sql`: project-bound
+API secret digests, finite expiry/revocation, and a restricted lookup function
+that intersects key scopes with current membership. Real PostgreSQL checks in
+`scripts/hosted-db.test.mjs` cover cross-tenant references, denied direct access,
+forged scope settings, membership downgrade/removal, expiry and search-path
+substitution. See the [credential guide](../hosted/postgres/README.md#project-scoped-credential-lookup--source-only).
+
+This is database authorization groundwork. Token generation/parsing, HTTP
+scope enforcement, account sign-in, credential management/audit, validated
+uploads, private blobs and workers remain open. M2 is not complete. The
+portable contract and database-free package behavior are unchanged.

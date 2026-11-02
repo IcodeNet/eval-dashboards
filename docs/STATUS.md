@@ -277,7 +277,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
 - [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. npm publication remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
-- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; authentication, API credentials, upload/blob persistence, intake protocol and workers remain open. See [storage foundation](../hosted/postgres/README.md).
+- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; HTTP authentication/credential issuance, upload/blob persistence, intake protocol and workers remain open; project-bound database credential lookup is implemented and tested. See [storage foundation](../hosted/postgres/README.md).
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
 - [ ] M5: Resumable live progress and benchmarked query scale.
@@ -310,3 +310,21 @@ uses no external database URL, and removes its owned container. Required CI
 runs `pnpm test:hosted-db`; normal `pnpm test` and portable exports remain
 database-free. This is storage groundwork, not completed M2 accounts or ingestion.
 No hosted deployment or npm publication is performed.
+
+### M2 credential lookup foundation — 2026-11-02
+
+See the [dated verification record](./reviews/2026-11-02-hosted-credentials.json)
+and [PR #110](https://github.com/IcodeNet/eval-dashboards/pull/110) for revision-specific
+checks, raw CI evidence and review replies.
+
+Source adds `hosted/postgres/migrations/002-api-credentials.sql`: project-bound
+API secret digests, finite expiry/revocation, and a restricted lookup function
+that intersects key scopes with current membership. Real PostgreSQL checks in
+`scripts/hosted-db.test.mjs` cover cross-tenant references, denied direct access,
+forged scope settings, membership downgrade/removal, expiry and search-path
+substitution. See the [credential guide](../hosted/postgres/README.md#project-scoped-credential-lookup--source-only).
+
+This is database authorization groundwork. Token generation/parsing, HTTP
+scope enforcement, account sign-in, credential management/audit, validated
+uploads, private blobs and workers remain open. M2 is not complete. The
+portable contract and database-free package behavior are unchanged.

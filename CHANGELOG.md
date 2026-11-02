@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Source-only project-bound API credential storage and restricted PostgreSQL
+  lookup: digests, finite expiry/revocation and permissions intersected with
+  current membership. Real database tests cover isolation and denied access.
+  HTTP authentication and credential issuance remain future work.
+
 - Source-only M2 PostgreSQL storage foundation: tenant/project row policies and
   composite references, immutable artifact/idempotency records, separate job
   processing and quality states, and isolated real-database tests. No hosted
