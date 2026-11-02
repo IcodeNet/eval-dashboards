@@ -59,22 +59,21 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
     workflow. It is dispatched manually from verified `main`, publishes through
     npm OIDC, and creates the version tag and GitHub release after publishing.
 
-## Next npm release — 0.11.0 authorized, verification pending
+## Latest npm release — 0.11.0 published
 
-Pre-publication registry check 2026-11-02: `latest` was `0.10.0`, published 2026-10-19.
-Repository version `0.11.0` is the portable M1 release candidate. Repeated trials,
-the complete policy evaluator, and the Node compatibility fix merged in
-[#102](https://github.com/IcodeNet/eval-dashboards/pull/102),
-[#103](https://github.com/IcodeNet/eval-dashboards/pull/103), and
-[#104](https://github.com/IcodeNet/eval-dashboards/pull/104).
-M1 acceptance is covered by the committed analytics and public/CLI/reporter
-parity tests. Release preparation merged in [#105](https://github.com/IcodeNet/eval-dashboards/pull/105) after 915 tests and
-strict consumers on Node 20/22/24/26. The owner explicitly authorized the
-0.11.0 release on 2026-11-02 after requesting a new version for merged
-functionality. The release PR and resulting main revision still need fresh
-checks, review/merge verification and actual registry verification. This is
-authorization, not a claim that publication succeeded. M2–M6
-remain hosted backlog. See the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-02).
+Verified 2026-11-02: npm `latest` is **0.11.0**. The GitHub release/tag and npm
+`gitHead` identify `7824440aa95b00f49296196b6558a4587b0ab325`, the checked merge
+of [PR #112](https://github.com/IcodeNet/eval-dashboards/pull/112).
+
+Exact-main raw CI passed 957 tests, 32 real PostgreSQL checks and strict installed
+consumers on Node 20/22/24/26. The existing OIDC publishing workflow passed;
+a fresh npm install on Node 20 verified public APIs/types/schema, CLI 0.11.0,
+an offline report and enforcement of the sample's intentional failing gate.
+See the [release receipt](./reviews/2026-11-02-release-0.11.0.json).
+
+Portable M1 is released. M2–M6 remain open; hosted foundations are source-only.
+The standing rule is reviewed green merges followed by coherent 0.x milestone
+releases. Version 1.0.0 still requires explicit owner instruction.
 
 ## Release Notes
 
@@ -279,7 +278,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
-- [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. npm publication remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
+- [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. Portable 0.11.0 is published; hosted M2–M6 remain open. See [gate decisions](./gates.md#reported-gate-decisions).
 - [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; HTTP route integration/credential issuance, upload/blob persistence, intake protocol and workers remain open; project-bound database lookup and private bearer-header helpers are implemented and tested. See [storage foundation](../hosted/postgres/README.md).
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
@@ -296,8 +295,8 @@ Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See
   `test/evaluate-policy.test.ts`). M1 acceptance is covered by the release candidate tests.
 - Compatibility fix merged in [#104](https://github.com/IcodeNet/eval-dashboards/pull/104). Raw CI verified strict installed consumers on
   Node 20.20.2 / 22.23.4 / 24.22.1 / 26.13.0, with no engine warnings and
-  restored Node 22 for the remaining checks. The version candidate is not a
-  published package. Optional SQLite still requires Node >=22.5.
+  restored Node 22 for the remaining checks. At that dated preparation step the candidate had not yet been published;
+  publication was later verified on 2026-11-02. Optional SQLite still requires Node >=22.5.
 
 ### M2 storage foundation — 2026-11-01
 
