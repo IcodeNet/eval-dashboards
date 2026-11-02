@@ -38,7 +38,9 @@
     "run": 41443964961,
     "mainJob": 125272376050,
     "examplesJob": 125274376289,
+    "compositeRun": 41443965053,
     "compositeJob": 125272376226,
+    "docsRun": 41443964971,
     "docsJob": 125272375534,
     "rawVerified": "957 tests in 94 files; 32 real PostgreSQL checks with zero failures/skips and cleanup; strict installed consumers on Node 20/22/24/26; assets/accessibility/schema/CLI/teaching/flags/docs; audit two low/four moderate, none high/critical. Docs Pages Reported success. Expected failing-quality fixtures verified."
   },
