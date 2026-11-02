@@ -211,8 +211,10 @@ and job metadata using a restricted runtime login. Credential checks use a
 separate lookup login and cover stored scope, expiry, revocation, membership
 changes and denied direct table access. It rejects remote Docker
 endpoints and takes no external database URL. See the
-[storage guide](../hosted/postgres/README.md). This does not implement a login,
-upload endpoint or worker; portable examples continue to need no database.
+[storage guide](../hosted/postgres/README.md). The same checks now exercise the [HTTP intake handler](../hosted/ingestion/README.md),
+private files, transactional acceptance, concurrent retries and revision conflicts.
+No account login, deployed service or indexing worker is provided; portable examples
+continue to need no database.
 The [bearer-header example](../hosted/auth/README.md#try-the-example) runs with
 `pnpm exec tsx hosted/auth/example.ts` and prints only decisions. Its in-memory
 lookup is a demonstration; the database checks also authenticate a generated

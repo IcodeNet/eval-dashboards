@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { execFile, execFileSync, spawnSync } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createServer } from 'node:http';
+import { promisify } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import { after, before, test } from 'node:test';
 import { tsImport } from 'tsx/esm/api';
 
+const { createArtifactIntakeHandler } = await tsImport('../hosted/ingestion/http.ts', import.meta.url);
+const { privateArtifactFiles } = await tsImport('../hosted/ingestion/private-blobs.ts', import.meta.url);
+const { postgresArtifactAcceptance } = await tsImport('../hosted/ingestion/store.ts', import.meta.url);
 const { generateApiCredentialSecret, authenticateApiCredential } = await tsImport('../hosted/auth/api-credentials.ts', import.meta.url);
 
 // Pinned official multi-platform PostgreSQL integration image. The
@@ -79,6 +87,7 @@ before(async () => {
   assert.equal(sql("SELECT (to_regclass('eval_hosted.api_credentials') IS NULL)::int || ':' || (to_regprocedure('eval_hosted.resolve_api_credential(bytea)') IS NULL)::int"), '1:1');
   console.log('Storage-only baseline has no credential table or resolver; applying credential migration.');
   sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/003-artifact-intake.sql', import.meta.url), 'utf8'), undefined, 'eval_hosted_migration_test');
   sql('CREATE ROLE eval_hosted_auth_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_auth_lookup TO eval_hosted_auth_test_login');
   sql('CREATE ROLE eval_hosted_test_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT eval_hosted_app TO eval_hosted_test_login');
   console.log(`Migrations applied as ${sql('SELECT current_user', undefined, 'eval_hosted_migration_test')}; non-superuser database owner with CREATEROLE.`);
@@ -207,7 +216,7 @@ test('global identity records and schema changes are not granted to the applicat
 });
 test('migration reapply fails transactionally and preserves existing artifacts', () => {
   sql(readFileSync(new URL('../hosted/postgres/migrations/001-storage-foundation.sql', import.meta.url), 'utf8'), '42710', 'eval_hosted_migration_test');
-  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3');
   assert.equal(sql('SELECT count(*) FROM eval_hosted.artifacts'), '3');
 });
 
@@ -284,7 +293,7 @@ test('lookup ignores caller search path and temporary table shadows', () => {
 });
 test('credential migration reapply rolls back without changing migration history', () => {
   sql(readFileSync(new URL('../hosted/postgres/migrations/002-api-credentials.sql', import.meta.url), 'utf8'), '42710', 'eval_hosted_migration_test');
-  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3');
 });
 
 test('a separately connected lookup login resolves an active key without owner privileges', () => {
@@ -336,4 +345,141 @@ test('generated bearer secrets enforce stored project, current scope and revocat
       DELETE FROM eval_hosted.memberships WHERE account_id IN ('${accountA}','${accountB}');
       DELETE FROM eval_hosted.accounts WHERE id IN ('${accountA}','${accountB}')`);
   }
+});
+
+// SQL literals below transport synthetic test values through local psql only.
+// The production adapter supplies a bound values array to the actual client.
+const literal = value => Buffer.isBuffer(value) ? `decode('${value.toString('hex')}','hex')`
+  : typeof value === 'number' ? String(value) : value === null ? 'NULL' : `'${String(value).replaceAll("'", "''")}'`;
+const intakeCall = (tenant, project, run, revision, hash, key, size = 123) =>
+  `SELECT row_to_json(r) FROM eval_hosted.accept_artifact(${[tenant, project, run, revision, Buffer.from(hash, 'hex'), size, key].map(literal).join(',')}) r`;
+const intakeHash = createHash('sha256').update('synthetic-intake').digest('hex');
+const asyncSql = async input => {
+  const { stdout } = await promisify(execFile)('docker', [...dockerEndpointArgs, 'exec', '-i', container, 'psql', '-XqAt', '-v', 'ON_ERROR_STOP=1', '-U', 'eval_hosted_test_login', '-d', 'eval_hosted_test', '-c', input], { timeout: 15_000 });
+  return stdout.trim();
+};
+
+test('intake creates one queued job, preserves replay identity, and restores prior context', () => {
+  const call = intakeCall(tenantA, projectA, 'intake-retry', 1, intakeHash, 'intake-retry');
+  const first = JSON.parse(appSql(call));
+  assert.equal(first.processing_state, 'queued'); assert.equal(first.replayed, false);
+  const replay = JSON.parse(appSql(call));
+  assert.deepEqual(replay, { ...first, replayed: true });
+  const aliasKey = JSON.parse(appSql(intakeCall(tenantA, projectA, 'intake-retry', 1, intakeHash, 'second-delivery')));
+  assert.deepEqual(aliasKey, replay);
+  assert.equal(scoped(tenantA, projectA, `SELECT count(*) FROM eval_hosted.ingestion_jobs WHERE artifact_id='${first.artifact_id}'`), '1');
+  assert.equal(appSql(`BEGIN; SET LOCAL eval_hosted.tenant_id='${tenantB}'; SET LOCAL eval_hosted.project_id='${projectB}';
+    ${call}; SELECT eval_hosted.current_tenant() || ':' || eval_hosted.current_project(); COMMIT;`).split('\n').at(-1), `${tenantB}:${projectB}`);
+  assert.equal(appSql('SELECT count(*) FROM eval_hosted.artifacts'), '0');
+});
+test('intake conflicts never overwrite bytes, reused keys or existing revisions', () => {
+  const changed = createHash('sha256').update('changed').digest('hex');
+  for (const [run, revision, hash, key, size] of [
+    ['intake-retry', 1, changed, 'new-conflicting-key', 123],
+    ['other-run', 1, changed, 'intake-retry', 123],
+    ['intake-retry', 2, changed, 'intake-retry', 123],
+    ['intake-retry', 1, intakeHash, 'intake-retry', 124],
+    ['other-run', 1, intakeHash, 'new-alias', 123],
+  ]) appSql(intakeCall(tenantA, projectA, run, revision, hash, key, size), 'EVD01');
+  const revision = JSON.parse(appSql(intakeCall(tenantA, projectA, 'intake-retry', 2, changed, 'explicit-revision-2')));
+  assert.equal(revision.replayed, false);
+  assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.artifacts WHERE external_run_id='intake-retry'"), '2');
+});
+test('concurrent identical deliveries converge on one artifact and job', async () => {
+  const hash = createHash('sha256').update('concurrent').digest('hex');
+  const call = intakeCall(tenantA, projectA, 'intake-concurrent', 1, hash, 'intake-concurrent');
+  const results = (await Promise.all([asyncSql(call), asyncSql(call), asyncSql(call)])).map(JSON.parse);
+  assert.equal(new Set(results.map(r => r.artifact_id)).size, 1);
+  assert.equal(new Set(results.map(r => r.job_id)).size, 1);
+  assert.equal(results.filter(r => !r.replayed).length, 1);
+});
+test('intake scoping, restricted privileges, invalid metadata and rollback remain enforced', () => {
+  const other = JSON.parse(appSql(intakeCall(tenantB, projectB, 'intake-retry', 1, intakeHash, 'intake-retry')));
+  const own = JSON.parse(appSql(intakeCall(tenantA, projectA, 'intake-retry', 1, intakeHash, 'intake-retry')));
+  assert.notEqual(other.artifact_id, own.artifact_id);
+  authSql(intakeCall(tenantA, projectA, 'denied', 1, intakeHash, 'denied'), '42501');
+  appSql(intakeCall(tenantA, projectB, 'wrong-tenant-project', 1, 'dd'.repeat(32), 'wrong-tenant-project'), '23503');
+  appSql(intakeCall(tenantA, projectA, '', 1, intakeHash, 'bad'), '22023');
+  appSql(intakeCall(tenantA, projectA, 'bad', 0, intakeHash, 'bad'), '22023');
+  const hash = 'ee'.repeat(32);
+  appSql(`BEGIN; ${intakeCall(tenantA, projectA, 'rolled-back-intake', 1, hash, 'rolled-back-intake')}; ROLLBACK;`);
+  assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.artifacts WHERE external_run_id='rolled-back-intake'"), '0');
+  assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.idempotency_records WHERE request_key='rolled-back-intake'"), '0');
+  sql(readFileSync(new URL('../hosted/postgres/migrations/003-artifact-intake.sql', import.meta.url), 'utf8'), '42723', 'eval_hosted_migration_test');
+  assert.equal(sql('SELECT version FROM eval_hosted.schema_migrations ORDER BY version'), '1\n2\n3');
+});
+test('real HTTP intake validates bytes, persists private files and returns durable PostgreSQL receipts', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'eval-hosted-http-'));
+  const { token, secretSha256 } = generateApiCredentialSecret();
+  sql(credentialFixture);
+  sql(`UPDATE eval_hosted.api_credentials SET secret_sha256=decode('${secretSha256.toString('hex')}','hex')`);
+  // PREPARE exercises the adapter's actual SQL text/types; EXECUTE values are
+  // synthetic psql test transport, not a production database client.
+  const query = async (text, values) => {
+    try {
+      const rows = JSON.parse(appSql(`PREPARE intake AS SELECT coalesce(json_agg(r),'[]'::json) FROM (${text}) r;
+        EXECUTE intake(${values.map(literal).join(',')})`));
+      return { rows };
+    } catch (error) {
+      if (String(error.message).includes('EVD01')) throw { code: 'EVD01' };
+      throw error;
+    }
+  };
+  const lookup = async hash => JSON.parse(authSql(`SELECT coalesce(json_agg(r),'[]'::json)
+    FROM eval_hosted.resolve_api_credential(decode('${hash.toString('hex')}','hex')) r`));
+  const handler = createArtifactIntakeHandler({ lookup, saveBytes: privateArtifactFiles(root), accept: postgresArtifactAcceptance(query) });
+  const server = createServer(handler);
+  try {
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${server.address().port}/v1/projects/${projectA}/artifacts`;
+    const artifact = JSON.parse(readFileSync(new URL('../examples/basic-json/run-001.json', import.meta.url), 'utf8'));
+    artifact.run.id = 'http-intake';
+    const body = JSON.stringify(artifact);
+    const post = async (body, key = 'http-delivery', revision = '1') => {
+      const response = await fetch(url, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'idempotency-key': key, 'x-eval-revision': revision }, body });
+      return { status: response.status, body: await response.json() };
+    };
+    const first = await post(body);
+    assert.equal(first.status, 202); assert.equal(first.body.processingStatus, 'queued'); assert.equal(first.body.replayed, false);
+    const replay = await post(body);
+    assert.deepEqual(replay, { status: 202, body: { ...first.body, replayed: true } });
+    assert.equal((await post(body + ' ', 'new-conflicting-key')).status, 409);
+    const nextRevision = await post(body + ' ', 'http-explicit-revision-2', '2');
+    assert.equal(nextRevision.status, 202, JSON.stringify(nextRevision));
+    const count = sql('SELECT count(*) FROM eval_hosted.artifacts');
+    assert.equal((await post('{')).status, 422); assert.equal(sql('SELECT count(*) FROM eval_hosted.artifacts'), count);
+    const hash = createHash('sha256').update(body).digest('hex');
+    assert.equal(await readFile(join(root, 'artifacts', tenantA, projectA, hash), 'utf8'), body);
+    assert.equal(scoped(tenantB, projectB, `SELECT count(*) FROM eval_hosted.artifacts WHERE id='${first.body.artifactId}'`), '0');
+    assert.equal(scoped(tenantA, projectA, `SELECT count(*) FROM eval_hosted.ingestion_jobs WHERE artifact_id='${first.body.artifactId}' AND state='queued' AND quality_status IS NULL`), '1');
+    sql(`UPDATE eval_hosted.api_credentials SET revoked_at=now()`);
+    assert.equal((await post(body)).status, 401);
+    console.log('Real HTTP intake: 202 queued, exact retry same receipt, changed bytes 409, revision 2 accepted, malformed 422, revoked 401; private bytes verified; cross-tenant read denied.');
+  } finally {
+    server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+    await rm(root, { recursive: true, force: true });
+    sql(`DELETE FROM eval_hosted.api_credentials WHERE account_id='${accountA}'; DELETE FROM eval_hosted.memberships WHERE account_id IN ('${accountA}','${accountB}'); DELETE FROM eval_hosted.accounts WHERE id IN ('${accountA}','${accountB}')`);
+  }
+});
+
+test('a database failure after artifact insertion rolls back the artifact and delivery key', () => {
+  sql(`CREATE FUNCTION eval_hosted.test_reject_intake_job() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN RAISE EXCEPTION 'Synthetic job write failure' USING ERRCODE='23514'; END $$;
+    CREATE TRIGGER test_reject_intake_job BEFORE INSERT ON eval_hosted.ingestion_jobs
+      FOR EACH ROW EXECUTE FUNCTION eval_hosted.test_reject_intake_job()`);
+  try {
+    appSql(intakeCall(tenantA, projectA, 'job-write-failure', 1, 'fa'.repeat(32), 'job-write-failure'), '23514');
+    assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.artifacts WHERE external_run_id='job-write-failure'"), '0');
+    assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.idempotency_records WHERE request_key='job-write-failure'"), '0');
+  } finally {
+    sql('DROP TRIGGER test_reject_intake_job ON eval_hosted.ingestion_jobs; DROP FUNCTION eval_hosted.test_reject_intake_job()');
+  }
+});
+test('concurrent changed payloads for one revision allow one winner and one conflict', async () => {
+  const calls = ['ab','cd'].map((byte, i) => intakeCall(tenantA, projectA, 'intake-competing', 1, byte.repeat(32), `competing-${i}`));
+  const results = await Promise.allSettled(calls.map(asyncSql));
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  const rejected = results.find(r => r.status === 'rejected');
+  assert.match(rejected.reason.stderr, /Artifact conflict/);
+  assert.equal(scoped(tenantA, projectA, "SELECT count(*) FROM eval_hosted.artifacts WHERE external_run_id='intake-competing'"), '1');
 });

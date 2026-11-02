@@ -287,3 +287,22 @@ See [the runnable example and integration limits](../hosted/auth/README.md).
 There is no HTTP endpoint or persistent issuer. Raw-header duplicate detection,
 route integration, browser sign-in, issuance/rotation/audit, uploads and workers
 remain open. M2 is incomplete; the portable package remains database-free.
+
+
+### M2 authenticated artifact intake — 2026-11-02
+
+[Private intake source](../hosted/ingestion/README.md) connects the stored
+credential lookup to bounded HTTP uploads, the existing `eval-report/v1`
+validator, durable private files and transactional PostgreSQL artifact/key/job
+acceptance. Migration 003 preserves invoker permissions and row policies.
+Exact retries return the same job; changed run revisions require a new key and
+explicit revision. Real HTTP/database checks verify queued receipts, conflicts,
+revocation, concurrent delivery and rollback; quality failures remain distinct
+from indexing state. Original bytes remain the portable source of truth.
+
+This implements the intake path as composable service source, with no database
+driver or hosted deployment added to the npm package. Accounts, persistent key
+issuance, service wiring, worker claiming/indexing/retries, retention and launch
+controls remain open. Orphan private files can remain after an interrupted or
+conflicting database write; coordinated cleanup is still required. M2 is not
+complete and no throughput benchmark or production launch is claimed.

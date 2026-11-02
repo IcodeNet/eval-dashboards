@@ -26,11 +26,11 @@ the [verified release procedure](docs/npm-publishing.md#release-acceptance-and-p
 Strict installed-package checks passed on Node 20/22/24/26;
 see [runtime support](docs/npm-publishing.md#runtime-compatibility).
 
-M2 source work now includes a [tenant-scoped PostgreSQL storage foundation](hosted/postgres/README.md)
-and project-bound credential lookup, with real database checks. HTTP authentication,
-credential issuance, upload APIs and workers remain open. Source also has
-[bearer-header helpers](hosted/auth/README.md) with random secrets and stored
-project/scope enforcement; they install no HTTP route.
+M2 source work includes [tenant-scoped PostgreSQL storage](hosted/postgres/README.md),
+project-bound credentials and [authenticated artifact intake](hosted/ingestion/README.md).
+The intake handler validates bounded uploads, saves private files and records one
+queued job per artifact with safe retries and explicit revision conflicts.
+Accounts, credential issuance, workers and hosted deployment remain open.
 The portable package and static reports require no database.
 
 

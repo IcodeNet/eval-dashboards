@@ -14,7 +14,8 @@ responses; see [runtime compatibility](./npm-publishing.md#runtime-compatibility
 
 The [hosted PostgreSQL storage foundation](../hosted/postgres/README.md) is
 separate source-only work, including project-bound credential lookup and
-[bearer-header helpers](../hosted/auth/README.md). Static
+[bearer-header helpers](../hosted/auth/README.md) and
+[authenticated private intake source](../hosted/ingestion/README.md). Static
 `publish` does not write that database or
 provide artifact ingestion; the offline portable package still needs no server.
 

@@ -158,3 +158,19 @@ Database lookup alone does not enforce an HTTP route, authenticate browser
 sessions, limit requests, or validate/upload artifacts. Those remain M2 work.
 Run `pnpm test:hosted-db` for actual restricted-login, cross-tenant, expiry,
 revocation, membership-change and hostile search-path checks.
+
+
+## Authenticated intake protocol — source only
+
+Apply `003-artifact-intake.sql` after 001/002. The restricted application login
+can call `accept_artifact` through the [authenticated HTTP intake adapter](../ingestion/README.md).
+It records artifact/key/job atomically, returns the current processing state,
+and handles exact retries and explicit revision conflicts. Its supplied scope
+comes only from trusted authentication; SQL access remains a service boundary.
+It retains invoker permissions/RLS and restores prior transaction-local context.
+
+The integration harness now applies all three migrations as the non-superuser
+owner and exercises real HTTP/private files/database acceptance, concurrent
+retries/conflicts and rollback. Accounts, key issuance, worker processing and
+operations remain open. Earlier slice records above describe their original
+scope; no hosted deployment or portable database dependency is added.
