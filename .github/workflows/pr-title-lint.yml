@@ -39,6 +39,6 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
       - name: Validate description against the repository PR template
         run: node scripts/verify-pr-description.mjs

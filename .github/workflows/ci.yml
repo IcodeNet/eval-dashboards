@@ -62,7 +62,7 @@ jobs:
       - name: Setup Node 20 for packed-package compatibility
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '26'
 
       - name: Verify strict installed package on Node 20
         run: node scripts/verify-packed-package.mjs
@@ -70,7 +70,7 @@ jobs:
       - name: Setup Node 24 for packed-package compatibility
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Verify strict installed package on Node 24
         run: node scripts/verify-packed-package.mjs
