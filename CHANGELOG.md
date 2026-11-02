@@ -30,10 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   authentication, upload API, worker or deployment is included. The portable
   npm package remains database-free.
 
-The 0.11.0 candidate's publication and GitHub release/tag remain on hold until
-the owner authorizes the verified candidate. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
+The owner authorized the portable 0.11.0 release candidate on 2026-11-02;
+final verification and publication were pending at this preparation step.
+The hosted source work above remains outside the portable release offering. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
 
-## [0.11.0] — 2026-11-01
+## [0.11.0] — 2026-11-02
 
 ### Added
 

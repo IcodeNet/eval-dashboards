@@ -137,7 +137,10 @@ Always include raw GitHub Actions log verification for workflows touched by your
   `origin/main`. Continue with the next authorized roadmap item.
 - Stop for a concrete blocker needing an owner decision; explain what failed
   and what is needed. Do not invent a new approval step for authorized merges.
-  Publishing and deployment still need their existing separate authorization.
+  Follow the owner's 2026-11-02 standing instruction to release coherent portable
+  0.x milestones after verified merges, using `docs/npm-publishing.md`. Record
+  the milestone and evidence; do not release after every PR. The explicit
+  1.0.0 and hosted-deployment owner gates remain separate.
 
 ## Useful commands
 

@@ -8,7 +8,7 @@ Release-preparation snapshot (2026-11-01): npm latest was 0.10.0; configured
 report decisions, matched analytics and paired comparisons were prepared in
 0.11.0 source. These additions are not in 0.10.0. Check the npm registry for
 current availability, or use repository `pnpm dev` commands with the
-[release procedure](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+[release procedure](./npm-publishing.md#next-release-plan--checked-2026-11-02).
 
 `eval-dashboards report` evaluates the same resolved policy as `check` for the
 same full-run inputs, baseline selection, and configuration. This includes
