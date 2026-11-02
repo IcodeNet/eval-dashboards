@@ -5,10 +5,11 @@
 Publishing does not perform the shared `check`/`report` gate evaluation. In 0.11.0 source, its regenerated reports explicitly show `not-evaluated` (npm 0.10.0 does not render this decision); publishing alone is not evidence of passing policy. Run `check` in CI to enforce the configured gates. Source applications can use the [complete policy API](./gates.md#complete-policy-api) before rendering those same artifacts; publication still does not run that evaluation.
 
 This page describes publishing dashboard artifacts. npm package publication
-uses a separate [trusted-publishing workflow and next-release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
-Release-preparation snapshot (2026-11-01): npm latest was 0.10.0 and repository
-version 0.11.0 was the prepared candidate. Check npm for current availability;
-publication follows the separate owner-approval procedure. Source uses a
+uses a separate [trusted-publishing workflow and next-release plan](./npm-publishing.md#next-release-plan--checked-2026-11-02).
+Pre-publication check (2026-11-02): npm latest was 0.10.0 and repository
+version 0.11.0 was the prepared candidate. The owner authorized releasing 0.11.0
+on that date; publication still requires verified main and registry checks.
+Check npm for current availability. Source uses a
 Node 20-compatible GitHub client and checks the installed publisher with simulated
 responses; see [runtime compatibility](./npm-publishing.md#runtime-compatibility).
 

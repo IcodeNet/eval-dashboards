@@ -1,0 +1,235 @@
+{
+  "recordedAt": "2026-11-02",
+  "purpose": "Owner-authorized portable 0.11.0 release preflight. This record does not itself claim publication succeeded.",
+  "authorization": {
+    "ownerInstruction": "We also need to release a new version if new functionality has landed.",
+    "date": "2026-11-02",
+    "scope": "Release the already-prepared portable 0.11.0 functionality through the existing main-ref OIDC workflow, then verify npm/GitHub/installed consumers.",
+    "supersedes": "Earlier 0.11.0 publication hold.",
+    "exclusions": [
+      "No 1.0.0 release",
+      "No hosted platform deployment",
+      "Source-only hosted modules are not portable package exports"
+    ]
+  },
+  "baselineMain": "0e73598bbd1e19131ac5032adf65b6e654275919",
+  "registryBefore": {
+    "version": "0.10.0",
+    "dist-tags": {
+      "latest": "0.10.0"
+    },
+    "gitHead": "3c535671c3e3571cc3c8c9c5369c36077be8f584"
+  },
+  "newPortableFunctionality": [
+    "Shared configured policy decisions across reporters",
+    "Matched-case analytics and measured/missing telemetry",
+    "Opt-in paired/inconclusive and declared repeated-trial uncertainty",
+    "Complete public policy evaluator with CLI parity",
+    "Importer evidence preservation and strict Node 20 compatibility"
+  ],
+  "prAudit": {
+    "openPrCountBeforeRelease": 0,
+    "mergedPrCount": 18,
+    "query": "Recent merged/open PRs >=92, reviewThreads(first:100), reviews(last:20), plus gh pr checks <N> --required --json name,state,link. No thread pagination remained.",
+    "result": "All reported required checks SUCCESS, zero unresolved threads, zero submitted change requests. Historical PRs are assessed against their available reported checks; no claim that later checks existed before they were introduced.",
+    "prs": [
+      {
+        "number": 111,
+        "head": "cf2f85b6cea8bb69dd7f587589da66c7dbac9b5f",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 110,
+        "head": "64e25efeab081279aa918cd272490bd83f1dd77d",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 107,
+        "head": "0f4f5cc680516739e56e1ee27ab83bb6eafb9866",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 106,
+        "head": "0a915de6c33cefc155b1b550abc7e70ff08d3e5a",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 105,
+        "head": "710e6f1c8d27cfcbf34ce42a1635c66dcc1e32ab",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 104,
+        "head": "a4d6cf9cf426c81f048f32f6b2e217306747d98a",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 103,
+        "head": "194062ff49df1c8b7c512dccd8767c50804ce175",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 102,
+        "head": "069e5a55d85f1f8fcb8adf1a7a1263712e4ba4d0",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 101,
+        "head": "4a34390b9d7cec15faf9c8dd225a3e7bde956447",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 100,
+        "head": "e7c7f958d9f70a3a57abd52a9d8e97f6ce75e785",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 99,
+        "head": "f3caea8d4a9b86395bb552e058bf59d5603e8147",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 98,
+        "head": "f1dba8aeaf08626e6044ac43770fe3eef6a14461",
+        "reportedRequiredChecks": 5,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 97,
+        "head": "0bea10e3825f3f8643f63805e894be092eaf149d",
+        "reportedRequiredChecks": 4,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 96,
+        "head": "89c9849523357f749ead7c9801a11a2cb658b985",
+        "reportedRequiredChecks": 4,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 95,
+        "head": "d84c0a8a0f3d7e4a00f349c55a09b155cc3ec0d9",
+        "reportedRequiredChecks": 4,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 94,
+        "head": "9298906bfc82ffbe09d80470a048e63c8ac8b5c7",
+        "reportedRequiredChecks": 4,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 93,
+        "head": "ad5b807a26457511ebcc5466aac74120aab190f8",
+        "reportedRequiredChecks": 4,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      },
+      {
+        "number": 92,
+        "head": "0c715c43f9469cc7fce8f08b2d2227f27120b6a6",
+        "reportedRequiredChecks": 4,
+        "allSucceeded": true,
+        "unresolvedThreads": 0,
+        "changeRequests": 0
+      }
+    ],
+    "auditLogSha256": "c914419597c7fe1bb1e91664b95ce23a8f37a882f007ab291723ce35855b8f5d",
+    "excludedClosedPrs": {
+      "108": "Unsafe generated update removed Node 20/24 compatibility runtimes; closed with explanation, not merged.",
+      "109": "Actual Node 20 strict install fails EBADENGINE; closed with raw-log evidence, not merged."
+    }
+  },
+  "localChecks": [
+    {
+      "command": "pnpm release:prepare",
+      "exitCode": 0,
+      "result": "957 Vitest tests, typecheck/build/teaching/flag docs and nine hook checks; 20 reproducible release assets with no changes.",
+      "logSha256": "9cb7aaeb160ef2cb1729ea0c7e8156826c7d2c8db3d31a55bc8847b18d055840"
+    },
+    {
+      "command": "pnpm docs:build && pnpm docs:check",
+      "exitCode": 0,
+      "result": "90 pages built and link/asset check passed, including preserved old release-plan anchor.",
+      "logSha256": "2cc5e5b2256ba08e500d2186703ebc78b223af9ff4ffb951f3e87eee721492e1"
+    }
+  ],
+  "verifiedMergedBaseCi": {
+    "head": "0e73598bbd1e19131ac5032adf65b6e654275919",
+    "run": 41431667749,
+    "rawMainJob": 125231468862,
+    "rawExamplesJob": 125233509365,
+    "result": "Actual main raw logs verify 957 tests, 32 PostgreSQL 17.11 checks under non-superuser migration owner with zero skips and cleanup, strict installed consumers on Node 20/22/24/26, restored Node 22, schema/CLI/assets/accessibility/teaching/flags/docs and audit two low/four moderate.",
+    "rawDocsJob": 125231468590,
+    "docsResult": "Docs site check and Pages Reported success verified."
+  },
+  "releasePath": {
+    "workflow": ".github/workflows/publish.yml",
+    "ref": "main",
+    "versionInput": "0.11.0",
+    "statusAtThisRecord": "Not dispatched; release PR and resulting main must pass fresh checks first.",
+    "postconditions": [
+      "Inspect raw publish log",
+      "Verify npm latest/version/gitHead/integrity",
+      "Verify GitHub release and tag target",
+      "Strict install from npm, CLI version and offline generated report"
+    ]
+  },
+  "requiredCommitGate": "Exact staged-tree quality:record, quality:review and quality:verify must pass before commit. Fresh tarball details and current-head CI evidence are recorded on the PR after commit to avoid self-referential archive hashes.",
+  "sourceSha256": {
+    "package.json": "ab3653a6766c9708a049a36ec516a739fe3c3236e9eb3d06a84093624fee95c0",
+    "CHANGELOG.md": "c1470551885255fa719d4220281621676c7d6f0ebd1a28ad23a98dcaeed6b520",
+    "docs/npm-publishing.md": "016269c5006e2c9219671840f73e3c106676883d95085f2b3efd772a8152f3bd",
+    ".github/workflows/publish.yml": "eec422c0131e76a35f5a7233f0ba59f14e86330c87273944ef5392801f24c03f"
+  },
+  "limitations": [
+    "This preflight precedes publication. A successful merge is not registry publication.",
+    "Existing hosted/private source work stays outside the portable offering and M2 remains incomplete.",
+    "1.0.0 and hosted deployment remain separate owner decisions.",
+    "CodeRabbit allowance was exhausted on PR #111; no completed independent review for that PR is claimed. Manual staged review and protected CI passed."
+  ]
+}

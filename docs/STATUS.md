@@ -59,9 +59,9 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
     workflow. It is dispatched manually from verified `main`, publishes through
     npm OIDC, and creates the version tag and GitHub release after publishing.
 
-## Next npm release — candidate, not published
+## Next npm release — 0.11.0 authorized, verification pending
 
-Registry check 2026-11-01: `latest` remains `0.10.0`, published 2026-10-19.
+Pre-publication registry check 2026-11-02: `latest` was `0.10.0`, published 2026-10-19.
 Repository version `0.11.0` is the portable M1 release candidate. Repeated trials,
 the complete policy evaluator, and the Node compatibility fix merged in
 [#102](https://github.com/IcodeNet/eval-dashboards/pull/102),
@@ -69,9 +69,12 @@ the complete policy evaluator, and the Node compatibility fix merged in
 [#104](https://github.com/IcodeNet/eval-dashboards/pull/104).
 M1 acceptance is covered by the committed analytics and public/CLI/reporter
 parity tests. Release preparation merged in [#105](https://github.com/IcodeNet/eval-dashboards/pull/105) after 915 tests and
-strict consumers on Node 20/22/24/26; npm publication remains held. The release PR must pass its own required checks, review and merge
-verification before publication, which needs explicit owner authorization. M2–M6
-remain hosted backlog. See the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-01).
+strict consumers on Node 20/22/24/26. The owner explicitly authorized the
+0.11.0 release on 2026-11-02 after requesting a new version for merged
+functionality. The release PR and resulting main revision still need fresh
+checks, review/merge verification and actual registry verification. This is
+authorization, not a claim that publication succeeded. M2–M6
+remain hosted backlog. See the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-02).
 
 ## Release Notes
 
@@ -239,7 +242,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 - 4K.2 SQLite backend on `node:sqlite` (`src/history/sqlite-store.ts`), chosen by output extension, plus `history-convert` to import and export `history.json`. `node:sqlite` needs Node 22.5 or later; it loads lazily, so `engines` stays `>=20` and Node 20 gets a clear message only when SQLite is requested.
 - 4K.3 `history-report` renders a static trend page filtered by date range, branch and suite, with retention (`--keep-last`, `--max-age-days`, `--prune-to`). See `docs/history-storage.md`.
 - Redis and Cosmos are not planned. The adapter lets one be added later.
-- No 1.0.0 release has been published. Publishing stays on hold until the owner releases it.
+- No 1.0.0 release has been published. The 1.0.0 release decision stays with the owner; the 2026-11-02 authorization is for 0.11.0.
 - Roadmap 4C.4 stays open: draft PR #9044 awaits the external Rupic review (an AI code-review GitHub App).
 
 ## Verification update — 2026-10-08

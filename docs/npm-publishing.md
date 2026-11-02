@@ -16,17 +16,22 @@ The former Semantic Release experiment was removed. It required a separate
 token-based release path and duplicated version, changelog, tag, and publish
 responsibilities. The trusted-publishing workflow is the sole supported path.
 
-## Next release plan — checked 2026-11-01
+<a id="next-release-plan--checked-2026-11-01"></a>
 
-npm currently exposes `0.10.0` as `latest`, published on 2026-10-19. Its registry
+## Next release plan — checked 2026-11-02
+
+Pre-publication registry check (2026-11-02): npm exposed `0.10.0` as
+`latest`, published on 2026-10-19. Its registry
 `gitHead` is `3c535671c3e3571cc3c8c9c5369c36077be8f584`. GitHub's latest release
-is also `v0.10.0`. The package version in this release candidate is `0.11.0`;
+was also `v0.10.0` at that check. The package version in this release candidate is `0.11.0`;
 changing it and merging features do not publish a package.
 
-**Prepared candidate: `0.11.0`, the portable analytics milestone.** This is
-release preparation, not publishing approval. Keep the current publishing hold. Use acceptance
-gates rather than a promised date. M1 semantics are covered; the candidate
-must pass release-PR verification before publication.
+**Authorized candidate: `0.11.0`, the portable analytics milestone.** On
+2026-11-02 the owner explicitly requested a new release if new functionality
+had landed. Portable M1 functionality has landed, so that request authorizes
+this release after verification and supersedes the earlier publication hold.
+The release PR and resulting main revision must pass the acceptance steps below.
+This authorization does not include 1.0.0 or deploying the hosted platform.
 Do not wait for the hosted M2–M6 backlog to publish a coherent portable update.
 The existing `1.0.0` owner decision and stable-release gate remain separate.
 
@@ -76,8 +81,10 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
 2. Address review findings, reply with fixes and evidence, resolve addressed
    threads, merge the release PR, and verify the resulting main revision and
    its raw CI logs. A green feature branch alone is not a release candidate.
-3. Obtain the owner's explicit authorization to publish the concrete candidate.
-   The current request does not authorize publication.
+3. Record the owner's explicit authorization for the concrete candidate.
+   The 2026-11-02 request authorizes the verified portable 0.11.0 release. Future
+   releases still need their own applicable authorization; do not infer it from
+   merging a PR alone.
 4. Dispatch `Publish to npm` from verified `main` with version `0.11.0`. Use the
    existing OIDC workflow; create no alternate token-based release path.
 5. Inspect its raw log and verify registry version/dist-tags, the GitHub
@@ -117,7 +124,8 @@ the full development test suite and documentation tools on Node 22. The main
 job restores Node 22 before its remaining checks. A future dependency upgrade
 must pass all consumer steps, not only the development suite's green badge.
 This compatibility fix merged in #104 and does not change npm 0.10.0
-retroactively. The 0.11.0 candidate still needs authorized publication.
+retroactively. The 0.11.0 candidate has owner authorization dated 2026-11-02;
+actual publication still requires the verified main workflow and registry checks.
 
 ## Required Secrets
 
