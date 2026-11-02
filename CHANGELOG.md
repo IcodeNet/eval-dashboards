@@ -30,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   authentication, upload API, worker or deployment is included. The portable
   npm package remains database-free.
 
-The owner authorized the portable 0.11.0 release candidate on 2026-11-02;
-final verification and publication were pending at this preparation step.
+Portable [0.11.0](https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.11.0)
+was published on 2026-11-02 after owner authorization and verified-main checks.
 The hosted source work above remains outside the portable release offering. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
 
 ## [0.11.0] — 2026-11-02

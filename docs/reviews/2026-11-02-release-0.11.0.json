@@ -1,0 +1,144 @@
+{
+  "recordedAt": "2026-11-02",
+  "result": "Portable 0.11.0 published and verified. This receipt changes documentation only; it does not require another package version.",
+  "ownerScope": {
+    "milestone": "Completed portable M1 shared analytics/decisions",
+    "standingInstruction": "Merge reviewed green PRs, then publish coherent 0.x milestones. Use minor and patch/build revisions.",
+    "explicitRestriction": "No version 1.0.0 until the owner explicitly instructs it. No hosted deployment authorized by this release."
+  },
+  "release": {
+    "version": "0.11.0",
+    "latest": "0.11.0",
+    "gitHead": "7824440aa95b00f49296196b6558a4587b0ab325",
+    "npmPublishedAt": "2026-11-02T12:30:56.924Z",
+    "githubUrl": "https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.11.0",
+    "githubPublishedAt": "2026-11-02T12:28:49Z",
+    "tagTarget": "7824440aa95b00f49296196b6558a4587b0ab325",
+    "draft": false,
+    "prerelease": false
+  },
+  "workflow": {
+    "path": ".github/workflows/publish.yml",
+    "run": 41444744126,
+    "job": 125274955451,
+    "ref": "main",
+    "head": "7824440aa95b00f49296196b6558a4587b0ab325",
+    "conclusion": "success",
+    "rawVerified": [
+      "Version input/package.json match 0.11.0",
+      "pnpm release:prepare completed; 957 tests and release assets passed",
+      "OIDC availability check passed; existing trusted publisher used",
+      "Signed provenance generated; transparency log index 3639555995",
+      "npm publish returned @icodenet/eval-dashboards@0.11.0",
+      "GitHub release/tag created"
+    ],
+    "knownWarnings": "Node SQLite experimental warnings and pnpm layout warning observed; release validation/publish steps executed successfully."
+  },
+  "exactMainCi": {
+    "run": 41443964961,
+    "mainJob": 125272376050,
+    "examplesJob": 125274376289,
+    "compositeJob": 125272376226,
+    "docsJob": 125272375534,
+    "rawVerified": "957 tests in 94 files; 32 real PostgreSQL checks with zero failures/skips and cleanup; strict installed consumers on Node 20/22/24/26; assets/accessibility/schema/CLI/teaching/flags/docs; audit two low/four moderate, none high/critical. Docs Pages Reported success. Expected failing-quality fixtures verified."
+  },
+  "releasePr": {
+    "number": 112,
+    "head": "b20bd9090a330edd28c1724e402d6ab0371c958a",
+    "merge": "7824440aa95b00f49296196b6558a4587b0ab325",
+    "rawJobs": [
+      125248591735,
+      125250715140,
+      125248592008,
+      125271755892,
+      125271755381
+    ],
+    "reviews": "Both release-wording findings fixed in b20bd90, replied with evidence and resolved. Required current-head checks passed and merge was CLEAN. No independent specialized security audit claimed."
+  },
+  "registryIntegrity": {
+    "sha1": "5fb3b45469ccc4d8c1dc71bc6aa13a739c92f635",
+    "sha512": "sha512-GJ2g4pe3dEBhp5YideaIClSAu+SSTRXsCkmdzptKGTLnKBYr+H8vgBFm5VWOUNwgw9Nwsc+fbrNp1tL8fTmSOQ==",
+    "downloadedArchiveSha256": "f0f65b83416e73c9a37da122b46acafd3d1aba1b3094e870e7655f3f16c625bc",
+    "bytes": 2004989,
+    "fileCount": 208,
+    "archiveAndInstalledLockMatchRegistry": true,
+    "hostedImplementationIncluded": false,
+    "criticalFileSha256": {
+      "package/dist/index.js": "6a228de56912bc8ce0790ea61555c5317b70bc437d483241aadcbe380e346ae3",
+      "package/dist/cli/index.js": "2d6a846066951c7e9cd17cd5543bf329fa9e1436c09970796094b2223e8ed27d",
+      "package/dist/index.d.ts": "d7c8f612e0166a5c8a58ae6a385fad10f7b8b25f66cfdb327d415a4eb5600251",
+      "package/schemas/eval-report-v1.schema.json": "f9586fb1b315ae8b16a2fdcb1e0cdeb93d1ceeaf6485cf92233339b67a9af0b0",
+      "package/package.json": "ab3653a6766c9708a049a36ec516a739fe3c3236e9eb3d06a84093624fee95c0"
+    },
+    "provenanceAttestation": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@icodenet%2feval-dashboards@0.11.0",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    }
+  },
+  "archiveDifference": {
+    "localOnlyFiles": [
+      "package/docs/tutorials/vhs/demo.gif",
+      "package/docs/tutorials/vhs/demo.mp4"
+    ],
+    "publishedOnlyFiles": [],
+    "explanation": "The local pack contained ignored generated VHS GIF/MP4 files absent from CI clean checkout. Published runtime, CLI, public declarations, schema and manifest are byte-identical to the preflight candidate. No functionality difference is inferred from archive size."
+  },
+  "installedRegistryConsumer": {
+    "spec": "@icodenet/eval-dashboards@0.11.0",
+    "node": "v20.20.2",
+    "strictEngines": true,
+    "ignoreInstallScripts": true,
+    "isolatedFreshNpmCache": true,
+    "exports": "ESM/CommonJS/policy/schema/public types passed",
+    "cliVersion": "0.11.0",
+    "offlineHtmlBytes": 72241,
+    "reportDecision": {
+      "status": "failed",
+      "failures": [
+        "Suite \"answer-quality\" pass rate 0.667 is below blocking threshold overallPassRate=0.800.",
+        "Suite \"answer-quality\" pass rate 0.667 is below blocking threshold answerQualityPassRate=0.800."
+      ],
+      "diagnostics": [
+        "Top failing categories: The answer was too verbose.=1",
+        "Lint warning breakdown: missing-category=3, missing-agent-evidence=1"
+      ]
+    },
+    "expectedFailingGateExit": 1,
+    "logSha256": "befadc4bc82117a1869e6436f71f3b940acaa4f038d3b08fb9056e83ba516824",
+    "checks": [
+      "Installed from official registry, not local source/archive",
+      "ESM and CommonJS exports",
+      "Actual complete policy API evaluation",
+      "Public TypeScript compile with schema-version rejection assertion",
+      "JSON schema export",
+      "CLI version, offline HTML/JSON report",
+      "Intentional sample quality failure produces check exit 1"
+    ]
+  },
+  "registryPropagation": {
+    "observed": "Initial post-publish npm view returned E404. Uncached official HTTPS metadata then returned version 0.11.0 and latest 0.11.0 with the expected gitHead. An isolated fresh-cache npm install succeeded.",
+    "handling": "Retried reads only; publication was not rerun or overwritten."
+  },
+  "nextWork": "M2 HTTP routes, account/credential management, bounded uploads, private blob persistence and durable intake/workers remain open. Signed evaluation-evidence bundle authentication and parked assistant-ui work remain separate roadmap items.",
+  "documentationReceipt": {
+    "command": "pnpm docs:build && pnpm docs:check",
+    "exitCode": 0,
+    "result": "90 pages and link/asset checks passed. Historical release-plan anchors retained.",
+    "logSha256": "6923f5996add6498c74dded5dc0c7b45dc1b2017852b6caad0f2350e5beae255",
+    "commitGate": "Full exact staged-tree quality ledger and current-head PR checks must pass before merge. This dated receipt records the actual release, not unrun future CI.",
+    "initialLedgerAttempt": {
+      "command": "pnpm quality:record",
+      "result": "Stopped at verify:cli: 110 CLI guards passed; its internal pnpm test returned failure. The preceding pnpm check passed.",
+      "diagnosticLimit": "The existing verifier redirects test stdout/stderr to /dev/null, so the exact original failing test/cause could not be recovered. No cause or runtime fix is claimed.",
+      "logSha256": "6d16d413d8e060a8a5f144bbeb582ca37e00d2be663c39547a2d4cc703d69949"
+    },
+    "diagnosticRerun": {
+      "command": "pnpm test",
+      "exitCode": 0,
+      "result": "All 957 tests in 94 files passed with captured output. Full unmodified staged-tree ledger is rerun before commit; no check is skipped or relaxed.",
+      "logSha256": "92de168260bb074b18f02a58cf0716441112a80a9a2790ff28e32fb67357e83a"
+    }
+  }
+}

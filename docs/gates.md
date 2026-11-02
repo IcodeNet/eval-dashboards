@@ -4,11 +4,9 @@ Gates make eval quality enforceable in CI.
 
 ## Reported gate decisions
 
-Release-preparation snapshot (2026-11-01): npm latest was 0.10.0; configured
-report decisions, matched analytics and paired comparisons were prepared in
-0.11.0 source. These additions are not in 0.10.0. Check the npm registry for
-current availability, or use repository `pnpm dev` commands with the
-[release procedure](./npm-publishing.md#next-release-plan--checked-2026-11-02).
+Version 0.11.0 adds configured report decisions, matched analytics and paired
+comparisons. These additions are not in 0.10.0. See the
+[verified release](./npm-publishing.md#verified-release-0-11-0).
 
 `eval-dashboards report` evaluates the same resolved policy as `check` for the
 same full-run inputs, baseline selection, and configuration. This includes
@@ -83,7 +81,7 @@ coverage remains visible rather than becoming an assertion of complete cost.
 
 The [runnable source example](../examples/policy-evaluation/README.md) compares
 ordinary and complete gates for a missing-calibration case. The public API is
-part of 0.11.0 source and is not in npm 0.10.0.
+available in npm 0.11.0 and newer; it is not in 0.10.0.
 
 ## Why This Matters
 

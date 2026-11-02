@@ -16,9 +16,34 @@ The former Semantic Release experiment was removed. It required a separate
 token-based release path and duplicated version, changelog, tag, and publish
 responsibilities. The trusted-publishing workflow is the sole supported path.
 
+<a id="verified-release-0-11-0"></a>
+
+## Verified release — 0.11.0
+
+Published 2026-11-02 through [Publish to npm run 41444744126](https://github.com/IcodeNet/eval-dashboards/actions/runs/41444744126).
+Registry `latest` and the [GitHub release/tag](https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.11.0)
+identify 0.11.0. npm `gitHead` and the tag both point to verified main commit
+`7824440aa95b00f49296196b6558a4587b0ab325`.
+
+Raw publish logs show release validation, 957 tests, asset checks, OIDC publishing
+and signed provenance generation. A fresh registry install on Node 20.20.2 passed
+strict engines, public runtime/types/schema/CLI checks, an offline report and
+intentional gate failure. See the [release receipt](./reviews/2026-11-02-release-0.11.0.json)
+for integrity hashes, exact jobs and the observed registry propagation delay.
+
+The release contains portable M1 functionality. Hosted source foundations remain
+incomplete and are not exported by the npm package. No 1.0.0 or hosted deployment
+was performed. Future coherent 0.x milestones follow the owner instruction and
+acceptance procedure below; a documentation receipt alone does not need a bump.
+
 <a id="next-release-plan--checked-2026-11-01"></a>
 
-## Next release plan — checked 2026-11-02
+<a id="next-release-plan--checked-2026-11-02"></a>
+
+## 0.11.0 preparation record — 2026-11-02
+
+This dated plan preceded publication. The verified release receipt above records
+its outcome; the acceptance procedure remains applicable to later milestones.
 
 Pre-publication registry check (2026-11-02): npm exposed `0.10.0` as
 `latest`, published on 2026-10-19. Its registry
@@ -130,8 +155,8 @@ the full development test suite and documentation tools on Node 22. The main
 job restores Node 22 before its remaining checks. A future dependency upgrade
 must pass all consumer steps, not only the development suite's green badge.
 This compatibility fix merged in #104 and does not change npm 0.10.0
-retroactively. The 0.11.0 candidate has owner authorization dated 2026-11-02;
-actual publication still requires the verified main workflow and registry checks.
+retroactively. Version 0.11.0 was published and registry-installed consumers
+were verified on 2026-11-02; see the release receipt above.
 
 ## Required Secrets
 

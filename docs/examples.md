@@ -190,10 +190,9 @@ Run `pnpm exec tsx examples/policy-evaluation/run.ts` from repository source.
 A synthetic answer passes ordinary gates but fails the complete policy because
 required calibration evidence is missing. The same evaluator powers CLI
 `check` and `report`; its README explains input validation and selection scope.
-This example was verified against the 0.11.0 source candidate during release
-preparation on 2026-11-01 and needs no provider, database or server. The owner
-authorized the portable 0.11.0 release on 2026-11-02; use npm for current
-availability and the release record for publication evidence.
+This example needs 0.11.0 or newer and no provider, database or server.
+Version 0.11.0 was published on 2026-11-02; see the
+[release receipt](./reviews/2026-11-02-release-0.11.0.json) for installed-package evidence.
 
 ### Installed-package compatibility
 

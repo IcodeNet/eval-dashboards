@@ -2,7 +2,7 @@
 
 > **Product direction (2026-10-31):** a fully hosted platform with accounts, ingestion, and live dashboards is approved and planned. The current product remains the portable package. See [requirements and delivery sequence](docs/hosted-platform-requirements.md).
 
-Release-preparation snapshot (2026-11-02): the 0.11.0 source candidate shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
+Version 0.11.0 shows the configured quality-gate decision across HTML, Markdown, text, and JSON. An opt-in paired comparison can report `inconclusive` when evidence does not establish its criterion. See [gate decisions](docs/gates.md#reported-gate-decisions) for evaluation scope and CI exit behavior.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/eval-dashboards-logo-dark.svg">
@@ -19,10 +19,9 @@ Release-preparation snapshot (2026-11-02): the 0.11.0 source candidate shows the
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
-Release-preparation snapshot (2026-11-02): the **0.11.0 source candidate** includes analytics, the complete `evaluateReportPolicy` API,
+Published **0.11.0** includes analytics, the complete `evaluateReportPolicy` API,
 and shared gate reporting. See the [runnable policy example](examples/policy-evaluation/README.md).
-At that pre-publication check npm latest was 0.10.0. Use the npm badge above
-for current package availability. Maintainers follow
+Released on 2026-11-02: [npm package](https://www.npmjs.com/package/@icodenet/eval-dashboards/v/0.11.0) · [release notes](https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.11.0). Use the npm badge for current availability. Maintainers follow
 the [verified release procedure](docs/npm-publishing.md#release-acceptance-and-publication).
 Strict installed-package checks passed on Node 20/22/24/26;
 see [runtime support](docs/npm-publishing.md#runtime-compatibility).
@@ -520,7 +519,7 @@ for the full procedure.
 - [LangChain Evaluators](examples/langchain-evals/README.md) — wrap LangChain's built-in evaluators (QA, criteria, embedding) to emit taxonomy-complete rows
 
 **CI/CD:**
-- [Versioned composite GitHub Action](action.yml) — `uses: IcodeNet/eval-dashboards@v0.10.0` (report + gate + optional publish in one step)
+- [Versioned composite GitHub Action](action.yml) — `uses: IcodeNet/eval-dashboards@v0.11.0` (report + gate + optional publish in one step)
 - [GitHub Actions](examples/github-actions/eval-quality.yml)
 - [GitHub Actions approval gate](examples/github-actions/eval-approval-gate.yml)
 - [GitHub Actions PR cleanup](examples/github-actions/cleanup-pr-eval-results.yml)

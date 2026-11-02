@@ -1729,15 +1729,15 @@ phase's commit message.
 
 ## 📦 npm release policy note (ship gate)
 
-Pre-publication registry verification 2026-11-02: npm latest was `0.10.0` (2026-10-19).
-Repository version `0.11.0` is the portable M1 release candidate;
-release-PR verification is required. The owner authorized this portable
-release on 2026-11-02 after requesting a new version for merged functionality;
-see the [release plan](./npm-publishing.md#next-release-plan--checked-2026-11-02).
-Merge reviewed green PRs into main and release coherent portable 0.x
-milestones under the standing owner instruction. This does not require a bump
-for each PR or finishing hosted M2–M6 before the portable minor release. The
-separate stable 1.0.0 and hosted-deployment owner gates remain.
+Registry verification 2026-11-02: npm latest is **0.11.0**. The portable M1
+milestone was published from verified main after reviewed green merges and
+owner authorization. Registry `gitHead` and the GitHub tag identify
+`7824440aa95b00f49296196b6558a4587b0ab325`.
+See the [release receipt](./reviews/2026-11-02-release-0.11.0.json).
+
+Continue merging reviewed green PRs and release coherent portable 0.x milestones.
+Do not bump for each PR or wait for all hosted M2–M6 work before a portable
+minor release. Version 1.0.0 and hosted deployment retain explicit owner gates.
 
 - **The 1.0.0 release remains an owner decision.** Phase 4K (full historical reports) is complete, but no 1.0.0 release has been published. Remaining work includes 4F.11 signed-bundle authentication and 4C.4, which is parked awaiting the external Rupic review. Publish `1.0.0` only when the owner says so.
 - npm package history for `@icodenet/eval-dashboards` is immutable; this package cannot be republished "as if first release" under the same name.
@@ -2049,7 +2049,7 @@ The core idea — an Istanbul-style, offline, artifact-first reporting layer for
 
 The owner decision on 2026-10-31 supersedes historical hosted-platform exclusions in earlier phases. Preserve the portable core, external runners, and offline exports. Assistant-UI remains parked.
 
-See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 has shared decisions, matching-case analytics, paired/repeated uncertainty, and a complete policy evaluator merged in #103. Portable M1 acceptance is covered by committed regression tests, including public/CLI/reporter parity. M2–M6 stay open in STATUS. The owner authorized portable 0.11.0 publication on 2026-11-02, subject to release verification.
+See [requirements, architecture, and acceptance criteria](./hosted-platform-requirements.md). Deliver M1 shared decision semantics, then M2 tenant-safe ingestion, M3 hosted decision workflows, M4 trade-offs and coverage, M5 live progress and scale, and M6 launch readiness. M1 has shared decisions, matching-case analytics, paired/repeated uncertainty, and a complete policy evaluator merged in #103. Portable M1 acceptance is covered by committed regression tests, including public/CLI/reporter parity. M2–M6 stay open in STATUS. Portable M1 was published as 0.11.0 on 2026-11-02 after release verification; see the release receipt above.
 
 M2 begins with the [PostgreSQL storage foundation](../hosted/postgres/README.md):
 tenant/project row policies and composite keys, immutable artifact references,

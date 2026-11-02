@@ -1,6 +1,6 @@
 # Hosted evaluation platform: requirements and delivery plan
 
-Decision date: 2026-10-31. Status: approved product direction; portable M1 acceptance covered in the 0.11.0 candidate; hosted service pending.
+Decision date: 2026-10-31. Status: approved product direction; portable M1 released in 0.11.0; hosted service pending.
 
 The owner explicitly selected **a fully hosted platform with accounts, ingestion, and live dashboards**. This supersedes the earlier hosted-platform exclusion. The portable package, runner independence, additive `eval-report/v1` contract, and offline exports remain product requirements. Assistant-UI work remains parked.
 
@@ -78,7 +78,7 @@ Specific corrections:
 
 ## Ordered delivery and acceptance criteria
 
-Portable M1 implementation meets the acceptance criteria in the 0.11.0 candidate, with code and tests cited below. M2–M6 remain open; the release candidate is not an npm publication.
+Portable M1 meets the acceptance criteria and was published as 0.11.0 on 2026-11-02, with code/tests below and [publication evidence](./reviews/2026-11-02-release-0.11.0.json). M2–M6 remain open; no hosted deployment is claimed.
 
 1. **M1 — Shared analytics and decision semantics.** Define actual verdict states, compatible cohorts, paired/repeated comparisons, metric units/direction, missing-data rules, and denominators. The same fixture must produce the same decisions in JSON, HTML, and the future API. Cover critical segment failures, intentional negative cases, incompatible baselines, and unknown telemetry.
 2. **M2 — Tenant-safe ingestion vertical slice.** Implement accounts/org/project roles and scoped API keys; validated artifact upload; PostgreSQL/private blob persistence; durable jobs; idempotent indexing. Prove cross-tenant isolation, duplicate delivery safety, explicit revision handling, and that invalid/partial uploads cannot become completed runs.
