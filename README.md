@@ -31,7 +31,9 @@ see [runtime support](docs/npm-publishing.md#runtime-compatibility).
 
 M2 source work now includes a [tenant-scoped PostgreSQL storage foundation](hosted/postgres/README.md)
 and project-bound credential lookup, with real database checks. HTTP authentication,
-credential issuance, upload APIs and workers remain open.
+credential issuance, upload APIs and workers remain open. Source also has
+[bearer-header helpers](hosted/auth/README.md) with random secrets and stored
+project/scope enforcement; they install no HTTP route.
 The portable package and static reports require no database.
 
 

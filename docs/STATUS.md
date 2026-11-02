@@ -277,7 +277,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 Owner-approved scope (2026-10-31): accounts, ingestion, and live dashboards. See [requirements](./hosted-platform-requirements.md). Assistant-UI remains parked.
 
 - [x] M1: Portable shared analytics and actual gate decisions. Matching-case eligibility, paired/repeated uncertainty, metric direction, unknown telemetry and denominators have regression coverage. The complete public evaluator agrees with CLI and reporters, including critical failures and intentional negatives (`test/run-analytics.test.ts`, `test/paired-comparison.test.ts`, `test/repeated-trials.test.ts`, `test/gate-decision.test.ts`, `test/evaluate-policy.test.ts`). This completes library semantics; no hosted HTTP endpoint is claimed. npm publication remains pending. See [gate decisions](./gates.md#reported-gate-decisions).
-- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; HTTP authentication/credential issuance, upload/blob persistence, intake protocol and workers remain open; project-bound database credential lookup is implemented and tested. See [storage foundation](../hosted/postgres/README.md).
+- [ ] M2: Tenant-safe accounts and durable artifact ingestion. Initial source slice adds tenant/project-scoped PostgreSQL metadata and real integration checks; HTTP route integration/credential issuance, upload/blob persistence, intake protocol and workers remain open; project-bound database lookup and private bearer-header helpers are implemented and tested. See [storage foundation](../hosted/postgres/README.md).
 - [ ] M3: Hosted overview, run detail, comparison, and review workflows.
 - [ ] M4: Variant trade-offs, distributions, and measured coverage.
 - [ ] M5: Resumable live progress and benchmarked query scale.
@@ -324,7 +324,24 @@ that intersects key scopes with current membership. Real PostgreSQL checks in
 forged scope settings, membership downgrade/removal, expiry and search-path
 substitution. See the [credential guide](../hosted/postgres/README.md#project-scoped-credential-lookup--source-only).
 
-This is database authorization groundwork. Token generation/parsing, HTTP
-scope enforcement, account sign-in, credential management/audit, validated
-uploads, private blobs and workers remain open. M2 is not complete. The
-portable contract and database-free package behavior are unchanged.
+This is database authorization groundwork. The later bearer-header slice below
+adds secret generation/parsing and local operation checks. HTTP route integration,
+account sign-in, credential management/audit, validated uploads, private blobs
+and workers remain open. M2 is incomplete. The portable contract and database-free package behavior are unchanged.
+
+### M2 bearer-header helper — 2026-11-02
+
+Private source in `hosted/auth/api-credentials.ts` generates 32-byte random,
+versioned API secrets and authenticates a parsed bearer header through the
+stored credential lookup. The requested project and server-selected operation
+must match stored permissions. Malformed headers skip lookup; backend failures
+and malformed results deny access. Returned context copies only stored fields.
+Tests cover header/encoding errors, scope/project denial, repeated lookup after
+revocation, and secret-free errors (`test/hosted-api-credentials.test.ts`).
+The actual PostgreSQL harness also authenticates a generated secret and checks
+project denial, membership downgrade and revocation (`scripts/hosted-db.test.mjs`).
+
+See [the runnable example and integration limits](../hosted/auth/README.md).
+There is no HTTP endpoint or persistent issuer. Raw-header duplicate detection,
+route integration, browser sign-in, issuance/rotation/audit, uploads and workers
+remain open. M2 is incomplete; the portable package remains database-free.

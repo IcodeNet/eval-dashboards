@@ -120,7 +120,9 @@ removes its keys; rejoining does not restore them. The database stores no raw
 token. The future issuer must generate at least 32 cryptographically random
 secret bytes, return the secret once, and hash the full canonical token before
 storage/lookup. This digest design is for random API secrets, not passwords.
-Token format, parsing, issuance/rotation UX and audit records remain future work.
+Private [secret/header helpers](../auth/README.md) now provide generation,
+canonical format/parsing and stored project/scope enforcement. Persistent
+issuance, rotation UX, HTTP route integration and audit remain future work.
 
 A dedicated service login may inherit **only** `eval_hosted_auth_lookup` and
 call `eval_hosted.resolve_api_credential($1::bytea)` with a bound digest. It
@@ -147,7 +149,8 @@ relations prevent temporary-table substitution. PUBLIC and application-role
 execution are revoked in the same transaction. See PostgreSQL's
 [security-definer guidance](https://www.postgresql.org/docs/17/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY).
 
-Future HTTP handlers must parse and hash a presented token, require a returned
+Future HTTP handlers can use the private header helper to parse and hash a
+presented token. They must require a returned
 identity and the operation's scope, then use only the returned tenant/project
 in a fresh application transaction. Keep lookup and application database logins
 separate from the migration owner; neither login may be exposed to end users.

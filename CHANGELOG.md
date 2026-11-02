@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Private hosted API secret generation and bearer-header authentication helpers:
+  canonical 32-byte random secrets, digest-only lookup, stored project/scope
+  checks, denied backend failures and immutable returned identity. Includes a
+  provider-free example and real PostgreSQL integration coverage. No HTTP route
+  or persistent issuer is included.
+
 - Source-only project-bound API credential storage and restricted PostgreSQL
   lookup: digests, finite expiry/revocation and permissions intersected with
   current membership. Real database tests cover isolation and denied access.

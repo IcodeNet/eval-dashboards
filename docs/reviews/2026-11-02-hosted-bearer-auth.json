@@ -1,0 +1,98 @@
+{
+  "recordedAt": "2026-11-02",
+  "purpose": "Private M2 secret generation and bearer-header authentication helper; no HTTP route, persistent issuer, deployment or performance benchmark.",
+  "baselineRevision": "f57c82e949aafeb5675d65f479b6212f872bdfbf",
+  "beforeAfter": {
+    "before": "Code inspection: the baseline has project-bound PostgreSQL lookup but no hosted/auth secret/header helper. No deployed HTTP authentication service or old-version timing benchmark exists.",
+    "after": "The runnable provider-free example prints authorized for reading its own project, forbidden for ingest with a read-only key and for another project, and unauthenticated after revocation. The separate real-database test uses a generated secret against the restricted SQL lookup and observes membership downgrade/revocation."
+  },
+  "checks": [
+    {
+      "command": "pnpm exec vitest run test/hosted-api-credentials.test.ts",
+      "exitCode": 0,
+      "result": "42 tests passed; malformed/duplicate representations and encoding, only digest sent to lookup, stored identity copied without extra fields, project/scope denial, repeated lookup, malformed/ambiguous results and secret-free errors.",
+      "logSha256": "963710076dc7eab3479a57335b7c13edc5f0da1984456ef2ac8bd114598cd422"
+    },
+    {
+      "command": "pnpm test:hosted-db",
+      "exitCode": 0,
+      "result": "32 tests passed, zero failed/skipped. PostgreSQL 17.11, non-superuser migration owner, separate restricted lookup login, generated secret, current membership and revocation, owned-container cleanup. Host Node 26.7.0.",
+      "logSha256": "25b74c0fdb1f850d317b05587b8bd69ac05ede867d495e163dcac702f1336160"
+    },
+    {
+      "command": "/opt/homebrew/opt/node@20/bin/node --test scripts/hosted-db.test.mjs",
+      "exitCode": 0,
+      "result": "32 passed, zero failed/skipped; same actual isolated PostgreSQL checks including generated bearer flow. Node 20.20.2. Container removed.",
+      "logSha256": "5a6f911ce7b4ec92b4f346ac1ee2c3a126ca2c8aa326e26ff9472020a580d6b4"
+    },
+    {
+      "command": "pnpm check",
+      "exitCode": 0,
+      "result": "957 Vitest tests across 94 files, typecheck, teaching 77 lines, 164 documented flags, build and nine hook tests passed.",
+      "logSha256": "6b52c07aba12062c5b5cc6071ce2bb06ad67a24e0e4dc2f022a663e4c10a8167"
+    },
+    {
+      "command": "pnpm exec tsx hosted/auth/example.ts",
+      "exitCode": 0,
+      "output": [
+        "Read own project: authorized",
+        "Ingest with read-only key: forbidden",
+        "Read another project: forbidden",
+        "Read revoked key: unauthenticated"
+      ],
+      "logSha256": "edcc01448a82f75a41cfe37efa7fb653d166a53e63f1fb1478dad0f3cbd1eb15"
+    },
+    {
+      "command": "pnpm exec tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --strict --skipLibCheck hosted/auth/example.ts",
+      "exitCode": 0,
+      "result": "Runnable source example typechecks.",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "pnpm docs:build && pnpm docs:check",
+      "exitCode": 0,
+      "result": "90 pages built, documentation links/assets passed.",
+      "logSha256": "5af5acae300548ad69c33b2f45067ce32be48dad193b7f028b4321a769027e5f"
+    }
+  ],
+  "sourceSha256": {
+    "hosted/auth/api-credentials.ts": "de9e85e4f5ada583e9a1c4f714c35ebe98adb6c6c58f8fc9bedeeef865e25981",
+    "hosted/auth/example.ts": "ed80f52a1c17a35e1e5fedca4a5613996530ce40de2e59189f517054f63c62a2",
+    "hosted/auth/README.md": "e9788425cf668c95e51fbf3a8bcf922b7df7ac0703ed9d1f156ced0b9472fbef",
+    "test/hosted-api-credentials.test.ts": "e72878111abc8dd134803d2dda06ad0bd64bb0bfe0bdfccf37119483a26ff264",
+    "scripts/hosted-db.test.mjs": "c3e7fd84747f46b1ea659ca2199ba91afeed4166d77d372f1508a5fab5cf5d32"
+  },
+  "manualReview": {
+    "reviewer": "Codex",
+    "result": "Reviewed strict parser, bounded work, cryptographic secret source/full-token digest, current-scope lookup, immutable copied principal, denied backend failure and unknown operations, and source-only documentation claims.",
+    "limitations": "No independent specialized security audit is claimed. The example uses an in-memory lookup; actual PostgreSQL proof is separate."
+  },
+  "requiredCommitGate": "Exact staged-tree quality:record, quality:review and quality:verify must pass before commit; the ledger stores raw local command logs under the worktree Git directory.",
+  "limitations": [
+    "The trusted production lookup adapter must bind the digest to resolve_api_credential using the restricted login and impose query timeouts; no adapter is shipped by this helper.",
+    "HTTP adapters must reject duplicate raw Authorization headers before framework normalization; the helper rejects array/comma representations but cannot detect a discarded duplicate.",
+    "No HTTP endpoint, TLS/rate limits, browser sessions, persistent credential issuer/rotation/audit, upload or worker is implemented here.",
+    "Secrets are returned to trusted issuer code, not automatically persisted or made one-time; that lifecycle remains future work. Never log token/digest/header/returned secret object.",
+    "Every allowed request needs a fresh trusted lookup and operation check. Revocation does not cancel work authorized before a database statement snapshot.",
+    "M2 stays open. Portable exports/schema/dependencies and offline operation are unchanged. Publishing/deployment remain separately authorized.",
+    "This record contains local pre-PR results. Current-head raw CI is verified and recorded on the PR before merge, with revisions identified explicitly."
+  ],
+  "previousDelivery": {
+    "pr": 110,
+    "head": "64e25efeab081279aa918cd272490bd83f1dd77d",
+    "merge": "f57c82e949aafeb5675d65f479b6212f872bdfbf",
+    "rawJobs": [
+      125217050887,
+      125219064007,
+      125217052517,
+      125220230565,
+      125220230826
+    ],
+    "result": "All five protected checks passed. Raw main CI: 915 tests, 31 PostgreSQL checks under non-superuser migration owner with cleanup, strict installed consumers on Node 20/22/24/26, assets/accessibility/schema/CLI/teaching/flags/docs and audit two low/four moderate. Three review findings reproduced/fixed/replied/resolved; reviewer confirmed code fixes by source inspection. No additional independent rerun by the reviewer claimed.",
+    "postMergeDocs": {
+      "run": 41428442218,
+      "job": 125220672584,
+      "rawVerified": "Docs site check passed; Pages Reported success. Deploy action punycode deprecation warning observed."
+    }
+  }
+}

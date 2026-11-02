@@ -4,6 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { after, before, test } from 'node:test';
+import { tsImport } from 'tsx/esm/api';
+
+const { generateApiCredentialSecret, authenticateApiCredential } = await tsImport('../hosted/auth/api-credentials.ts', import.meta.url);
 
 // Pinned official multi-platform PostgreSQL integration image. The
 // database has no network and no host port/volume; only this owned test container
@@ -304,4 +307,33 @@ test('expiry uses each statement time even inside an already-open transaction', 
     SELECT expires_at > transaction_timestamp() AND expires_at < statement_timestamp() FROM eval_hosted.api_credentials;
     SET LOCAL ROLE eval_hosted_auth_test_login; SELECT count(*) FROM eval_hosted.resolve_api_credential(${credentialHash})`);
   assert.deepEqual(out.split('\n').filter(Boolean), ['t','0']);
+});
+
+test('generated bearer secrets enforce stored project, current scope and revocation through real lookup', async () => {
+  const { token, secretSha256 } = generateApiCredentialSecret();
+  sql(credentialFixture);
+  try {
+    sql(`UPDATE eval_hosted.api_credentials SET secret_sha256=decode('${secretSha256.toString('hex')}','hex')`);
+    const lookup = async hash => {
+      assert.ok(Buffer.isBuffer(hash)); assert.equal(hash.length, 32);
+      // Hex-only test transport through psql; production clients must bind bytea.
+      return JSON.parse(authSql(`SELECT coalesce(json_agg(r),'[]'::json) FROM eval_hosted.resolve_api_credential(decode('${hash.toString('hex')}','hex')) AS r`));
+    };
+    const request = { authorization: `Bearer ${token}`, projectId: projectA, requiredScope: 'ingest', lookup };
+    const active = await authenticateApiCredential(request);
+    assert.equal(active.status, 'authorized');
+    assert.equal(active.principal.tenantId, tenantA);
+    assert.equal(active.principal.projectId, projectA);
+    assert.ok(!JSON.stringify(active).includes(token));
+    assert.deepEqual(await authenticateApiCredential({ ...request, projectId: projectB }), { status: 'forbidden' });
+    sql(`UPDATE eval_hosted.memberships SET role='viewer' WHERE account_id='${accountA}'`);
+    assert.deepEqual(await authenticateApiCredential(request), { status: 'forbidden' });
+    assert.equal((await authenticateApiCredential({ ...request, requiredScope: 'read' })).status, 'authorized');
+    sql(`UPDATE eval_hosted.api_credentials SET revoked_at=now()`);
+    assert.deepEqual(await authenticateApiCredential(request), { status: 'unauthenticated' });
+  } finally {
+    sql(`DELETE FROM eval_hosted.api_credentials WHERE account_id='${accountA}';
+      DELETE FROM eval_hosted.memberships WHERE account_id IN ('${accountA}','${accountB}');
+      DELETE FROM eval_hosted.accounts WHERE id IN ('${accountA}','${accountB}')`);
+  }
 });
