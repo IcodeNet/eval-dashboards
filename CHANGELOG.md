@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Blocking calibration agreement/disagreement thresholds now fail when no paired
   judge/human verdicts exist. Axis-delta thresholds also require shared scored
   axes. Missing evidence no longer counts as perfect agreement or zero error;
-  measured zero agreement/delta remains a real observation.
+  measured zero agreement/delta remains a real observation. Configured blocking
+  thresholds also fail on missing suite summaries, suite aliases retain their
+  observations, and non-finite paired axis scores cannot hide failures.
 
 ### Added
 

@@ -1038,11 +1038,15 @@ red/green evidence, run the full required checks, and add a changelog entry.
 Preserve the portable `eval-report/v1` contract and the existing review/merge
 and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
 
-1. [x] **4E.12.1 — Missing calibration observations (P0).** Agreement and
+1. [x] **4E.12.1 — Missing calibration observations (P0).** Blocking agreement and
    disagreement bars must fail when there are no paired judge/human verdicts.
-   Axis-delta bars must fail when there are no shared scored axes. Missing is
+   Blocking axis-delta bars must fail when there are no shared scored axes.
+   Report-only manifest thresholds are not evaluated. Missing is
    unknown, not perfect agreement or zero disagreement. Diagnostics must name
    the missing evidence; genuine measured zeros remain valid observations.
+   Configured blocking thresholds also fail when their suite summary is missing;
+   Canonical IDs and unique aliases resolve the same rows; ambiguous names cannot
+   borrow labels from another suite. Paired axis scores must be finite.
    Source evidence: `src/gates/check-gates.ts` and
    `test/calibration-missing-evidence.test.ts` (red then green, including CLI).
 2. [ ] **4E.12.2 — Calibration evidence quality (P0).** A recent independent

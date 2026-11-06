@@ -403,3 +403,7 @@ disagreement and axis-delta thresholds reject missing paired observations.
 (exit 0) and verifies failure after the fix (exit 1), plus genuine measured-zero
 controls. Calibration preflight quality, sample floors and other 4E.12 items
 remain open. This source correction is not in published 0.11.0.
+
+Review follow-up also covers missing suite summaries, suite ID/name aliases,
+non-finite paired axis scores in programmatic calls, and explicit report-only
+wording. The extra regressions were run red before the review fixes.

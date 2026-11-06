@@ -326,11 +326,30 @@ export const checkGates = (
   for (const manifest of report.suiteManifests ?? []) {
     if (manifest.gate.mode !== 'blocking') continue;
 
-    const suiteSummary = report.suites.find((s) => s.id === manifest.name || s.name === manifest.name);
-    if (!suiteSummary) continue;
+    const summariesById = report.suites.filter((suite) => suite.id === manifest.name);
+    const matchingSummaries = summariesById.length > 0 ? summariesById : report.suites.filter((suite) => suite.name === manifest.name);
+    if (matchingSummaries.length > 1) {
+      if (Object.keys(manifest.gate.thresholds).length > 0) {
+        failures.push(`Suite "${manifest.name}" has ambiguous matching suite summaries for its blocking thresholds.`);
+      }
+      continue;
+    }
+    const suiteSummary = matchingSummaries[0];
+    if (!suiteSummary) {
+      if (Object.keys(manifest.gate.thresholds).length > 0) {
+        failures.push(`Suite "${manifest.name}" declares blocking thresholds but has no matching suite summary.`);
+      }
+      continue;
+    }
 
     const actual = suiteSummary.total > 0 ? suiteSummary.passed / suiteSummary.total : 0;
-    const suiteRows = report.rows.filter((row) => row.suite === manifest.name);
+    const suiteIdentifiers = new Set([suiteSummary.id]);
+    for (const alias of [manifest.name, suiteSummary.name]) {
+      if (alias !== undefined && !report.suites.some((other) => other !== suiteSummary && (other.id === alias || other.name === alias))) {
+        suiteIdentifiers.add(alias);
+      }
+    }
+    const suiteRows = report.rows.filter((row) => suiteIdentifiers.has(row.suite));
     const calibrationRows = suiteRows.filter(
       (row) => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined,
     );
@@ -346,10 +365,15 @@ export const checkGates = (
     const calibrationAxisRows = suiteRows.filter(
       (row) => row.axisScores !== undefined && row.groundTruthAxisScores !== undefined,
     );
+    let nonFiniteCalibrationAxis = false;
     const calibrationAxisDeltas = calibrationAxisRows.flatMap((row) =>
       Object.entries(row.axisScores ?? {}).flatMap(([axis, score]) => {
         const groundTruthScore = row.groundTruthAxisScores?.[axis];
         if (groundTruthScore === undefined) return [];
+        if (!Number.isFinite(score) || !Number.isFinite(groundTruthScore)) {
+          nonFiniteCalibrationAxis = true;
+          return [];
+        }
         return [Math.abs(score - groundTruthScore)];
       }),
     );
@@ -443,7 +467,9 @@ export const checkGates = (
         normalizedMetric === 'axis-delta-tolerance';
 
       if (isAxisScoreDeltaKey) {
-        if (calibrationAxisDelta === undefined) {
+        if (nonFiniteCalibrationAxis) {
+          failures.push(`Suite "${manifest.name}" has non-finite judge/human axis scores for blocking threshold ${metric}.`);
+        } else if (calibrationAxisDelta === undefined) {
           failures.push(`Suite "${manifest.name}" has no matching judge/human axis-score pairs for blocking threshold ${metric}.`);
         } else if (calibrationAxisDelta > threshold) {
           failures.push(

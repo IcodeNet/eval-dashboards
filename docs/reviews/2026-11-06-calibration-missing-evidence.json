@@ -28,6 +28,21 @@
   ],
   "fullCheck": {
     "command": "pnpm check",
-    "result": "Passed: 1004 Vitest tests in 96 files, typecheck, teaching output, documented flags, build and nine hook tests. Repository has no separate source-code lint script."
+    "result": "Passed: 1004 Vitest tests in 96 files, typecheck, teaching output, documented flags, build and nine hook tests. Repository has no separate source-code lint script.",
+    "stage": "Initial fix before PR review follow-ups"
+  },
+  "reviewFollowUp": {
+    "baseline": "ec9917e3512f999ae827f20117232b310d51806f",
+    "red": "Five review regressions failed, sixteen passed, before the review fixes.",
+    "aliasDevelopment": "An intermediate alias implementation failed three additional collision controls; final canonical/unique resolution passes them. These are regression protections, not claims that all collisions were present in the original source.",
+    "green": "63 tests passed across calibration-missing-evidence, gates and evaluate-policy.",
+    "covered": [
+      "Missing summaries fail configured blocking thresholds; empty/report-only manifests remain unchanged.",
+      "Canonical IDs take precedence; unique aliases retain their rows and ambiguous names cannot pool other suites labels.",
+      "Non-finite paired axis scores cannot mask another excessive delta.",
+      "CLI source/tsx paths resolve relative to the test file.",
+      "Roadmap explicitly scopes the rule to blocking thresholds."
+    ],
+    "finalGate": "Final staged-tree quality and current-head CI evidence are attached to the fix and PR; the earlier fullCheck describes the initial stage."
   }
 }
