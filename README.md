@@ -38,6 +38,8 @@ Source corrections after 0.11.0 make configured calibration thresholds reject
 missing labelled observations. Calibration preflight also requires the matching
 judge's evidence to meet a declared agreement bar; see
 [calibration gate behavior](docs/gates.md#calibration-thresholds-require-observations).
+Use optional `minCalibrationRows` to require enough paired labels; preflight
+applies the declared floor to each matching judge separately.
 
 
 <div align="center">

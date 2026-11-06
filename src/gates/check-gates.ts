@@ -387,7 +387,7 @@ export const checkGates = (
     const criticalFailureRate = suiteSummary.total > 0 ? criticalFailures / suiteSummary.total : 0;
 
     for (const [metric, threshold] of Object.entries(manifest.gate.thresholds)) {
-      // Map well-known threshold keys to the suite pass rate; unknown keys are skipped
+      // Recognize supported suite thresholds; reject unknown keys below.
       const isPassRateKey =
         metric === 'passRate' ||
         metric.toLowerCase().includes('passrate') ||
@@ -400,6 +400,17 @@ export const checkGates = (
       }
 
       const normalizedMetric = metric.toLowerCase();
+      const isMinCalibrationRowsKey =
+        normalizedMetric === 'mincalibrationrows' ||
+        normalizedMetric === 'min_calibration_rows' ||
+        normalizedMetric === 'min-calibration-rows';
+      if (isMinCalibrationRowsKey) {
+        if (!Number.isSafeInteger(threshold) || threshold <= 0) {
+          failures.push(`Suite "${manifest.name}" ${metric} must be a positive safe integer.`);
+        } else if (calibrationRows.length < threshold) {
+          failures.push(`Suite "${manifest.name}" labelled judge/human verdict pairs ${calibrationRows.length} are below blocking threshold ${metric}=${threshold}.`);
+        }
+      }
       const isMaxCriticalFailuresKey =
         normalizedMetric === 'maxcriticalfailures' ||
         normalizedMetric === 'max_critical_failures' ||
@@ -480,6 +491,7 @@ export const checkGates = (
 
       const isRecognizedThresholdKey =
         isPassRateKey ||
+        isMinCalibrationRowsKey ||
         isMaxCriticalFailuresKey ||
         isCriticalFailureRateKey ||
         isJudgeAgreementRateKey ||
@@ -490,7 +502,7 @@ export const checkGates = (
         failures.push(
           `Suite "${manifest.name}" has an unrecognized gate.thresholds key "${metric}" (blocking mode) — ` +
             'it does not match any known threshold name (passRate, maxCriticalFailures, criticalFailureRate, ' +
-            'minJudgeAgreementRate, maxJudgeDisagreementRate, maxAxisScoreDelta) and would otherwise be silently ' +
+            'minCalibrationRows, minJudgeAgreementRate, maxJudgeDisagreementRate, maxAxisScoreDelta) and would otherwise be silently ' +
             'ignored, enforcing nothing. Fix the key name or remove it.',
         );
       }

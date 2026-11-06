@@ -144,7 +144,31 @@ aliases resolve the same observations; ambiguous names cannot borrow another
 suite's labels.
 Report-only suites and suites without these thresholds do not gain an implicit
 label requirement. The configurable minimum sample and calibration preflight
-quality checks are separate [roadmap follow-ups](./ROADMAP.md#4e12-gate-and-calibration-review-follow-up-2026-11-06).
+quality checks are described below and in the [roadmap](./ROADMAP.md#4e12-gate-and-calibration-review-follow-up-2026-11-06).
+
+### Minimum labelled sample
+
+In source after 0.11.0, add `minCalibrationRows` to a calibration suite's
+`gate.thresholds` alongside its agreement bar. For example:
+
+```json
+{ "minJudgeAgreementRate": 0.9, "minCalibrationRows": 20 }
+```
+
+The minimum must be a positive safe integer. `min_calibration_rows` and
+`min-calibration-rows` are aliases. The gate reports the observed paired count
+when it is too small. Only rows with both `judgeVerdict` and
+`groundTruthVerdict` count; false/false is a valid pair, while unlabelled,
+one-sided and axis-only evidence do not count toward this verdict sample.
+
+No extra sample floor applies when the threshold is omitted. A report-only
+manifest does not enforce it as a normal blocking gate. When that suite is
+used as calibration preflight evidence, its declared floor must pass for the
+matching judge separately. Other judges' labels do not increase that count.
+
+Choose a floor for your task and coverage needs; the example value 20 is not
+a reliability guarantee. Distinct row IDs do not prove statistical independence
+or balanced class coverage. Try the small [runnable example](../examples/calibration-minimum-sample/README.md).
 
 ## PR-subset vs full-suite tiering with a cost budget (4F.10)
 

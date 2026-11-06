@@ -1056,9 +1056,12 @@ and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
    Preserve explicit warning-only/escape-hatch behavior and its accounting.
    Source evidence: `src/gates/evaluate-policy.ts` and
    `test/calibration-preflight-quality.test.ts` (red/green and actual CLI).
-3. [ ] **4E.12.3 — Minimum calibration sample (P1).** Add a configurable minimum
+3. [x] **4E.12.3 — Minimum calibration sample (P1).** Add a configurable minimum
    number of eligible labelled pairs. Fail below it; unlabelled rows do not
    increase the denominator. Exercise small samples and per-judge eligibility.
+   Source evidence: `src/gates/check-gates.ts`,
+   `test/calibration-minimum-sample.test.ts` (red/green, real CLI), and
+   `examples/calibration-minimum-sample/`.
 4. [ ] **4E.12.4 — Calibration statistics (P1).** Report raw agreement, paired
    counts, Cohen's kappa and per-category agreement. Thresholds are opt-in.
    Keep undefined/degenerate cases explicit rather than manufacturing a pass.

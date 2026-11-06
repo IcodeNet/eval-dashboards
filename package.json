@@ -31,6 +31,7 @@
     "skills/eval-dashboards-adopt/SKILL.md",
     "examples/**/*.md",
     "examples/basic-json/*.json",
+    "examples/calibration-minimum-sample/*.json",
     "examples/agent-quality-preset/**",
     "examples/llm-agent-evals/*.ts",
     "examples/vitest-evals/*.ts",
