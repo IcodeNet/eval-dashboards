@@ -401,9 +401,19 @@ The first correction is implemented in source: configured blocking agreement,
 disagreement and axis-delta thresholds reject missing paired observations.
 `test/calibration-missing-evidence.test.ts` reproduces the previous CLI pass
 (exit 0) and verifies failure after the fix (exit 1), plus genuine measured-zero
-controls. Calibration preflight quality, sample floors and other 4E.12 items
-remain open. This source correction is not in published 0.11.0.
+controls. Sample floors and later 4E.12 items remain open. This source
+correction is not in published 0.11.0.
 
 Review follow-up also covers missing suite summaries, suite ID/name aliases,
 non-finite paired axis scores in programmatic calls, and explicit report-only
 wording. The extra regressions were run red before the review fixes.
+
+The second correction is implemented in source: calibration preflight requires
+paired judge/human verdicts and a passing declared agreement/disagreement bar
+for the relevant judge. Missing bars, failed bars and other judges' passing
+labels do not qualify. Recency, independent-run and rubric matching remain;
+report-only target warnings and the explicit escape remain. The agent-quality
+examples now declare their agreement bar. Evidence:
+`test/calibration-preflight-quality.test.ts` and
+`docs/reviews/2026-11-06-calibration-preflight-quality.json`.
+This correction is also after published 0.11.0.

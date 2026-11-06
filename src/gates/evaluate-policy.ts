@@ -93,6 +93,35 @@ type CalibrationCheckResult = {
 const isJudgeScoredSuite = (manifest: SuiteManifest): boolean =>
   manifest.graders.includes('llm-judge') || manifest.graders.includes('human-labelled-calibration');
 
+/** Recompute the calibration suite's declared bars using only this judge's rows. */
+const hasPassingCalibration = (report: EvalReportV1, manifest: SuiteManifest, judgeModel: string): boolean => {
+  const hasAgreementBar = Object.entries(manifest.gate.thresholds).some(([key, value]) =>
+    ['minjudgeagreementrate', 'judgeagreementrate', 'maxjudgedisagreementrate', 'judgedisagreementrate']
+      .includes(key.trim().toLowerCase().replace(/[_-]/g, '')) && Number.isFinite(value) && value >= 0 && value <= 1);
+  if (!hasAgreementBar) return false;
+
+  const byId = report.suites.filter(suite => suite.id === manifest.name);
+  const summaries = byId.length ? byId : report.suites.filter(suite => suite.name === manifest.name);
+  if (summaries.length !== 1) return false;
+  const summary = summaries[0];
+  const identifiers = new Set([summary.id]);
+  for (const alias of [manifest.name, summary.name]) {
+    if (alias !== undefined && !report.suites.some(other => other !== summary && (other.id === alias || other.name === alias))) {
+      identifiers.add(alias);
+    }
+  }
+  const rows = report.rows.filter(row => identifiers.has(row.suite) && row.judgeModel === judgeModel)
+    .map(row => ({ ...row, suite: summary.id }));
+  if (!rows.some(row => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined)) return false;
+  const passed = rows.filter(row => row.passed).length;
+  const scoped: EvalReportV1 = {
+    ...report, rows,
+    suites: [{ id: summary.id, total: rows.length, passed, failed: rows.length - passed }],
+    suiteManifests: [{ ...manifest, name: summary.id, gate: { ...manifest.gate, mode: 'blocking' } }],
+  };
+  return checkGates(scoped, compareRuns(scoped), {}).passed;
+};
+
 const evaluateCalibrationChecks = (
   reports: EvalReportV1[],
   current: EvalReportV1,
@@ -177,10 +206,11 @@ const evaluateCalibrationChecks = (
           : evidenceRuns;
 
       const hasRecentMatch = evidenceCandidates.some((report) => {
-        const calibrationManifest = report.suiteManifests?.find((candidate) => candidate.name === suiteId);
-        if (!calibrationManifest) {
+        const calibrationManifests = report.suiteManifests?.filter((candidate) => candidate.name === suiteId) ?? [];
+        if (calibrationManifests.length !== 1) {
           return false;
         }
+        const calibrationManifest = calibrationManifests[0];
 
         const calibrationRubricVersion =
           calibrationManifest.rubricVersion ??
@@ -192,12 +222,7 @@ const evaluateCalibrationChecks = (
           return false;
         }
 
-        return report.rows.some(
-          (row) =>
-            row.suite === suiteId &&
-            row.judgeModel === judgeModel &&
-            row.groundTruthVerdict !== undefined,
-        );
+        return hasPassingCalibration(report, calibrationManifest, judgeModel);
       });
 
       if (hasRecentMatch) {
@@ -207,7 +232,7 @@ const evaluateCalibrationChecks = (
       const issue =
         `Calibration preflight: suite "${manifest.name}" requires recent "${suiteId}" evidence ` +
         `(judgeModel="${judgeModel}", calibrationRubricVersion="${expectedCalibrationRubricVersion ?? 'n/a'}", maxAgeHours=${maxAgeHours}) ` +
-        'but no matching calibration run was found.';
+        'but no matching calibration run with passing declared agreement thresholds was found.';
 
       if (manifest.gate.mode === 'blocking' && !allowBlockingWithoutRecentMatch) {
         failures.push(issue);

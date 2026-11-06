@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Calibration preflight now requires a recent matching run to pass a declared
+  agreement bar on the relevant judge's paired labels. Missing judge verdicts,
+  missing agreement bars and other judges' passing labels cannot qualify it.
+  Existing report-only warnings and explicit calibration opt-outs remain.
+
 - Blocking calibration agreement/disagreement thresholds now fail when no paired
   judge/human verdicts exist. Axis-delta thresholds also require shared scored
   axes. Missing evidence no longer counts as perfect agreement or zero error;

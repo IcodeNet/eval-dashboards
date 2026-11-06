@@ -23,6 +23,9 @@ For local development from this repo, replace `eval-dashboards` with `pnpm dev`.
 
 The preset ships an independent calibration artifact so `check --allow-blocked-baseline` remains runnable under blocking calibration preflight (same-run calibration rows do not satisfy blocking checks).
 Keep the calibration artifact timestamp (`run.generatedAt`) within your configured calibration recency window (`--calibration-max-age-hours`, default 168) relative to the evaluated run.
+The calibration suite declares `minJudgeAgreementRate: 0.9`. Preflight checks
+that bar against paired judge/human labels for each matching judge; a recent
+run with missing or failed agreement does not qualify in source after 0.11.0.
 
 ## How To Adapt
 

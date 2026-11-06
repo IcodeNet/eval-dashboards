@@ -61,8 +61,9 @@ describe('complete reusable report policy', () => {
     expect(evaluateReportPolicy(input).combinedFailures.join(' ')).toContain('no matching calibration run');
     const calibration = report(true, 'previous'); calibration.run.kind = 'calibration';
     calibration.suiteManifests![0].name = 'judge-calibration';
+    calibration.suiteManifests![0].gate.thresholds = { minJudgeAgreementRate: 0.8 };
     calibration.suites = [{ id: 'judge-calibration', total: 1, passed: 1, failed: 0 }];
-    calibration.rows = [{ id: 'labelled', suite: 'judge-calibration', passed: true, judgeModel: 'judge-1', groundTruthVerdict: true }];
+    calibration.rows = [{ id: 'labelled', suite: 'judge-calibration', passed: true, judgeModel: 'judge-1', judgeVerdict: true, groundTruthVerdict: true }];
     expect(evaluateReportPolicy({ ...input, reports: [calibration, current] }).gateDecision.status).toBe('passed');
     calibration.rows[0].judgeModel = 'other';
     expect(evaluateReportPolicy({ ...input, reports: [calibration, current] }).gateDecision.status).toBe('failed');
