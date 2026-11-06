@@ -27,6 +27,8 @@ When calibration preflight applies, the separate `check` command requires its
 evidence to pass a declared agreement bar on the relevant judge's labels.
 Run `check` before publishing when you need that enforcement; `publish` itself
 does not evaluate calibration policy.
+The optional `minCalibrationRows` bar also applies during `check`, including
+the relevant judge's preflight evidence. See the [minimum sample guide](./gates.md#minimum-labelled-sample).
 
 Supported targets:
 

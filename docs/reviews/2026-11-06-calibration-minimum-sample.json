@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-06",
+  "scope": "4E.12.3 minimum calibration sample",
+  "baseline": "854dd1d04a8c49c86a0f6eb8c178dc0c2da5ea47",
+  "red": {
+    "command": "pnpm exec vitest run test/calibration-minimum-sample.test.ts",
+    "result": "15 failed and two passed against the baseline gate evaluator. The runnable CLI example exited 1 because minCalibrationRows was unrecognized; the supported floor now permits the two labelled pairs. Baseline source was used only for measurement and the fix restored in a finally block."
+  },
+  "green": {
+    "command": "pnpm exec vitest run test/calibration-minimum-sample.test.ts test/calibration-preflight-quality.test.ts test/calibration-missing-evidence.test.ts test/gates.test.ts",
+    "result": "91 passed across four files; pnpm typecheck passed."
+  },
+  "semantics": [
+    "Optional minCalibrationRows, min_calibration_rows or min-calibration-rows must be a positive safe integer in a blocking manifest.",
+    "Count paired boolean verdicts only, including false/false. One-sided, unlabelled and axis-only rows do not count.",
+    "Shared calibration preflight recomputes a declared floor for the relevant judge; another judge cannot inflate it.",
+    "Omitted floors add no new count requirement. Report-only manifest bars remain unenforced as normal blocking gates; evidence qualification still checks declared bars.",
+    "Duplicate row identities remain rejected by existing gate checks. A count alone proves neither statistical independence nor representative class coverage."
+  ],
+  "example": "examples/calibration-minimum-sample/eval-report.json is synthetic, taxonomy-aware and explicitly not a production sample-size recommendation. Included in package files; packed verification executes the installed CLI against the shipped example.",
+  "contract": "Existing eval-report/v1 numeric threshold map; no public field, schema version, CLI flag or dependency change. Source after 0.11.0, no publication in this PR.",
+  "verification": "Final full required checks, staged review and current-head CI raw logs are recorded in commit evidence and the PR. No performance benchmark."
+}

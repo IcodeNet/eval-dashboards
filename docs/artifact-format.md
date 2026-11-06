@@ -422,6 +422,12 @@ Blocking suite threshold keys supported by `check` include:
 - Pass rate: `passRate`, `pass_rate`, `passrate` (minimum pass rate)
 - Critical count: `maxCriticalFailures` (maximum critical failing rows)
 - Critical rate: `criticalFailureRate` (maximum critical failure ratio)
+- Calibration sample: `minCalibrationRows` (minimum paired `judgeVerdict` and
+  `groundTruthVerdict` rows; positive safe integer). Snake-case and kebab-case
+  aliases are accepted. In source after 0.11.0, this optional numeric threshold
+  uses the existing `gate.thresholds` map; no new schema version is needed.
+- Calibration agreement: `minJudgeAgreementRate`, `maxJudgeDisagreementRate`
+  and shared-axis error `maxAxisScoreDelta`; see [calibration gates](./gates.md#calibration-thresholds-require-observations).
 
 The contract stays vendor-independent: these fields describe evaluation evidence, not a specific model provider, runner, or hosting platform.
 

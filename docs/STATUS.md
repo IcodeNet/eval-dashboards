@@ -401,7 +401,7 @@ The first correction is implemented in source: configured blocking agreement,
 disagreement and axis-delta thresholds reject missing paired observations.
 `test/calibration-missing-evidence.test.ts` reproduces the previous CLI pass
 (exit 0) and verifies failure after the fix (exit 1), plus genuine measured-zero
-controls. Sample floors and later 4E.12 items remain open. This source
+controls. Later 4E.12 items are tracked below. This source
 correction is not in published 0.11.0.
 
 Review follow-up also covers missing suite summaries, suite ID/name aliases,
@@ -417,3 +417,12 @@ examples now declare their agreement bar. Evidence:
 `test/calibration-preflight-quality.test.ts` and
 `docs/reviews/2026-11-06-calibration-preflight-quality.json`.
 This correction is also after published 0.11.0.
+
+The third correction is implemented in source: `minCalibrationRows` requires
+a positive minimum of paired judge/human verdicts. One-sided and unlabelled
+rows do not count; preflight applies a declared floor to each relevant judge.
+It is optional and does not change report-only manifest enforcement. Evidence:
+`test/calibration-minimum-sample.test.ts` and the runnable
+`examples/calibration-minimum-sample/`. The sample-size demonstration does not
+establish statistical independence or production reliability. Kappa/category
+reporting and 4E.12.4–4E.12.7 remain open. Not in published 0.11.0.

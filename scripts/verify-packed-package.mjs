@@ -104,6 +104,8 @@ console.log('Packed consumer: public types compile; runtime, complete policy and
     suites: [{ id: 'smoke', total: 1, passed: 1, failed: 0 }], rows: [{ id: 'a', suite: 'smoke', passed: true }],
   }));
   const installedCli = 'node_modules/@icodenet/eval-dashboards/dist/cli/index.js';
+  run(process.execPath, [installedCli, 'check', '--input=node_modules/@icodenet/eval-dashboards/examples/calibration-minimum-sample']);
+  console.log('Packed CLI: shipped minimum calibration sample meets its paired-label floor.');
   run(process.execPath, [installedCli, 'history', '--input=file-runs', '--out=file-history.json']);
   run(process.execPath, [installedCli, 'report', '--input=file-runs', '--report-dir=offline-report', '--reporter=html']);
   const history = JSON.parse(fs.readFileSync(path.join(temp, 'file-history.json'), 'utf8'));

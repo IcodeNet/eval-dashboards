@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "calibration-minimum-demo",
+    "project": "synthetic-calibration",
+    "kind": "calibration",
+    "generatedAt": "2026-11-06T11:00:00Z"
+  },
+  "suites": [
+    {
+      "id": "judge-calibration",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "judge-calibration",
+      "target": "judge",
+      "owner": "example-reviewer",
+      "datasetSource": "synthetic",
+      "datasetVersion": "demo-v1",
+      "rubricVersion": "agreement-v1",
+      "graderVersion": "human-labels-v1",
+      "riskArea": "response-quality",
+      "graders": [
+        "human-labelled-calibration"
+      ],
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "minJudgeAgreementRate": 1,
+          "minCalibrationRows": 2
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "supported-answer",
+      "suite": "judge-calibration",
+      "kind": "human-review",
+      "severity": "none",
+      "category": "judge-calibration",
+      "passed": true,
+      "judgeModel": "synthetic-judge",
+      "judgeVerdict": true,
+      "groundTruthVerdict": true,
+      "judgeReasoning": "Synthetic judge label matches the supplied human label.",
+      "groundTruthCategory": "supported",
+      "groundTruthAnnotation": "Synthetic label for a runnable example, not production evidence.",
+      "agentVersion": "demo-v1",
+      "promptVersion": "demo-v1"
+    },
+    {
+      "id": "unsupported-answer",
+      "suite": "judge-calibration",
+      "kind": "human-review",
+      "severity": "none",
+      "category": "judge-calibration",
+      "passed": true,
+      "judgeModel": "synthetic-judge",
+      "judgeVerdict": false,
+      "groundTruthVerdict": false,
+      "judgeReasoning": "Synthetic judge label matches the supplied human label.",
+      "groundTruthCategory": "unsupported",
+      "groundTruthAnnotation": "Synthetic label for a runnable example, not production evidence.",
+      "agentVersion": "demo-v1",
+      "promptVersion": "demo-v1"
+    }
+  ]
+}
