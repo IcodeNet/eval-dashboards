@@ -326,11 +326,30 @@ export const checkGates = (
   for (const manifest of report.suiteManifests ?? []) {
     if (manifest.gate.mode !== 'blocking') continue;
 
-    const suiteSummary = report.suites.find((s) => s.id === manifest.name || s.name === manifest.name);
-    if (!suiteSummary) continue;
+    const summariesById = report.suites.filter((suite) => suite.id === manifest.name);
+    const matchingSummaries = summariesById.length > 0 ? summariesById : report.suites.filter((suite) => suite.name === manifest.name);
+    if (matchingSummaries.length > 1) {
+      if (Object.keys(manifest.gate.thresholds).length > 0) {
+        failures.push(`Suite "${manifest.name}" has ambiguous matching suite summaries for its blocking thresholds.`);
+      }
+      continue;
+    }
+    const suiteSummary = matchingSummaries[0];
+    if (!suiteSummary) {
+      if (Object.keys(manifest.gate.thresholds).length > 0) {
+        failures.push(`Suite "${manifest.name}" declares blocking thresholds but has no matching suite summary.`);
+      }
+      continue;
+    }
 
     const actual = suiteSummary.total > 0 ? suiteSummary.passed / suiteSummary.total : 0;
-    const suiteRows = report.rows.filter((row) => row.suite === manifest.name);
+    const suiteIdentifiers = new Set([suiteSummary.id]);
+    for (const alias of [manifest.name, suiteSummary.name]) {
+      if (alias !== undefined && !report.suites.some((other) => other !== suiteSummary && (other.id === alias || other.name === alias))) {
+        suiteIdentifiers.add(alias);
+      }
+    }
+    const suiteRows = report.rows.filter((row) => suiteIdentifiers.has(row.suite));
     const calibrationRows = suiteRows.filter(
       (row) => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined,
     );
@@ -340,23 +359,28 @@ export const checkGates = (
     const calibrationAgreementRate =
       calibrationRows.length > 0
         ? (calibrationRows.length - calibrationDisagreements) / calibrationRows.length
-        : 1;
+        : undefined;
     const calibrationDisagreementRate =
-      calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : 0;
+      calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : undefined;
     const calibrationAxisRows = suiteRows.filter(
       (row) => row.axisScores !== undefined && row.groundTruthAxisScores !== undefined,
     );
+    let nonFiniteCalibrationAxis = false;
     const calibrationAxisDeltas = calibrationAxisRows.flatMap((row) =>
       Object.entries(row.axisScores ?? {}).flatMap(([axis, score]) => {
         const groundTruthScore = row.groundTruthAxisScores?.[axis];
         if (groundTruthScore === undefined) return [];
+        if (!Number.isFinite(score) || !Number.isFinite(groundTruthScore)) {
+          nonFiniteCalibrationAxis = true;
+          return [];
+        }
         return [Math.abs(score - groundTruthScore)];
       }),
     );
     const calibrationAxisDelta =
       calibrationAxisDeltas.length > 0
         ? Math.max(...calibrationAxisDeltas)
-        : 0;
+        : undefined;
     const criticalFailures = suiteRows.filter(
       (row) => !row.passed && row.severity === 'critical',
     ).length;
@@ -406,10 +430,14 @@ export const checkGates = (
         normalizedMetric === 'judge_agreement_rate' ||
         normalizedMetric === 'judge-agreement-rate';
 
-      if (isJudgeAgreementRateKey && calibrationAgreementRate < threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`,
-        );
+      if (isJudgeAgreementRateKey) {
+        if (calibrationAgreementRate === undefined) {
+          failures.push(`Suite "${manifest.name}" has no labelled judge/human verdict pairs for blocking threshold ${metric}.`);
+        } else if (calibrationAgreementRate < threshold) {
+          failures.push(
+            `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+          );
+        }
       }
 
       const isJudgeDisagreementRateKey =
@@ -420,10 +448,14 @@ export const checkGates = (
         normalizedMetric === 'judge_disagreement_rate' ||
         normalizedMetric === 'judge-disagreement-rate';
 
-      if (isJudgeDisagreementRateKey && calibrationDisagreementRate > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
-        );
+      if (isJudgeDisagreementRateKey) {
+        if (calibrationDisagreementRate === undefined) {
+          failures.push(`Suite "${manifest.name}" has no labelled judge/human verdict pairs for blocking threshold ${metric}.`);
+        } else if (calibrationDisagreementRate > threshold) {
+          failures.push(
+            `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+          );
+        }
       }
 
       const isAxisScoreDeltaKey =
@@ -434,10 +466,16 @@ export const checkGates = (
         normalizedMetric === 'axis_delta_tolerance' ||
         normalizedMetric === 'axis-delta-tolerance';
 
-      if (isAxisScoreDeltaKey && calibrationAxisDelta > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
-        );
+      if (isAxisScoreDeltaKey) {
+        if (nonFiniteCalibrationAxis) {
+          failures.push(`Suite "${manifest.name}" has non-finite judge/human axis scores for blocking threshold ${metric}.`);
+        } else if (calibrationAxisDelta === undefined) {
+          failures.push(`Suite "${manifest.name}" has no matching judge/human axis-score pairs for blocking threshold ${metric}.`);
+        } else if (calibrationAxisDelta > threshold) {
+          failures.push(
+            `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+          );
+        }
       }
 
       const isRecognizedThresholdKey =

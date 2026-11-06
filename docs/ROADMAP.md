@@ -3,7 +3,7 @@
 This document captures the prioritized improvement plan for the project.
 It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original product requirements).
 
-**Last updated:** 2026-10-31
+**Last updated:** 2026-11-06
 
 ---
 
@@ -29,6 +29,7 @@ It complements `docs/STATUS.md` (tactical checklist) and `docs/PRP.md` (original
 - [Phase 4D: Trusted confidence reports and adoption execution](#-phase-4d-trusted-confidence-reports-and-adoption-execution-new)
 - [Phase 4J: OTel GenAI evaluation-span mapping](#-phase-4j-otel-genai-evaluation-span-mapping-new)
 - [Phase 4K: Full historical reports](#-phase-4k-full-historical-reports-complete)
+- [Gate and calibration review follow-up](#4e12-gate-and-calibration-review-follow-up-2026-11-06)
 - [Phase 5: Hosted evaluation platform](#phase-5-hosted-evaluation-platform-approved-scope-foundations-in-progress)
 
 > **Note on ordering:** sections below are in the order they were added, not
@@ -901,6 +902,7 @@ Acceptance criteria:
 Acceptance criteria:
 
 - A blocking judge-scored suite with no matching recent calibration run fails `check` with an actionable message naming the missing calibration evidence.
+- Audit 2026-11-06: existence/recency matching is implemented, but evidence quality is not enforced yet; 4E.12.2 tracks that separate acceptance gap.
 
 ### 4E.4 Multi-reviewer adjudication as the default (P0, M)
 
@@ -1025,11 +1027,82 @@ Acceptance criteria:
 
 Rationale: OpenAI's eval workflow documentation explicitly uses uploaded JSONL datasets and teams migrating off hosted eval surfaces increasingly handle line-oriented artifacts first (`https://developers.openai.com/api/docs/guides/evals`).
 
+### 4E.12 Gate and calibration review follow-up (2026-11-06)
+
+Prioritize gate correctness before further hosted indexing. The owner-provided
+review was checked against current main: missing calibration observations can
+pass agreement/disagreement/axis thresholds, preflight only checks matching
+evidence exists, and `zeroCritical` counts passing critical rows. Reproduce each
+bug with a failing regression before fixing it. Keep one fix per commit, record
+red/green evidence, run the full required checks, and add a changelog entry.
+Preserve the portable `eval-report/v1` contract and the existing review/merge
+and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
+
+1. [x] **4E.12.1 — Missing calibration observations (P0).** Blocking agreement and
+   disagreement bars must fail when there are no paired judge/human verdicts.
+   Blocking axis-delta bars must fail when there are no shared scored axes.
+   Report-only manifest thresholds are not evaluated. Missing is
+   unknown, not perfect agreement or zero disagreement. Diagnostics must name
+   the missing evidence; genuine measured zeros remain valid observations.
+   Configured blocking thresholds also fail when their suite summary is missing;
+   Canonical IDs and unique aliases resolve the same rows; ambiguous names cannot
+   borrow labels from another suite. Paired axis scores must be finite.
+   Source evidence: `src/gates/check-gates.ts` and
+   `test/calibration-missing-evidence.test.ts` (red then green, including CLI).
+2. [ ] **4E.12.2 — Calibration evidence quality (P0).** A recent independent
+   matching run must meet its declared agreement bar before it qualifies as
+   calibration evidence. Missing or failed bars do not qualify. Check the
+   relevant judge model and rubric; other judges' rows must not hide failure.
+   Preserve explicit warning-only/escape-hatch behavior and its accounting.
+3. [ ] **4E.12.3 — Minimum calibration sample (P1).** Add a configurable minimum
+   number of eligible labelled pairs. Fail below it; unlabelled rows do not
+   increase the denominator. Exercise small samples and per-judge eligibility.
+4. [ ] **4E.12.4 — Calibration statistics (P1).** Report raw agreement, paired
+   counts, Cohen's kappa and per-category agreement. Thresholds are opt-in.
+   Keep undefined/degenerate cases explicit rather than manufacturing a pass.
+5. [ ] **4E.12.5 — Critical failures (P1).** Make `zeroCritical` count failed
+   critical rows, consistent with suite critical-failure thresholds. Prove that
+   a passing critical row does not fail it, while a failed critical row does.
+6. [ ] **4E.12.6 — Multi-class labels (P1).** Add an optional declared label scale,
+   judge/human class labels and explicit pass-class mapping. Support agreement,
+   kappa, validation and reports without changing boolean verdicts or repurposing
+   failure-category fields. Keep schema, examples and adjudication aligned.
+7. [ ] **4E.12.7 — Baseline version keys (P1).** Add optional comparability keys
+   for model digest, prompt hash, tool contract and instance configuration.
+   Compare declared values when both runs carry them; surface missing metadata
+   clearly. Do not mistake an intentional experiment treatment for uncontrolled
+   drift or silently call absent metadata a verified match.
+
+**Recorded for later; do not implement as part of this correction sequence:**
+
+- [ ] **4E.12.8a — Experiment scoping.** Filter current/baseline/history by an
+  explicit experiment ID, beyond the existing display labels. Prevent unrelated
+  projects/experiments in one input directory from silently mixing.
+- [ ] **4E.12.8b — Any-two-run row comparison.** Add a side-by-side evidence view
+  for two selected runs, building on current matched-case analytics, explicit
+  baselines and full history rather than duplicating those capabilities.
+- [ ] **4E.12.8c — History append.** Add an append operation with clear identity,
+  ordering, retention and concurrency behavior for file/SQLite/future stores.
+- [ ] **4E.12.8d — Langfuse import follow-up.** Reproduce trace-link and categorical
+  score issues against current source, then preserve `row.trace` and require an
+  explicit categorical mapping. Do not assume older-checkout observations are
+  still current or silently convert unknown labels into booleans.
+
+The review's 0.10.0 release snapshot and some statistical/history claims describe
+an older checkout. Portable 0.11.0 is published, opt-in paired comparisons and
+full historical artifacts already exist, and hosted work is approved under
+Phase 5. This follow-up records verified gaps without replacing those completed
+features or claiming the hosted service is shipped. M2 indexing work is retained
+for resumption after the correctness fixes.
+
 ### Non-goals for this phase
 
 - Hosted ingestion API, time-series store, auth-gated dashboard app, and cross-repo/team rollup views are explicitly out of scope for 4E. (Update: a local history store behind a storage adapter is now in scope under Phase 4K; the hosted API and auth-gated app remain out of scope.) They require a separate, explicitly resourced platform decision (see review verdict: pair with an existing hosted observability product, or fork into a new service with its own team/SLA) and must not be bolted on incrementally under this phase. **Scope amendment 2026-10-31:** hosted functionality is now approved under Phase 5; the exclusion applies only to this historical phase.
 
 ### 4E execution order
+
+2026-11-06 priority: complete 4E.12.1–4E.12.7 in the order above before
+resuming new hosted indexing features; 4E.12.8 stays roadmap-only.
 
 Revised after the 2026-09-14 multi-role review (see Phase 4F review inputs). Ordering is by adoption impact, not by item number.
 

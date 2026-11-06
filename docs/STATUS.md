@@ -379,3 +379,31 @@ This is coordination source, not a running indexing service. The next slice
 must verify private artifact bytes and atomically index results under the lease.
 Accounts, key issuance, service composition and operations remain open; M2 is
 incomplete. Portable APIs/dependencies and `eval-report/v1` are unchanged.
+
+
+### Gate and calibration review follow-up — 2026-11-06
+
+The current-source review confirmed three gate problems: absent labelled
+calibration observations can pass configured thresholds; matching calibration
+evidence need not meet its agreement bar; and `zeroCritical` counts passing
+critical rows. [4E.12 in the roadmap](./ROADMAP.md#4e12-gate-and-calibration-review-follow-up-2026-11-06)
+tracks their fixes, minimum samples, kappa/per-category reporting, optional
+multi-class labels and baseline version keys. Experiment filtering, any-two-run
+evidence views, history append and Langfuse follow-ups are recorded for later.
+
+Each correction requires a failing regression first, observed green evidence,
+a changelog entry and the existing checked/reviewed PR merge loop. Hosted
+indexing work in progress is preserved; it is not marked delivered. Version
+1.0.0 remains gated by the owner.
+
+
+The first correction is implemented in source: configured blocking agreement,
+disagreement and axis-delta thresholds reject missing paired observations.
+`test/calibration-missing-evidence.test.ts` reproduces the previous CLI pass
+(exit 0) and verifies failure after the fix (exit 1), plus genuine measured-zero
+controls. Calibration preflight quality, sample floors and other 4E.12 items
+remain open. This source correction is not in published 0.11.0.
+
+Review follow-up also covers missing suite summaries, suite ID/name aliases,
+non-finite paired axis scores in programmatic calls, and explicit report-only
+wording. The extra regressions were run red before the review fixes.
