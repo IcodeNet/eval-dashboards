@@ -29,6 +29,9 @@ Run `check` before publishing when you need that enforcement; `publish` itself
 does not evaluate calibration policy.
 The optional `minCalibrationRows` bar also applies during `check`, including
 the relevant judge's preflight evidence. See the [minimum sample guide](./gates.md#minimum-labelled-sample).
+Published static reports can display [calibration statistics](./calibration-statistics.md)
+without enabling a gate. Configure `minJudgeKappa` and run `check` separately
+when you need a kappa threshold enforced.
 
 Supported targets:
 

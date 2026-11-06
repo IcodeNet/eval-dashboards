@@ -3,6 +3,7 @@ import type { RunComparison } from '../history/history.js';
 import { type EvalReportV1, summarizeReport } from '../model/eval-report-v1.js';
 import type { BaselineCompatibilityResult } from '../model/eval-report-v1.js';
 import { lintReportTaxonomy } from './lint-taxonomy.js';
+import { measureCalibrationAgreement } from '../analytics/calibration.js';
 import {
   bootstrapPassRateDelta,
   validateStatisticalGateConfig,
@@ -350,18 +351,9 @@ export const checkGates = (
       }
     }
     const suiteRows = report.rows.filter((row) => suiteIdentifiers.has(row.suite));
-    const calibrationRows = suiteRows.filter(
-      (row) => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined,
-    );
-    const calibrationDisagreements = calibrationRows.filter(
-      (row) => row.judgeVerdict !== row.groundTruthVerdict,
-    ).length;
-    const calibrationAgreementRate =
-      calibrationRows.length > 0
-        ? (calibrationRows.length - calibrationDisagreements) / calibrationRows.length
-        : undefined;
-    const calibrationDisagreementRate =
-      calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : undefined;
+    const calibration = measureCalibrationAgreement(suiteRows);
+    const calibrationAgreementRate = calibration.agreementRate;
+    const calibrationDisagreementRate = calibration.total > 0 ? calibration.disagreements / calibration.total : undefined;
     const calibrationAxisRows = suiteRows.filter(
       (row) => row.axisScores !== undefined && row.groundTruthAxisScores !== undefined,
     );
@@ -400,6 +392,16 @@ export const checkGates = (
       }
 
       const normalizedMetric = metric.toLowerCase();
+      const isJudgeKappaKey = ['minjudgekappa', 'min_judge_kappa', 'min-judge-kappa'].includes(normalizedMetric);
+      if (isJudgeKappaKey) {
+        if (!Number.isFinite(threshold) || threshold < -1 || threshold > 1) {
+          failures.push(`Suite "${manifest.name}" ${metric} must be finite and between -1 and 1.`);
+        } else if (calibration.kappa === undefined) {
+          failures.push(`Suite "${manifest.name}" judge kappa is unavailable (${calibration.kappaStatus}) for blocking threshold ${metric}.`);
+        } else if (calibration.kappa < threshold) {
+          failures.push(`Suite "${manifest.name}" judge kappa ${calibration.kappa.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`);
+        }
+      }
       const isMinCalibrationRowsKey =
         normalizedMetric === 'mincalibrationrows' ||
         normalizedMetric === 'min_calibration_rows' ||
@@ -407,8 +409,8 @@ export const checkGates = (
       if (isMinCalibrationRowsKey) {
         if (!Number.isSafeInteger(threshold) || threshold <= 0) {
           failures.push(`Suite "${manifest.name}" ${metric} must be a positive safe integer.`);
-        } else if (calibrationRows.length < threshold) {
-          failures.push(`Suite "${manifest.name}" labelled judge/human verdict pairs ${calibrationRows.length} are below blocking threshold ${metric}=${threshold}.`);
+        } else if (calibration.total < threshold) {
+          failures.push(`Suite "${manifest.name}" labelled judge/human verdict pairs ${calibration.total} are below blocking threshold ${metric}=${threshold}.`);
         }
       }
       const isMaxCriticalFailuresKey =
@@ -492,6 +494,7 @@ export const checkGates = (
       const isRecognizedThresholdKey =
         isPassRateKey ||
         isMinCalibrationRowsKey ||
+        isJudgeKappaKey ||
         isMaxCriticalFailuresKey ||
         isCriticalFailureRateKey ||
         isJudgeAgreementRateKey ||
@@ -502,7 +505,7 @@ export const checkGates = (
         failures.push(
           `Suite "${manifest.name}" has an unrecognized gate.thresholds key "${metric}" (blocking mode) — ` +
             'it does not match any known threshold name (passRate, maxCriticalFailures, criticalFailureRate, ' +
-            'minCalibrationRows, minJudgeAgreementRate, maxJudgeDisagreementRate, maxAxisScoreDelta) and would otherwise be silently ' +
+            'minCalibrationRows, minJudgeKappa, minJudgeAgreementRate, maxJudgeDisagreementRate, maxAxisScoreDelta) and would otherwise be silently ' +
             'ignored, enforcing nothing. Fix the key name or remove it.',
         );
       }

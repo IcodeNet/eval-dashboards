@@ -1,6 +1,7 @@
 import { describeRepeatedTrials, describeRepeatedTrialCase, describeTrialReason, formatTrialRate, formatTrialInterval, formatTrialBaseline, formatTrialChange } from '../analytics/repeated-trials.js';
 import path from 'node:path';
 import { describePairedComparison, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
+import { summarizeCalibration, describeCalibration, type CalibrationAgreement, type CalibrationSummary } from '../analytics/calibration.js';
 import { analyzeRun, type RunAnalytics } from '../analytics/run-analytics.js';
 import type { MeasuredMetric } from '../analytics/telemetry.js';
 import { gateDecisionFromResult, type GateDecision } from '../gates/decision.js';
@@ -139,6 +140,7 @@ const renderText = (context: ReportContext): string => {
     `Introduced:       ${analytics.cohort.introducedCases} cases, ${analytics.cohort.introducedFailures} failures`,
     describePairedComparison(analytics.pairedComparison),
     ...(analytics.repeatedTrials.currentCases > 0 ? [describeRepeatedTrials(analytics.repeatedTrials), ...analytics.repeatedTrials.cases.map(entry => stripControlCharacters(describeRepeatedTrialCase(entry)).replace(/[\r\n]+/g, ' '))] : []),
+    ...calibrationLines(analytics.calibration),
     `Measured cost:    ${metricDescription(analytics.telemetry.cost)}`,
     `Measured latency: ${metricDescription(analytics.telemetry.duration)}`,
     `Baseline:         ${context.baselineCompatibility?.status ?? 'not compared'}`,
@@ -258,6 +260,8 @@ export const renderMarkdown = (context: ReportContext): string => {
   }
 
   lines.push('');
+
+  lines.push('## Calibration agreement', '', ...calibrationLines(analytics.calibration).map(line => `- ${e(line)}`), '');
 
   if (frontierSummary) {
     lines.push('## Cost/latency-quality frontier', '');
@@ -1344,90 +1348,42 @@ ${rightControls ? `        ${rightControls}\n` : ''}      </div>
     </div>`;
 };
 
-type JudgeCalibrationSummary = {
-  total: number;
-  agreements: number;
-  disagreements: number;
-  agreementRate: number;
-  suiteSummaries: Array<{
-    suite: string;
-    total: number;
-    agreements: number;
-    disagreements: number;
-    agreementRate: number;
-  }>;
-};
+const calibrationRate = (value: number | undefined): string => value === undefined ? 'Unknown' : `${(value * 100).toFixed(1)}%`;
+const calibrationKappa = (summary: CalibrationAgreement): string => summary.kappa === undefined
+  ? `Unavailable (${summary.kappaStatus === 'no-pairs' ? 'no paired labels' : 'only one observed label'})`
+  : summary.kappa.toFixed(3);
 
-const summarizeJudgeCalibration = (rows: EvalRow[]): JudgeCalibrationSummary | undefined => {
-  const calibrationRows = rows.filter(
-    (row) => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined,
-  );
+const calibrationLines = (summary: CalibrationSummary): string[] => [
+  describeCalibration(summary),
+  ...summary.labelCounts.map(counts => `Human label ${counts.label}: human=${counts.human}, judge=${counts.judge}, matches=${counts.matches}, match rate=${calibrationRate(counts.agreementRate)}`),
+  ...summary.suiteSummaries.slice(0, 20).map(suite => `Suite ${suite.suite}: ${describeCalibration(suite)}`),
+  ...summary.judgeSummaries.slice(0, 20).map(judge => `Judge ${judge.judgeModel ?? '(missing model)'}: ${describeCalibration(judge)}`),
+  ...summary.categorySummaries.slice(0, 20).map(category => `Human category ${category.category ?? '(missing category)'}: ${describeCalibration(category)}`),
+  ...(summary.suiteSummaries.length > 20 || summary.judgeSummaries.length > 20 || summary.categorySummaries.length > 20 ? ['At most 20 groups per dimension shown; JSON analytics includes every group.'] : []),
+].map(line => stripControlCharacters(line).replace(/[\r\n]+/g, ' '));
 
-  if (calibrationRows.length === 0) return undefined;
+const calibrationBreakdownTable = (title: string, groups: Array<CalibrationAgreement & { label: string }>): string =>
+  `<h3>${e(title)}</h3><div class="table-wrap" tabindex="0" role="region" aria-label="${e(title)} calibration statistics"><table>
+    <thead><tr><th>${e(title)}</th><th>Paired labels</th><th>Agree</th><th>Disagree</th><th>Agreement</th><th>Cohen's kappa</th></tr></thead>
+    <tbody>${groups.slice(0, 20).map(group => `<tr><td>${e(group.label)}</td><td>${group.total}</td><td>${group.agreements}</td><td>${group.disagreements}</td><td>${e(calibrationRate(group.agreementRate))}</td><td>${e(calibrationKappa(group))}</td></tr>`).join('')}</tbody>
+  </table></div>${groups.length > 20 ? `<p>Showing 20 of ${groups.length} groups; JSON analytics includes every group.</p>` : ''}`;
 
-  const bySuite = new Map<string, { total: number; agreements: number; disagreements: number }>();
-  let agreements = 0;
-  let disagreements = 0;
-
-  for (const row of calibrationRows) {
-    const suite = row.suite;
-    const agrees = row.judgeVerdict === row.groundTruthVerdict;
-    const suiteStats = bySuite.get(suite) ?? { total: 0, agreements: 0, disagreements: 0 };
-
-    suiteStats.total += 1;
-    if (agrees) {
-      suiteStats.agreements += 1;
-      agreements += 1;
-    } else {
-      suiteStats.disagreements += 1;
-      disagreements += 1;
-    }
-
-    bySuite.set(suite, suiteStats);
-  }
-
-  return {
-    total: calibrationRows.length,
-    agreements,
-    disagreements,
-    agreementRate: agreements / calibrationRows.length,
-    suiteSummaries: Array.from(bySuite.entries()).map(([suite, stats]) => ({
-      suite,
-      total: stats.total,
-      agreements: stats.agreements,
-      disagreements: stats.disagreements,
-      agreementRate: stats.total > 0 ? stats.agreements / stats.total : 0,
-    })),
-  };
-};
-
-const judgeCalibrationTable = (summary: JudgeCalibrationSummary): string =>
-  `<div class="meta-grid">
-    <div class="meta-card"><div class="meta-label" data-tip="How many labelled calibration rows are available for comparison.">Labelled rows</div><div class="meta-value">${summary.total}</div></div>
-    <div class="meta-card"><div class="meta-label" data-tip="The share of calibration rows where the judge matched the labelled verdict.">Agreement rate</div><div class="meta-value">${(summary.agreementRate * 100).toFixed(1)}%</div></div>
-    <div class="meta-card"><div class="meta-label" data-tip="The number of calibration rows where the judge disagreed with the labelled verdict.">Disagreements</div><div class="meta-value">${summary.disagreements}</div></div>
-    <div class="meta-card"><div class="meta-label" data-tip="The count of rows where the judge and the labelled verdict matched.">Agreement pairs</div><div class="meta-value">${summary.agreements}/${summary.total}</div></div>
+const judgeCalibrationTable = (summary: CalibrationSummary): string =>
+  `<div class="calibration-evidence"><div class="meta-grid">
+    <div class="meta-card"><div class="meta-label">Paired labels</div><div class="meta-value">${summary.total}</div></div>
+    <div class="meta-card"><div class="meta-label">Agreement rate</div><div class="meta-value">${e(calibrationRate(summary.agreementRate))}</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="Agreement adjusted by the two annotators' observed label frequencies. Undefined when expected agreement is one.">Cohen's kappa</div><div class="meta-value">${e(calibrationKappa(summary))}</div></div>
+    <div class="meta-card"><div class="meta-label">Disagreements</div><div class="meta-value">${summary.disagreements}</div></div>
   </div>
-  <div class="table-wrap"><table>
-    <thead><tr>
-      ${th('Suite', 'Calibration suite that groups the labelled judge rows.')}
-      ${th('Labelled', 'Number of rows with a human-labelled ground truth verdict for this suite.', 'num')}
-      ${th('Agree', 'Rows where the judge verdict matched the ground truth verdict.', 'num')}
-      ${th('Disagree', 'Rows where the judge verdict did not match the ground truth verdict.', 'num')}
-      ${th('Agreement rate', 'Agree divided by labelled rows for this suite.', 'num')}
-    </tr></thead>
-    <tbody>${summary.suiteSummaries
-    .map(
-      (suite) => `<tr>
-          <td>${e(suite.suite)}</td>
-          <td class="num">${suite.total}</td>
-          <td class="num pass">${suite.agreements}</td>
-          <td class="num fail">${suite.disagreements}</td>
-          <td>${e(`${(suite.agreementRate * 100).toFixed(1)}%`)}</td>
-        </tr>`,
-    )
-    .join('')}</tbody>
-  </table></div>`;
+  <p>Descriptive evidence, not an automatic quality gate. Kappa uses observed judge and human label frequencies; inspect raw agreement, sample size and class coverage together. These counts do not prove independent or representative samples.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Judge and human label counts"><table>
+    <thead><tr><th>Boolean label</th><th>Human count</th><th>Judge count</th><th>Matches</th><th>Match rate within human class</th></tr></thead>
+    <tbody>${summary.labelCounts.map(counts => `<tr><td>${counts.label}</td><td>${counts.human}</td><td>${counts.judge}</td><td>${counts.matches}</td><td>${e(calibrationRate(counts.agreementRate))}</td></tr>`).join('')}</tbody>
+  </table></div>
+  ${calibrationBreakdownTable('Suite', summary.suiteSummaries.map(group => ({ ...group, label: group.suite })))}
+  ${calibrationBreakdownTable('Judge model', summary.judgeSummaries.map(group => ({ ...group, label: group.judgeModel ?? '(missing model)' })))}
+  ${calibrationBreakdownTable('Human label category', summary.categorySummaries.map(group => ({ ...group, label: group.category ?? '(missing category)' })))}
+  <p>Categories use the human annotation. Missing categories remain unknown; failure categories are kept separate.</p></div>`;
 
 const frontierRowsTable = (
   points: QualityFrontierPoint[],
@@ -1595,7 +1551,8 @@ const renderHtml = (context: ReportContext): string => {
   const provenance = reportProvenance(current);
   const theme = resolveTheme(context.theme);
   const summary = summarizeReport(current);
-  const judgeCalibration = summarizeJudgeCalibration(rows);
+  const judgeCalibration = summarizeCalibration(rows);
+  const showJudgeCalibration = judgeCalibration.total > 0 || rows.some(row => row.judgeVerdict !== undefined || row.groundTruthVerdict !== undefined) || (current.suiteManifests ?? []).some(manifest => manifest.graders.includes('human-labelled-calibration'));
   const failingRows = rows.filter((r) => !r.passed);
   const guardrailSummary = summarizeGuardrailRows(current);
   const complianceCoverage = summarizeComplianceCoverage(current);
@@ -1626,9 +1583,7 @@ const renderHtml = (context: ReportContext): string => {
   const manifestBySuiteForRows = new Map((current.suiteManifests ?? []).map((manifest) => [manifest.name, manifest]));
   const datasetChangelogSummary = `${pluralize(datasetChangelog.length, 'entry')} • +${datasetChangelogTotals.added} / ~${datasetChangelogTotals.updated} / -${datasetChangelogTotals.removed}`;
   const baselineCompatibilitySummary = `${compatStatus} • ${pluralize(compat?.issues.length ?? 0, 'issue')}`;
-  const judgeCalibrationSummary = judgeCalibration
-    ? `${pluralize(judgeCalibration.total, 'labelled row')} • ${(judgeCalibration.agreementRate * 100).toFixed(1)}% agreement • ${pluralize(judgeCalibration.disagreements, 'disagreement')}`
-    : '';
+  const judgeCalibrationSummary = `${pluralize(judgeCalibration.total, 'paired label')} • ${calibrationRate(judgeCalibration.agreementRate)} agreement • ${pluralize(judgeCalibration.disagreements, 'disagreement')} • kappa ${calibrationKappa(judgeCalibration)}`;
   const suiteSummaryTone = 'muted';
   const failingRowsTone: 'pass' | 'warn' | 'fail' =
     failingRows.length === 0 ? 'pass' : comparison.persistentFailures.length > 0 ? 'fail' : 'warn';
@@ -1685,6 +1640,8 @@ ${renderCssVariables(theme)}
     .section-summary-fail { color: var(--fail); font-weight: 700; }
     .section.collapsible.collapsed .section-body { display: none; }
     .section-body { padding: 0; }
+    .calibration-evidence > p { margin: 12px 16px; font-size: 13px; }
+    .calibration-evidence > h3 { margin: 14px 16px 8px; font-size: 15px; }
 
     /* ── Tables ── */
     .table-wrap { overflow-x: auto; }
@@ -2008,13 +1965,13 @@ ${statisticalSummary
 
     ${guardrailProfileEnabled && guardrailSummary ? guardrailTriageSection(guardrailSummary) : ''}
 
-    ${judgeCalibration
+    ${showJudgeCalibration
       ? renderCollapsibleSection({
         id: 'judge-calibration',
         title: 'Judge calibration',
         summary: judgeCalibrationSummary,
         body: judgeCalibrationTable(judgeCalibration),
-        summaryTone: judgeCalibration.disagreements === 0 ? 'pass' : 'warn',
+        summaryTone: judgeCalibration.kappaStatus !== 'defined' ? 'muted' : judgeCalibration.disagreements === 0 ? 'pass' : 'warn',
       })
       : ''
     }

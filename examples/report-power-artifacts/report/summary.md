@@ -20,6 +20,12 @@
 | Commit | e4f5a6b |
 | Build | build-142 |
 
+## Calibration agreement
+
+- Calibration: pairs=0, agreement=unknown, kappa=unavailable (no-pairs)
+- Human label false: human=0, judge=0, matches=0, match rate=Unknown
+- Human label true: human=0, judge=0, matches=0, match rate=Unknown
+
 ## Cost/latency-quality frontier
 
 ### Latency-quality frontier

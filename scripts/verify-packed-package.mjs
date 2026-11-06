@@ -27,7 +27,7 @@ try {
   run('npm', ['ls', '@octokit/rest', '@octokit/request', 'content-type', '--all']);
   fs.writeFileSync(path.join(temp, 'consumer.ts'), `
 import type { EvalReportV1, EvalRow, RepeatedTrialSummary } from '@icodenet/eval-dashboards';
-import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1, publishReport } from '@icodenet/eval-dashboards';
+import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, summarizeCalibration, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1, publishReport } from '@icodenet/eval-dashboards';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 const row: EvalRow = { id: 'consumer', suite: 'smoke', passed: true };
 const report: EvalReportV1 = {
@@ -36,6 +36,9 @@ const report: EvalReportV1 = {
   suites: [{ id: 'smoke', total: 1, passed: 1, failed: 0, passRate: 1 }], rows: [row],
 };
 if (!validateEvalReport(report).ok || !rowKey(row)) throw new Error('Public runtime exports failed');
+const calibration = summarizeCalibration([{ ...row, id: 'false-label', judgeVerdict: false, groundTruthVerdict: false },
+  { ...row, id: 'true-label', judgeVerdict: true, groundTruthVerdict: true }]);
+if (calibration.kappa !== 1 || calibration.total !== 2) throw new Error('Public calibration statistics failed');
 const store: HistoryStore = createSqliteHistoryStore('unused.sqlite');
 if (typeof store.read !== 'function' || typeof createHistoryStoreForPath !== 'function') throw new Error('History store exports failed');
 const schema = JSON.parse(readFileSync(new URL(import.meta.resolve('@icodenet/eval-dashboards/schemas/eval-report-v1.schema.json')), 'utf8'));

@@ -387,10 +387,11 @@ describe('render html safety and taxonomy scoring', () => {
 
     const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
     expect(html).toContain('Judge calibration');
-    expect(html).toContain('3 labelled rows');
+    expect(html).toContain('3 paired labels');
     expect(html).toContain('66.7% agreement');
     expect(html).toContain('1 disagreement');
-    expect(html).toContain('Agreement pairs');
+    expect(html).toContain("Cohen's kappa");
+    expect(html).toContain('kappa 0.400');
   });
 
   it('renders humanReviews and reviewAgreement in row detail (4F.19)', async () => {

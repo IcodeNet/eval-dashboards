@@ -95,9 +95,12 @@ const isJudgeScoredSuite = (manifest: SuiteManifest): boolean =>
 
 /** Recompute the calibration suite's declared bars using only this judge's rows. */
 const hasPassingCalibration = (report: EvalReportV1, manifest: SuiteManifest, judgeModel: string): boolean => {
-  const hasAgreementBar = Object.entries(manifest.gate.thresholds).some(([key, value]) =>
-    ['minjudgeagreementrate', 'judgeagreementrate', 'maxjudgedisagreementrate', 'judgedisagreementrate']
-      .includes(key.trim().toLowerCase().replace(/[_-]/g, '')) && Number.isFinite(value) && value >= 0 && value <= 1);
+  const hasAgreementBar = Object.entries(manifest.gate.thresholds).some(([key, value]) => {
+    const metric = key.trim().toLowerCase().replace(/[_-]/g, '');
+    if (metric === 'minjudgekappa') return Number.isFinite(value) && value >= -1 && value <= 1;
+    return ['minjudgeagreementrate', 'judgeagreementrate', 'maxjudgedisagreementrate', 'judgedisagreementrate']
+      .includes(metric) && Number.isFinite(value) && value >= 0 && value <= 1;
+  });
   if (!hasAgreementBar) return false;
 
   const byId = report.suites.filter(suite => suite.id === manifest.name);

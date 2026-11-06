@@ -1062,9 +1062,13 @@ and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
    Source evidence: `src/gates/check-gates.ts`,
    `test/calibration-minimum-sample.test.ts` (red/green, real CLI), and
    `examples/calibration-minimum-sample/`.
-4. [ ] **4E.12.4 — Calibration statistics (P1).** Report raw agreement, paired
+4. [x] **4E.12.4 — Calibration statistics (P1).** Report raw agreement, paired
    counts, Cohen's kappa and per-category agreement. Thresholds are opt-in.
    Keep undefined/degenerate cases explicit rather than manufacturing a pass.
+   Source evidence: `src/analytics/calibration.ts`,
+   `test/calibration-statistics.test.ts` (red/green, reporter and gate parity),
+   and `docs/calibration-statistics.md`. Reporting is descriptive;
+   `minJudgeKappa` is opt-in.
 5. [ ] **4E.12.5 — Critical failures (P1).** Make `zeroCritical` count failed
    critical rows, consistent with suite critical-failure thresholds. Prove that
    a passing critical row does not fail it, while a failed critical row does.

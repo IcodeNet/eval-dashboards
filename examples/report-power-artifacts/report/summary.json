@@ -258,6 +258,29 @@
       "unavailableComparisons": 0,
       "caseCount": 0,
       "cases": []
+    },
+    "calibration": {
+      "total": 0,
+      "agreements": 0,
+      "disagreements": 0,
+      "kappaStatus": "no-pairs",
+      "labelCounts": [
+        {
+          "label": false,
+          "judge": 0,
+          "human": 0,
+          "matches": 0
+        },
+        {
+          "label": true,
+          "judge": 0,
+          "human": 0,
+          "matches": 0
+        }
+      ],
+      "suiteSummaries": [],
+      "judgeSummaries": [],
+      "categorySummaries": []
     }
   },
   "gateDecision": {
