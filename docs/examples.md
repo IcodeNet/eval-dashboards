@@ -224,3 +224,10 @@ secret through the real restricted PostgreSQL lookup.
 The same `pnpm test:hosted-db` run verifies the [worker lease protocol](../hosted/workers/README.md):
 concurrent claims, locked work, stale-token denial, heartbeat, delayed retries
 and bounded attempts. It exercises database coordination, not a running indexer.
+
+
+For calibration fixtures, put both `judgeVerdict` and `groundTruthVerdict` on
+the same row before using agreement/disagreement thresholds. Axis-delta fixtures
+need shared judge/human axis names. In source after 0.11.0, missing pairs fail a
+configured blocking threshold; report-only suites remain optional. See
+[calibration gates](./gates.md#calibration-thresholds-require-observations).

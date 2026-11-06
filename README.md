@@ -34,6 +34,8 @@ The [worker lease protocol](hosted/workers/README.md) adds concurrent claims,
 renewal, retry delays and stale-token checks. Accounts, credential issuance,
 artifact indexing and hosted deployment remain open.
 The portable package and static reports require no database.
+Source corrections after 0.11.0 make configured calibration thresholds reject
+missing labelled observations; see [calibration gate behavior](docs/gates.md#calibration-thresholds-require-observations).
 
 
 <div align="center">

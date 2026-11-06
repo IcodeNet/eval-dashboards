@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-06",
+  "scope": "4E.12.1: reject absent observations for configured blocking calibration thresholds",
+  "baseline": {
+    "revision": "205790bb4dca846c00603fb5df86a11d71a51f8d",
+    "command": "pnpm exec vitest run test/calibration-missing-evidence.test.ts",
+    "result": "12 failed, 3 passed. The CLI assertion expected exit 1 but received 0 for a blocking minJudgeAgreementRate=0.8 with no paired verdicts. Tests added on top of unchanged baseline gate source."
+  },
+  "after": {
+    "command": "pnpm exec vitest run test/calibration-missing-evidence.test.ts test/gates.test.ts test/evaluate-policy.test.ts",
+    "result": "54 passed across 3 files. CLI exits 1 and prints the missing-labelled-pairs diagnostic. Public complete policy agrees."
+  },
+  "cases": [
+    "Agreement and disagreement bars fail when no judge/human verdict pairs exist, including permissive numerical bounds.",
+    "One-sided labels do not count as evidence.",
+    "Axis-delta bars fail with absent or disjoint judge/human axes.",
+    "Measured zero agreement and zero axis delta remain actual observations.",
+    "Paired false verdicts count.",
+    "Unconfigured and report-only suites retain their behavior."
+  ],
+  "contract": "No eval-report/v1 fields, CLI flags, public result shapes or runtime dependencies changed. The intentional outcome change is that missing calibration evidence no longer passes a configured bar.",
+  "roadmap": "Owner findings recorded under 4E.12. Preflight quality, minimum samples, kappa/category reporting, multi-class labels and additional baseline keys remain open. Experiment scoping, any-two-run views, history append and Langfuse follow-ups are deferred.",
+  "limits": [
+    "No independent security audit or performance benchmark claimed.",
+    "The review referenced an older checkout; release/statistical/history assertions were reconciled with current source.",
+    "M2 indexer work is preserved in a named local checkpoint and is not shipped.",
+    "Source fix is not part of published 0.11.0; no version bump or release in this change."
+  ],
+  "fullCheck": {
+    "command": "pnpm check",
+    "result": "Passed: 1004 Vitest tests in 96 files, typecheck, teaching output, documented flags, build and nine hook tests. Repository has no separate source-code lint script."
+  }
+}

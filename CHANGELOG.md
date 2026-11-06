@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Blocking calibration agreement/disagreement thresholds now fail when no paired
+  judge/human verdicts exist. Axis-delta thresholds also require shared scored
+  axes. Missing evidence no longer counts as perfect agreement or zero error;
+  measured zero agreement/delta remains a real observation.
+
 ### Added
 
 - Private hosted API secret generation and bearer-header authentication helpers:

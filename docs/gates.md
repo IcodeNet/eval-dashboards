@@ -126,6 +126,21 @@ Initial gates:
 - `statistical.minPassRateDelta`
 - `repeat.runs` / `repeat.requiredPasses` (4F.23)
 
+## Calibration thresholds require observations
+
+In source after 0.11.0, a blocking `minJudgeAgreementRate` or
+`maxJudgeDisagreementRate` threshold requires at least one row with both
+`judgeVerdict` and `groundTruthVerdict`. One-sided labels do not count. With no
+paired verdicts, the gate fails and names the missing labelled evidence.
+
+`maxAxisScoreDelta` requires at least one axis scored by both judge and human
+on the same row. Disjoint axis names are not matching evidence. Missing scores
+no longer imply a zero delta. An actual measured zero agreement or zero axis
+delta remains valid and is compared with the configured threshold normally.
+Report-only suites and suites without these thresholds do not gain an implicit
+label requirement. The configurable minimum sample and calibration preflight
+quality checks are separate [roadmap follow-ups](./ROADMAP.md#4e12-gate-and-calibration-review-follow-up-2026-11-06).
+
 ## PR-subset vs full-suite tiering with a cost budget (4F.10)
 
 Tag suites in their manifest with `tier: 'pr' | 'full' | 'both'` (default `both`

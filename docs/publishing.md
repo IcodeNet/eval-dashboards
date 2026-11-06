@@ -20,6 +20,10 @@ separate source-only work, including project-bound credential lookup and
 `publish` does not write that database or
 provide artifact ingestion; the offline portable package still needs no server.
 
+Source calibration corrections after 0.11.0 are tracked in the
+[changelog](../CHANGELOG.md) and [gate guide](./gates.md#calibration-thresholds-require-observations).
+They are not yet part of the published 0.11.0 package.
+
 Supported targets:
 
 - `dir`

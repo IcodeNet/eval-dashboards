@@ -340,9 +340,9 @@ export const checkGates = (
     const calibrationAgreementRate =
       calibrationRows.length > 0
         ? (calibrationRows.length - calibrationDisagreements) / calibrationRows.length
-        : 1;
+        : undefined;
     const calibrationDisagreementRate =
-      calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : 0;
+      calibrationRows.length > 0 ? calibrationDisagreements / calibrationRows.length : undefined;
     const calibrationAxisRows = suiteRows.filter(
       (row) => row.axisScores !== undefined && row.groundTruthAxisScores !== undefined,
     );
@@ -356,7 +356,7 @@ export const checkGates = (
     const calibrationAxisDelta =
       calibrationAxisDeltas.length > 0
         ? Math.max(...calibrationAxisDeltas)
-        : 0;
+        : undefined;
     const criticalFailures = suiteRows.filter(
       (row) => !row.passed && row.severity === 'critical',
     ).length;
@@ -406,10 +406,14 @@ export const checkGates = (
         normalizedMetric === 'judge_agreement_rate' ||
         normalizedMetric === 'judge-agreement-rate';
 
-      if (isJudgeAgreementRateKey && calibrationAgreementRate < threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`,
-        );
+      if (isJudgeAgreementRateKey) {
+        if (calibrationAgreementRate === undefined) {
+          failures.push(`Suite "${manifest.name}" has no labelled judge/human verdict pairs for blocking threshold ${metric}.`);
+        } else if (calibrationAgreementRate < threshold) {
+          failures.push(
+            `Suite "${manifest.name}" judge agreement rate ${calibrationAgreementRate.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+          );
+        }
       }
 
       const isJudgeDisagreementRateKey =
@@ -420,10 +424,14 @@ export const checkGates = (
         normalizedMetric === 'judge_disagreement_rate' ||
         normalizedMetric === 'judge-disagreement-rate';
 
-      if (isJudgeDisagreementRateKey && calibrationDisagreementRate > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
-        );
+      if (isJudgeDisagreementRateKey) {
+        if (calibrationDisagreementRate === undefined) {
+          failures.push(`Suite "${manifest.name}" has no labelled judge/human verdict pairs for blocking threshold ${metric}.`);
+        } else if (calibrationDisagreementRate > threshold) {
+          failures.push(
+            `Suite "${manifest.name}" judge disagreement rate ${calibrationDisagreementRate.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+          );
+        }
       }
 
       const isAxisScoreDeltaKey =
@@ -434,10 +442,14 @@ export const checkGates = (
         normalizedMetric === 'axis_delta_tolerance' ||
         normalizedMetric === 'axis-delta-tolerance';
 
-      if (isAxisScoreDeltaKey && calibrationAxisDelta > threshold) {
-        failures.push(
-          `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
-        );
+      if (isAxisScoreDeltaKey) {
+        if (calibrationAxisDelta === undefined) {
+          failures.push(`Suite "${manifest.name}" has no matching judge/human axis-score pairs for blocking threshold ${metric}.`);
+        } else if (calibrationAxisDelta > threshold) {
+          failures.push(
+            `Suite "${manifest.name}" judge axis-score delta ${calibrationAxisDelta.toFixed(3)} exceeds blocking threshold ${metric}=${threshold.toFixed(3)}.`,
+          );
+        }
       }
 
       const isRecognizedThresholdKey =
