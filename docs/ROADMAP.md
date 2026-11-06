@@ -1049,11 +1049,13 @@ and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
    borrow labels from another suite. Paired axis scores must be finite.
    Source evidence: `src/gates/check-gates.ts` and
    `test/calibration-missing-evidence.test.ts` (red then green, including CLI).
-2. [ ] **4E.12.2 — Calibration evidence quality (P0).** A recent independent
+2. [x] **4E.12.2 — Calibration evidence quality (P0).** A recent independent
    matching run must meet its declared agreement bar before it qualifies as
    calibration evidence. Missing or failed bars do not qualify. Check the
    relevant judge model and rubric; other judges' rows must not hide failure.
    Preserve explicit warning-only/escape-hatch behavior and its accounting.
+   Source evidence: `src/gates/evaluate-policy.ts` and
+   `test/calibration-preflight-quality.test.ts` (red/green and actual CLI).
 3. [ ] **4E.12.3 — Minimum calibration sample (P1).** Add a configurable minimum
    number of eligible labelled pairs. Fail below it; unlabelled rows do not
    increase the denominator. Exercise small samples and per-judge eligibility.

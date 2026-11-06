@@ -336,7 +336,9 @@ Mandatory calibration preflight for judge-scored suites:
 
 - Applies when the current artifact includes the configured calibration suite manifest (default: `judge-calibration`), or when force-enabled via `--calibration-preflight` / `gates.calibration.enabled: true`.
 - Runs on judge-scored suites in the current artifact (`llm-judge` / `human-labelled-calibration` graders), excluding the calibration suite id itself.
-- Check requires a calibration evidence run within the recency window whose calibration rows include matching `judgeModel` and `groundTruthVerdict`.
+- In source after 0.11.0, check requires a calibration evidence run within the recency window with paired `judgeVerdict` and `groundTruthVerdict` for the matching `judgeModel`.
+- The evidence suite must declare `minJudgeAgreementRate` or `maxJudgeDisagreementRate` (supported aliases also work). A generic `passRate` or an axis-delta bar alone does not qualify. Missing or failed agreement bars do not qualify.
+- Recompute the calibration suite's declared thresholds from the matching judge's rows. Other judges cannot improve its measured agreement, and stored pass flags or aggregate counts cannot replace the labels. Even a report-only calibration suite must meet its bars to qualify as preflight evidence; its normal report-only gate behavior is unchanged.
 - Rubric matching is evaluated against the calibration suite rubric contract (`judge-calibration`), not each target suite manifest rubric.
 - Blocking suites require independent evidence: current-run calibration rows do not satisfy blocking gate checks.
 - Report-only suites may self-certify against current-run calibration rows (diagnostic signal, not blocking enforcement).

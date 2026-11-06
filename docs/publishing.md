@@ -23,6 +23,10 @@ provide artifact ingestion; the offline portable package still needs no server.
 Source calibration corrections after 0.11.0 are tracked in the
 [changelog](../CHANGELOG.md) and [gate guide](./gates.md#calibration-thresholds-require-observations).
 They are not yet part of the published 0.11.0 package.
+When calibration preflight applies, the separate `check` command requires its
+evidence to pass a declared agreement bar on the relevant judge's labels.
+Run `check` before publishing when you need that enforcement; `publish` itself
+does not evaluate calibration policy.
 
 Supported targets:
 

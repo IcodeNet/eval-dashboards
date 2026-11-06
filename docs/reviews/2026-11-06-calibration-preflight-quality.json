@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-06",
+  "scope": "4E.12.2 calibration preflight evidence quality",
+  "baseline": "b0bb44631468683ca56bb168b2b9f2a6c5ecdb42",
+  "red": {
+    "command": "pnpm exec vitest run test/calibration-preflight-quality.test.ts",
+    "result": "Against the baseline evaluator, 17 failed and six passed out of 23 cases. The real CLI returned 0 for failed calibration where the regression requires 1. The baseline evaluator was restored only for this measurement; the fix was restored in a finally block."
+  },
+  "green": {
+    "command": "pnpm exec vitest run test/calibration-preflight-quality.test.ts test/evaluate-policy.test.ts test/cli-check-json-output.test.ts",
+    "result": "57 passed across three files; pnpm typecheck passed."
+  },
+  "implementation": "Recompute declared calibration thresholds on the matching judge rows using shared checkGates. Require an explicit agreement/disagreement bar and paired verdicts; do not trust stored aggregate pass results. Reject missing/ambiguous summaries and duplicate calibration manifests. Preserve recency, independence, rubric matching, report-only target warnings and explicit escape. Update example agreement bars without changing other suite thresholds.",
+  "limits": [
+    "No new minimum sample requirement; one paired row can meet a declared bar until 4E.12.3.",
+    "No schema/flag/dependency changes. Caller supplies validated same-project artifacts.",
+    "Source after 0.11.0; no publication in this change."
+  ],
+  "verification": "The final staged-tree quality checks, review and current-head CI logs are recorded in the commit evidence and PR. No performance benchmark was run."
+}

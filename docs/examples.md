@@ -231,3 +231,7 @@ the same row before using agreement/disagreement thresholds. Axis-delta fixtures
 need shared judge/human axis names. In source after 0.11.0, missing pairs fail a
 configured blocking threshold; report-only suites remain optional. See
 [calibration gates](./gates.md#calibration-thresholds-require-observations).
+Preflight evidence also needs a declared `minJudgeAgreementRate` or
+`maxJudgeDisagreementRate` that passes on the matching judge's paired labels.
+The agent-quality preset declares a 0.9 agreement bar; a generic `passRate`
+alone no longer qualifies a calibration run in source after 0.11.0.

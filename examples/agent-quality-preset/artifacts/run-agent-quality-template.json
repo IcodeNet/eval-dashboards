@@ -526,7 +526,7 @@
       "gate": {
         "mode": "report-only",
         "thresholds": {
-          "passRate": 0.9
+          "minJudgeAgreementRate": 0.9
         }
       },
       "description": "Checks whether judge output matches labelled human expectations."
