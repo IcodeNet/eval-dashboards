@@ -101,6 +101,8 @@ const main = async (): Promise<void> => {
 
   await run('node', ['examples/repeated-trials/generate.mjs', '.tmp/repeated-input']);
   await run('pnpm', ['dev', 'report', '--input=.tmp/repeated-input', '--reporter=html', '--reporter=json-summary', '--report-dir=.tmp/repeated-report']);
+  await run('pnpm', ['dev', 'report', '--input=examples/calibration-minimum-sample', '--reporter=html',
+    '--report-dir=.tmp/calibration-report']);
 
   await mkdir(path.join(repoRoot, 'docs', 'images'), { recursive: true });
 
@@ -151,6 +153,12 @@ const main = async (): Promise<void> => {
       path.join(repoRoot, '.tmp', 'repeated-report', 'index.html'),
       path.join(repoRoot, 'docs', 'images', 'repeated-trials.png'),
       { width: 1280, height: 900, section: '[data-section-id="comparison-evidence"]', captureSelector: '[data-evidence="repeated-trials"]' },
+    );
+    await captureScreenshot(
+      browser,
+      path.join(repoRoot, '.tmp', 'calibration-report', 'index.html'),
+      path.join(repoRoot, 'docs', 'images', 'calibration-statistics.png'),
+      { width: 1200, height: 900, section: '[data-section-id="judge-calibration"]' },
     );
   } finally {
     await browser.close();

@@ -137,7 +137,7 @@ describe('built docs site', () => {
       .filter((file) => file.endsWith('index.html'))
       .map((file) => `/eval-dashboards/docs/${file.replace(/index\.html$/, '')}`);
 
-    expect(pages.length).toBe(90);
+    expect(pages.length).toBe(91);
     expect(pages.filter((page) => !linked.has(page))).toEqual([]);
   });
 

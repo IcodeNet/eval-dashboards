@@ -40,6 +40,9 @@ judge's evidence to meet a declared agreement bar; see
 [calibration gate behavior](docs/gates.md#calibration-thresholds-require-observations).
 Use optional `minCalibrationRows` to require enough paired labels; preflight
 applies the declared floor to each matching judge separately.
+Source reports also show [calibration kappa and category agreement](docs/calibration-statistics.md)
+alongside raw agreement and paired counts. The optional `minJudgeKappa` bar
+enables gating; displaying the statistics alone does not.
 
 
 <div align="center">

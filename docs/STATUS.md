@@ -425,4 +425,15 @@ It is optional and does not change report-only manifest enforcement. Evidence:
 `test/calibration-minimum-sample.test.ts` and the runnable
 `examples/calibration-minimum-sample/`. The sample-size demonstration does not
 establish statistical independence or production reliability. Kappa/category
-reporting and 4E.12.4–4E.12.7 remain open. Not in published 0.11.0.
+reporting follows below; 4E.12.5–4E.12.7 remain open. Not in published 0.11.0.
+
+The fourth correction is implemented in source: shared calibration analytics
+include raw agreement, paired and class counts, Cohen's kappa and breakdowns
+by suite, judge and human annotation category. JSON/text/Markdown/offline HTML
+use the shared metrics. Missing pairs and single-class degenerate kappa remain
+explicit, and the optional `minJudgeKappa` bar fails unavailable evidence.
+Preflight evaluates a declared kappa bar on the matching judge's own rows.
+Reporting remains descriptive by default. Evidence:
+`test/calibration-statistics.test.ts` and `docs/calibration-statistics.md`.
+Existing failure categories remain distinct from outcome labels. This source
+work is not in published 0.11.0.

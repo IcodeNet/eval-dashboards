@@ -24,6 +24,7 @@ export const SIDEBAR = [
     label: 'CI and governance',
     items: [
       'gates',
+      'calibration-statistics',
       'publishing',
       'github-approval-gate-pattern',
       'REPO-HARDENING',

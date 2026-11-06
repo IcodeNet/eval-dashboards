@@ -128,6 +128,12 @@ Initial gates:
 
 ## Calibration thresholds require observations
 
+For raw agreement, label counts, Cohen's kappa and category breakdowns, see
+[calibration statistics](./calibration-statistics.md). Statistics are descriptive
+unless a threshold is explicitly configured. Optional `minJudgeKappa` (also
+`min_judge_kappa` / `min-judge-kappa`) must be finite from -1 to 1; missing or
+degenerate kappa fails a blocking bar instead of becoming a fabricated score.
+
 In source after 0.11.0, a blocking `minJudgeAgreementRate` or
 `maxJudgeDisagreementRate` threshold requires at least one row with both
 `judgeVerdict` and `groundTruthVerdict`. One-sided labels do not count. With no
@@ -361,7 +367,7 @@ Mandatory calibration preflight for judge-scored suites:
 - Applies when the current artifact includes the configured calibration suite manifest (default: `judge-calibration`), or when force-enabled via `--calibration-preflight` / `gates.calibration.enabled: true`.
 - Runs on judge-scored suites in the current artifact (`llm-judge` / `human-labelled-calibration` graders), excluding the calibration suite id itself.
 - In source after 0.11.0, check requires a calibration evidence run within the recency window with paired `judgeVerdict` and `groundTruthVerdict` for the matching `judgeModel`.
-- The evidence suite must declare `minJudgeAgreementRate` or `maxJudgeDisagreementRate` (supported aliases also work). A generic `passRate` or an axis-delta bar alone does not qualify. Missing or failed agreement bars do not qualify.
+- The evidence suite must declare `minJudgeAgreementRate`, `maxJudgeDisagreementRate` or `minJudgeKappa` (supported aliases also work). A generic `passRate` or an axis-delta bar alone does not qualify. Missing, unavailable or failed agreement bars do not qualify.
 - Recompute the calibration suite's declared thresholds from the matching judge's rows. Other judges cannot improve its measured agreement, and stored pass flags or aggregate counts cannot replace the labels. Even a report-only calibration suite must meet its bars to qualify as preflight evidence; its normal report-only gate behavior is unchanged.
 - Rubric matching is evaluated against the calibration suite rubric contract (`judge-calibration`), not each target suite manifest rubric.
 - Blocking suites require independent evidence: current-run calibration rows do not satisfy blocking gate checks.

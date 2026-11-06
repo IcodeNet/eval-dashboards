@@ -428,6 +428,9 @@ Blocking suite threshold keys supported by `check` include:
   uses the existing `gate.thresholds` map; no new schema version is needed.
 - Calibration agreement: `minJudgeAgreementRate`, `maxJudgeDisagreementRate`
   and shared-axis error `maxAxisScoreDelta`; see [calibration gates](./gates.md#calibration-thresholds-require-observations).
+- Calibration kappa: `minJudgeKappa` (optional minimum unweighted Cohen's
+  kappa, finite from -1 to 1). An unavailable metric fails a configured blocking
+  bar. See [statistics and category semantics](./calibration-statistics.md).
 
 The contract stays vendor-independent: these fields describe evaluation evidence, not a specific model provider, runner, or hosting platform.
 
