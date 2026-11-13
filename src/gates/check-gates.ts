@@ -3,7 +3,7 @@ import type { RunComparison } from '../history/history.js';
 import { type EvalReportV1, summarizeReport } from '../model/eval-report-v1.js';
 import type { BaselineCompatibilityResult } from '../model/eval-report-v1.js';
 import { lintReportTaxonomy } from './lint-taxonomy.js';
-import { measureCalibrationAgreement } from '../analytics/calibration.js';
+import { measureCalibrationAgreement, meetsMinimumKappa } from '../analytics/calibration.js';
 import {
   bootstrapPassRateDelta,
   validateStatisticalGateConfig,
@@ -395,11 +395,15 @@ export const checkGates = (
       const isJudgeKappaKey = ['minjudgekappa', 'min_judge_kappa', 'min-judge-kappa'].includes(normalizedMetric);
       if (isJudgeKappaKey) {
         if (!Number.isFinite(threshold) || threshold < -1 || threshold > 1) {
-          failures.push(`Suite "${manifest.name}" ${metric} must be finite and between -1 and 1.`);
+          failures.push(`Test group "${manifest.name}" ${metric} must be a number between -1 and 1.`);
         } else if (calibration.kappa === undefined) {
-          failures.push(`Suite "${manifest.name}" judge kappa is unavailable (${calibration.kappaStatus}) for blocking threshold ${metric}.`);
-        } else if (calibration.kappa < threshold) {
-          failures.push(`Suite "${manifest.name}" judge kappa ${calibration.kappa.toFixed(3)} is below blocking threshold ${metric}=${threshold.toFixed(3)}.`);
+          const reason = calibration.kappaStatus === 'no-pairs' ? 'no examples have both a judge decision and a human label' : 'everyone chose the same answer';
+          failures.push(`Test group "${manifest.name}" cannot calculate the judge agreement score (kappa): ${reason}. Required setting: ${metric}.`);
+        } else if (!meetsMinimumKappa(calibration, threshold)) {
+          const roundedTogether = calibration.kappa.toFixed(3) === threshold.toFixed(3);
+          const score = roundedTogether ? 'calculated judge agreement score (kappa)' : `judge agreement score (kappa) ${calibration.kappa.toFixed(3)}`;
+          const required = roundedTogether ? String(threshold) : threshold.toFixed(3);
+          failures.push(`Test group "${manifest.name}" ${score} is below the required setting ${metric}=${required}.${roundedTogether ? ' Scores in reports may be rounded.' : ''}`);
         }
       }
       const isMinCalibrationRowsKey =

@@ -61,7 +61,7 @@ describe('calibration agreement statistics', () => {
     const input = report([[true, true], [true, false]]);
     expect(check(input).passed).toBe(true);
     input.suiteManifests![0].gate.thresholds = { minJudgeKappa: 0.5 };
-    expect(check(input).failures.join(' ')).toContain('judge kappa 0.000 is below');
+    expect(check(input).failures.join(' ')).toContain('judge agreement score (kappa) 0.000 is below');
     input.suiteManifests![0].gate.thresholds.minJudgeKappa = 0;
     expect(check(input).passed).toBe(true);
   });
@@ -71,12 +71,12 @@ describe('calibration agreement statistics', () => {
   });
   it('fails an explicit kappa gate when the metric is undefined', () => {
     const input = report([[true, true]]); input.suiteManifests![0].gate.thresholds = { minJudgeKappa: 0 };
-    expect(check(input).failures.join(' ')).toContain('judge kappa is unavailable (degenerate)');
+    expect(check(input).failures.join(' ')).toContain('cannot calculate the judge agreement score (kappa): everyone chose the same answer');
   });
   it('fails an explicit kappa gate with no paired observations', () => {
     const input = report(); input.rows.forEach(row => { delete row.groundTruthVerdict; });
     input.suiteManifests![0].gate.thresholds = { minJudgeKappa: 0 };
-    expect(check(input).failures.join(' ')).toContain('judge kappa is unavailable (no-pairs)');
+    expect(check(input).failures.join(' ')).toContain('cannot calculate the judge agreement score (kappa): no examples have both');
   });
   it('preserves report-only enforcement and permits an explicit negative bar', () => {
     const input = report([[true, false], [false, true]]);
@@ -88,7 +88,7 @@ describe('calibration agreement statistics', () => {
   });
   it.each([-2, 2, NaN, Infinity])('rejects invalid kappa bar %s', threshold => {
     const input = report(); input.suiteManifests![0].gate.thresholds = { minJudgeKappa: threshold };
-    expect(check(input).failures.join(' ')).toContain('must be finite and between -1 and 1');
+    expect(check(input).failures.join(' ')).toContain('must be a number between -1 and 1');
   });
   it('accepts a defined kappa bar as preflight agreement evidence for the matching judge', () => {
     const evidence = report([[false, false], [true, true]]); evidence.suiteManifests![0].gate.thresholds = { minJudgeKappa: 0.5 };
@@ -129,7 +129,7 @@ describe('calibration agreement statistics', () => {
       current.suiteManifests![0].gate.thresholds = { minJudgeKappa: 0.75 };
       await writeFile(inputFile, JSON.stringify(current));
       const failed = runCheck(); expect(failed.status, failed.stderr).toBe(1);
-      expect(failed.stderr).toContain('judge kappa 0.500 is below');
+      expect(failed.stderr).toContain('judge agreement score (kappa) 0.500 is below');
       expect(JSON.parse(await readFile(jsonOutput, 'utf8')).passed).toBe(false);
       current.suiteManifests![0].gate.thresholds.minJudgeKappa = 0.5;
       await writeFile(inputFile, JSON.stringify(current));
@@ -152,8 +152,8 @@ describe('calibration agreement statistics', () => {
     try {
       await renderReports({ current, comparison: compareRuns(current), history: [], reportDir: directory }, ['html']);
       const html = await readFile(path.join(directory, 'index.html'), 'utf8');
-      expect(html).toContain('Unavailable (no paired labels)');
-      expect(html).toContain('0 paired labels');
+      expect(html).toContain('Unavailable (no examples with both decisions)');
+      expect(html).toContain('0 reviewed examples');
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

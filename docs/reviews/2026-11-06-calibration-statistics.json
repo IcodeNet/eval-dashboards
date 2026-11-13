@@ -43,5 +43,18 @@
   "fullCheck": {
     "command": "pnpm check",
     "result": "1077 Vitest tests in 99 files, typecheck, 77 teaching output lines, all 164 flag docs, build and nine hook tests passed. The evidence gate then required staging the regenerated report-power examples before remaining quality groups; final exact-tree checks are attached to the PR."
+  },
+  "followUp20261108": {
+    "reason": "Owner feedback required simpler English across PRs, the interface, commands and the guide. Fresh review found three correctness/presentation issues.",
+    "red": "Before the review fixes, six cases failed and one comparison case passed: equal minimum score, matching-judge acceptance, three literal Markdown names and expected agreement in readable output. An additional five-sixths control now checks that rounding never admits a score below the chosen decimal minimum.",
+    "green": "61 focused tests across calibration-review-follow-up, calibration-statistics and render passed; typecheck passed.",
+    "fixes": [
+      "Calculate kappa from the actual decision counts. Compare exact counts with the configured decimal minimum, without a tolerance. Equal 0.4 passes, a slightly higher minimum fails, and five-sixths does not pass a decimal minimum rounded above it.",
+      "Render group, judge and category names as literal Markdown code text, including links, image syntax, backticks, control characters and HTML. Tests parse the Markdown with GitHub-style features and HTML enabled; names create no links, images or tags.",
+      "Display expected agreement in overall and grouped HTML/text/Markdown output, including unknown values.",
+      "Use reviewed examples, Pass/Fail decisions and an explanation of kappa in the interface. Rewrite the guide around the missed bad answer. PR descriptions 116\u2013119 were also rewritten in ordinary language."
+    ],
+    "accessibility": "Two fixtures x three themes x two viewports passed, including the expanded scrolling tables. Screenshots were visually reviewed.",
+    "verification": "The final complete source, generated examples and screenshots are checked against the staged tree before committing; current-head CI and review replies are recorded on PR 119."
   }
 }

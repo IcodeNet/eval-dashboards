@@ -386,8 +386,8 @@ describe('render html safety and taxonomy scoring', () => {
     );
 
     const html = await readFile(path.join(reportDir, 'index.html'), 'utf8');
-    expect(html).toContain('Judge calibration');
-    expect(html).toContain('3 paired labels');
+    expect(html).toContain('Judge agreement with people');
+    expect(html).toContain('3 reviewed examples');
     expect(html).toContain('66.7% agreement');
     expect(html).toContain('1 disagreement');
     expect(html).toContain("Cohen's kappa");

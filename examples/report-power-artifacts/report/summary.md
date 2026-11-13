@@ -20,11 +20,12 @@
 | Commit | e4f5a6b |
 | Build | build-142 |
 
-## Calibration agreement
+## Judge agreement with people
 
-- Calibration: pairs=0, agreement=unknown, kappa=unavailable (no-pairs)
-- Human label false: human=0, judge=0, matches=0, match rate=Unknown
-- Human label true: human=0, judge=0, matches=0, match rate=Unknown
+- Judge review: examples=0, agreement=unknown, expected agreement=unknown, kappa=unavailable (missing decisions)
+- Kappa accounts for how often the judge and reviewer each choose Pass or Fail. Read it with the example count and the actual mistakes.
+- Reviewer chose Fail: reviewer=0, judge=0, matching decisions=0, agreement=Unknown
+- Reviewer chose Pass: reviewer=0, judge=0, matching decisions=0, agreement=Unknown
 
 ## Cost/latency-quality frontier
 

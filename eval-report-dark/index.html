@@ -491,35 +491,36 @@ Example: compliance suites often require 100%.">i</i></span></th>
         <div class="section-header-left">
           <button class="section-toggle" type="button" aria-expanded="false" aria-controls="section-body-judge-calibration" onclick="toggleSection(this)">
             <span class="section-toggle-icon" aria-hidden="true">▸</span>
-            <span class="section-toggle-label">Judge calibration</span>
+            <span class="section-toggle-label">Judge agreement with people</span>
           </button>
-          <span class="section-summary section-summary-muted">0 paired labels • Unknown agreement • 0 disagreements • kappa Unavailable (no paired labels)</span>
+          <span class="section-summary section-summary-muted">0 reviewed examples • Unknown agreement • 0 disagreements • kappa Unavailable (no examples with both decisions)</span>
         </div>
       </div>
       <div id="section-body-judge-calibration" class="section-body"><div class="calibration-evidence"><div class="meta-grid">
-    <div class="meta-card"><div class="meta-label">Paired labels</div><div class="meta-value">0</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="Examples with both a judge decision and a person’s reviewed answer.">Reviewed examples</div><div class="meta-value">0</div></div>
     <div class="meta-card"><div class="meta-label">Agreement rate</div><div class="meta-value">Unknown</div></div>
-    <div class="meta-card"><div class="meta-label" data-tip="Agreement adjusted by the two annotators' observed label frequencies. Undefined when expected agreement is one.">Cohen's kappa</div><div class="meta-value">Unavailable (no paired labels)</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="Agreement expected from how often the judge and reviewer each chose Pass and Fail.">Expected agreement</div><div class="meta-value">Unknown</div></div>
+    <div class="meta-card"><div class="meta-label" data-tip="An agreement score that accounts for how often the judge and reviewer each choose Pass or Fail. It cannot be calculated if everyone always chooses the same answer.">Cohen's kappa</div><div class="meta-value">Unavailable (no examples with both decisions)</div></div>
     <div class="meta-card"><div class="meta-label">Disagreements</div><div class="meta-value">0</div></div>
   </div>
-  <p>Descriptive evidence, not an automatic quality gate. Kappa uses observed judge and human label frequencies; inspect raw agreement, sample size and class coverage together. These counts do not prove independent or representative samples.</p>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Judge and human label counts"><table>
-    <thead><tr><th>Boolean label</th><th>Human count</th><th>Judge count</th><th>Matches</th><th>Match rate within human class</th></tr></thead>
-    <tbody><tr><td>false</td><td>0</td><td>0</td><td>0</td><td>Unknown</td></tr><tr><td>true</td><td>0</td><td>0</td><td>0</td><td>Unknown</td></tr></tbody>
+  <p>Expected agreement uses how often each side chose Pass or Fail. Compare it with the actual agreement and the mistakes. A judge that always chooses the common answer can still show a high percentage. More examples do not automatically mean they cover real use well.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Judge and reviewer decisions"><table>
+    <thead><tr><th>Decision</th><th>Reviewer chose</th><th>Judge chose</th><th>Matching decisions</th><th>Agreement for this decision</th></tr></thead>
+    <tbody><tr><td>Fail (false)</td><td>0</td><td>0</td><td>0</td><td>Unknown</td></tr><tr><td>Pass (true)</td><td>0</td><td>0</td><td>0</td><td>Unknown</td></tr></tbody>
   </table></div>
-  <h3>Suite</h3><div class="table-wrap" tabindex="0" role="region" aria-label="Suite calibration statistics"><table>
-    <thead><tr><th>Suite</th><th>Paired labels</th><th>Agree</th><th>Disagree</th><th>Agreement</th><th>Cohen's kappa</th></tr></thead>
+  <h3>Test group</h3><div class="table-wrap" tabindex="0" role="region" aria-label="Test group judge agreement"><table>
+    <thead><tr><th>Test group</th><th>Reviewed examples</th><th>Matching decisions</th><th>Different decisions</th><th>Agreement</th><th>Expected agreement</th><th>Cohen's kappa</th></tr></thead>
     <tbody></tbody>
   </table></div>
-  <h3>Judge model</h3><div class="table-wrap" tabindex="0" role="region" aria-label="Judge model calibration statistics"><table>
-    <thead><tr><th>Judge model</th><th>Paired labels</th><th>Agree</th><th>Disagree</th><th>Agreement</th><th>Cohen's kappa</th></tr></thead>
+  <h3>AI judge</h3><div class="table-wrap" tabindex="0" role="region" aria-label="AI judge judge agreement"><table>
+    <thead><tr><th>AI judge</th><th>Reviewed examples</th><th>Matching decisions</th><th>Different decisions</th><th>Agreement</th><th>Expected agreement</th><th>Cohen's kappa</th></tr></thead>
     <tbody></tbody>
   </table></div>
-  <h3>Human label category</h3><div class="table-wrap" tabindex="0" role="region" aria-label="Human label category calibration statistics"><table>
-    <thead><tr><th>Human label category</th><th>Paired labels</th><th>Agree</th><th>Disagree</th><th>Agreement</th><th>Cohen's kappa</th></tr></thead>
+  <h3>Reviewer category</h3><div class="table-wrap" tabindex="0" role="region" aria-label="Reviewer category judge agreement"><table>
+    <thead><tr><th>Reviewer category</th><th>Reviewed examples</th><th>Matching decisions</th><th>Different decisions</th><th>Agreement</th><th>Expected agreement</th><th>Cohen's kappa</th></tr></thead>
     <tbody></tbody>
   </table></div>
-  <p>Categories use the human annotation. Missing categories remain unknown; failure categories are kept separate.</p></div></div>
+  <p>For each decision, the percentage shows how often the judge agreed when the reviewer chose that decision. Categories come from the person’s review; missing categories stay unknown.</p></div></div>
     </div>
 
     
