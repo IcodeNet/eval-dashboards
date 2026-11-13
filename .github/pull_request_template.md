@@ -1,14 +1,16 @@
+<!-- Write for someone who has not read the chat. Start with a person's problem and one ordinary example. Explain necessary terms when first used. Review the wording separately from the seven-section check before publishing. -->
+
 ## What issue does this solve?
 
 <!-- Explain the user-visible problem and who it affects. Link the issue or roadmap item when relevant. -->
 
 ## Example of the problem
 
-<!-- Give one concrete input, action, or scenario that demonstrates the problem. -->
+<!-- Use one concrete example that makes the mistake easy to see. Describe decisions and results; configuration alone rarely explains the problem. -->
 
 ## Proposal and solution
 
-<!-- Explain the resulting behavior and the main change. Include implementation details only when they help review. -->
+<!-- Say what changes for the person using this. Explain necessary technical terms before using them. Link deeper implementation details when they would interrupt the example. -->
 
 ## Why this is better
 
