@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Shared calibration statistics report paired counts, raw agreement, Cohen's
+  kappa, label frequencies and suite/judge/human-category breakdowns in JSON,
+  text, Markdown and offline HTML. Undefined metrics stay explicit. Optional
+  `minJudgeKappa` enables blocking checks and matching-judge preflight evidence;
+  reporting alone does not enable a new gate. Minimum scores use the actual
+  decision counts to avoid rounding mistakes. Names stay literal in Markdown,
+  and the interface explains the scores in plain English.
+
 - Optional `minCalibrationRows` suite threshold requires a positive minimum
   number of paired judge/human verdicts. Unlabelled rows cannot inflate it;
   calibration preflight applies the declared floor to each relevant judge.

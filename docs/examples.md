@@ -231,8 +231,9 @@ the same row before using agreement/disagreement thresholds. Axis-delta fixtures
 need shared judge/human axis names. In source after 0.11.0, missing pairs fail a
 configured blocking threshold; report-only suites remain optional. See
 [calibration gates](./gates.md#calibration-thresholds-require-observations).
-Preflight evidence also needs a declared `minJudgeAgreementRate` or
-`maxJudgeDisagreementRate` that passes on the matching judge's paired labels.
+Preflight evidence also needs a declared `minJudgeAgreementRate`,
+`maxJudgeDisagreementRate` or `minJudgeKappa` that passes on the matching
+judge's paired labels.
 The agent-quality preset declares a 0.9 agreement bar; a generic `passRate`
 alone no longer qualifies a calibration run in source after 0.11.0.
 
@@ -240,3 +241,8 @@ The [minimum sample example](../examples/calibration-minimum-sample/README.md)
 runs with `pnpm dev check --input=examples/calibration-minimum-sample` and
 demonstrates `minCalibrationRows: 2` using two synthetic paired labels. This
 small example is not a production sample-size recommendation.
+Its two boolean label classes also demonstrate defined Cohen's kappa. Use
+`pnpm dev report --input=examples/calibration-minimum-sample --report-dir=./calibration-report --reporter=html --reporter=json-summary`
+to inspect paired counts, raw agreement, kappa and human-category breakdowns.
+See the [statistics guide](./calibration-statistics.md) for majority-label and
+undefined-metric examples.

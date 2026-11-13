@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-06",
+  "scope": "4E.12.4 calibration agreement statistics",
+  "baseline": "6186c5d9ae3c5985a01cbc6a3170f6b943d5b9a7",
+  "red": {
+    "command": "pnpm exec vitest run test/calibration-statistics.test.ts",
+    "result": "24 cases failed with the baseline analytics, gate, policy and renderer implementations restored for measurement. These implementations were restored only for the replay; the fix was restored in a finally block. No whole-baseline package benchmark was run."
+  },
+  "green": {
+    "command": "pnpm exec vitest run test/calibration-statistics.test.ts test/calibration-preflight-quality.test.ts test/calibration-minimum-sample.test.ts test/calibration-missing-evidence.test.ts test/run-analytics.test.ts",
+    "result": "109 passed across five files; pnpm typecheck passed. CLI confirms observed kappa 0.500 fails a 0.75 bar (exit 1 and passed=false JSON) and meets a 0.50 bar (exit 0)."
+  },
+  "metricControls": [
+    "Balanced matching labels: kappa 1. Balanced opposite labels: kappa -1.",
+    "Three of four labels match with balanced human labels: raw agreement 0.75, expected agreement 0.5, kappa 0.5.",
+    "Always predicting the majority label against nine true/one false human labels: raw and expected agreement 0.9, kappa 0.",
+    "No paired labels and same-single-label perfect agreement retain explicit unavailable status.",
+    "Swapping annotators preserves kappa. Other judges cannot qualify the relevant judge in preflight."
+  ],
+  "output": "Shared JSON/text/Markdown/offline HTML metrics include counts, marginal label frequencies, within-human-class match rates and suite/judge/human-category breakdowns. Human-readable dimensions show at most 20 groups; JSON retains every group. Category labels use groundTruthCategory, not failure taxonomy. HTML text is escaped. Reporting alone enables no gate.",
+  "accessibility": {
+    "command": "pnpm a11y:verify",
+    "result": "Expanded the durable check to basic and expanded calibration fixtures: two fixtures x three themes x two viewports, zero axe violations. The expanded mobile test first exposed four non-focusable scrolling regions; labelled keyboard-focusable regions fixed them."
+  },
+  "assets": {
+    "command": "pnpm assets:regenerate",
+    "result": "Regenerated dark HTML/JSON, default/dark screenshots and the dedicated calibration screenshot. Image-inclusive verification reproduced all 21 tracked report/image files without changes. The full teaching replay also refreshed the tracked report-power HTML/JSON/Markdown examples with the same new analytics; those generated changes are included.",
+    "preview": "docs/images/calibration-statistics.png visually inspected from the synthetic two-label fixture."
+  },
+  "reference": "https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html",
+  "limits": [
+    "Unweighted nominal binary Cohen kappa, no confidence interval or production accuracy claim.",
+    "Counts do not establish independent or representative samples or reliable human annotations.",
+    "Multi-class verdict labels remain 4E.12.6; existing boolean contract and failure taxonomy retain their meaning.",
+    "No new dependency, schema version or CLI flag. Optional minJudgeKappa uses the existing numeric threshold map.",
+    "Source after published 0.11.0. No release in this PR."
+  ],
+  "verification": "Final staged-tree checks, review and current-head CI raw logs are recorded in commit evidence and the PR. No performance benchmark.",
+  "integration": {
+    "command": "pnpm exec vitest run test/calibration-statistics.test.ts test/render.test.ts test/docs-sidebar.test.ts test/docs-site.test.ts test/docs-search.test.ts",
+    "result": "117 passed across five files. Initial full check exposed five failures: missing sidebar reachability, two expected doc-count assertions for the added page, and the previous calibration layout wording. Added the guide to navigation, updated expected published/search pages from 90 to 91, and retained agreement/disagreement assertions while checking paired counts and kappa."
+  },
+  "fullCheck": {
+    "command": "pnpm check",
+    "result": "1077 Vitest tests in 99 files, typecheck, 77 teaching output lines, all 164 flag docs, build and nine hook tests passed. The evidence gate then required staging the regenerated report-power examples before remaining quality groups; final exact-tree checks are attached to the PR."
+  },
+  "followUp20261108": {
+    "reason": "Owner feedback required simpler English across PRs, the interface, commands and the guide. Fresh review found three correctness/presentation issues.",
+    "red": "Before the review fixes, six cases failed and one comparison case passed: equal minimum score, matching-judge acceptance, three literal Markdown names and expected agreement in readable output. An additional five-sixths control now checks that rounding never admits a score below the chosen decimal minimum.",
+    "green": "61 focused tests across calibration-review-follow-up, calibration-statistics and render passed; typecheck passed.",
+    "fixes": [
+      "Calculate kappa from the actual decision counts. Compare exact counts with the configured decimal minimum, without a tolerance. Equal 0.4 passes, a slightly higher minimum fails, and five-sixths does not pass a decimal minimum rounded above it.",
+      "Render group, judge and category names as literal Markdown code text, including links, image syntax, backticks, control characters and HTML. Tests parse the Markdown with GitHub-style features and HTML enabled; names create no links, images or tags.",
+      "Display expected agreement in overall and grouped HTML/text/Markdown output, including unknown values.",
+      "Use reviewed examples, Pass/Fail decisions and an explanation of kappa in the interface. Rewrite the guide around the missed bad answer. PR descriptions 116\u2013119 were also rewritten in ordinary language."
+    ],
+    "accessibility": "Two fixtures x three themes x two viewports passed, including the expanded scrolling tables. Screenshots were visually reviewed.",
+    "verification": "The final complete source, generated examples and screenshots are checked against the staged tree before committing; current-head CI and review replies are recorded on PR 119."
+  },
+  "followUp20261113": {
+    "reason": "An additional note in the review summary requested checking actual table rows and saved JSON, beyond the overflow notice.",
+    "change": "The test checks exactly 20 displayed rows with 20 distinct valid category names and verifies all 21 categories in the saved summary, without depending on their order.",
+    "verification": "Focused statistics tests and the required complete checks are recorded for this commit and in PR 119. No production behavior changed."
+  }
+}
