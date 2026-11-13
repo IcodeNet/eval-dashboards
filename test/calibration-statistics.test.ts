@@ -142,8 +142,19 @@ describe('calibration agreement statistics', () => {
     expect(analyzeRun(input).calibration.categorySummaries).toHaveLength(21);
     const directory = await mkdtemp(path.join(tmpdir(), 'calibration-groups-'));
     try {
-      await renderReports({ current: input, comparison: compareRuns(input), history: [], reportDir: directory }, ['html']);
-      expect(await readFile(path.join(directory, 'index.html'), 'utf8')).toContain('Showing 20 of 21 groups');
+      await renderReports({ current: input, comparison: compareRuns(input), history: [], reportDir: directory }, ['html', 'json-summary']);
+      const html = await readFile(path.join(directory, 'index.html'), 'utf8');
+      expect(html).toContain('Showing 20 of 21 groups');
+      const categoryTable = html.match(/<h3>Reviewer category<\/h3>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1];
+      expect(categoryTable).toBeDefined();
+      expect(categoryTable!.match(/<tr>/g)).toHaveLength(20);
+      const shown = [...categoryTable!.matchAll(/<td>(category-\d+)<\/td>/g)].map(match => match[1]);
+      expect(new Set(shown).size).toBe(20);
+      expect(shown.every(category => input.rows.some(row => row.groundTruthCategory === category))).toBe(true);
+      const saved = JSON.parse(await readFile(path.join(directory, 'summary.json'), 'utf8'));
+      expect(saved.analytics.calibration.categorySummaries).toHaveLength(21);
+      expect(saved.analytics.calibration.categorySummaries.map((group: { category: string }) => group.category).sort())
+        .toEqual(input.rows.map(row => row.groundTruthCategory).sort());
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('shows missing paired evidence explicitly in offline HTML', async () => {

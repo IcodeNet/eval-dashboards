@@ -56,5 +56,10 @@
     ],
     "accessibility": "Two fixtures x three themes x two viewports passed, including the expanded scrolling tables. Screenshots were visually reviewed.",
     "verification": "The final complete source, generated examples and screenshots are checked against the staged tree before committing; current-head CI and review replies are recorded on PR 119."
+  },
+  "followUp20261113": {
+    "reason": "An additional note in the review summary requested checking actual table rows and saved JSON, beyond the overflow notice.",
+    "change": "The test checks exactly 20 displayed rows with 20 distinct valid category names and verifies all 21 categories in the saved summary, without depending on their order.",
+    "verification": "Focused statistics tests and the required complete checks are recorded for this commit and in PR 119. No production behavior changed."
   }
 }
