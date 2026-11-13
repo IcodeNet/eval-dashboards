@@ -27,6 +27,26 @@ Write for a human reviewer who has not read the chat:
 - Keep every section concise. If one does not apply, give the reason instead
   of filling it with generic text. Scale the detail to the change.
 
+Before publishing or updating a description, do a separate readability pass:
+
+- Can someone unfamiliar with the project explain the problem and change
+  after reading the first example, without opening the code?
+- Are necessary terms explained before the reader needs them? Keep exact
+  configuration names in the usage steps or linked technical detail.
+- Does the same example carry through the problem, solution and before/after
+  result? Describe what the person or system does, rather than only listing
+  settings or file names.
+
+For example, replace “Fail closed on absent paired calibration evidence” with
+“If there are no examples comparing the judge's decision with a person's
+label, fail the check and explain which labels to add.” Explain what an AI
+judge is when introducing it. This is a wording example, not a required phrase.
+
+The section checker validates structure only. Do not treat its success, a
+short word count or a list of forbidden words as proof that a reader will
+understand the description. Apply the same clarity to review replies and
+follow the repository's plain-English rule for other public text.
+
 Use reviewer feedback to improve the versioned template and this guidance when
 it exposes a recurring misunderstanding. Prefer narrow, useful edits over an
 accumulating checklist. Changes to the template are reviewed like other repo

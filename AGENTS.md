@@ -103,6 +103,16 @@ Always include raw GitHub Actions log verification for workflows touched by your
 - Add heavy UI frameworks if static HTML already meets the need.
 - Couple core to Azure/GitHub APIs beyond publish adapters.
 
+## Plain English
+
+Use everyday language in PR titles, descriptions and replies, documentation,
+CLI and UI messages, and progress updates. Start with the person's problem and
+one concrete example before technical detail. Explain a necessary technical
+term when it first appears; keep exact field and command names where they are
+needed to use the change. Before publishing or merging, read the wording as
+someone who has not seen the chat. They should understand what went wrong,
+what changes and how to use it. Passing a template check does not prove this.
+
 ## Writing pull requests
 
 - Use `.github/pull_request_template.md` for every PR description and read `.agents/skills/plain-english-prs/SKILL.md` when drafting or updating one.
