@@ -249,8 +249,13 @@ export const checkGates = (
     );
   }
 
-  if (config.zeroCritical === true && summary.severityCounts.critical > 0) {
-    failures.push(`Critical failures ${summary.severityCounts.critical} exceed allowed 0.`);
+  if (config.zeroCritical === true) {
+    const criticalFailures = report.rows.filter(
+      (row) => !row.passed && row.severity === 'critical',
+    ).length;
+    if (criticalFailures > 0) {
+      failures.push(`Critical failures ${criticalFailures} exceed allowed 0.`);
+    }
   }
 
   for (const [suiteName, suiteConfig] of Object.entries(config.suites ?? {})) {
