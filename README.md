@@ -629,3 +629,9 @@ For answers that need more detail than Pass/Fail, see the optional
 [named-label contract](docs/artifact-format.md#named-judge-and-human-labels) and
 [four-class calibration example](examples/calibration-class-labels/README.md).
 Existing boolean artifacts still work. This addition is after npm 0.11.0.
+
+Optional [baseline version keys](docs/artifact-format.md#optional-baseline-version-keys)
+record model, prompt, tool and configuration versions. Missing versions stay
+unknown, and planned experiment changes are distinct from unexplained changes.
+Try the [runnable example](examples/baseline-version-keys/README.md); this is
+source after npm 0.11.0.

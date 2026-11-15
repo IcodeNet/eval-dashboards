@@ -667,3 +667,52 @@ review bundles keep their existing workflow.
 
 Try the [runnable four-class example](../examples/calibration-class-labels/README.md).
 These additive fields keep `eval-report/v1`; they are after published npm 0.11.0.
+
+## Optional baseline version keys
+
+A result can look better because a model improved, because a prompt changed,
+or because it ran with different tools or settings. Record version identifiers
+so a reviewer can tell what was compared. Each suite may declare:
+
+```json
+{
+  "comparisonKeys": {
+    "modelDigest": "sha256:example-model-id",
+    "promptHash": "sha256:example-prompt-id",
+    "toolContract": "tools-v2",
+    "instanceConfig": "sha256:example-config-id"
+  },
+  "comparisonTreatments": {
+    "modelDigest": "Compare the new model with the existing model."
+  }
+}
+```
+
+The four optional keys are opaque, non-empty strings compared exactly. Use
+stable IDs or hashes, not secrets or raw settings. The package does not compute
+or verify their contents. Unknown key names and blank values are invalid.
+`comparisonTreatments` is an optional explanation for each deliberately varied
+key. Each explanation needs a current value; it applies only when both runs
+record different values. It cannot replace missing evidence or waive dataset
+and rubric checks. An experiment ID or display label alone does not authorize
+a changed version.
+
+`baselineCompatibility.versionKeys` and shared comparison analytics record each
+key as `match`, `changed`, `unknown` or `treatment`, with both observed values and
+a reason. A missing value on either side is unknown, never a verified match.
+An unexplained difference blocks a blocking suite's baseline comparison, and
+is a warning for a report-only suite. A declared planned change remains visible
+without being treated as uncontrolled drift. This is a declaration of intent,
+not proof of a controlled experiment or of which change caused an improvement.
+
+When neither run records any extra keys, existing dataset/rubric gate behavior
+and matched-case eligibility stay unchanged. The added evidence still says
+those optional versions are unknown. One-sided recorded metadata makes that
+comparison unknown for paired statistical evidence; unexplained differences
+make it incompatible. Reports prioritize changed and missing versions before
+their display limit, and JSON retains every result. A matching `compatible`
+status covers the recorded comparison rules; it does not prove that every
+possible condition was held fixed.
+
+Try the [runnable version comparison](../examples/baseline-version-keys/README.md).
+These optional fields keep `eval-report/v1` and require source after npm 0.11.0.

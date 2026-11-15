@@ -1,3 +1,4 @@
+import { compareVersionKeys, comparisonKeyLabels } from './version-keys.js';
 import type {
     BaselineCompatibilityIssue,
     BaselineCompatibilityResult,
@@ -5,10 +6,10 @@ import type {
 } from '../model/eval-report-v1.js';
 
 /**
- * Determine whether a run's suite manifests (dataset/rubric versions) are
+ * Determine whether a run's suite manifests (dataset/rubric and optional recorded versions) are
  * compatible with a baseline's, so pass/fail deltas aren't misattributed to
  * a genuine regression when the underlying dataset or rubric actually
- * changed. Returns `compatible: boolean` plus specific drift issues.
+ * changed. Returns the status and recorded checks; missing optional keys stay unknown.
  */
 export const assessBaselineCompatibility = (
     candidateManifests: readonly SuiteManifest[] | undefined,
@@ -19,9 +20,12 @@ export const assessBaselineCompatibility = (
         return undefined;
     }
 
+    const baselineBySuite = new Map((baselineManifests ?? []).map(manifest => [manifest.name, manifest]));
+    const versionKeys = candidateManifests.flatMap(manifest => compareVersionKeys(manifest, baselineBySuite.get(manifest.name)));
     if (!baselineManifests?.length) {
         return {
             status: 'warning',
+            versionKeys,
             issues: candidateManifests.map((manifest) => ({
                 suite: manifest.name,
                 severity: 'warning',
@@ -32,7 +36,6 @@ export const assessBaselineCompatibility = (
         };
     }
 
-    const baselineBySuite = new Map(baselineManifests.map((manifest) => [manifest.name, manifest]));
     const issues: BaselineCompatibilityIssue[] = [];
 
     for (const candidate of candidateManifests) {
@@ -47,6 +50,14 @@ export const assessBaselineCompatibility = (
                 candidateRubricVersion: candidate.rubricVersion,
             });
             continue;
+        }
+
+        for (const check of versionKeys.filter(check => check.suite === candidate.name)) {
+            if (check.status === 'changed' || (check.status === 'unknown' && (check.candidateValue !== undefined || check.baselineValue !== undefined))) {
+                issues.push({ suite: candidate.name,
+                    severity: check.status === 'changed' && candidate.gate.mode === 'blocking' ? 'blocking' : 'warning',
+                    reason: `${comparisonKeyLabels[check.key]}: ${check.reason}` });
+            }
         }
 
         const datasetMatches = baseline.datasetVersion === candidate.datasetVersion;
@@ -71,6 +82,7 @@ export const assessBaselineCompatibility = (
     return {
         status: baselineCompatibilityStatus(issues),
         issues,
+        versionKeys,
     };
 };
 

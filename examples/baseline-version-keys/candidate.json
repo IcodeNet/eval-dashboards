@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "candidate",
+    "generatedAt": "2026-11-15T11:00:00Z",
+    "project": "synthetic-example",
+    "experimentId": "compare-models",
+    "variantLabel": "candidate"
+  },
+  "suites": [
+    {
+      "id": "answers",
+      "total": 1,
+      "passed": 1,
+      "failed": 0
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "answers",
+      "target": "agent",
+      "datasetSource": "synthetic",
+      "datasetVersion": "1",
+      "rubricVersion": "1",
+      "graderVersion": "1",
+      "riskArea": "response-quality",
+      "graders": [
+        "deterministic-assertions"
+      ],
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "passRate": 1
+        }
+      },
+      "comparisonKeys": {
+        "modelDigest": "synthetic-model-b",
+        "promptHash": "synthetic-prompt-1",
+        "toolContract": "synthetic-tools-1",
+        "instanceConfig": "synthetic-config-1"
+      },
+      "comparisonTreatments": {
+        "modelDigest": "Compare the new synthetic model with the existing one."
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "same-question",
+      "suite": "answers",
+      "kind": "deterministic",
+      "severity": "medium",
+      "category": "response-quality",
+      "passed": true
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-import { rowMatchedExpectation, type EvalReportV1, type EvalRow, type SuiteManifest } from '../model/eval-report-v1.js';
+import { compareVersionKeys } from '../history/version-keys.js';
+import { rowMatchedExpectation, type EvalReportV1, type EvalRow, type SuiteManifest, type VersionKeyComparison } from '../model/eval-report-v1.js';
 
 export type CohortStatus = 'compatible' | 'unknown' | 'incompatible' | 'ambiguous' | 'not-compared';
 export type CohortIssue = { code: string; suite?: string; id?: string; status: Exclude<CohortStatus, 'compatible' | 'not-compared'> };
@@ -7,6 +8,7 @@ export type ScoreChange = { suite: string; id: string; previous: number; current
 export type CohortSummary = {
   currentRunId: string;
   previousRunId?: string;
+  versionKeys?: VersionKeyComparison[];
   status: CohortStatus;
   currentRows: number;
   previousRows?: number;
@@ -54,6 +56,8 @@ export const buildMatchedCohort = (current: EvalReportV1, previous?: EvalReportV
   };
   const pairs: MatchedCase[] = [];
   if (!previous) return { summary, pairs };
+  summary.versionKeys = (current.suiteManifests ?? []).flatMap(manifest => compareVersionKeys(manifest,
+    previous.suiteManifests?.find(baseline => baseline.name === manifest.name)));
   // Retain bounded examples, but count every issue/change. No raw input/output is copied into analytics.
   const addIssue = (issue: CohortIssue) => {
     summary.issueCount += 1;
@@ -95,6 +99,10 @@ export const buildMatchedCohort = (current: EvalReportV1, previous?: EvalReportV
     if (manifests.length > 1 || oldManifests.length > 1) issue('duplicate-suite-manifest', 'ambiguous');
     else if (!manifest || !oldManifest) issue('missing-suite-manifest', 'unknown');
     else {
+      for (const check of compareVersionKeys(manifest, oldManifest)) {
+        if (check.status === 'changed') issue(`comparison-${check.key}-changed`, 'incompatible');
+        if (check.status === 'unknown' && (check.candidateValue !== undefined || check.baselineValue !== undefined)) issue(`missing-comparison-${check.key}`, 'unknown');
+      }
       for (const field of ['datasetVersion', 'rubricVersion', 'graderVersion'] as const) {
         if (!present(manifest[field]) || !present(oldManifest[field])) issue(`missing-${field}`, 'unknown');
         else if (manifest[field] !== oldManifest[field]) issue(`${field}-changed`, 'incompatible');

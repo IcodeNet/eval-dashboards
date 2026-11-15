@@ -17,6 +17,7 @@ const fixtures = [
   { name: 'basic', input: 'examples/basic-json' },
   { name: 'calibration', input: 'examples/calibration-minimum-sample' },
   { name: 'class-labels', input: 'examples/calibration-class-labels' },
+  { name: 'version-keys', input: 'examples/baseline-version-keys' },
 ] as const;
 const viewports = [
   { name: 'desktop', width: 1366, height: 900 },
@@ -46,8 +47,9 @@ try {
         for (const viewport of viewports) {
           const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
           await page.goto(`file://${path.join(reportDir, 'index.html')}`);
-          if (fixture.name !== 'basic') {
-            await page.locator('[data-section-id="judge-calibration"] .section-toggle').click();
+          for (const section of ['judge-calibration', 'baseline-compatibility']) {
+            const toggle = page.locator(`[data-section-id="${section}"] .section-toggle`);
+            if (await toggle.count()) await toggle.click();
           }
           await page.addScriptTag({ content: axeSource });
           const result = (await page.evaluate(

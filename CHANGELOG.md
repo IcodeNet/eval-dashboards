@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional suite model, prompt, tool-contract and configuration version keys
+  for baseline comparisons. Missing values stay unknown. Explicitly explained
+  experiment changes stay visible without becoming uncontrolled drift.
+  Blocking/report-only policy and paired eligibility use the shared evidence;
+  reports prioritize changed versions and retain all results in JSON.
+  Includes a runnable example and installed-package checks.
+
 - Optional suite `labelScale`, judge and human class labels, and an explicit
   Pass mapping. Calibration gates and reports compare exact class names;
   different scales remain separate. Human-review imports preserve agreed

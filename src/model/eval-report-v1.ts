@@ -118,6 +118,17 @@ export type RowUsageMetrics = {
   model?: string;
 };
 
+export const COMPARISON_KEYS = ['modelDigest', 'promptHash', 'toolContract', 'instanceConfig'] as const;
+export type ComparisonKey = (typeof COMPARISON_KEYS)[number];
+export type VersionKeyComparison = {
+  suite: string;
+  key: ComparisonKey;
+  status: 'match' | 'changed' | 'unknown' | 'treatment';
+  baselineValue?: string;
+  candidateValue?: string;
+  reason: string;
+};
+
 /** Exact class names and the explicit subset interpreted as a passing decision. */
 export type LabelScale = { labels: string[]; passLabels: string[] };
 
@@ -162,6 +173,10 @@ export type SuiteManifest = {
   /** Immutable version of the suite's grader implementations and scoring configuration. */
   graderVersion?: string;
   labelScale?: LabelScale;
+  /** Opaque, non-secret version identifiers; omitted values remain unknown. */
+  comparisonKeys?: Partial<Record<ComparisonKey, string>>;
+  /** Explain each intentionally varied key; this cannot fill missing observations. */
+  comparisonTreatments?: Partial<Record<ComparisonKey, string>>;
 };
 
 export type RegisteredRubric = {
@@ -190,6 +205,7 @@ export type BaselineCompatibilityIssue = {
 export type BaselineCompatibilityResult = {
   status: 'compatible' | 'warning' | 'blocked';
   issues: BaselineCompatibilityIssue[];
+  versionKeys?: VersionKeyComparison[];
 };
 
 export type DatasetChangeType = (typeof DATASET_CHANGE_TYPES)[number];

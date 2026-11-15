@@ -23,6 +23,80 @@
   ],
   "baselineCompatibility": {
     "status": "warning",
+    "versionKeys": [
+      {
+        "suite": "response-quality",
+        "key": "modelDigest",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "response-quality",
+        "key": "promptHash",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "response-quality",
+        "key": "toolContract",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "response-quality",
+        "key": "instanceConfig",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "tool-use",
+        "key": "modelDigest",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "tool-use",
+        "key": "promptHash",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "tool-use",
+        "key": "toolContract",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "tool-use",
+        "key": "instanceConfig",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "safety",
+        "key": "modelDigest",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "safety",
+        "key": "promptHash",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "safety",
+        "key": "toolContract",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      },
+      {
+        "suite": "safety",
+        "key": "instanceConfig",
+        "status": "unknown",
+        "reason": "Neither run recorded this version."
+      }
+    ],
     "issues": [
       {
         "suite": "response-quality",

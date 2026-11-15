@@ -1,5 +1,6 @@
 import { isLabelScale, manifestForSuite } from './label-scale.js';
 import {
+  COMPARISON_KEYS,
   DATASET_CHANGE_TYPES,
   DATASET_SOURCES,
   EVAL_REPORT_SCHEMA_VERSION,
@@ -753,6 +754,21 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
   if (errors.length === 0) {
     const report = value as EvalReportV1;
     for (const [index, manifest] of (report.suiteManifests ?? []).entries()) {
+      for (const field of ['comparisonKeys', 'comparisonTreatments'] as const) {
+        const fields = manifest[field];
+        if (fields === undefined) continue;
+        if (!isObject(fields)) {
+          errors.push(`suiteManifests[${index}].${field} must be an object when provided.`);
+          continue;
+        }
+        for (const [key, text] of Object.entries(fields)) {
+          if (!COMPARISON_KEYS.includes(key as typeof COMPARISON_KEYS[number]) || typeof text !== 'string' || text.trim().length === 0) {
+            errors.push(`suiteManifests[${index}].${field}.${key} must be a known comparison key with a non-empty string value.`);
+          } else if (field === 'comparisonTreatments' && !manifest.comparisonKeys?.[key as typeof COMPARISON_KEYS[number]]) {
+            errors.push(`suiteManifests[${index}].comparisonTreatments.${key} requires the current comparisonKeys value.`);
+          }
+        }
+      }
       if (manifest.labelScale !== undefined && !isLabelScale(manifest.labelScale)) {
         errors.push(`suiteManifests[${index}].labelScale must declare at least two unique non-empty labels and an explicit passLabels subset.`);
       }

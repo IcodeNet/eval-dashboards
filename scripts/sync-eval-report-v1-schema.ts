@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  COMPARISON_KEYS,
   DATASET_CHANGE_TYPES,
   DATASET_SOURCES,
   EVAL_REPORT_SCHEMA_VERSION,
@@ -61,6 +62,12 @@ setArray('definitions.GatePolicy.properties.mode', GATE_MODES);
 setArray('definitions.RowProvenance.properties.source', ROW_PROVENANCE_SOURCES);
 setArray('definitions.RowLifecycle.properties.status', ROW_LIFECYCLE_STATUSES);
 setArray('definitions.DatasetChangelogEntry.properties.changeType', DATASET_CHANGE_TYPES);
+
+for (const field of ['comparisonKeys', 'comparisonTreatments']) {
+  getObject(schema, `definitions.SuiteManifest.properties.${field}`).properties = Object.fromEntries(
+    COMPARISON_KEYS.map(key => [key, { type: 'string', minLength: 1, pattern: '\\S' }]),
+  );
+}
 
 writeFileSync(schemaPath, `${JSON.stringify(schema, null, 2)}\n`, 'utf8');
 console.log(`Synced schema enums to ${schemaPath}`);
