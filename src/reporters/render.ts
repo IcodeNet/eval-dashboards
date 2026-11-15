@@ -1,3 +1,4 @@
+import { summarizeClassCalibration, type ClassCalibrationSummary } from '../analytics/class-calibration.js';
 import { describeRepeatedTrials, describeRepeatedTrialCase, describeTrialReason, formatTrialRate, formatTrialInterval, formatTrialBaseline, formatTrialChange } from '../analytics/repeated-trials.js';
 import path from 'node:path';
 import { describePairedComparison, type PairedComparisonOptions } from '../analytics/paired-comparison.js';
@@ -123,8 +124,8 @@ export const renderReports = async (
 };
 
 const hasJudgeReview = (report: EvalReportV1): boolean => report.rows.some(row =>
-  row.judgeVerdict !== undefined || row.groundTruthVerdict !== undefined) ||
-  (report.suiteManifests ?? []).some(manifest => manifest.graders.includes('human-labelled-calibration'));
+  row.judgeVerdict !== undefined || row.groundTruthVerdict !== undefined || row.judgeLabel !== undefined || row.groundTruthLabel !== undefined) ||
+  (report.suiteManifests ?? []).some(manifest => manifest.graders.includes('human-labelled-calibration') || manifest.labelScale !== undefined);
 
 const renderText = (context: ReportContext): string => {
   const { locale } = context;
@@ -943,6 +944,8 @@ const renderRowDetail = (r: EvalRow, colSpan: number, scoreScale?: { min: number
     </div>`);
   };
 
+  field('Judge label', r.judgeLabel);
+  field('Reviewer label', r.groundTruthLabel);
   field('Input', r.input, true, true, 'The prompt, question, or case input shown to the runner or judge.');
   field('Output', r.output, true, true, 'The answer or response produced by the runner or agent.');
   field('Expected', r.expected, true, true, 'The expected result or target answer for this case when provided.');
@@ -1355,7 +1358,7 @@ ${rightControls ? `        ${rightControls}\n` : ''}      </div>
 };
 
 const calibrationRate = (value: number | undefined): string => value === undefined ? 'Unknown' : `${(value * 100).toFixed(1)}%`;
-const calibrationKappa = (summary: CalibrationAgreement): string => summary.kappa === undefined
+const calibrationKappa = (summary: CalibrationAgreement<boolean | string>): string => summary.kappa === undefined
   ? `Unavailable (${summary.kappaStatus === 'no-pairs' ? 'no examples with both decisions' : 'everyone chose the same answer'})`
   : summary.kappa.toFixed(3);
 
@@ -1369,17 +1372,24 @@ const escapeMarkdownLabel = (value: string): string => {
   return `${delimiter}${padding}${text}${padding}${delimiter}`;
 };
 
-const calibrationLines = (summary: CalibrationSummary, label: (value: string) => string = value => value): string[] => [
+const calibrationLines = (summary: CalibrationSummary & { classSummaries?: ClassCalibrationSummary[] }, label: (value: string) => string = value => value): string[] => [
   describeCalibration(summary),
   'Kappa accounts for how often the judge and reviewer each choose Pass or Fail. Read it with the example count and the actual mistakes.',
   ...summary.labelCounts.map(counts => `Reviewer chose ${counts.label ? 'Pass' : 'Fail'}: reviewer=${counts.human}, judge=${counts.judge}, matching decisions=${counts.matches}, agreement=${calibrationRate(counts.agreementRate)}`),
   ...summary.suiteSummaries.slice(0, 20).map(suite => `Test group ${label(suite.suite)}: ${describeCalibration(suite)}`),
   ...summary.judgeSummaries.slice(0, 20).map(judge => `Judge ${label(judge.judgeModel ?? '(missing model)')}: ${describeCalibration(judge)}`),
   ...summary.categorySummaries.slice(0, 20).map(category => `Reviewer category ${label(category.category ?? '(missing category)')}: ${describeCalibration(category)}`),
+  ...(summary.classSummaries ?? []).slice(0, 20).flatMap(group => [
+    `Named-label review for ${label(group.suite)}: ${describeCalibration(group)}`,
+    ...group.labelCounts.map(count => `Reviewer label ${label(count.label)}: reviewer=${count.human}, judge=${count.judge}, matching decisions=${count.matches}, agreement=${calibrationRate(count.agreementRate)}`),
+    ...group.judgeSummaries.slice(0, 20).map(judge => `Named-label judge ${label(judge.judgeModel ?? '(missing model)')}: ${describeCalibration(judge)}`),
+    ...group.categorySummaries.slice(0, 20).map(category => `Named-label category ${label(category.category ?? '(missing category)')}: ${describeCalibration(category)}`),
+  ]),
+  ...((summary.classSummaries?.length ?? 0) > 20 ? ['Showing 20 named-label test groups. The JSON report contains all results.'] : []),
   ...(summary.suiteSummaries.length > 20 || summary.judgeSummaries.length > 20 || summary.categorySummaries.length > 20 ? ['Showing up to 20 test groups, judges and categories. The JSON report contains all results.'] : []),
 ].map(line => stripControlCharacters(line).replace(/[\r\n]+/g, ' '));
 
-const calibrationBreakdownTable = (title: string, groups: Array<CalibrationAgreement & { label: string }>): string =>
+const calibrationBreakdownTable = (title: string, groups: Array<CalibrationAgreement<boolean | string> & { label: string }>): string =>
   `<h3>${e(title)}</h3><div class="table-wrap" tabindex="0" role="region" aria-label="${e(title)} judge agreement"><table>
     <thead><tr><th>${e(title)}</th><th>Reviewed examples</th><th>Matching decisions</th><th>Different decisions</th><th>Agreement</th><th>Expected agreement</th><th>Cohen's kappa</th></tr></thead>
     <tbody>${groups.slice(0, 20).map(group => `<tr><td>${e(group.label)}</td><td>${group.total}</td><td>${group.agreements}</td><td>${group.disagreements}</td><td>${e(calibrationRate(group.agreementRate))}</td><td>${e(calibrationRate(group.expectedAgreementRate))}</td><td>${e(calibrationKappa(group))}</td></tr>`).join('')}</tbody>
@@ -1402,6 +1412,24 @@ const judgeCalibrationTable = (summary: CalibrationSummary): string =>
   ${calibrationBreakdownTable('AI judge', summary.judgeSummaries.map(group => ({ ...group, label: group.judgeModel ?? '(missing model)' })))}
   ${calibrationBreakdownTable('Reviewer category', summary.categorySummaries.map(group => ({ ...group, label: group.category ?? '(missing category)' })))}
   <p>For each decision, the percentage shows how often the judge agreed when the reviewer chose that decision. Categories come from the person’s review; missing categories stay unknown.</p></div>`;
+
+const classCalibrationHtml = (groups: ClassCalibrationSummary[]): string => groups.slice(0, 20).map(group => `
+  <div class="calibration-evidence"><h3>Answer labels: ${e(group.suite)}</h3>
+  <div class="meta-grid">
+    <div class="meta-card"><div class="meta-label">Reviewed examples</div><div class="meta-value">${group.total}</div></div>
+    <div class="meta-card"><div class="meta-label">Agreement</div><div class="meta-value">${e(calibrationRate(group.agreementRate))}</div></div>
+    <div class="meta-card"><div class="meta-label">Expected agreement</div><div class="meta-value">${e(calibrationRate(group.expectedAgreementRate))}</div></div>
+    <div class="meta-card"><div class="meta-label">Cohen's kappa</div><div class="meta-value">${e(calibrationKappa(group))}</div></div>
+    <div class="meta-card"><div class="meta-label">Different decisions</div><div class="meta-value">${group.disagreements}</div></div>
+  </div>
+  <p>These scores compare exact label names, before their Pass/Fail mapping. Expected agreement uses how often each side chose each label. Cohen's kappa adjusts for that expected agreement. Read both scores with the example count and actual mistakes. Each test group is measured separately.</p>
+  <p>Labels that mean Pass: ${e(group.labelScale.passLabels.join(', ') || '(none)')}.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Named judge and reviewer labels"><table>
+  <thead><tr><th>Label</th><th>Reviewer chose</th><th>Judge chose</th><th>Matching decisions</th><th>Agreement for this label</th></tr></thead>
+  <tbody>${group.labelCounts.map(count => `<tr><td>${e(count.label)}</td><td>${count.human}</td><td>${count.judge}</td><td>${count.matches}</td><td>${e(calibrationRate(count.agreementRate))}</td></tr>`).join('')}</tbody></table></div>
+  ${calibrationBreakdownTable('AI judge', group.judgeSummaries.map(judge => ({ ...judge, label: judge.judgeModel ?? '(missing model)' })))}
+  ${calibrationBreakdownTable('Reviewer category', group.categorySummaries.map(category => ({ ...category, label: category.category ?? '(missing category)' })))}
+  </div>`).join('') + (groups.length > 20 ? '<p>Showing 20 test groups. The JSON report contains all results.</p>' : '');
 
 const frontierRowsTable = (
   points: QualityFrontierPoint[],
@@ -1570,6 +1598,7 @@ const renderHtml = (context: ReportContext): string => {
   const theme = resolveTheme(context.theme);
   const summary = summarizeReport(current);
   const judgeCalibration = summarizeCalibration(rows);
+  const classCalibration = summarizeClassCalibration(current);
   const showJudgeCalibration = hasJudgeReview(current);
   const failingRows = rows.filter((r) => !r.passed);
   const guardrailSummary = summarizeGuardrailRows(current);
@@ -1987,8 +2016,8 @@ ${statisticalSummary
       ? renderCollapsibleSection({
         id: 'judge-calibration',
         title: 'Judge agreement with people',
-        summary: judgeCalibrationSummary,
-        body: judgeCalibrationTable(judgeCalibration),
+        summary: classCalibration.length ? `Label agreement in ${pluralize(classCalibration.length, 'test group')}; see each group below` : judgeCalibrationSummary,
+        body: (judgeCalibration.total > 0 || classCalibration.length === 0 ? judgeCalibrationTable(judgeCalibration) : '') + classCalibrationHtml(classCalibration),
         summaryTone: judgeCalibration.kappaStatus !== 'defined' ? 'muted' : judgeCalibration.disagreements === 0 ? 'pass' : 'warn',
       })
       : ''

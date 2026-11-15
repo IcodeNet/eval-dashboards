@@ -1074,10 +1074,13 @@ and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
    a passing critical row does not fail it, while a failed critical row does.
    Evidence: `src/gates/check-gates.ts` and
    `test/critical-failures-only.test.ts` (red/green, suite/public API/CLI parity).
-6. [ ] **4E.12.6 — Multi-class labels (P1).** Add an optional declared label scale,
+6. [x] **4E.12.6 — Multi-class labels (P1).** Add an optional declared label scale,
    judge/human class labels and explicit pass-class mapping. Support agreement,
    kappa, validation and reports without changing boolean verdicts or repurposing
    failure-category fields. Keep schema, examples and adjudication aligned.
+   Evidence: `src/analytics/class-calibration.ts`,
+   `test/calibration-class-labels.test.ts` (red/green, gates/reports/review),
+   and `examples/calibration-class-labels/`.
 7. [ ] **4E.12.7 — Baseline version keys (P1).** Add optional comparability keys
    for model digest, prompt hash, tool contract and instance configuration.
    Compare declared values when both runs carry them; surface missing metadata

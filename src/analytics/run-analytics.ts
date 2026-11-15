@@ -1,3 +1,4 @@
+import { summarizeClassCalibration } from './class-calibration.js';
 import { summarizeRepeatedTrials } from './repeated-trials.js';
 import { summarizeCalibration } from './calibration.js';
 import { comparePairedOutcomes, type PairedComparisonOptions } from './paired-comparison.js';
@@ -11,6 +12,8 @@ export const analyzeRun = (current: EvalReportV1, previous?: EvalReportV1, optio
   pairedComparison: comparePairedOutcomes(current, previous, options?.paired),
   telemetry: summarizeTelemetry(current),
   repeatedTrials: summarizeRepeatedTrials(current, previous),
-  calibration: summarizeCalibration(current.rows),
+  calibration: { ...summarizeCalibration(current.rows),
+    ...(current.suiteManifests?.some(manifest => manifest.labelScale !== undefined)
+      ? { classSummaries: summarizeClassCalibration(current) } : {}) },
 });
 export type RunAnalytics = ReturnType<typeof analyzeRun>;

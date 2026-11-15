@@ -791,3 +791,14 @@ observed finite dataset. A runnable, provider-free example is in
 `examples/paired-comparison/README.md`.
 
 ![An offline report shows an inconclusive paired comparison despite a 100 percent observed pass rate.](./images/paired-comparison.png)
+
+### Agreement over named labels
+
+For a suite declaring `labelScale`, the existing calibration agreement, kappa
+and minimum-sample thresholds compare `judgeLabel` with `groundTruthLabel`.
+Pairs must contain valid labels on both sides. Optional boolean verdicts do
+not substitute for missing labels. Blocking judge preflight also checks that
+a target's declared labels and Pass mapping match its calibration evidence.
+The [four-class example](../examples/calibration-class-labels/README.md) passes
+75% exact-label agreement with kappa 2/3 against a minimum kappa of 0.6.
+This behavior is in source after npm 0.11.0.

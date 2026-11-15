@@ -387,6 +387,14 @@
             }
           },
           "additionalProperties": true
+        },
+        "judgeLabel": {
+          "type": "string",
+          "description": "Exact class from the suite labelScale; optional boolean verdict must agree with passLabels."
+        },
+        "groundTruthLabel": {
+          "type": "string",
+          "description": "Exact class from the suite labelScale; optional boolean verdict must agree with passLabels."
         }
       }
     },
@@ -766,6 +774,9 @@
             }
           },
           "description": "Declared raw score bounds; runtime validation also requires min < max."
+        },
+        "labelScale": {
+          "$ref": "#/definitions/LabelScale"
         }
       }
     },
@@ -983,6 +994,35 @@
           "minimum": 0
         }
       }
+    },
+    "LabelScale": {
+      "type": "object",
+      "required": [
+        "labels",
+        "passLabels"
+      ],
+      "properties": {
+        "labels": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "passLabels": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "description": "Exact class names and explicit passing subset. Cross-field membership is checked by validateEvalReport."
     }
   }
 }

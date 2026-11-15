@@ -1,3 +1,4 @@
+import { isLabelScale, manifestForSuite } from '../model/label-scale.js';
 import { rowMatchedExpectation, type EvalReportV1 } from '../model/eval-report-v1.js';
 
 export type TaxonomyLintLevel = 'error' | 'warning';
@@ -143,7 +144,9 @@ export function lintReportTaxonomy(report: EvalReportV1): TaxonomyLintResult {
           message: `LLM-judge row ${key} is missing judgeReasoning.`,
         });
       }
-      if (row.judgeVerdict === undefined) {
+      const scale = manifestForSuite(report, row.suite)?.labelScale;
+      const hasDeclaredLabel = isLabelScale(scale) && row.judgeLabel !== undefined && scale.labels.includes(row.judgeLabel);
+      if (row.judgeVerdict === undefined && !hasDeclaredLabel) {
         issues.push({
           level: 'warning',
           code: 'missing-judge-verdict',

@@ -1,3 +1,4 @@
+import { isLabelScale, manifestForSuite } from './label-scale.js';
 import {
   DATASET_CHANGE_TYPES,
   DATASET_SOURCES,
@@ -747,6 +748,27 @@ export const validateEvalReport = (value: unknown): ValidationResult => {
       if (!isObject(row) || !isString(row.id) || !isString(row.suite)) return;
       if (!declaredSuites.has(row.suite)) errors.push(`rows[${index}].suite must reference a declared suite.`);
     });
+  }
+
+  if (errors.length === 0) {
+    const report = value as EvalReportV1;
+    for (const [index, manifest] of (report.suiteManifests ?? []).entries()) {
+      if (manifest.labelScale !== undefined && !isLabelScale(manifest.labelScale)) {
+        errors.push(`suiteManifests[${index}].labelScale must declare at least two unique non-empty labels and an explicit passLabels subset.`);
+      }
+    }
+    for (const [index, row] of report.rows.entries()) {
+      for (const [field, verdictField] of [['judgeLabel', 'judgeVerdict'], ['groundTruthLabel', 'groundTruthVerdict']] as const) {
+        const label = row[field];
+        if (label === undefined) continue;
+        const scale = manifestForSuite(report, row.suite)?.labelScale;
+        if (!isLabelScale(scale) || typeof label !== 'string' || !scale.labels.includes(label)) {
+          errors.push(`rows[${index}].${field} must be one of its suite's declared labelScale.labels.`);
+        } else if (row[verdictField] !== undefined && row[verdictField] !== scale.passLabels.includes(label)) {
+          errors.push(`rows[${index}].${verdictField} must match the declared passLabels mapping for ${field}.`);
+        }
+      }
+    }
   }
 
   if (errors.length > 0) {

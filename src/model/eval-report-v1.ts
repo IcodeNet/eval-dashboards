@@ -118,6 +118,9 @@ export type RowUsageMetrics = {
   model?: string;
 };
 
+/** Exact class names and the explicit subset interpreted as a passing decision. */
+export type LabelScale = { labels: string[]; passLabels: string[] };
+
 export type SuiteManifest = {
   name: string;
   target: EvalTarget;
@@ -158,6 +161,7 @@ export type SuiteManifest = {
   scoreDirection?: (typeof SCORE_DIRECTIONS)[number];
   /** Immutable version of the suite's grader implementations and scoring configuration. */
   graderVersion?: string;
+  labelScale?: LabelScale;
 };
 
 export type RegisteredRubric = {
@@ -273,6 +277,7 @@ export type EvalRow = {
   rubricVariant?: string;
   judgeModel?: string;
   judgeVerdict?: boolean;
+  judgeLabel?: string;
   judgeCategory?: string;
   judgeReasoning?: string;
   /**
@@ -290,6 +295,7 @@ export type EvalRow = {
   agentVersion?: string;
   agentReasoning?: string;
   groundTruthVerdict?: boolean;
+  groundTruthLabel?: string;
   groundTruthCategory?: string;
   groundTruthAnnotation?: string;
   groundTruthAxisScores?: Record<string, number>;

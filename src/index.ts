@@ -76,3 +76,6 @@ export { summarizeRepeatedTrials, describeRepeatedTrials, describeRepeatedTrialC
 export { evaluateReportPolicy, type ReportPolicyOptions, type ReportPolicyResult } from './gates/evaluate-policy.js';
 export type { WaiverRegisterV1, WaiverV1 } from './gates/waivers.js';
 export { filterReportByTier, type PrTierBudgetConfig } from './gates/pr-tiering.js';
+
+export { measureClassCalibration, summarizeClassCalibration, type ClassCalibrationSummary } from './analytics/class-calibration.js';
+export type { LabelScale } from './model/eval-report-v1.js';

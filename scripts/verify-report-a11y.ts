@@ -16,6 +16,7 @@ const themes = ['default', 'dark', 'minimal'] as const;
 const fixtures = [
   { name: 'basic', input: 'examples/basic-json' },
   { name: 'calibration', input: 'examples/calibration-minimum-sample' },
+  { name: 'class-labels', input: 'examples/calibration-class-labels' },
 ] as const;
 const viewports = [
   { name: 'desktop', width: 1366, height: 900 },
@@ -45,7 +46,7 @@ try {
         for (const viewport of viewports) {
           const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
           await page.goto(`file://${path.join(reportDir, 'index.html')}`);
-          if (fixture.name === 'calibration') {
+          if (fixture.name !== 'basic') {
             await page.locator('[data-section-id="judge-calibration"] .section-toggle').click();
           }
           await page.addScriptTag({ content: axeSource });

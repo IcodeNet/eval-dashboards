@@ -1,3 +1,4 @@
+import { measureClassCalibration } from '../analytics/class-calibration.js';
 import { comparePairedOutcomes, describePairedComparison, validatePairedComparisonOptions, type PairedComparisonOptions, type PairedOutcomeComparison } from '../analytics/paired-comparison.js';
 import type { RunComparison } from '../history/history.js';
 import { type EvalReportV1, summarizeReport } from '../model/eval-report-v1.js';
@@ -356,7 +357,8 @@ export const checkGates = (
       }
     }
     const suiteRows = report.rows.filter((row) => suiteIdentifiers.has(row.suite));
-    const calibration = measureCalibrationAgreement(suiteRows);
+    const calibration = manifest.labelScale === undefined ? measureCalibrationAgreement(suiteRows)
+      : measureClassCalibration(suiteRows, manifest.labelScale);
     const calibrationAgreementRate = calibration.agreementRate;
     const calibrationDisagreementRate = calibration.total > 0 ? calibration.disagreements / calibration.total : undefined;
     const calibrationAxisRows = suiteRows.filter(
