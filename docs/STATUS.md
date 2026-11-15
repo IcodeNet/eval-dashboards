@@ -425,7 +425,7 @@ It is optional and does not change report-only manifest enforcement. Evidence:
 `test/calibration-minimum-sample.test.ts` and the runnable
 `examples/calibration-minimum-sample/`. The sample-size demonstration does not
 establish statistical independence or production reliability. Kappa/category
-reporting follows below; 4E.12.6–4E.12.7 remain open. Not in published 0.11.0.
+reporting follows below; 4E.12.7 remains open. Not in published 0.11.0.
 
 The fourth correction is implemented in source: shared calibration analytics
 include raw agreement, paired and class counts, Cohen's kappa and breakdowns
@@ -444,3 +444,14 @@ a run. Severity totals still describe all rows. Evidence:
 `test/critical-failures-only.test.ts` reproduces the old rejection and verifies
 the shared gate, public policy API and real CLI exit code/JSON result. This
 correction is after published 0.11.0.
+
+The sixth correction is implemented in source: optional suite `labelScale`
+declares exact class names and their Pass mapping. Rows can carry separate
+judge/human labels. Agreement, kappa, minimum samples and judge preflight use
+the declared classes, while existing boolean behavior stays available. Reports
+keep different scales separate and escape label text. Human-review imports
+require agreement on the actual class and use the target report's mapping.
+Schema, taxonomy lint, docs and a runnable four-class example are aligned.
+Evidence: `test/calibration-class-labels.test.ts` and
+`docs/reviews/2026-11-15-calibration-class-labels.json`. This is source after
+published 0.11.0; baseline version keys (4E.12.7) remain open.

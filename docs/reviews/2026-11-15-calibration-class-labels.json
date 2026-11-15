@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-15",
+  "scope": "4E.12.6 optional named-label calibration",
+  "baseline": "04608da3b253114712b8e818ff2b33fe06f3b78e",
+  "before": {
+    "command": "pnpm exec vitest run test/calibration-class-labels.test.ts with original src files restored from baseline, then restored the implementation",
+    "result": "16 tests failed with the final regression scenarios; a later lint case separately failed before its fix (1 failed, 16 passed). A runner-adapter preservation case separately failed before its fix (1 failed, 17 passed).",
+    "cli": "pnpm dev check --input=examples/calibration-class-labels exited 1 on the original source: named labels were ignored, so no boolean evidence met its configured bars."
+  },
+  "after": {
+    "focusedCommand": "pnpm exec vitest run test/calibration-class-labels.test.ts test/calibration-statistics.test.ts test/calibration-review-follow-up.test.ts test/adjudication.test.ts test/calibration-preflight-quality.test.ts test/lint-taxonomy.test.ts test/runner-adapter.test.ts",
+    "focusedResult": "105 tests passed in 7 files, including the runner adapter.",
+    "cli": "Same four-class input exits 0, with three of four exact labels matching and kappa 2/3.",
+    "docs": "pnpm docs:build and pnpm docs:check passed; 91 pages.",
+    "accessibility": "pnpm a11y:verify passed after the panel wording update: 3 fixtures x 3 themes x 2 viewports, no axe violations. Panel also inspected visually.",
+    "fullSuite": "pnpm check passed 1,111 tests in 102 files, teaching replay, documented flags, build and 9 hook tests.",
+    "schemaNormalization": "The first schema check corrected an escaped Unicode dash to the generator’s normal output. Staged that generated form before rerunning the required checks."
+  },
+  "review": {
+    "findings": [],
+    "checked": [
+      "No default change or new schema version; booleans retain their own metrics.",
+      "Kappa uses integer counts for any number of nominal classes and exact decimal threshold comparisons.",
+      "Different suite scales stay separate; class evidence cannot borrow missing labels from booleans.",
+      "Reviewer class disagreements remain visible even when both classes mean Fail. Bundle scale copies do not mutate the target report; import uses the authoritative scale.",
+      "HTML escapes labels; Markdown uses the existing safe label formatter.",
+      "No new runtime dependencies or evaluation runner."
+    ]
+  },
+  "limits": [
+    "Four synthetic rows demonstrate arithmetic, not production reliability.",
+    "No speed benchmark was run.",
+    "Full required verification results are recorded by pnpm quality:record before commit.",
+    "Published npm 0.11.0 does not contain this change."
+  ]
+}

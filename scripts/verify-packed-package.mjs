@@ -27,7 +27,7 @@ try {
   run('npm', ['ls', '@octokit/rest', '@octokit/request', 'content-type', '--all']);
   fs.writeFileSync(path.join(temp, 'consumer.ts'), `
 import type { EvalReportV1, EvalRow, RepeatedTrialSummary } from '@icodenet/eval-dashboards';
-import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, summarizeCalibration, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1, publishReport } from '@icodenet/eval-dashboards';
+import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, summarizeCalibration, summarizeClassCalibration, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1, publishReport } from '@icodenet/eval-dashboards';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 const row: EvalRow = { id: 'consumer', suite: 'smoke', passed: true };
 const report: EvalReportV1 = {
@@ -42,7 +42,9 @@ if (calibration.kappa !== 1 || calibration.total !== 2) throw new Error('Public 
 const store: HistoryStore = createSqliteHistoryStore('unused.sqlite');
 if (typeof store.read !== 'function' || typeof createHistoryStoreForPath !== 'function') throw new Error('History store exports failed');
 const schema = JSON.parse(readFileSync(new URL(import.meta.resolve('@icodenet/eval-dashboards/schemas/eval-report-v1.schema.json')), 'utf8'));
-if (!schema.properties?.schemaVersion) throw new Error('Schema subpath export failed');
+if (!schema.properties?.schemaVersion || !schema.definitions?.LabelScale) throw new Error('Schema subpath export failed');
+const classReport: EvalReportV1 = JSON.parse(readFileSync('node_modules/@icodenet/eval-dashboards/examples/calibration-class-labels/eval-report.json', 'utf8'));
+if (!validateEvalReport(classReport).ok || summarizeClassCalibration(classReport)[0]?.kappa !== 2 / 3) throw new Error('Named-label public types, example or statistics failed');
 const repeatedArtifact = createEvalReportArtifact({ cases: [{ id: 'repeat', suite: 'smoke', passed: false,
   expectedOutcome: 'fail', repeated: { runs: 10, passes: 1, aggregation: 'majority', samplingDesign: REPEATED_SAMPLING_DESIGNS[0] } }] });
 const repeated: RepeatedTrialSummary = summarizeRepeatedTrials(repeatedArtifact);
@@ -109,6 +111,8 @@ console.log('Packed consumer: public types compile; runtime, complete policy and
   const installedCli = 'node_modules/@icodenet/eval-dashboards/dist/cli/index.js';
   run(process.execPath, [installedCli, 'check', '--input=node_modules/@icodenet/eval-dashboards/examples/calibration-minimum-sample']);
   console.log('Packed CLI: shipped minimum calibration sample meets its paired-label floor.');
+  run(process.execPath, [installedCli, 'check', '--input=node_modules/@icodenet/eval-dashboards/examples/calibration-class-labels']);
+  console.log('Packed CLI: shipped four-class sample passes its class-agreement and sample-size bars.');
   run(process.execPath, [installedCli, 'history', '--input=file-runs', '--out=file-history.json']);
   run(process.execPath, [installedCli, 'report', '--input=file-runs', '--report-dir=offline-report', '--reporter=html']);
   const history = JSON.parse(fs.readFileSync(path.join(temp, 'file-history.json'), 'utf8'));

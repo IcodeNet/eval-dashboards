@@ -624,3 +624,8 @@ See [examples/](examples/) for runnable demos.
 ## License
 
 MIT © [Byron Thanopoulos](mailto:byronth@gmail.com)
+
+For answers that need more detail than Pass/Fail, see the optional
+[named-label contract](docs/artifact-format.md#named-judge-and-human-labels) and
+[four-class calibration example](examples/calibration-class-labels/README.md).
+Existing boolean artifacts still work. This addition is after npm 0.11.0.

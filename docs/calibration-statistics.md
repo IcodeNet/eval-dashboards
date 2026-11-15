@@ -122,3 +122,16 @@ No Python package or other dependency is added.
 Each group's score uses its own examples. A small group, or one where everyone
 used the same answer, may have no usable kappa score. Kappa is not a confidence
 interval and does not prove that examples are independent of one another.
+
+## When Pass and Fail hide useful distinctions
+
+A person labels four answers “fully answered”, “partially answered”, “not
+covered” and “wrong”. The judge calls the second one “fully answered” but gets
+the others right. Exact-label agreement is 75% and kappa is 2/3. Mapping the
+labels to only Pass/Fail loses some of that detail and gives a different kappa.
+
+Declare the labels and their Pass mapping in the suite's optional `labelScale`,
+then emit `judgeLabel` and `groundTruthLabel` on each row. The named-label panel
+shows its own results. Existing boolean results stay separate. Missing labels
+are not inferred from booleans. See [the contract](./artifact-format.md#named-judge-and-human-labels)
+and [runnable example](../examples/calibration-class-labels/README.md).

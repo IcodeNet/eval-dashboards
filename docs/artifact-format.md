@@ -618,3 +618,52 @@ subtracting the displayed individual 95% intervals would not give the same joint
 Reports show repeated-trial evidence only when current repeated cases exist. JSON
 still includes explicit counts for the shared analysis. Intervals describe
 uncertainty under the declared design; they do not establish causality.
+
+## Named judge and human labels
+
+A judge can choose “fully answered” while a person chooses “partially answered”.
+To preserve that distinction, a suite may declare an optional `labelScale`:
+
+```json
+{
+  "labels": ["fully answered", "partially answered", "not covered", "wrong"],
+  "passLabels": ["fully answered"]
+}
+```
+
+Set `rows[].judgeLabel` and `rows[].groundTruthLabel` to exact names from that
+suite's list. Names are case-sensitive, unique and non-empty. Declare at least
+two. `passLabels` is a required, explicit subset, which may be empty. It says
+which labels mean Pass. If a corresponding `judgeVerdict` or `groundTruthVerdict`
+is also supplied, its boolean must agree with this mapping. `passed` remains the
+runner's required result; validation and reporting do not rewrite it.
+
+JSON Schema describes the optional fields. Runtime `validateEvalReport` also
+checks label membership, suite references and consistency with optional booleans.
+Existing boolean-only artifacts keep their behavior. Do not put outcome labels
+in failure `category`, `judgeCategory` or `groundTruthCategory` fields.
+
+For a suite with a declared scale, calibration agreement, minimum sample size
+and kappa gates use pairs of named labels. Missing either label does not count;
+boolean verdicts cannot fill the gap. Kappa is nominal: class order and the
+Pass/Fail mapping do not change exact-label agreement. Undefined scores stay
+unavailable. A target suite with a scale requires calibration evidence with the
+same labels and Pass mapping. Reordering names is harmless. Update the rubric
+version when label meanings change.
+
+Reports preserve boolean statistics and add separate `analytics.calibration.classSummaries`
+for declared scales, with counts and judge/category breakdowns. Different suites
+are not pooled. The public `summarizeClassCalibration(report)` gives those results;
+`measureClassCalibration(rows, scale)` measures one declared scale. Class-only
+reports display named-label results without inventing boolean decisions.
+
+Human-review exports include a copy of the row's scale and labels. For those
+rows, reviewers fill `reviews[].label`; an optional `verdict` must agree with the
+mapping. Two matching labels are required by default. Two different labels that
+both map to Fail still disagree. Import checks against the target report's scale,
+records the selected label and derives the existing boolean decision. Editing
+the scale in a review bundle does not change the target's mapping. Boolean-only
+review bundles keep their existing workflow.
+
+Try the [runnable four-class example](../examples/calibration-class-labels/README.md).
+These additive fields keep `eval-report/v1`; they are after published npm 0.11.0.

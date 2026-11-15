@@ -1,3 +1,4 @@
+import { isLabelScale } from '../model/label-scale.js';
 import type { EvalReportV1, SuiteManifest } from '../model/eval-report-v1.js';
 import { compareRuns } from '../history/history.js';
 import { assessBaselineCompatibility } from '../history/baseline-compatibility.js';
@@ -115,7 +116,9 @@ const hasPassingCalibration = (report: EvalReportV1, manifest: SuiteManifest, ju
   }
   const rows = report.rows.filter(row => identifiers.has(row.suite) && row.judgeModel === judgeModel)
     .map(row => ({ ...row, suite: summary.id }));
-  if (!rows.some(row => row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined)) return false;
+  if (!rows.some(row => manifest.labelScale === undefined
+    ? row.judgeVerdict !== undefined && row.groundTruthVerdict !== undefined
+    : row.judgeLabel !== undefined && row.groundTruthLabel !== undefined)) return false;
   const passed = rows.filter(row => row.passed).length;
   const scoped: EvalReportV1 = {
     ...report, rows,
@@ -225,6 +228,12 @@ const evaluateCalibrationChecks = (
           return false;
         }
 
+        if (manifest.labelScale !== undefined) {
+          const expected = manifest.labelScale, observed = calibrationManifest.labelScale;
+          if (!isLabelScale(expected) || !isLabelScale(observed) ||
+            JSON.stringify([...expected.labels].sort()) !== JSON.stringify([...observed.labels].sort()) ||
+            JSON.stringify([...expected.passLabels].sort()) !== JSON.stringify([...observed.passLabels].sort())) return false;
+        }
         return hasPassingCalibration(report, calibrationManifest, judgeModel);
       });
 

@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional suite `labelScale`, judge and human class labels, and an explicit
+  Pass mapping. Calibration gates and reports compare exact class names;
+  different scales remain separate. Human-review imports preserve agreed
+  class labels and check the target mapping. Existing booleans keep working.
+  Includes a runnable four-class example and installed-package checks.
+
 - Shared calibration statistics report paired counts, raw agreement, Cohen's
   kappa, label frequencies and suite/judge/human-category breakdowns in JSON,
   text, Markdown and offline HTML. Undefined metrics stay explicit. Optional

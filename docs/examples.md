@@ -246,3 +246,10 @@ Its two boolean label classes also demonstrate defined Cohen's kappa. Use
 to inspect paired counts, raw agreement, kappa and human-category breakdowns.
 See the [statistics guide](./calibration-statistics.md) for majority-label and
 undefined-metric examples.
+
+The [four-class example](../examples/calibration-class-labels/README.md) keeps
+“fully answered”, “partially answered”, “not covered” and “wrong” distinct.
+Run `pnpm dev check --input=examples/calibration-class-labels`. It demonstrates
+agreement and kappa on named labels, with an explicit Pass mapping. Synthetic
+examples show the calculation, not production reliability. Requires source
+after npm 0.11.0.

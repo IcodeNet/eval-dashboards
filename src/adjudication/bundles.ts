@@ -1,3 +1,5 @@
+import { isLabelScale, manifestForSuite } from '../model/label-scale.js';
+import type { LabelScale } from '../model/eval-report-v1.js';
 import { randomUUID } from 'node:crypto';
 import {
   type EvalReportV1,
@@ -11,6 +13,7 @@ export const ADJUDICATION_BUNDLE_SCHEMA_VERSION = 'eval-adjudication-bundle/v1' 
 export type ReviewerVerdict = 'pass' | 'fail';
 
 export type AdjudicationReview = {
+  label?: string;
   verdict?: ReviewerVerdict;
   reviewer?: string;
   category?: string;
@@ -30,6 +33,9 @@ export type AdjudicationBundleRow = {
   input?: string;
   output?: string;
   expected?: string;
+  labelScale?: LabelScale;
+  judgeLabel?: string;
+  groundTruthLabel?: string;
   judgeVerdict?: boolean;
   judgeCategory?: string;
   judgeReasoning?: string;
@@ -64,7 +70,7 @@ export type MergeAdjudicationResult = {
   adjudicationDisagreements: Array<{
     suite: string;
     id: string;
-    verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict }>;
+    verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict; label?: string }>;
   }>;
 };
 
@@ -142,6 +148,12 @@ export const exportUnresolvedRowsBundle = (
       input: row.input,
       output: row.output,
       expected: row.expected,
+      labelScale: (() => {
+        const scale = manifestForSuite(report, row.suite)?.labelScale;
+        return scale ? { labels: [...scale.labels], passLabels: [...scale.passLabels] } : undefined;
+      })(),
+      judgeLabel: row.judgeLabel,
+      groundTruthLabel: row.groundTruthLabel,
       judgeVerdict: row.judgeVerdict,
       judgeCategory: row.judgeCategory,
       judgeReasoning: row.judgeReasoning,
@@ -174,7 +186,7 @@ export const rowReviews = (row: AdjudicationBundleRow): AdjudicationReview[] => 
 };
 
 export type RowAgreement = {
-  verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict }>;
+  verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict; label?: string }>;
   agrees: boolean;
 };
 
@@ -183,19 +195,27 @@ export type RowAgreement = {
  * valid verdicts are present. Returns undefined when fewer than 2 valid
  * verdicts exist (agreement is not meaningful).
  */
+const reviewVerdict = (review: AdjudicationReview, scale?: LabelScale): ReviewerVerdict | undefined => {
+  if (scale === undefined) return review.label === undefined ? normalizeVerdict(review.verdict) : undefined;
+  if (!isLabelScale(scale) || review.label === undefined || !scale.labels.includes(review.label)) return undefined;
+  const mapped = scale.passLabels.includes(review.label) ? 'pass' : 'fail';
+  return review.verdict === undefined || normalizeVerdict(review.verdict) === mapped ? mapped : undefined;
+};
+
 export const computeRowAgreement = (row: AdjudicationBundleRow): RowAgreement | undefined => {
   const reviews = rowReviews(row);
-  const verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict }> = [];
+  const verdicts: Array<{ reviewer?: string; verdict: ReviewerVerdict; label?: string }> = [];
   for (const review of reviews) {
-    const verdict = normalizeVerdict(review.verdict);
+    const verdict = reviewVerdict(review, row.labelScale);
     if (verdict !== undefined) {
-      verdicts.push({ reviewer: review.reviewer, verdict });
+      verdicts.push({ reviewer: review.reviewer, verdict, ...(review.label !== undefined ? { label: review.label } : {}) });
     }
   }
 
   if (verdicts.length < 2) return undefined;
 
-  const agrees = verdicts.every((entry) => entry.verdict === verdicts[0]?.verdict);
+  const labels = reviews.filter(review => reviewVerdict(review, row.labelScale) !== undefined).map(review => review.label);
+  const agrees = verdicts.every((entry) => entry.verdict === verdicts[0]?.verdict) && labels.every(label => label === labels[0]);
   return { verdicts, agrees };
 };
 
@@ -248,14 +268,15 @@ export const mergeAdjudicationBundle = (
       continue;
     }
 
-    const validVerdicts: Array<{ review: AdjudicationReview; verdict: ReviewerVerdict }> = [];
+    const scale = manifestForSuite(report, row.suite)?.labelScale;
+    const validVerdicts: Array<{ review: AdjudicationReview; verdict: ReviewerVerdict; label?: string }> = [];
     for (const review of reviews) {
-      const verdict = normalizeVerdict(review.verdict);
+      const verdict = reviewVerdict(review, scale);
       if (verdict !== undefined) validVerdicts.push({ review, verdict });
     }
 
     // Distinguish "no verdicts at all" (missing) from "verdict present but invalid".
-    const hasAnyVerdictField = reviews.some((review) => review.verdict !== undefined);
+    const hasAnyVerdictField = reviews.some((review) => review.verdict !== undefined || review.label !== undefined);
     if (!hasAnyVerdictField) {
       skippedMissingReview += 1;
       continue;
@@ -276,14 +297,14 @@ export const mergeAdjudicationBundle = (
     let primaryReview: AdjudicationReview;
 
     if (validVerdicts.length >= 2) {
-      const allAgree = validVerdicts.every((entry) => entry.verdict === validVerdicts[0]?.verdict);
+      const allAgree = validVerdicts.every((entry) => entry.verdict === validVerdicts[0]?.verdict && entry.review.label === validVerdicts[0]?.review.label);
       if (!allAgree) {
         disagreementCount += 1;
         skippedDisagreement += 1;
         adjudicationDisagreements.push({
           suite: row.suite,
           id: row.id,
-          verdicts: validVerdicts.map((entry) => ({ reviewer: entry.review.reviewer, verdict: entry.verdict })),
+          verdicts: validVerdicts.map((entry) => ({ reviewer: entry.review.reviewer, verdict: entry.verdict, ...(entry.review.label !== undefined ? { label: entry.review.label } : {}) })),
         });
         continue;
       }
@@ -308,6 +329,7 @@ export const mergeAdjudicationBundle = (
     const passed = resolvedVerdict === 'pass';
     targetRow.passed = passed;
     targetRow.groundTruthVerdict = passed;
+    if (scale !== undefined) targetRow.groundTruthLabel = primaryReview.label;
     if (primaryReview.category !== undefined) {
       targetRow.groundTruthCategory = primaryReview.category;
     }
@@ -339,6 +361,7 @@ export const mergeAdjudicationBundle = (
       reviewers: validVerdicts.map((entry) => entry.review.reviewer),
       reviewer: primaryReview.reviewer,
       verdict: resolvedVerdict,
+      ...(primaryReview.label !== undefined ? { label: primaryReview.label } : {}),
       category: primaryReview.category,
       note: primaryReview.note,
       decidedAt: primaryReview.decidedAt,

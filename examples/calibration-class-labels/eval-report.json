@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "eval-report/v1",
+  "run": {
+    "id": "four-class-calibration",
+    "generatedAt": "2026-11-15T12:00:00Z",
+    "kind": "calibration"
+  },
+  "suites": [
+    {
+      "id": "judge-calibration",
+      "total": 4,
+      "passed": 3,
+      "failed": 1
+    }
+  ],
+  "suiteManifests": [
+    {
+      "name": "judge-calibration",
+      "target": "judge",
+      "datasetSource": "synthetic",
+      "datasetVersion": "1",
+      "rubricVersion": "1",
+      "riskArea": "response-quality",
+      "graders": [
+        "human-labelled-calibration"
+      ],
+      "labelScale": {
+        "labels": [
+          "fully answered",
+          "partially answered",
+          "not covered",
+          "wrong"
+        ],
+        "passLabels": [
+          "fully answered"
+        ]
+      },
+      "gate": {
+        "mode": "blocking",
+        "thresholds": {
+          "minJudgeKappa": 0.6,
+          "minCalibrationRows": 4
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "answer-0",
+      "suite": "judge-calibration",
+      "kind": "llm-judge",
+      "passed": true,
+      "judgeModel": "synthetic-judge",
+      "judgeReasoning": "Synthetic example for checking class agreement.",
+      "judgeLabel": "fully answered",
+      "groundTruthLabel": "fully answered",
+      "groundTruthAnnotation": "Synthetic reviewed answer, not production evidence.",
+      "severity": "medium",
+      "category": "response-quality"
+    },
+    {
+      "id": "answer-1",
+      "suite": "judge-calibration",
+      "kind": "llm-judge",
+      "passed": false,
+      "judgeModel": "synthetic-judge",
+      "judgeReasoning": "Synthetic example for checking class agreement.",
+      "judgeLabel": "fully answered",
+      "groundTruthLabel": "partially answered",
+      "groundTruthAnnotation": "Synthetic reviewed answer, not production evidence.",
+      "severity": "medium",
+      "category": "response-quality"
+    },
+    {
+      "id": "answer-2",
+      "suite": "judge-calibration",
+      "kind": "llm-judge",
+      "passed": true,
+      "judgeModel": "synthetic-judge",
+      "judgeReasoning": "Synthetic example for checking class agreement.",
+      "judgeLabel": "not covered",
+      "groundTruthLabel": "not covered",
+      "groundTruthAnnotation": "Synthetic reviewed answer, not production evidence.",
+      "severity": "medium",
+      "category": "response-quality"
+    },
+    {
+      "id": "answer-3",
+      "suite": "judge-calibration",
+      "kind": "llm-judge",
+      "passed": true,
+      "judgeModel": "synthetic-judge",
+      "judgeReasoning": "Synthetic example for checking class agreement.",
+      "judgeLabel": "wrong",
+      "groundTruthLabel": "wrong",
+      "groundTruthAnnotation": "Synthetic reviewed answer, not production evidence.",
+      "severity": "medium",
+      "category": "response-quality"
+    }
+  ]
+}

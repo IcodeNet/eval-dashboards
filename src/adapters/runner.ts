@@ -27,6 +27,9 @@ export type RunnerEvalCaseResult = {
   rubricId?: string;
   judgeModel?: string;
   judgeVerdict?: boolean;
+  judgeLabel?: string;
+  groundTruthLabel?: string;
+  groundTruthVerdict?: boolean;
   judgeCategory?: string;
   judgeReasoning?: string;
   promptVersion?: string;
@@ -85,6 +88,9 @@ const createDefaultRow = <CaseResult extends RunnerEvalCaseResult>(
   rubricId: caseResult.rubricId,
   judgeModel: caseResult.judgeModel,
   judgeVerdict: caseResult.judgeVerdict,
+  judgeLabel: caseResult.judgeLabel,
+  groundTruthLabel: caseResult.groundTruthLabel,
+  groundTruthVerdict: caseResult.groundTruthVerdict,
   judgeCategory: caseResult.judgeCategory,
   judgeReasoning: caseResult.judgeReasoning,
   promptVersion: caseResult.promptVersion,
