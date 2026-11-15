@@ -16,6 +16,39 @@ The former Semantic Release experiment was removed. It required a separate
 token-based release path and duplicated version, changelog, tag, and publish
 responsibilities. The trusted-publishing workflow is the sole supported path.
 
+<a id="0120-candidate--2026-11-15"></a>
+
+## 0.12.0 candidate — 2026-11-15
+
+The owner’s standing instruction authorizes a coherent portable 0.x release
+after reviewed, checked merges. The seven related corrections in 4E.12 form
+that milestone: missing labels and failing calibration cannot pass, minimum
+sample sizes are optional, agreement scores and class labels are portable,
+critical checks count actual failures, and version comparisons expose unknown
+or planned changes. Feature PRs #116–#119 and #123–#125 are merged through
+`03044b9ce8e13254401a816daf2cf12bb66d4723`.
+
+The registry check on 2026-11-15 still reports `latest: 0.11.0`; 0.12.0 is
+unused. A fresh strict install of 0.11.0 on Node 20 reproduces the passing-critical
+bug: two passing checks produce exit 1 and “Critical failures 2”. The candidate
+and final registry install will be checked against that same input.
+
+The 0.12.0 version and changelog in this branch prepare publication. They do
+not publish a package. Source-only hosted foundations remain outside npm.
+The 1.0.0 decision and hosted deployment still require the owner’s instruction.
+
+Before publication:
+
+- Verify the release PR’s full checks, actual package and review discussion.
+- Merge it and verify exact main CI and raw logs.
+- Dispatch the existing OIDC publishing workflow from verified `main` with
+  `version: 0.12.0`; do not add a token-based publishing path.
+- Inspect raw publish logs, then verify npm, provenance, the release/tag and a
+  fresh Node 20 registry install, including the same passing-critical case.
+
+See [the preflight record](./reviews/2026-11-15-release-0.12.0-preflight.json).
+A receipt will record publication only after it is observed.
+
 <a id="verified-release-0-11-0"></a>
 
 ## Verified release — 0.11.0
@@ -116,7 +149,7 @@ The existing `1.0.0` owner decision and stable-release gate remain separate.
    establishes normal 0.x milestone releases after verified merges. Merging
    one PR does not itself establish a release milestone. Keep the separate
    1.0.0 and hosted-deployment owner gates.
-4. Dispatch `Publish to npm` from verified `main` with version `0.11.0`. Use the
+4. Dispatch `Publish to npm` from verified `main` with the exact candidate version in `package.json`. Use the
    existing OIDC workflow; create no alternate token-based release path.
 5. Inspect its raw log and verify registry version/dist-tags, the GitHub
    release/tag, installed CLI version, and a report generated from the installed

@@ -111,7 +111,7 @@ that passes does not block it. This matches a blocking suite rule with
 `maxCriticalFailures: 0`. Report severity totals still count all rows at each
 severity, so they describe coverage rather than the number of failures.
 A failed critical row still counts even if its `expectedOutcome` is `fail`.
-This correction is in source after npm 0.11.0.
+This correction is in version 0.12.0 or newer.
 
 Initial gates:
 
@@ -142,7 +142,7 @@ unless a threshold is explicitly configured. Optional `minJudgeKappa` (also
 `min_judge_kappa` / `min-judge-kappa`) must be finite from -1 to 1; missing or
 degenerate kappa fails a blocking bar instead of becoming a fabricated score.
 
-In source after 0.11.0, a blocking `minJudgeAgreementRate` or
+In version 0.12.0 and newer, a blocking `minJudgeAgreementRate` or
 `maxJudgeDisagreementRate` threshold requires at least one row with both
 `judgeVerdict` and `groundTruthVerdict`. One-sided labels do not count. With no
 paired verdicts, the gate fails and names the missing labelled evidence.
@@ -162,7 +162,7 @@ quality checks are described below and in the [roadmap](./ROADMAP.md#4e12-gate-a
 
 ### Minimum labelled sample
 
-In source after 0.11.0, add `minCalibrationRows` to a calibration suite's
+In version 0.12.0 and newer, add `minCalibrationRows` to a calibration suite's
 `gate.thresholds` alongside its agreement bar. For example:
 
 ```json
@@ -374,7 +374,7 @@ Mandatory calibration preflight for judge-scored suites:
 
 - Applies when the current artifact includes the configured calibration suite manifest (default: `judge-calibration`), or when force-enabled via `--calibration-preflight` / `gates.calibration.enabled: true`.
 - Runs on judge-scored suites in the current artifact (`llm-judge` / `human-labelled-calibration` graders), excluding the calibration suite id itself.
-- In source after 0.11.0, check requires a calibration evidence run within the recency window with paired `judgeVerdict` and `groundTruthVerdict` for the matching `judgeModel`.
+- In version 0.12.0 and newer, check requires a calibration evidence run within the recency window with paired `judgeVerdict` and `groundTruthVerdict` for the matching `judgeModel`.
 - The evidence suite must declare `minJudgeAgreementRate`, `maxJudgeDisagreementRate` or `minJudgeKappa` (supported aliases also work). A generic `passRate` or an axis-delta bar alone does not qualify. Missing, unavailable or failed agreement bars do not qualify.
 - Recompute the calibration suite's declared thresholds from the matching judge's rows. Other judges cannot improve its measured agreement, and stored pass flags or aggregate counts cannot replace the labels. Even a report-only calibration suite must meet its bars to qualify as preflight evidence; its normal report-only gate behavior is unchanged.
 - Rubric matching is evaluated against the calibration suite rubric contract (`judge-calibration`), not each target suite manifest rubric.
@@ -801,7 +801,7 @@ not substitute for missing labels. Blocking judge preflight also checks that
 a target's declared labels and Pass mapping match its calibration evidence.
 The [four-class example](../examples/calibration-class-labels/README.md) passes
 75% exact-label agreement with kappa 2/3 against a minimum kappa of 0.6.
-This behavior is in source after npm 0.11.0.
+This behavior is in version 0.12.0 or newer.
 
 ### Recorded versions and baseline decisions
 
@@ -813,4 +813,4 @@ remains visible. It cannot waive dataset/rubric drift or fill missing evidence.
 The existing explicit `--allow-blocked-baseline` override still records a bypass;
 it does not make an incompatible paired comparison eligible. See
 [the version-key contract](./artifact-format.md#optional-baseline-version-keys).
-This behavior is source after npm 0.11.0.
+This behavior is added in version 0.12.0.

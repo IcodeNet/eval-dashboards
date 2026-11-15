@@ -1,0 +1,88 @@
+{
+  "recordedAt": "2026-11-15",
+  "purpose": "Prepare a coherent portable 0.12.0 milestone; publication is not yet claimed.",
+  "authorization": {
+    "standingInstruction": "Remember we need to merge PRs that are green and pass all the testing to main, yeah? And then at reasonable milestones we should release package versions.",
+    "scope": "Portable 0.x milestone after verified merges, through docs/npm-publishing.md and the existing main-ref OIDC workflow.",
+    "excluded": [
+      "1.0.0 release",
+      "Hosted service deployment"
+    ]
+  },
+  "featureMain": "03044b9ce8e13254401a816daf2cf12bb66d4723",
+  "registryBefore": {
+    "version": "0.11.0",
+    "latest": "0.11.0",
+    "gitHead": "7824440aa95b00f49296196b6558a4587b0ab325",
+    "0.12.0": "not published at check"
+  },
+  "milestonePrs": [
+    116,
+    117,
+    118,
+    119,
+    123,
+    124,
+    125
+  ],
+  "supportingPrs": [
+    120,
+    121,
+    122
+  ],
+  "verifiedFeatureMain": {
+    "ciRun": 43718765789,
+    "mainJob": 132825941237,
+    "examplesJob": 132827209743,
+    "docsJob": 132825941271,
+    "results": [
+      "1,130 tests passed",
+      "49 real PostgreSQL checks and owned-container cleanup",
+      "Strict installed-package consumers on Node 20/22/24/26",
+      "4 fixtures x 3 themes x 2 viewports with no axe violations",
+      "Documentation, teaching, examples and schema checks passed",
+      "Audit: 2 low and 4 moderate, no high or critical findings"
+    ]
+  },
+  "publishedBaselineProbe": {
+    "version": "0.11.0",
+    "runtime": "Node 20.20.2",
+    "installation": "Fresh registry install with --engine-strict --ignore-scripts",
+    "input": "Two critical rows, both passed; same bytes retained for candidate and final registry replay.",
+    "exit": 1,
+    "passed": false,
+    "failures": [
+      "Critical failures 2 exceed allowed 0."
+    ]
+  },
+  "pending": [
+    "Release PR and exact merged-main verification",
+    "OIDC publish and raw log review",
+    "Registry, tag/provenance and fresh installed-consumer verification"
+  ],
+  "limits": [
+    "Metadata and synthetic examples do not establish production judge reliability or experimental control.",
+    "No performance benchmark was run.",
+    "Hosted source foundations are not portable package exports."
+  ],
+  "candidateProbe": {
+    "version": "0.12.0",
+    "runtime": "Node 20.20.2",
+    "tarball": "icodenet-eval-dashboards-0.12.0.tgz",
+    "sha256": "cf133f7c730b8fe2fe7616359dae7ef01a4e4f0b0f617d5b0f9c439d30e1ecc3",
+    "files": 230,
+    "inputSha256": "1e0154f6da549471111769c9a586ab460f5c75ff131eb781e77e372475de2428",
+    "sameInput": true,
+    "criticalProbe": {
+      "exit": 0,
+      "passed": true,
+      "failures": []
+    },
+    "localMedia": [
+      "package/docs/tutorials/vhs/demo.gif",
+      "package/docs/tutorials/vhs/demo.mp4"
+    ],
+    "note": "Measured preflight tarball before final documentation wording and evidence update. Final full-tree package verification still runs before commit; final published bytes are verified after publication."
+  },
+  "packagingNote": "Local ignored VHS GIF/MP4 files are present in the preflight tarball but not tracked in Git. CI checks out tracked source; verify actual published contents rather than assuming this local file count or hash."
+}

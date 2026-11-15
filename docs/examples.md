@@ -228,14 +228,14 @@ and bounded attempts. It exercises database coordination, not a running indexer.
 
 For calibration fixtures, put both `judgeVerdict` and `groundTruthVerdict` on
 the same row before using agreement/disagreement thresholds. Axis-delta fixtures
-need shared judge/human axis names. In source after 0.11.0, missing pairs fail a
+need shared judge/human axis names. In version 0.12.0 and newer, missing pairs fail a
 configured blocking threshold; report-only suites remain optional. See
 [calibration gates](./gates.md#calibration-thresholds-require-observations).
 Preflight evidence also needs a declared `minJudgeAgreementRate`,
 `maxJudgeDisagreementRate` or `minJudgeKappa` that passes on the matching
 judge's paired labels.
 The agent-quality preset declares a 0.9 agreement bar; a generic `passRate`
-alone no longer qualifies a calibration run in source after 0.11.0.
+alone no longer qualifies a calibration run in version 0.12.0 and newer.
 
 The [minimum sample example](../examples/calibration-minimum-sample/README.md)
 runs with `pnpm dev check --input=examples/calibration-minimum-sample` and
@@ -251,12 +251,10 @@ The [four-class example](../examples/calibration-class-labels/README.md) keeps
 “fully answered”, “partially answered”, “not covered” and “wrong” distinct.
 Run `pnpm dev check --input=examples/calibration-class-labels`. It demonstrates
 agreement and kappa on named labels, with an explicit Pass mapping. Synthetic
-examples show the calculation, not production reliability. Requires source
-after npm 0.11.0.
+examples show the calculation, not production reliability. Requires version 0.12.0 or newer.
 
 The [version comparison example](../examples/baseline-version-keys/README.md)
 shows a planned model change with matching prompt, tools and configuration.
 Run `pnpm dev check --input=examples/baseline-version-keys`. Remove the declared
 reason and the same changed model blocks the baseline. The synthetic IDs show
-the workflow, not proof of a controlled production experiment. Requires source
-after npm 0.11.0.
+the workflow, not proof of a controlled production experiment. Requires version 0.12.0 or newer.

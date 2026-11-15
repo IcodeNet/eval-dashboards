@@ -26,7 +26,7 @@ inputs:
     required: false
     default: '0'
   zero-critical:
-    description: 'Fail the gate if any critical-severity row is present.'
+    description: 'Fail the gate if a critical check failed.'
     required: false
     default: 'true'
   node-version:

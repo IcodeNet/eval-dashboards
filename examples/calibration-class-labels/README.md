@@ -16,4 +16,4 @@ Remove a person's label and the sample-size check fails. The labels are exact,
 case-sensitive names. Only “fully answered” maps to Pass. The input deliberately
 omits boolean judge/human verdicts; existing boolean-only artifacts still work.
 See [the contract](../../docs/artifact-format.md#named-judge-and-human-labels).
-This example requires source after npm 0.11.0.
+This example requires version 0.12.0 or newer.

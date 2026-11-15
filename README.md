@@ -19,7 +19,14 @@ Version 0.11.0 shows the configured quality-gate decision across HTML, Markdown,
 
 **Standardized evaluation artifacts + beautiful dashboards for AI agent and LLM evals.**
 
-Published **0.11.0** includes analytics, the complete `evaluateReportPolicy` API,
+**Version 0.12.0** includes the seven judge-agreement and baseline-comparison
+corrections: missing labels cannot pass configured checks, answer classes retain
+their detail, and recorded version changes stay visible. Use the npm badge for
+the published version and the [release procedure](docs/npm-publishing.md) for
+verification. The [0.12.0 plan](docs/npm-publishing.md#0120-candidate--2026-11-15)
+records preparation and the publication checks.
+
+Earlier release **0.11.0** includes analytics, the complete `evaluateReportPolicy` API,
 and shared gate reporting. See the [runnable policy example](examples/policy-evaluation/README.md).
 Released on 2026-11-02: [npm package](https://www.npmjs.com/package/@icodenet/eval-dashboards/v/0.11.0) · [release notes](https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.11.0). Use the npm badge for current availability. Maintainers follow
 the [verified release procedure](docs/npm-publishing.md#release-acceptance-and-publication).
@@ -34,7 +41,7 @@ The [worker lease protocol](hosted/workers/README.md) adds concurrent claims,
 renewal, retry delays and stale-token checks. Accounts, credential issuance,
 artifact indexing and hosted deployment remain open.
 The portable package and static reports require no database.
-Source corrections after 0.11.0 make configured calibration thresholds reject
+Version 0.12.0 corrections make configured calibration thresholds reject
 missing labelled observations. Calibration preflight also requires the matching
 judge's evidence to meet a declared agreement bar; see
 [calibration gate behavior](docs/gates.md#calibration-thresholds-require-observations).
@@ -530,7 +537,7 @@ for the full procedure.
 - [LangChain Evaluators](examples/langchain-evals/README.md) — wrap LangChain's built-in evaluators (QA, criteria, embedding) to emit taxonomy-complete rows
 
 **CI/CD:**
-- [Versioned composite GitHub Action](action.yml) — `uses: IcodeNet/eval-dashboards@v0.11.0` with `package-spec: '@icodenet/eval-dashboards@0.11.0'` (report + gate + optional publish in one step)
+- [Versioned composite GitHub Action](action.yml) — `uses: IcodeNet/eval-dashboards@v0.12.0` with `package-spec: '@icodenet/eval-dashboards@0.12.0'` (report + gate + optional publish in one step)
 - [GitHub Actions](examples/github-actions/eval-quality.yml)
 - [GitHub Actions approval gate](examples/github-actions/eval-approval-gate.yml)
 - [GitHub Actions PR cleanup](examples/github-actions/cleanup-pr-eval-results.yml)
@@ -628,10 +635,10 @@ MIT © [Byron Thanopoulos](mailto:byronth@gmail.com)
 For answers that need more detail than Pass/Fail, see the optional
 [named-label contract](docs/artifact-format.md#named-judge-and-human-labels) and
 [four-class calibration example](examples/calibration-class-labels/README.md).
-Existing boolean artifacts still work. This addition is after npm 0.11.0.
+Existing boolean artifacts still work. This addition requires version 0.12.0 or newer.
 
 Optional [baseline version keys](docs/artifact-format.md#optional-baseline-version-keys)
 record model, prompt, tool and configuration versions. Missing versions stay
 unknown, and planned experiment changes are distinct from unexplained changes.
 Try the [runnable example](examples/baseline-version-keys/README.md); this is
-source after npm 0.11.0.
+version 0.12.0 or newer.
