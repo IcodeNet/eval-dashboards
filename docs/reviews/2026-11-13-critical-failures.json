@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-13",
+  "scope": "4E.12.5: count failed critical rows only",
+  "baseline": "f2c955b31e1a06c46d1380147e9ccfc82ffb93ab",
+  "before": {
+    "command": "pnpm exec vitest run test/critical-failures-only.test.ts",
+    "result": "4 failed, 4 passed; passing critical rows blocked the gate, mixed rows inflated the diagnostic, CLI exited 1 for two passing critical rows. The input-directory setup was corrected before this replay."
+  },
+  "after": {
+    "command": "pnpm exec vitest run test/critical-failures-only.test.ts test/gates.test.ts test/gate-decision.test.ts test/cli-config-zero-critical.test.ts",
+    "result": "47 passed in 4 files. A grader value in the new fixture was then corrected to the existing deterministic-assertions enum after typecheck identified it."
+  },
+  "limits": [
+    "No speed benchmark was run.",
+    "Severity totals remain coverage counts. Failed critical negative-control rows still count. No new fields, defaults, dependencies or schema version.",
+    "Full required checks are recorded separately by pnpm quality:record before commit."
+  ],
+  "review": {
+    "findings": [],
+    "reason": "The global predicate now matches the existing suite critical-failure predicate. Review covers all rows rather than summary severity totals; policy and CLI call the same gate."
+  },
+  "verification": {
+    "pnpm typecheck": "Passed after correcting the fixture grader enum.",
+    "pnpm check": "1,093 tests in 101 files, teaching replay, documented flags, build and 9 hook tests passed.",
+    "pnpm schema:check": "Passed.",
+    "pnpm verify:cli": "Passed.",
+    "pnpm verify:package": "Passed: types, runtime, policy, schema, simulated publishing, optional email, installed CLI and SQLite history.",
+    "initial pnpm assets:verify": "Stopped because Playwright 1.65 needed a new local browser executable. Install its Chromium and rerun the complete required checks; no product source change needed."
+  }
+}

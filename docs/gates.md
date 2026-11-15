@@ -105,6 +105,14 @@ available in npm 0.11.0 and newer; it is not in 0.10.0.
 - Use `new-failure-key=scenario-category` when one scenario can emit multiple rows.
 - Add warning budgets for the highest-risk warning codes first.
 
+`zeroCritical: true` (or `check --zero-critical`) blocks a run only when a
+row has `passed: false` and `severity: "critical"`. A critical safety check
+that passes does not block it. This matches a blocking suite rule with
+`maxCriticalFailures: 0`. Report severity totals still count all rows at each
+severity, so they describe coverage rather than the number of failures.
+A failed critical row still counts even if its `expectedOutcome` is `fail`.
+This correction is in source after npm 0.11.0.
+
 Initial gates:
 
 - `minPassRate`

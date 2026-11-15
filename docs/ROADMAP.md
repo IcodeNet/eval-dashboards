@@ -1069,9 +1069,11 @@ and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
    `test/calibration-statistics.test.ts` (red/green, reporter and gate parity),
    and `docs/calibration-statistics.md`. Reporting is descriptive;
    `minJudgeKappa` is opt-in.
-5. [ ] **4E.12.5 — Critical failures (P1).** Make `zeroCritical` count failed
+5. [x] **4E.12.5 — Critical failures (P1).** Make `zeroCritical` count failed
    critical rows, consistent with suite critical-failure thresholds. Prove that
    a passing critical row does not fail it, while a failed critical row does.
+   Evidence: `src/gates/check-gates.ts` and
+   `test/critical-failures-only.test.ts` (red/green, suite/public API/CLI parity).
 6. [ ] **4E.12.6 — Multi-class labels (P1).** Add an optional declared label scale,
    judge/human class labels and explicit pass-class mapping. Support agreement,
    kappa, validation and reports without changing boolean verdicts or repurposing

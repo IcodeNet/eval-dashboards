@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `zeroCritical` now counts failed critical rows, matching the suite-level
+  rule. Passing critical checks no longer block a run or inflate the failure
+  message. Report severity totals still include passing rows.
+
 - Calibration preflight now requires a recent matching run to pass a declared
   agreement bar on the relevant judge's paired labels. Missing judge verdicts,
   missing agreement bars and other judges' passing labels cannot qualify it.
