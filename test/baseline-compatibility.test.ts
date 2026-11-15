@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { assessBaselineCompatibility } from '../src/history/baseline-compatibility.js';
-import type { SuiteManifest } from '../src/model/eval-report-v1.js';
+import { COMPARISON_KEYS, type SuiteManifest } from '../src/model/eval-report-v1.js';
 
 const makeManifest = (overrides: Partial<SuiteManifest> = {}): SuiteManifest => ({
   name: 'quality',
@@ -18,7 +18,9 @@ describe('assessBaselineCompatibility', () => {
   it('returns compatible when blocking suite dataset and rubric versions match', () => {
     const result = assessBaselineCompatibility([makeManifest()], [makeManifest()], true);
 
-    expect(result).toEqual({ status: 'compatible', issues: [] });
+    expect(result).toEqual({ status: 'compatible', issues: [], versionKeys: COMPARISON_KEYS.map(key => ({
+      suite: 'quality', key, status: 'unknown', baselineValue: undefined, candidateValue: undefined, reason: 'Neither run recorded this version.',
+    })) });
   });
 
   it('blocks when a blocking suite changes dataset or rubric version', () => {

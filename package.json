@@ -33,6 +33,7 @@
     "examples/basic-json/*.json",
     "examples/calibration-minimum-sample/*.json",
     "examples/calibration-class-labels/*.json",
+    "examples/baseline-version-keys/*.json",
     "examples/agent-quality-preset/**",
     "examples/llm-agent-evals/*.ts",
     "examples/vitest-evals/*.ts",

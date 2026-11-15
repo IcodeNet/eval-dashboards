@@ -1081,11 +1081,14 @@ and 0.x milestone release rules. Version 1.0.0 remains owner-gated.
    Evidence: `src/analytics/class-calibration.ts`,
    `test/calibration-class-labels.test.ts` (red/green, gates/reports/review),
    and `examples/calibration-class-labels/`.
-7. [ ] **4E.12.7 — Baseline version keys (P1).** Add optional comparability keys
+7. [x] **4E.12.7 — Baseline version keys (P1).** Add optional comparability keys
    for model digest, prompt hash, tool contract and instance configuration.
    Compare declared values when both runs carry them; surface missing metadata
    clearly. Do not mistake an intentional experiment treatment for uncontrolled
    drift or silently call absent metadata a verified match.
+   Evidence: `src/history/version-keys.ts`,
+   `test/baseline-version-keys.test.ts` (red/green, gates/CLI/analytics/reports),
+   and `examples/baseline-version-keys/`.
 
 **Recorded for later; do not implement as part of this correction sequence:**
 

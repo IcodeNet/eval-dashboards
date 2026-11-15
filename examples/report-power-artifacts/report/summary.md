@@ -20,6 +20,21 @@
 | Commit | e4f5a6b |
 | Build | build-142 |
 
+## Baseline version checks
+
+- ` Model version for response-quality: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Prompt version for response-quality: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Tool definitions version for response-quality: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Settings version for response-quality: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Model version for tool-use: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Prompt version for tool-use: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Tool definitions version for tool-use: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Settings version for tool-use: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Model version for safety: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Prompt version for safety: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Tool definitions version for safety: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+- ` Settings version for safety: unknown; baseline=not recorded, current=not recorded. Neither run recorded this version. `
+
 ## Judge agreement with people
 
 - Judge review: examples=0, agreement=unknown, expected agreement=unknown, kappa=unavailable (missing decisions)

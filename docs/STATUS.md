@@ -425,7 +425,7 @@ It is optional and does not change report-only manifest enforcement. Evidence:
 `test/calibration-minimum-sample.test.ts` and the runnable
 `examples/calibration-minimum-sample/`. The sample-size demonstration does not
 establish statistical independence or production reliability. Kappa/category
-reporting follows below; 4E.12.7 remains open. Not in published 0.11.0.
+reporting follows below; the later corrections are documented below. Not in published 0.11.0.
 
 The fourth correction is implemented in source: shared calibration analytics
 include raw agreement, paired and class counts, Cohen's kappa and breakdowns
@@ -454,4 +454,17 @@ require agreement on the actual class and use the target report's mapping.
 Schema, taxonomy lint, docs and a runnable four-class example are aligned.
 Evidence: `test/calibration-class-labels.test.ts` and
 `docs/reviews/2026-11-15-calibration-class-labels.json`. This is source after
-published 0.11.0; baseline version keys (4E.12.7) remain open.
+published 0.11.0; baseline version keys follow below.
+
+The seventh correction is implemented in source: optional suite model, prompt,
+tool and settings version IDs are compared when recorded. Missing values remain
+unknown. A blocking suite rejects an unexplained difference; an explicit reason
+for a planned experiment change preserves both values without treating it as
+uncontrolled drift. Dataset/rubric rules and paired eligibility cannot be waived
+by that declaration. Existing artifacts without the new keys retain their gate
+behavior, with the missing metadata visible. Reports prioritize changed keys
+before their display limit and keep all evidence in JSON. Evidence:
+`test/baseline-version-keys.test.ts`, `examples/baseline-version-keys/` and
+`docs/reviews/2026-11-15-baseline-version-keys.json`. All seven 4E.12 corrections
+now have source and regression tests; a coherent 0.x release follows verified
+merges. Published 0.11.0 does not contain them, and 1.0.0 remains owner-gated.

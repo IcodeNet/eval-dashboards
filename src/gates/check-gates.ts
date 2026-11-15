@@ -1,3 +1,4 @@
+import { comparisonKeyLabels } from '../history/version-keys.js';
 import { measureClassCalibration } from '../analytics/class-calibration.js';
 import { comparePairedOutcomes, describePairedComparison, validatePairedComparisonOptions, type PairedComparisonOptions, type PairedOutcomeComparison } from '../analytics/paired-comparison.js';
 import type { RunComparison } from '../history/history.js';
@@ -287,7 +288,10 @@ export const checkGates = (
 
   const shouldFailOnBlockedBaseline = config.failOnBaselineBlocked !== false;
   if (shouldFailOnBlockedBaseline && baselineCompatibility?.status === 'blocked') {
-    failures.push('Baseline compatibility is blocked due to dataset/rubric version drift.');
+    const changedKeys = baselineCompatibility.versionKeys?.filter(check => check.status === 'changed') ?? [];
+    failures.push(changedKeys.length
+      ? `Baseline comparison is blocked because recorded versions changed: ${changedKeys.map(check => `${comparisonKeyLabels[check.key]} for ${check.suite}`).join('; ')}.`
+      : 'Baseline compatibility is blocked due to dataset/rubric version drift.');
   }
 
   const requiredPassingSuites = config.requiredPassingSuites ?? [];

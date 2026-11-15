@@ -1911,7 +1911,7 @@ const main = async (): Promise<void> => {
           combinedFailures.length > 0
             ? combinedFailures
             : baselineBlocked
-              ? ['Baseline compatibility is blocked due to dataset/rubric version drift.']
+              ? ['Baseline comparison is blocked because recorded versions differ.']
               : [];
 
         const notificationResults = await sendGateNotifications(

@@ -1,3 +1,5 @@
+import { comparisonKeyLabels, describeVersionKey, prioritizeVersionKeys } from '../history/version-keys.js';
+import type { VersionKeyComparison } from '../model/eval-report-v1.js';
 import { summarizeClassCalibration, type ClassCalibrationSummary } from '../analytics/class-calibration.js';
 import { describeRepeatedTrials, describeRepeatedTrialCase, describeTrialReason, formatTrialRate, formatTrialInterval, formatTrialBaseline, formatTrialChange } from '../analytics/repeated-trials.js';
 import path from 'node:path';
@@ -149,6 +151,8 @@ const renderText = (context: ReportContext): string => {
     `Measured cost:    ${metricDescription(analytics.telemetry.cost)}`,
     `Measured latency: ${metricDescription(analytics.telemetry.duration)}`,
     `Baseline:         ${context.baselineCompatibility?.status ?? 'not compared'}`,
+    ...prioritizeVersionKeys(context.baselineCompatibility?.versionKeys ?? []).slice(0, 20).map(describeVersionKey),
+    ...((context.baselineCompatibility?.versionKeys?.length ?? 0) > 20 ? ['Showing 20 version checks. The JSON report contains all results.'] : []),
     ...(context.gateDecision?.failures ?? []).map(failure => `Gate failure:     ${failure}`),
     ...(context.gateDecision?.diagnostics ?? []).map(item => `Gate diagnostic:  ${item}`),
   ].join('\n');
@@ -265,6 +269,12 @@ export const renderMarkdown = (context: ReportContext): string => {
   }
 
   lines.push('');
+
+  if (context.baselineCompatibility?.versionKeys?.length) {
+    lines.push('## Baseline version checks', '',
+      ...prioritizeVersionKeys(context.baselineCompatibility.versionKeys).slice(0, 20).map(check => `- ${escapeMarkdownLabel(describeVersionKey(check))}`), '');
+    if (context.baselineCompatibility.versionKeys.length > 20) lines.push('Showing 20 version checks. The JSON report contains all results.', '');
+  }
 
   if (hasJudgeReview(context.current)) {
     lines.push('## Judge agreement with people', '', ...calibrationLines(analytics.calibration, escapeMarkdownLabel).map(line => `- ${line}`), '');
@@ -1431,6 +1441,13 @@ const classCalibrationHtml = (groups: ClassCalibrationSummary[]): string => grou
   ${calibrationBreakdownTable('Reviewer category', group.categorySummaries.map(category => ({ ...category, label: category.category ?? '(missing category)' })))}
   </div>`).join('') + (groups.length > 20 ? '<p>Showing 20 test groups. The JSON report contains all results.</p>' : '');
 
+const versionKeyTable = (checks: VersionKeyComparison[]): string => checks.length ? `
+  <p>Missing versions are unknown, even when dataset and rubric versions match. A planned experiment change is shown separately from an unexplained difference. Recorded values do not prove that other conditions stayed fixed.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Baseline version checks"><table>
+  <thead><tr><th>Test group</th><th>Version</th><th>Baseline</th><th>Current</th><th>Result</th><th>Explanation</th></tr></thead>
+  <tbody>${prioritizeVersionKeys(checks).slice(0, 20).map(check => `<tr><td>${e(check.suite)}</td><td>${e(comparisonKeyLabels[check.key])}</td><td>${e(check.baselineValue ?? 'Not recorded')}</td><td>${e(check.candidateValue ?? 'Not recorded')}</td><td>${e(check.status === 'treatment' ? 'Planned experiment change' : check.status)}</td><td>${e(check.reason)}</td></tr>`).join('')}</tbody></table></div>
+  ${checks.length > 20 ? '<p>Showing 20 version checks. The JSON report contains all results.</p>' : ''}` : '';
+
 const frontierRowsTable = (
   points: QualityFrontierPoint[],
   metricLabel: string,
@@ -1606,6 +1623,7 @@ const renderHtml = (context: ReportContext): string => {
   const guardrailProfileEnabled = context.profile === 'guardrail';
   const statisticalSummary = statisticalContextSummary(context);
   const analytics = analyzeRun(current, context.previous, { paired: context.paired });
+  const unknownVersionKeys = compat?.versionKeys?.filter(check => check.status === 'unknown').length ?? 0;
   const compatStatus = compat?.status ?? 'not compared';
   const compatClass = compatStatus === 'blocked' ? 'fail' : compatStatus === 'warning' ? 'warn' : compatStatus === 'compatible' ? 'pass' : 'muted';
   const decision = context.gateDecision ?? gateDecisionFromResult();
@@ -1889,10 +1907,11 @@ ${decision.diagnostics.length ? `<details><summary>Gate diagnostics</summary><ul
         <div class="metric-label">New passes</div>
         <div class="metric-value ${newlyPassing.length > 0 ? 'pass' : ''}">${newlyPassing.length}</div>
       </div>
-      <div class="metric" data-tip="Are trend comparisons meaningful?\n• compatible — dataset + rubric versions match; also inspect cohort eligibility\n• warning — dataset or rubric version changed; treat trends as approximate\n• blocked — breaking version mismatch; new/lost failures may be noise, not signal\nExample: bumping datasetVersion from v1 to v2 triggers a warning.">
+      <div class="metric" data-tip="Are trend comparisons meaningful?\n• compatible — recorded versions match or a planned experiment change was declared; missing optional versions stay unknown\n• warning — dataset or rubric version changed; treat trends as approximate\n• blocked — recorded versions differ in a blocking test group; inspect the comparison before using its trends\nExample: bumping datasetVersion from v1 to v2 triggers a warning.">
         <div class="metric-label">Baseline</div>
         <div class="metric-value" style="font-size:15px;padding-top:5px">
           <span class="compat-badge compat-${compatClass}">${e(compatStatus)}</span>
+          ${unknownVersionKeys ? `<span class="muted">${unknownVersionKeys} optional version checks unknown</span>` : ''}
         </div>
       </div>
     </div>
@@ -2071,13 +2090,13 @@ ${statisticalSummary
         <div id="allrows-json" class="view-pane json-pane"><pre>${e(JSON.stringify(current, null, 2))}</pre></div>`,
     })}
 
-    ${compat?.issues.length
+    ${compat && (compat.issues.length || compat.versionKeys?.length)
       ? renderCollapsibleSection({
         id: 'baseline-compatibility',
         title: 'Baseline compatibility',
-        summary: baselineCompatibilitySummary,
+        summary: `${baselineCompatibilitySummary} • ${unknownVersionKeys} optional version checks unknown`,
         summaryTone: compatibilityTone,
-        body: `<div class="table-wrap"><table>
+        body: `${versionKeyTable(compat.versionKeys ?? [])}${compat.issues.length ? `<div class="table-wrap"><table>
         <thead><tr><th>Suite</th><th>Severity</th><th>Issue</th><th>Dataset</th><th>Rubric</th></tr></thead>
         <tbody>${compat.issues
             .map(
@@ -2090,7 +2109,7 @@ ${statisticalSummary
         </tr>`,
             )
             .join('')}</tbody>
-      </table></div>`,
+      </table></div>` : ''}`,
       })
       : ''
     }

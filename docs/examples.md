@@ -253,3 +253,10 @@ Run `pnpm dev check --input=examples/calibration-class-labels`. It demonstrates
 agreement and kappa on named labels, with an explicit Pass mapping. Synthetic
 examples show the calculation, not production reliability. Requires source
 after npm 0.11.0.
+
+The [version comparison example](../examples/baseline-version-keys/README.md)
+shows a planned model change with matching prompt, tools and configuration.
+Run `pnpm dev check --input=examples/baseline-version-keys`. Remove the declared
+reason and the same changed model blocks the baseline. The synthetic IDs show
+the workflow, not proof of a controlled production experiment. Requires source
+after npm 0.11.0.

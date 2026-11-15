@@ -27,7 +27,7 @@ try {
   run('npm', ['ls', '@octokit/rest', '@octokit/request', 'content-type', '--all']);
   fs.writeFileSync(path.join(temp, 'consumer.ts'), `
 import type { EvalReportV1, EvalRow, RepeatedTrialSummary } from '@icodenet/eval-dashboards';
-import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, summarizeCalibration, summarizeClassCalibration, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1, publishReport } from '@icodenet/eval-dashboards';
+import { EVAL_REPORT_SCHEMA_VERSION, validateEvalReport, rowKey, createHistoryStoreForPath, createSqliteHistoryStore, createEvalReportArtifact, summarizeRepeatedTrials, summarizeCalibration, summarizeClassCalibration, COMPARISON_KEYS, REPEATED_SAMPLING_DESIGNS, type HistoryStore, evaluateReportPolicy, type ReportPolicyResult, type WaiverRegisterV1, publishReport } from '@icodenet/eval-dashboards';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 const row: EvalRow = { id: 'consumer', suite: 'smoke', passed: true };
 const report: EvalReportV1 = {
@@ -45,6 +45,11 @@ const schema = JSON.parse(readFileSync(new URL(import.meta.resolve('@icodenet/ev
 if (!schema.properties?.schemaVersion || !schema.definitions?.LabelScale) throw new Error('Schema subpath export failed');
 const classReport: EvalReportV1 = JSON.parse(readFileSync('node_modules/@icodenet/eval-dashboards/examples/calibration-class-labels/eval-report.json', 'utf8'));
 if (!validateEvalReport(classReport).ok || summarizeClassCalibration(classReport)[0]?.kappa !== 2 / 3) throw new Error('Named-label public types, example or statistics failed');
+const baselineVersionReport: EvalReportV1 = JSON.parse(readFileSync('node_modules/@icodenet/eval-dashboards/examples/baseline-version-keys/baseline.json', 'utf8'));
+const candidateVersionReport: EvalReportV1 = JSON.parse(readFileSync('node_modules/@icodenet/eval-dashboards/examples/baseline-version-keys/candidate.json', 'utf8'));
+if (COMPARISON_KEYS.length !== 4 || !validateEvalReport(candidateVersionReport).ok || !evaluateReportPolicy({ current: candidateVersionReport, previous: baselineVersionReport }).gatePassed) throw new Error('Planned version comparison failed');
+delete candidateVersionReport.suiteManifests![0].comparisonTreatments;
+if (evaluateReportPolicy({ current: candidateVersionReport, previous: baselineVersionReport }).gatePassed) throw new Error('Unexplained model version change passed');
 const repeatedArtifact = createEvalReportArtifact({ cases: [{ id: 'repeat', suite: 'smoke', passed: false,
   expectedOutcome: 'fail', repeated: { runs: 10, passes: 1, aggregation: 'majority', samplingDesign: REPEATED_SAMPLING_DESIGNS[0] } }] });
 const repeated: RepeatedTrialSummary = summarizeRepeatedTrials(repeatedArtifact);
@@ -113,6 +118,8 @@ console.log('Packed consumer: public types compile; runtime, complete policy and
   console.log('Packed CLI: shipped minimum calibration sample meets its paired-label floor.');
   run(process.execPath, [installedCli, 'check', '--input=node_modules/@icodenet/eval-dashboards/examples/calibration-class-labels']);
   console.log('Packed CLI: shipped four-class sample passes its class-agreement and sample-size bars.');
+  run(process.execPath, [installedCli, 'check', '--input=node_modules/@icodenet/eval-dashboards/examples/baseline-version-keys']);
+  console.log('Packed CLI: planned model change passes while the public policy blocks an unexplained change.');
   run(process.execPath, [installedCli, 'history', '--input=file-runs', '--out=file-history.json']);
   run(process.execPath, [installedCli, 'report', '--input=file-runs', '--report-dir=offline-report', '--reporter=html']);
   const history = JSON.parse(fs.readFileSync(path.join(temp, 'file-history.json'), 'utf8'));

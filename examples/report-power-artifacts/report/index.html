@@ -300,13 +300,14 @@ Positive signal — track over time to confirm the fix holds.">
         <div class="metric-value ">0</div>
       </div>
       <div class="metric" data-tip="Are trend comparisons meaningful?
-• compatible — dataset + rubric versions match; also inspect cohort eligibility
+• compatible — recorded versions match or a planned experiment change was declared; missing optional versions stay unknown
 • warning — dataset or rubric version changed; treat trends as approximate
-• blocked — breaking version mismatch; new/lost failures may be noise, not signal
+• blocked — recorded versions differ in a blocking test group; inspect the comparison before using its trends
 Example: bumping datasetVersion from v1 to v2 triggers a warning.">
         <div class="metric-label">Baseline</div>
         <div class="metric-value" style="font-size:15px;padding-top:5px">
           <span class="compat-badge compat-warn">warning</span>
+          <span class="muted">12 optional version checks unknown</span>
         </div>
       </div>
     </div>
@@ -5759,10 +5760,15 @@ turns">89%</span></td>
             <span class="section-toggle-icon" aria-hidden="true">▸</span>
             <span class="section-toggle-label">Baseline compatibility</span>
           </button>
-          <span class="section-summary section-summary-warn">warning • 3 issues</span>
+          <span class="section-summary section-summary-warn">warning • 3 issues • 12 optional version checks unknown</span>
         </div>
       </div>
-      <div id="section-body-baseline-compatibility" class="section-body"><div class="table-wrap"><table>
+      <div id="section-body-baseline-compatibility" class="section-body">
+  <p>Missing versions are unknown, even when dataset and rubric versions match. A planned experiment change is shown separately from an unexplained difference. Recorded values do not prove that other conditions stayed fixed.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Baseline version checks"><table>
+  <thead><tr><th>Test group</th><th>Version</th><th>Baseline</th><th>Current</th><th>Result</th><th>Explanation</th></tr></thead>
+  <tbody><tr><td>response-quality</td><td>Model version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>response-quality</td><td>Prompt version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>response-quality</td><td>Tool definitions version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>response-quality</td><td>Settings version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>tool-use</td><td>Model version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>tool-use</td><td>Prompt version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>tool-use</td><td>Tool definitions version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>tool-use</td><td>Settings version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>safety</td><td>Model version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>safety</td><td>Prompt version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>safety</td><td>Tool definitions version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr><tr><td>safety</td><td>Settings version</td><td>Not recorded</td><td>Not recorded</td><td>unknown</td><td>Neither run recorded this version.</td></tr></tbody></table></div>
+  <div class="table-wrap"><table>
         <thead><tr><th>Suite</th><th>Severity</th><th>Issue</th><th>Dataset</th><th>Rubric</th></tr></thead>
         <tbody><tr>
           <td>response-quality</td>

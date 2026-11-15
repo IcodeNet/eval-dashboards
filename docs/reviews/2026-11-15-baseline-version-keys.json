@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-15",
+  "scope": "4E.12.7 optional baseline version identifiers",
+  "baseline": "7cad2f3ba1139b286693769cf538ab9b73f23d45",
+  "before": {
+    "command": "pnpm exec vitest run test/baseline-version-keys.test.ts with original src restored from baseline, then restored the implementation",
+    "result": "18 failed, 1 passed across the final 19 cases. The rubric-change control already behaved correctly. The display-limit case also separately failed before ordering was fixed (1 failed, 16 passed).",
+    "cli": "Replayed the same two synthetic artifacts with an unexplained model change. Original source exited 0 and passed; updated source exits 1 and names the changed model version."
+  },
+  "after": {
+    "focusedCommand": "pnpm exec vitest run test/baseline-version-keys.test.ts test/baseline-compatibility.test.ts test/run-analytics.test.ts test/paired-comparison.test.ts test/gate-decision.test.ts",
+    "focusedResult": "85 tests passed in 5 files.",
+    "plannedChangeExample": "pnpm dev check --input=examples/baseline-version-keys --json-out=.tmp/version-example-check.json exits 0 with the declared model change retained in evidence.",
+    "teaching": "pnpm teach:verify passed 77 documented lines across 12 exercises and 2 labs.",
+    "accessibility": "pnpm a11y:verify passed 4 fixtures x 3 themes x 2 viewports with no axe violations; the judge and baseline panels are opened when present.",
+    "assets": "pnpm assets:regenerate updated the dark report, report-power evidence and three screenshots. The default screenshot was inspected visually; full verification follows against staged assets.",
+    "fullSuite": "pnpm check passed 1,130 tests in 103 files, teaching replay, documented flags, build and 9 hook tests.",
+    "generatedOutput": "The first quality run stopped after teaching replay refreshed two report-power files with the final plain labels. Reviewed and staged those expected changes before rerunning the whole gate."
+  },
+  "review": {
+    "findings": [],
+    "checked": [
+      "Optional metadata remains additive under eval-report/v1, with no new dependencies.",
+      "Legacy gates and paired eligibility stay unchanged when both sides omit all four keys; the new evidence explicitly records unknown values.",
+      "Unexplained differences, one-sided observations and planned experiments are distinct, shared between baseline policy and matched-case analytics.",
+      "Intent declarations cannot invent missing values or waive dataset/rubric drift. Explicit baseline gate overrides do not make incompatible statistics eligible.",
+      "Human-readable reports prioritize differences before truncation; JSON keeps all 84 checks in the long-report regression.",
+      "HTML escapes values and reasons, Markdown uses safe code spans, and text strips control characters."
+    ]
+  },
+  "limits": [
+    "Opaque version strings are compared, not independently verified.",
+    "Intent declarations do not prove experimental control or causality.",
+    "No performance benchmark was run.",
+    "Full required verification is recorded by pnpm quality:record before commit.",
+    "These corrections are not in published npm 0.11.0."
+  ]
+}

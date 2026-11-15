@@ -802,3 +802,15 @@ a target's declared labels and Pass mapping match its calibration evidence.
 The [four-class example](../examples/calibration-class-labels/README.md) passes
 75% exact-label agreement with kappa 2/3 against a minimum kappa of 0.6.
 This behavior is in source after npm 0.11.0.
+
+### Recorded versions and baseline decisions
+
+Optional suite `comparisonKeys` compare model, prompt, tool and configuration
+version IDs. An unexplained difference blocks the baseline for a blocking test
+group, or warns for a report-only group. Missing values stay unknown. Explain
+an intentional experiment change in `comparisonTreatments`; the difference
+remains visible. It cannot waive dataset/rubric drift or fill missing evidence.
+The existing explicit `--allow-blocked-baseline` override still records a bypass;
+it does not make an incompatible paired comparison eligible. See
+[the version-key contract](./artifact-format.md#optional-baseline-version-keys).
+This behavior is source after npm 0.11.0.

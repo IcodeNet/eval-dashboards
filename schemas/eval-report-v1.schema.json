@@ -777,6 +777,58 @@
         },
         "labelScale": {
           "$ref": "#/definitions/LabelScale"
+        },
+        "comparisonKeys": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "modelDigest": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "promptHash": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "toolContract": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "instanceConfig": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
+        },
+        "comparisonTreatments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "modelDigest": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "promptHash": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "toolContract": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "instanceConfig": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
         }
       }
     },

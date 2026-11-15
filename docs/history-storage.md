@@ -152,3 +152,19 @@ No database or paid service is needed.
 
 The existing `comparison.newlyFailing` field and gate budgets retain their
 legacy meaning, including newly introduced failing rows. Legacy bootstrap settings remain unchanged. The opt-in [paired comparison gate](./gates.md#paired-comparison-gate) uses matching version-compatible groups and reports a distinct inconclusive state when its criterion cannot be established. Descriptive score changes alone do not establish significance or certify a deployment.
+
+## Compare recorded model, prompt, tool and configuration versions
+
+Two runs can use the same dataset and rubric while other conditions change.
+Optional suite `comparisonKeys` record those version IDs. Missing values remain
+unknown; they are shown beside the baseline status. Unexpected differences
+make matched-case statistics incompatible. A version recorded on only one side
+leaves that comparison unknown. Existing reports that omit all four keys keep
+their previous gate and matched-case behavior.
+
+For an intentional model or prompt experiment, explain the varied key in
+`comparisonTreatments`. The report retains the difference and explanation;
+it does not mistake it for an unexplained change. Naming an experiment alone
+is not enough, and the declaration does not prove causal attribution. See
+[the exact format](./artifact-format.md#optional-baseline-version-keys) and
+[runnable example](../examples/baseline-version-keys/README.md).

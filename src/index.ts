@@ -79,3 +79,5 @@ export { filterReportByTier, type PrTierBudgetConfig } from './gates/pr-tiering.
 
 export { measureClassCalibration, summarizeClassCalibration, type ClassCalibrationSummary } from './analytics/class-calibration.js';
 export type { LabelScale } from './model/eval-report-v1.js';
+
+export { COMPARISON_KEYS, type ComparisonKey, type VersionKeyComparison } from './model/eval-report-v1.js';
