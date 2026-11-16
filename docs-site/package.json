@@ -13,8 +13,8 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "7.4.11",
-    "@astrojs/markdown-satteri": "0.4.9",
+    "astro": "7.4.12",
+    "@astrojs/markdown-satteri": "0.4.10",
     "satteri": "0.11.7"
   }
 }
