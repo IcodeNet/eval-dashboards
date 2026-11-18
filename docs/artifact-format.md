@@ -424,7 +424,7 @@ Blocking suite threshold keys supported by `check` include:
 - Critical rate: `criticalFailureRate` (maximum critical failure ratio)
 - Calibration sample: `minCalibrationRows` (minimum paired `judgeVerdict` and
   `groundTruthVerdict` rows; positive safe integer). Snake-case and kebab-case
-  aliases are accepted. In source after 0.11.0, this optional numeric threshold
+  aliases are accepted. In version 0.12.0 and newer, this optional numeric threshold
   uses the existing `gate.thresholds` map; no new schema version is needed.
 - Calibration agreement: `minJudgeAgreementRate`, `maxJudgeDisagreementRate`
   and shared-axis error `maxAxisScoreDelta`; see [calibration gates](./gates.md#calibration-thresholds-require-observations).
@@ -666,7 +666,7 @@ the scale in a review bundle does not change the target's mapping. Boolean-only
 review bundles keep their existing workflow.
 
 Try the [runnable four-class example](../examples/calibration-class-labels/README.md).
-These additive fields keep `eval-report/v1`; they are after published npm 0.11.0.
+These additive fields keep `eval-report/v1`; they are added in version 0.12.0.
 
 ## Optional baseline version keys
 
@@ -715,4 +715,4 @@ status covers the recorded comparison rules; it does not prove that every
 possible condition was held fixed.
 
 Try the [runnable version comparison](../examples/baseline-version-keys/README.md).
-These optional fields keep `eval-report/v1` and require source after npm 0.11.0.
+These optional fields keep `eval-report/v1` and require version 0.12.0 or newer.

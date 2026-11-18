@@ -2,7 +2,7 @@
 
 An AI judge is a model that marks an answer as passing or failing. This view
 compares its decisions with a person's reviewed answers. The feature is in
-source after version 0.11.0.
+version 0.12.0 and newer.
 
 ## Start with the mistake
 

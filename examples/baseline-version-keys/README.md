@@ -20,4 +20,4 @@ in these fields. Missing values stay unknown; declaring an experiment cannot
 fill in an unrecorded value or waive dataset/rubric changes. This metadata does
 not prove that an experiment is well controlled or establish a model's quality.
 See [the contract](../../docs/artifact-format.md#optional-baseline-version-keys).
-Requires source after npm 0.11.0.
+Requires version 0.12.0 or newer.

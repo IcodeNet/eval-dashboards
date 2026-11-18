@@ -59,6 +59,17 @@ See also: [ROADMAP.md](./ROADMAP.md) for the prioritized improvement plan.
     workflow. It is dispatched manually from verified `main`, publishes through
     npm OIDC, and creates the version tag and GitHub release after publishing.
 
+## Portable 0.12.0 candidate — preparation 2026-11-15
+
+All seven 4E.12 corrections are merged through
+`03044b9ce8e13254401a816daf2cf12bb66d4723` (#116–#119 and #123–#125).
+Raw main CI passed 1,130 tests, 49 PostgreSQL checks, installed consumers on
+Node 20/22/24/26, four accessibility fixtures, documentation and examples.
+The source-only hosted backlog remains separate. This branch prepares the
+0.12.0 version and changelog; it does not claim publication. The registry
+still exposes 0.11.0 as latest at the 2026-11-15 check. See the
+[release plan](./npm-publishing.md#0120-candidate--2026-11-15).
+
 ## Latest npm release — 0.11.0 published
 
 Verified 2026-11-02: npm `latest` is **0.11.0**. The GitHub release/tag and npm
@@ -241,7 +252,7 @@ Phase 4J (OpenTelemetry GenAI evaluation-span mapping): 4J.1 shipped. `eval-dash
 - 4K.2 SQLite backend on `node:sqlite` (`src/history/sqlite-store.ts`), chosen by output extension, plus `history-convert` to import and export `history.json`. `node:sqlite` needs Node 22.5 or later; it loads lazily, so `engines` stays `>=20` and Node 20 gets a clear message only when SQLite is requested.
 - 4K.3 `history-report` renders a static trend page filtered by date range, branch and suite, with retention (`--keep-last`, `--max-age-days`, `--prune-to`). See `docs/history-storage.md`.
 - Redis and Cosmos are not planned. The adapter lets one be added later.
-- No 1.0.0 release has been published. The 1.0.0 release decision stays with the owner; the 2026-11-02 authorization is for 0.11.0.
+- No 1.0.0 release has been published. The 1.0.0 release decision stays with the owner; the standing instruction authorizes coherent portable 0.x milestones after verified merges.
 - Roadmap 4C.4 stays open: draft PR #9044 awaits the external Rupic review (an AI code-review GitHub App).
 
 ## Verification update — 2026-10-08

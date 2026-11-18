@@ -1,6 +1,6 @@
 # Minimum labelled calibration sample
 
-In source after 0.11.0, run from the repository root:
+In version 0.12.0 and newer, run from the repository root:
 
 ```sh
 pnpm dev check --input=examples/calibration-minimum-sample

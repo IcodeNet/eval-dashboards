@@ -11,72 +11,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Hosted source work — outside the npm package
+
+- Project-bound API credentials, private artifact intake and PostgreSQL storage
+  are implemented in source. Uploads are bounded and retried safely.
+- Worker claims, renewal, retry delays and stale-token protection have real
+  database coverage. Accounts, credential issuance, indexing and service
+  deployment remain open. The portable package requires no database.
+
+## [0.12.0] — 2026-11-15
+
 ### Fixed
 
-- `zeroCritical` now counts failed critical rows, matching the suite-level
-  rule. Passing critical checks no longer block a run or inflate the failure
-  message. Report severity totals still include passing rows.
-
-- Calibration preflight now requires a recent matching run to pass a declared
-  agreement bar on the relevant judge's paired labels. Missing judge verdicts,
-  missing agreement bars and other judges' passing labels cannot qualify it.
-  Existing report-only warnings and explicit calibration opt-outs remain.
-
-- Blocking calibration agreement/disagreement thresholds now fail when no paired
-  judge/human verdicts exist. Axis-delta thresholds also require shared scored
-  axes. Missing evidence no longer counts as perfect agreement or zero error;
-  measured zero agreement/delta remains a real observation. Configured blocking
-  thresholds also fail on missing suite summaries, suite aliases retain their
-  observations, and non-finite paired axis scores cannot hide failures.
+- Checks requiring an AI judge to agree with a person now fail when comparable
+  labels are missing. Missing evidence no longer looks like perfect agreement
+  or zero scoring error. Missing test-group summaries, unclear group names and invalid
+  numeric scores cannot hide these failures.
+- A judge's calibration evidence must meet its own declared agreement target
+  for that judge. A recent file or another judge's passing examples are not
+  enough. Existing report-only behavior and explicit overrides remain.
+- `zeroCritical` counts failed critical checks. Passing critical checks no
+  longer block a build or inflate its failure message. Severity totals still
+  show all checks at each severity.
 
 ### Added
 
-- Optional suite model, prompt, tool-contract and configuration version keys
-  for baseline comparisons. Missing values stay unknown. Explicitly explained
-  experiment changes stay visible without becoming uncontrolled drift.
-  Blocking/report-only policy and paired eligibility use the shared evidence;
-  reports prioritize changed versions and retain all results in JSON.
-  Includes a runnable example and installed-package checks.
+- Optional `minCalibrationRows` requires enough comparable judge/person labels
+  before accepting calibration. Each relevant judge must meet the chosen count.
+- Reports show how often a judge agrees with people, including reviewed-example
+  counts, class frequencies and results by test group, judge and reviewer
+  category. Cohen's kappa adjusts agreement for how often each answer is used.
+  Scores that cannot be computed stay unavailable; an optional `minJudgeKappa` enables a gate.
+- A test group can declare answer labels such as “fully answered”, “partially
+  answered”, “not covered” and “wrong”, plus an explicit Pass mapping. Gates,
+  reports, runner adapters and human-review imports retain the actual labels.
+  Existing boolean artifacts keep working.
+- Optional model, prompt, tool and settings version IDs make baseline changes
+  visible. Missing values stay unknown. Explicitly explained experiment changes
+  remain distinct from unexplained changes. Reports prioritize differences
+  before their display limit and retain every check in JSON.
+- Runnable calibration-sample, four-class and version-comparison examples are
+  included and verified through the installed package.
 
-- Optional suite `labelScale`, judge and human class labels, and an explicit
-  Pass mapping. Calibration gates and reports compare exact class names;
-  different scales remain separate. Human-review imports preserve agreed
-  class labels and check the target mapping. Existing booleans keep working.
-  Includes a runnable four-class example and installed-package checks.
+### Changed
 
-- Shared calibration statistics report paired counts, raw agreement, Cohen's
-  kappa, label frequencies and suite/judge/human-category breakdowns in JSON,
-  text, Markdown and offline HTML. Undefined metrics stay explicit. Optional
-  `minJudgeKappa` enables blocking checks and matching-judge preflight evidence;
-  reporting alone does not enable a new gate. Minimum scores use the actual
-  decision counts to avoid rounding mistakes. Names stay literal in Markdown,
-  and the interface explains the scores in plain English.
+- PR guidance checks clarity separately from template structure and uses plain
+  English in automated dependency descriptions.
+- Documentation, test and optional email packages are updated, and pnpm 12.18.0
+  is aligned across local setup and workflows. The minimum Node version stays
+  20; installed consumers are checked on Node 20, 22, 24 and 26.
 
-- Optional `minCalibrationRows` suite threshold requires a positive minimum
-  number of paired judge/human verdicts. Unlabelled rows cannot inflate it;
-  calibration preflight applies the declared floor to each relevant judge.
-  Includes snake/kebab aliases and a runnable synthetic example.
-
-- Private hosted API secret generation and bearer-header authentication helpers:
-  canonical 32-byte random secrets, digest-only lookup, stored project/scope
-  checks, denied backend failures and immutable returned identity. Includes a
-  provider-free example and real PostgreSQL integration coverage. No HTTP route
-  or persistent issuer is included.
-
-- Source-only project-bound API credential storage and restricted PostgreSQL
-  lookup: digests, finite expiry/revocation and permissions intersected with
-  current membership. Real database tests cover isolation and denied access.
-  HTTP authentication and credential issuance remain future work.
-
-- Source-only M2 PostgreSQL storage foundation: tenant/project row policies and
-  composite references, immutable artifact/idempotency records, separate job
-  processing and quality states, and isolated real-database tests. No hosted
-  authentication, upload API, worker or deployment is included. The portable
-  npm package remains database-free.
-
-Portable [0.11.0](https://github.com/IcodeNet/eval-dashboards/releases/tag/v0.11.0)
-was published on 2026-11-02 after owner authorization and verified-main checks.
-The hosted source work above remains outside the portable release offering. See [release acceptance](docs/npm-publishing.md#release-acceptance-and-publication).
+The portable artifact format remains `eval-report/v1`. Hosted source modules
+remain outside the npm exports. This release does not deploy a hosted service.
 
 ## [0.11.0] — 2026-11-02
 
